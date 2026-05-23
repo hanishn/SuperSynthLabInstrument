@@ -1,6 +1,6 @@
 # Super Synth Lab - Instrument
 
-**[Try it now](https://hanishn.github.io/SuperSynthLabInstrument/)**
+**[Try it now](https://hanishn.github.io/SuperSynthLabInstrument/)** | **[Join the Discord](https://discord.gg/2QmW8FJdgW)**
 
 Super Synth Lab - Instrument (SSLI) is a browser-based synthesizer featuring 17+ synthesis engines (subtractive, FM, physical modelling, granular, additive, and more), 21+ audio effects, MIDI controller support, and 15 playing surfaces including piano, isomorphic grids, fretboard, and percussion pads. It runs entirely in your browser with no accounts, no data collection, and no installation required.
 
