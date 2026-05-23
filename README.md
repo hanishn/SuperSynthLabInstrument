@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo.png" alt="Super Synth Lab" width="200">
+</p>
+
 # Super Synth Lab - Instrument
 
 **[Try it now](https://hanishn.github.io/SuperSynthLabInstrument/)** | **[Join the Discord](https://discord.gg/2QmW8FJdgW)**
