@@ -39,7 +39,7 @@ Or visit the hosted version: **https://hanishn.github.io/SuperSynthLabInstrument
 
 Nathan Hanish
 
-Built with the help of [Claude Code](https://claude.ai/code) and [Stardock Clairvoyance](https://www.stardock.com/products/clairvoyance/).
+Built with the help of [Claude Code](https://claude.ai/code) and [Clairvoyance](https://www.clairvoyanceai.com/).
 
 ## License
 
