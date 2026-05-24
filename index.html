@@ -25574,7 +25574,7 @@ html[data-no-backgrounds] {
 <div class="ssl-about-panel">
 <button class="ssl-about-close" onclick="document.getElementById('ssliAboutOverlay').style.display='none';" aria-label="Close">&times;</button>
 <h2 class="ssl-about-title" data-i18n="dialog.about.title">Super Synth Lab - Instrument</h2>
-<p id="ssliAboutVersion" class="ssl-about-version">Version: Super Synth Lab - Instrument v1.10.1131</p>
+<p id="ssliAboutVersion" class="ssl-about-version">Version: Super Synth Lab - Instrument v1.10.1134</p>
 <div class="ssl-about-body">
 <p data-i18n="dialog.about.description">Super Synth Lab - Instrument is a focused synthesizer with 17+ synth engines, effects chain, and MIDI support. Play, shape your sound, and perform -- all from 5 streamlined screens.</p>
 <details class="ssl-about-details"><summary data-i18n="dialog.about.features_header">What can Super Synth Lab - Instrument do?</summary>
@@ -25623,7 +25623,7 @@ html[data-no-backgrounds] {
 <div class="ssli-landing-edition" data-i18n="app.edition">Public Build</div>
 <div class="ssli-landing-subtitle" data-i18n="app.tagline">Every Sound. One Instrument.</div>
 <div class="ssli-landing-credit">Created by Nathan Hanish 2026</div>
-<div class="ssli-landing-version">v1.10.1131</div>
+<div class="ssli-landing-version">v1.10.1134</div>
 </div>
 <svg class="ssl-waveform-divider" viewBox="0 0 400 30" preserveAspectRatio="none" style="width:80%;max-width:500px;height:30px;margin:12px auto;display:block;opacity:0.3;"><path d="M0,15 Q25,5 50,15 T100,15 T150,15 T200,15 T250,15 T300,15 T350,15 T400,15" fill="none" stroke="url(#ssliWaveGrad)" stroke-width="1.5"/><defs><linearGradient id="ssliWaveGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#4cc9f0"/><stop offset="50%" stop-color="#7209b7"/><stop offset="100%" stop-color="#f72585"/></linearGradient></defs></svg>
 <div class="ssli-landing-actions">
@@ -116130,7 +116130,7 @@ SynthLab.ALL_SURFACE_ORDER = [
  */
 SynthLab.SURFACE_DEFAULT_PRESETS = {
   'piano':         { engine: 'Subtractive', preset: 'Electric Piano (Rhodes)', fx: 'stage-keys',      octave: 3 },
-  'chordpads':     { engine: 'Chord',       preset: 'Warm Pad',               fx: 'big-pad',          octave: 3 },
+  'chordpads':     { engine: 'Chord',       preset: 'Pop Major',              fx: 'big-pad',          octave: 3 },
   'guitar':        { engine: 'Physical',    preset: 'Nylon Guitar',           fx: 'gentle-warmth',    octave: 3 },
   'bass':          { engine: 'Physical',    preset: 'Bass Guitar',            fx: 'thick-bass',       octave: 1 },
   'pads':          { engine: 'DrumSyn',     preset: '808 Kick',               fx: 'dry',              octave: 3 },
@@ -166296,6 +166296,11 @@ var SynthLab = window.SynthLab || {};
     popup.style.top = (rect.bottom + 2) + 'px';
     popup.style.zIndex = '9999';
 
+    if (!chord._baseType) {
+      chord._baseType = chord.type;
+      chord._baseName = chord.name;
+    }
+
     var varIdx;
     for (varIdx = 0; varIdx < VARIATION_TYPES.length; varIdx++) {
       var varType = VARIATION_TYPES[varIdx];
@@ -166304,7 +166309,7 @@ var SynthLab = window.SynthLab || {};
 
       var actualType;
       if (varType === 'root') {
-        actualType = chord.type;
+        actualType = chord._baseType;
       } else {
         actualType = varType;
       }
@@ -166312,7 +166317,7 @@ var SynthLab = window.SynthLab || {};
       var noteNames = _pickNoteNames(chord.rootPc);
       var varLabel = noteNames[chord.rootPc] + _getChordSuffix(actualType);
       if (varType === 'root') {
-        varLabel = chord.name;
+        varLabel = chord._baseName;
       }
       varBtn.textContent = varLabel;
       varBtn.title = VARIATION_LABELS[varType];
@@ -170191,6 +170196,11 @@ var SynthLab = window.SynthLab || {};
     popup.style.top = (rect.bottom + 2) + 'px';
     popup.style.zIndex = '9999';
 
+    if (!chord._baseType) {
+      chord._baseType = chord.type;
+      chord._baseName = chord.name;
+    }
+
     var varIdx;
     for (varIdx = 0; varIdx < VARIATION_TYPES.length; varIdx++) {
       var varType = VARIATION_TYPES[varIdx];
@@ -170200,7 +170210,7 @@ var SynthLab = window.SynthLab || {};
       // Determine the actual chord type for this variation
       var actualType = chord.type;
       if (varType === 'root') {
-        actualType = chord.type;
+        actualType = chord._baseType;
       } else if (varType === '5') {
         actualType = '5';
       } else if (varType === 'add9') {
@@ -170212,7 +170222,7 @@ var SynthLab = window.SynthLab || {};
       var noteNames = SL.useFlatNaming(chord.rootPc) ? NOTES_FLAT : NOTES;
       var varLabel = noteNames[chord.rootPc] + _getChordSuffix(actualType);
       if (varType === 'root') {
-        varLabel = chord.name;
+        varLabel = chord._baseName;
       }
       varBtn.textContent = varLabel;
       varBtn.title = VARIATION_LABELS[varType];
