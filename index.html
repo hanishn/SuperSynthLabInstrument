@@ -16807,6 +16807,7 @@ input[type="range"].ssli-fx-modal-slider::-moz-range-thumb {
   background: rgba(0,0,0,0.25);
   border-right: 1px solid var(--ssli-border-light);
   min-width: 130px;
+  overflow-y: auto;
 }
 .ssli-fret-chord-panel .ssli-fret-chord-btn {
   height: 100%;
@@ -17287,15 +17288,20 @@ input[type="range"].ssli-fx-modal-slider::-moz-range-thumb {
   font-size: var(--ssli-fs-body);
 }
 [data-layout="phone-land"] .ssli-fret-topbar {
-  height: 20px;
+  height: auto;
+  min-height: 20px;
+  max-height: 44px;
 }
 [data-layout="phone-land"] .ssli-fret-topbar-row {
-  height: 20px;
+  height: auto;
+  min-height: 20px;
   gap: var(--ssli-gap-xs);
   padding: 0 3px;
 }
 [data-layout="phone-land"] .ssli-fret-topbar.ssli-fret-topbar-narrow {
   height: auto;
+  max-height: 56px;
+  overflow-y: hidden;
 }
 [data-layout="phone-land"] .ssli-fret-topbar.ssli-fret-topbar-narrow .ssli-fret-topbar-row {
   min-height: 20px;
@@ -17316,7 +17322,7 @@ input[type="range"].ssli-fx-modal-slider::-moz-range-thumb {
 }
 [data-layout="phone-land"] .ssli-fret-topbar .ssli-fret-chord-btn {
   min-height: 0;
-  height: 28px;
+  height: 22px;
   padding: 0 4px;
   font-size: var(--ssli-fs-xs);
 }
@@ -25568,7 +25574,7 @@ html[data-no-backgrounds] {
 <div class="ssl-about-panel">
 <button class="ssl-about-close" onclick="document.getElementById('ssliAboutOverlay').style.display='none';" aria-label="Close">&times;</button>
 <h2 class="ssl-about-title" data-i18n="dialog.about.title">Super Synth Lab - Instrument</h2>
-<p id="ssliAboutVersion" class="ssl-about-version">Version: Super Synth Lab - Instrument v1.10.1126</p>
+<p id="ssliAboutVersion" class="ssl-about-version">Version: Super Synth Lab - Instrument v1.10.1131</p>
 <div class="ssl-about-body">
 <p data-i18n="dialog.about.description">Super Synth Lab - Instrument is a focused synthesizer with 17+ synth engines, effects chain, and MIDI support. Play, shape your sound, and perform -- all from 5 streamlined screens.</p>
 <details class="ssl-about-details"><summary data-i18n="dialog.about.features_header">What can Super Synth Lab - Instrument do?</summary>
@@ -25617,7 +25623,7 @@ html[data-no-backgrounds] {
 <div class="ssli-landing-edition" data-i18n="app.edition">Public Build</div>
 <div class="ssli-landing-subtitle" data-i18n="app.tagline">Every Sound. One Instrument.</div>
 <div class="ssli-landing-credit">Created by Nathan Hanish 2026</div>
-<div class="ssli-landing-version">v1.10.1126</div>
+<div class="ssli-landing-version">v1.10.1131</div>
 </div>
 <svg class="ssl-waveform-divider" viewBox="0 0 400 30" preserveAspectRatio="none" style="width:80%;max-width:500px;height:30px;margin:12px auto;display:block;opacity:0.3;"><path d="M0,15 Q25,5 50,15 T100,15 T150,15 T200,15 T250,15 T300,15 T350,15 T400,15" fill="none" stroke="url(#ssliWaveGrad)" stroke-width="1.5"/><defs><linearGradient id="ssliWaveGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#4cc9f0"/><stop offset="50%" stop-color="#7209b7"/><stop offset="100%" stop-color="#f72585"/></linearGradient></defs></svg>
 <div class="ssli-landing-actions">
@@ -170285,11 +170291,8 @@ var SynthLab = window.SynthLab || {};
       topBar.classList.add('ssli-fret-topbar-narrow');
     }
     topBar.style.width = containerWidth + 'px';
-    // On narrow viewports let the topbar grow so inline chord buttons (bass)
-    // can wrap onto a second row instead of overflowing horizontally.
-    if (!isNarrowViewport) {
-      topBar.style.height = TOP_BAR_HEIGHT + 'px';
-    }
+    // Height controlled by CSS: .ssli-fret-topbar (30px default),
+    // narrow class (auto), phone-land overrides (auto with max-height).
 
     // === Row 1: Preset, Root, Mode, StringCount, Course, Tuning, Chords, Strum ===
     var row1 = document.createElement('div');
@@ -170646,23 +170649,25 @@ var SynthLab = window.SynthLab || {};
 
     // Build top bar
     var topBar = _buildTopBar(container, containerWidth, mode, rebuildCallback, isNarrowViewport);
-    // Topbar may wrap onto multiple rows on narrow viewports; measure it after
-    // append so we don't subtract the wrong height from the board.
-    var measuredTopBarHeight = topBar.getBoundingClientRect().height || TOP_BAR_HEIGHT;
-    var boardHeight = containerHeight - measuredTopBarHeight;
-    if (boardHeight < 80) { boardHeight = containerHeight - TOP_BAR_HEIGHT; }
+    topBar.style.flexShrink = '0';
 
     var hasChordPanel = true;
     var chordPanelWidth = hasChordPanel ? chordPanelWidthPx : 0;
     var boardWidth = containerWidth - strumButtonWidthPx - chordPanelWidth;
 
-    /* Row wrapper for chord panel + fretboard + strum button side by side */
+    // Board row takes remaining space via flex — no dependency on topbar
+    // height measurement. Append immediately so flex layout resolves.
     var boardRow = document.createElement('div');
     boardRow.className = 'ssli-fret-board-row';
     boardRow.style.display = 'flex';
     boardRow.style.flexDirection = 'row';
     boardRow.style.width = containerWidth + 'px';
-    boardRow.style.height = boardHeight + 'px';
+    boardRow.style.flex = '1';
+    boardRow.style.minHeight = '0';
+    container.appendChild(boardRow);
+
+    var boardHeight = boardRow.getBoundingClientRect().height;
+    if (boardHeight < 80) { boardHeight = containerHeight - TOP_BAR_HEIGHT; }
 
     if (hasChordPanel) {
       var chordPanel = document.createElement('div');
@@ -170891,7 +170896,6 @@ var SynthLab = window.SynthLab || {};
       bigStrumBtn.classList.remove('ssli-fret-big-strum-active');
     });
     boardRow.appendChild(bigStrumBtn);
-    container.appendChild(boardRow);
 
     // Store geometry after append
     var boardRect = board.getBoundingClientRect();
