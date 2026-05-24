@@ -1,0 +1,965 @@
+/**
+ * effects-screen.css - EFFECTS screen styles for SuperSynthLab
+ * Overhauled layout: instrument tabs, master mix, card grid
+ */
+
+/* ========================================
+   Screen Container
+   ======================================== */
+
+#screen-effects {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow-y: auto;
+    background: var(--sslu-bg-base);
+}
+
+/* ========================================
+   Instrument Tabs
+   ======================================== */
+
+.effects-inst-tabs-bar {
+    display: flex;
+    gap: var(--sslu-gap-sm);
+    padding: 0.35rem 0.6rem;
+    background: var(--sslu-bg-raised);
+    border-bottom: var(--sslu-border-w-thin) solid var(--sslu-border-default);
+    flex-shrink: 0;
+    align-items: center;
+}
+
+.effects-inst-tab-btn {
+    flex: 1;
+    padding: 0.35rem var(--sslu-gap-lg);
+    font-size: var(--sslu-fs-h4);
+    font-weight: var(--sslu-fw-medium);
+    background: var(--sslu-bg-widget);
+    border: var(--sslu-border-w-thin) solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--sslu-radius-md);
+    color: #888;
+    cursor: pointer;
+    transition: all var(--sslu-transition-normal);
+    text-align: center;
+    white-space: nowrap;
+}
+
+.effects-inst-tab-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ccc;
+}
+
+.effects-inst-tab-btn.active {
+    color: var(--sslu-text-primary);
+    font-weight: var(--sslu-fw-bold);
+}
+
+/* Per-instrument color coding */
+.effects-inst-tab-btn.active[data-inst="0"] {
+    background: linear-gradient(135deg, rgba(76,201,240,0.3), rgba(76,201,240,0.1));
+    border-color: var(--sslu-inst-0);
+}
+.effects-inst-tab-btn.active[data-inst="1"] {
+    background: linear-gradient(135deg, rgba(45,212,191,0.3), rgba(45,212,191,0.1));
+    border-color: var(--sslu-inst-1);
+}
+.effects-inst-tab-btn.active[data-inst="2"] {
+    background: linear-gradient(135deg, rgba(245,158,11,0.3), rgba(245,158,11,0.1));
+    border-color: var(--sslu-inst-2);
+}
+.effects-inst-tab-btn.active[data-inst="3"] {
+    background: linear-gradient(135deg, rgba(167,139,250,0.3), rgba(167,139,250,0.1));
+    border-color: var(--sslu-inst-3);
+}
+.effects-inst-tab-btn.active[data-inst="4"] {
+    background: linear-gradient(135deg, rgba(247,37,133,0.3), rgba(247,37,133,0.1));
+    border-color: var(--sslu-inst-master);
+}
+.effects-inst-tab-btn.active[data-inst="master"] {
+    background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
+    border-color: #ccc;
+}
+
+.effects-bypass-btn {
+    padding: var(--sslu-gap-sm) 0.7rem;
+    font-size: var(--sslu-fs-h4);
+    background: var(--sslu-bg-input);
+    color: #ccc;
+    border: var(--sslu-border-w-thin) solid var(--sslu-border-medium);
+    border-radius: var(--sslu-radius-md);
+    cursor: pointer;
+    margin-left: var(--sslu-gap-lg);
+    flex-shrink: 0;
+    transition: all var(--sslu-transition-normal);
+}
+
+.effects-bypass-btn:hover {
+    border-color: var(--sslu-danger-text);
+}
+
+.effects-bypass-btn.active {
+    background: #ff4444;
+    color: var(--sslu-text-primary);
+    border-color: var(--sslu-danger-text);
+}
+
+/* ========================================
+   Master Mix Bar
+   ======================================== */
+
+.effects-master-mix-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--sslu-gap-xl);
+    padding: var(--sslu-pad-panel) 0.8rem;
+    margin: var(--sslu-gap-md) var(--sslu-gap-xl) 0;
+    background: var(--sslu-cyan-ghost);
+    border: var(--sslu-border-w-thin) solid var(--sslu-cyan-subtle);
+    border-radius: var(--sslu-radius-lg);
+    flex-shrink: 0;
+}
+
+.effects-master-mix-label {
+    font-size: var(--sslu-fs-h2);
+    font-weight: var(--sslu-fw-bold);
+    color: var(--sslu-cyan);
+    white-space: nowrap;
+}
+
+.effects-master-mix-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: var(--sslu-slider-master-track-h);
+    background: linear-gradient(to right, #333 0%, var(--sslu-cyan) 100%);
+    border-radius: var(--sslu-radius-md);
+    cursor: pointer;
+    outline: none;
+}
+
+.effects-master-mix-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: var(--sslu-slider-master-thumb);
+    height: var(--sslu-slider-master-thumb);
+    background: var(--sslu-cyan);
+    border-radius: var(--sslu-radius-pill);
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(76, 201, 240, 0.5);
+}
+
+.effects-master-mix-slider::-moz-range-thumb {
+    width: var(--sslu-slider-master-thumb);
+    height: var(--sslu-slider-master-thumb);
+    background: var(--sslu-cyan);
+    border-radius: var(--sslu-radius-pill);
+    cursor: pointer;
+    border: none;
+}
+
+.effects-master-mix-value {
+    font-size: var(--sslu-fs-h3);
+    font-weight: var(--sslu-fw-medium);
+    color: var(--sslu-cyan);
+    min-width: 45px;
+    text-align: right;
+    font-family: var(--sslu-font-mono);
+}
+
+/* ========================================
+   Effect List — flex-wrap layout
+   Enabled effects: full-width rows with params
+   Disabled effects: compact inline chips
+   ======================================== */
+
+.effects-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--sslu-space-4) var(--sslu-space-6);
+    scrollbar-width: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sslu-space-2);
+    align-content: flex-start;
+}
+
+.effects-list::-webkit-scrollbar {
+    display: none;
+}
+
+/* --- Enabled effect: full-width row with params --- */
+.effects-row {
+    display: flex;
+    flex-direction: column;
+    background: rgba(16, 16, 32, 0.5);
+    border: var(--sslu-border-w-thin) solid var(--sslu-border-default);
+    border-radius: var(--sslu-radius-lg);
+    padding: var(--sslu-space-4) var(--sslu-space-6);
+    opacity: var(--ssli-opacity-inactive);
+    transition: opacity var(--sslu-transition-normal), border-color var(--sslu-transition-normal);
+    width: 100%;
+    flex-shrink: 0;
+}
+
+.effects-row.enabled {
+    opacity: var(--ssli-opacity-active);
+    border-color: var(--sslu-indigo-dim);
+    border-left: 3px solid var(--sslu-indigo, #7209b7);
+    background: rgba(114, 9, 183, 0.1);
+    width: 100%;
+    order: -1;
+    transition: opacity var(--sslu-transition-normal), border-color var(--sslu-transition-normal), background 0.1s ease;
+}
+
+/* --- Disabled effect: compact chip --- */
+.effects-row:not(.enabled) {
+    flex-direction: row;
+    align-items: center;
+    width: auto;
+    padding: var(--sslu-space-1) var(--sslu-space-4);
+    border-radius: var(--sslu-radius-3xl);
+    gap: var(--sslu-space-2);
+}
+
+.effects-row-header {
+    display: flex;
+    align-items: center;
+    gap: var(--sslu-space-4);
+}
+
+/* Compact header in disabled chips */
+.effects-row:not(.enabled) .effects-row-header {
+    gap: var(--sslu-space-2);
+}
+
+.effects-row-toggle {
+    min-width: var(--sslu-touch-min);
+    min-height: var(--sslu-touch-min);
+    accent-color: var(--sslu-indigo);
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+
+/* Checked toggle: bright fill + scale pop */
+.effects-row-toggle:checked {
+    accent-color: var(--sslu-cyan);
+}
+
+@keyframes efx-toggle-pop {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.effects-row-toggle.efx-pop {
+    animation: efx-toggle-pop 0.1s ease-out;
+}
+
+/* Smaller checkbox in disabled chips */
+.effects-row:not(.enabled) .effects-row-toggle {
+    min-width: 28px;
+    min-height: 28px;
+}
+
+.effects-row-icon {
+    font-size: var(--sslu-fs-icon);
+}
+
+/* Smaller icon in disabled chips */
+.effects-row:not(.enabled) .effects-row-icon {
+    font-size: var(--sslu-fs-px-lg);
+}
+
+.effects-row-name {
+    font-size: var(--sslu-fs-px-lg);
+    font-weight: var(--sslu-fw-medium);
+    color: #ccccee;
+    flex: 1;
+}
+
+/* Smaller name in disabled chips */
+.effects-row:not(.enabled) .effects-row-name {
+    font-size: var(--sslu-fs-px-base);
+    flex: none;
+    white-space: nowrap;
+}
+
+.effects-row-move {
+    background: none;
+    border: var(--sslu-border-w-thin) solid #3a3a5a;
+    color: var(--sslu-text-muted);
+    border-radius: var(--sslu-radius-sm);
+    padding: var(--sslu-pad-input);
+    font-size: var(--sslu-fs-px-sm);
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.effects-row-move:hover {
+    border-color: var(--sslu-indigo);
+    color: #ccccee;
+}
+
+/* Hide move buttons on disabled chips */
+.effects-row:not(.enabled) .effects-row-move {
+    display: none;
+}
+
+.effects-row:not(.enabled) .effects-row-params {
+  display: none;
+}
+
+.effects-row-params {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sslu-space-4);
+    margin-top: var(--sslu-space-3);
+    padding-left: 28px;
+}
+
+.effects-row-param {
+    display: flex;
+    align-items: center;
+    gap: var(--sslu-space-2);
+    min-width: 180px;
+}
+
+.effects-row-param-label {
+    font-size: var(--sslu-fs-px-base);
+    color: var(--sslu-text-muted);
+    min-width: 50px;
+}
+
+.effects-row-param-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100px;
+    height: var(--sslu-slider-track-h);
+    background: var(--sslu-slider-track-bg);
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+    outline: none;
+    accent-color: var(--sslu-indigo);
+}
+
+.effects-row-param-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: var(--sslu-slider-thumb-w);
+    height: var(--sslu-slider-thumb-h);
+    background: var(--sslu-indigo);
+    border-radius: var(--sslu-radius-pill);
+    cursor: pointer;
+}
+
+.effects-row-param-slider::-moz-range-thumb {
+    width: var(--sslu-slider-thumb-w);
+    height: var(--sslu-slider-thumb-h);
+    background: var(--sslu-indigo);
+    border-radius: var(--sslu-radius-pill);
+    cursor: pointer;
+    border: none;
+}
+
+.effects-row-param-value {
+    font-size: var(--sslu-fs-px-base);
+    color: #aaaacc;
+    min-width: 40px;
+    text-align: right;
+    font-family: var(--sslu-font-mono);
+}
+
+/* Keep effects-add-select and effects-add-btn for phrase looper controls */
+.effects-add-select {
+    flex: 1;
+    max-width: 220px;
+    padding: var(--sslu-space-2) var(--sslu-space-4);
+    font-size: var(--sslu-fs-h4);
+    background: var(--sslu-bg-input);
+    color: #ccc;
+    border: var(--sslu-border-w-thin) solid var(--sslu-border-medium);
+    border-radius: var(--sslu-radius-md);
+}
+
+.effects-add-btn {
+    padding: var(--sslu-space-2) var(--sslu-space-6);
+    font-size: var(--sslu-fs-h4);
+    background: #2a6;
+    color: var(--sslu-text-primary);
+    border: var(--sslu-border-w-thin) solid #3b7;
+    border-radius: var(--sslu-radius-md);
+    cursor: pointer;
+    font-weight: var(--sslu-fw-medium);
+}
+
+.effects-add-btn:hover {
+    background: #3b7;
+}
+
+/* ========================================
+   Bottom Bar
+   ======================================== */
+
+.effects-screen-bottom-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--sslu-gap-lg);
+    padding: 0.35rem 0.6rem;
+    background: var(--sslu-bg-raised);
+    border-top: var(--sslu-border-w-thin) solid var(--sslu-border-default);
+    flex-shrink: 0;
+    min-height: 32px;
+}
+
+.effects-test-btn,
+.effects-ab-btn {
+    padding: var(--sslu-gap-sm) 0.8rem;
+    font-size: var(--sslu-fs-h3);
+    background: var(--sslu-bg-input);
+    color: #ccc;
+    border: var(--sslu-border-w-thin) solid var(--sslu-border-medium);
+    border-radius: var(--sslu-radius-md);
+    cursor: pointer;
+    font-weight: var(--sslu-fw-medium);
+    transition: all var(--sslu-transition-normal);
+}
+
+.effects-test-btn:hover {
+    background: #2a3a5a;
+    border-color: var(--sslu-cyan);
+    color: var(--sslu-text-primary);
+}
+
+.effects-ab-btn.active {
+    background: #4a2a00;
+    border-color: var(--sslu-warning);
+    color: var(--sslu-warning);
+}
+
+.effects-screen-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    color: var(--ssli-text-muted, rgba(220,235,245,0.50));
+    font-size: var(--sslu-fs-h2);
+    font-style: italic;
+}
+
+/* ========================================
+   303 Phrase Looper
+   ======================================== */
+
+.fx-phrase-section {
+    margin: var(--sslu-gap-lg) var(--sslu-gap-xl);
+    padding-top: var(--sslu-gap-lg);
+    border-top: var(--sslu-border-w-thin) solid var(--sslu-border-default);
+    flex-shrink: 0;
+}
+
+.fx-phrase-section h4 {
+    margin-top: 0;
+    color: var(--sslu-text-body);
+    font-size: var(--sslu-fs-h2);
+}
+
+.fx-phrase-transport {
+    display: flex;
+    align-items: center;
+    gap: var(--sslu-gap-lg);
+    margin-bottom: var(--sslu-gap-md);
+}
+
+.fx-phrase-play-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--sslu-radius-pill);
+    border: var(--sslu-border-w-thick) solid var(--sslu-inst-3);
+    background: var(--sslu-bg-input);
+    color: var(--sslu-inst-3);
+    font-size: var(--ssli-fs-lg);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.fx-phrase-play-btn:hover {
+    background: var(--sslu-bg-highlight);
+}
+
+.fx-phrase-play-btn.playing {
+    background: var(--sslu-inst-3);
+    color: #000;
+}
+
+.fx-phrase-grid {
+    display: flex;
+    gap: var(--sslu-space-1);
+    margin-bottom: var(--sslu-gap-md);
+}
+
+.fx-phrase-step {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sslu-space-1);
+    padding: var(--sslu-space-1) 1px;
+    background: #12122a;
+    border: var(--sslu-border-w-thin) solid #1a1a3a;
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+    min-width: 0;
+    transition: border-color 0.1s, background 0.1s;
+}
+
+.fx-phrase-step.active {
+    border-color: var(--sslu-inst-3);
+    background: #2a1a4a;
+}
+
+.fx-phrase-step .fx-phrase-note {
+    font-size: var(--sslu-fs-body);
+    color: var(--sslu-text-body);
+    font-family: var(--sslu-font-mono);
+    white-space: nowrap;
+    user-select: none;
+}
+
+.fx-phrase-step.rest .fx-phrase-note {
+    color: var(--sslu-text-faint);
+}
+
+.fx-phrase-accent,
+.fx-phrase-slide {
+    width: 18px;
+    height: 16px;
+    border: var(--sslu-border-w-thin) solid #333;
+    border-radius: var(--sslu-radius-xs);
+    background: transparent;
+    color: var(--ssli-text-muted, rgba(220,235,245,0.50));
+    font-size: var(--sslu-fs-small);
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fx-phrase-accent:hover,
+.fx-phrase-slide:hover {
+    border-color: var(--sslu-text-faint);
+}
+
+.fx-phrase-accent.on {
+    background: #cc4400;
+    color: var(--sslu-text-primary);
+    border-color: #ff6600;
+}
+
+.fx-phrase-slide.on {
+    background: #6633cc;
+    color: var(--sslu-text-primary);
+    border-color: #8855ff;
+}
+
+.fx-phrase-controls {
+    display: flex;
+    gap: var(--sslu-gap-md);
+    align-items: center;
+    margin-bottom: var(--sslu-gap-md);
+}
+
+/* ========================================
+   Quad-fill enhancements
+   ======================================== */
+
+.sslu-quad #screen-effects {
+    height: 100%;
+}
+
+.sslu-quad .effects-list {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    align-content: flex-start;
+}
+
+.sslu-quad .effects-row.enabled {
+    flex: 1;
+    min-height: 60px;
+}
+
+.sslu-quad .effects-master-mix-bar {
+    flex-shrink: 0;
+}
+
+.sslu-quad .effects-inst-tabs-bar {
+    flex-shrink: 0;
+    width: 100%;
+}
+
+/* ========================================
+   Phone overrides
+   ======================================== */
+
+[data-layout="phone"] .effects-row {
+    min-height: 48px;
+}
+
+[data-layout="phone"] .effects-row-toggle {
+    min-width: var(--sslu-touch-min);
+    min-height: var(--sslu-touch-min);
+}
+
+[data-layout="phone"] .effects-inst-tab-btn {
+    padding: var(--sslu-gap-lg) var(--sslu-gap-sm);
+    font-size: var(--sslu-fs-body-sm);
+}
+
+/* ========================================
+   Phone Landscape overrides (844x390)
+   Single-pane mode, ~350px usable height
+   ======================================== */
+
+/* --- Tab bar: compact 28px --- */
+[data-layout="phone-land"] .effects-inst-tabs-bar {
+    padding: 2px 0.4rem;
+    gap: var(--sslu-space-1);
+    min-height: 28px;
+}
+
+[data-layout="phone-land"] .effects-inst-tab-btn {
+    padding: 3px var(--sslu-gap-sm);
+    font-size: var(--sslu-fs-px-sm);
+}
+
+[data-layout="phone-land"] .effects-bypass-btn {
+    padding: 2px 0.5rem;
+    font-size: var(--sslu-fs-px-sm);
+    margin-left: var(--sslu-gap-sm);
+}
+
+/* --- Effect list: multi-column grid, fill quad height --- */
+[data-layout="phone-land"] .effects-list {
+    padding: var(--sslu-space-2) var(--sslu-space-4);
+    gap: var(--sslu-space-1);
+    display: flex;
+    flex-wrap: wrap;
+    flex: 1 1 0;
+    align-content: space-evenly;
+    overflow-y: auto;
+}
+
+/* --- Disabled effect chips: 3-column grid, taller for touch --- */
+[data-layout="phone-land"] .effects-row:not(.enabled) {
+    width: calc(33.333% - 2px);
+    padding: var(--sslu-space-2) var(--sslu-space-3);
+    min-height: 38px;
+    gap: var(--sslu-space-2);
+    align-items: center;
+    justify-content: center;
+}
+
+[data-layout="phone-land"] .effects-row:not(.enabled) .effects-row-toggle {
+    min-width: 22px;
+    min-height: 22px;
+    width: 22px;
+    height: 22px;
+}
+
+[data-layout="phone-land"] .effects-row:not(.enabled) .effects-row-icon {
+    font-size: var(--sslu-fs-px-base);
+}
+
+[data-layout="phone-land"] .effects-row:not(.enabled) .effects-row-name {
+    font-size: var(--ssli-fs-body);
+}
+
+[data-layout="phone-land"] .effects-row:not(.enabled) .effects-row-header {
+    gap: var(--sslu-space-1);
+}
+
+/* --- Enabled effect rows: full-width, compact --- */
+[data-layout="phone-land"] .effects-row.enabled {
+    padding: var(--sslu-space-2) var(--sslu-space-4);
+    min-height: auto;
+}
+
+[data-layout="phone-land"] .effects-row.enabled .effects-row-toggle {
+    min-width: 22px;
+    min-height: 22px;
+    width: 22px;
+    height: 22px;
+}
+
+[data-layout="phone-land"] .effects-row.enabled .effects-row-icon {
+    font-size: var(--sslu-fs-px-base);
+}
+
+[data-layout="phone-land"] .effects-row.enabled .effects-row-name {
+    font-size: var(--sslu-fs-px-base);
+}
+
+[data-layout="phone-land"] .effects-row-header {
+    gap: var(--sslu-space-2);
+}
+
+[data-layout="phone-land"] .effects-row-move {
+    padding: 1px 4px;
+    font-size: var(--ssli-fs-xs);
+}
+
+/* --- Effect params: HIDDEN on phone-land (moved to Q4 detail quad) --- */
+[data-layout="phone-land"] .effects-row-params {
+    display: none;
+}
+
+/* --- Active Params detail quad (Q4) --- */
+[data-layout="phone-land"] .effects-active-params {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sslu-space-3);
+    padding: var(--sslu-space-3) var(--sslu-space-4);
+    height: 100%;
+    overflow: hidden;
+}
+
+[data-layout="phone-land"] .effects-active-params-title {
+    font-size: var(--ssli-fs-sm);
+    color: #aaaacc;
+    text-transform: uppercase;
+    letter-spacing: var(--sslu-ls-wider);
+    padding-bottom: var(--sslu-space-1);
+    border-bottom: var(--sslu-border-w-thin) solid #222;
+    flex-shrink: 0;
+}
+
+[data-layout="phone-land"] .effects-detail-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sslu-space-2);
+    padding: var(--sslu-space-2) var(--sslu-space-3);
+    background: #0f0f1e;
+    border: var(--sslu-border-w-thin) solid var(--sslu-border-subtle);
+    border-radius: var(--sslu-radius-sm);
+}
+
+[data-layout="phone-land"] .effects-detail-header {
+    display: flex;
+    align-items: center;
+    gap: var(--sslu-space-2);
+    font-size: var(--ssli-fs-body);
+    font-weight: var(--ssli-fw-bold);
+    color: #ccddcc;
+}
+
+[data-layout="phone-land"] .effects-detail-sliders {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sslu-space-2);
+}
+
+[data-layout="phone-land"] .effects-detail-param {
+    display: flex;
+    align-items: center;
+    gap: var(--sslu-space-2);
+    flex: 1 1 45%;
+    min-width: 140px;
+}
+
+[data-layout="phone-land"] .effects-detail-param-label {
+    font-size: var(--ssli-fs-xs);
+    color: #aaa;
+    min-width: 36px;
+}
+
+[data-layout="phone-land"] .effects-detail-empty {
+    color: var(--ssli-text-muted, rgba(220,235,245,0.50));
+    font-size: var(--ssli-fs-body);
+    text-align: center;
+    padding: 20px;
+}
+
+/* Desktop: show params inline, hide detail quad content */
+.effects-active-params {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sslu-space-3);
+    padding: var(--sslu-space-3) var(--sslu-space-4);
+}
+
+/* Fallback for non-phone-land: params shown inline */
+.effects-row-params {
+    margin-top: var(--sslu-space-1);
+    padding-left: var(--sslu-space-4);
+    gap: var(--sslu-space-2);
+}
+
+[data-layout="phone-land"] .effects-row-param {
+    min-width: 140px;
+    gap: var(--sslu-space-1);
+}
+
+[data-layout="phone-land"] .effects-row-param-label {
+    font-size: var(--ssli-fs-xs);
+    min-width: 36px;
+}
+
+[data-layout="phone-land"] .effects-row-param-slider {
+    width: 80px;
+    height: 4px;
+}
+
+[data-layout="phone-land"] .effects-row-param-slider::-webkit-slider-thumb {
+    width: 12px;
+    height: 12px;
+}
+
+[data-layout="phone-land"] .effects-row-param-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+}
+
+[data-layout="phone-land"] .effects-row-param-value {
+    font-size: var(--ssli-fs-xs);
+    min-width: 30px;
+}
+
+/* --- Master mix bar: compact --- */
+[data-layout="phone-land"] .effects-master-mix-bar {
+    padding: var(--sslu-space-2) 0.6rem;
+    margin: var(--sslu-space-2) var(--sslu-space-4) 0;
+    gap: var(--sslu-gap-sm);
+}
+
+[data-layout="phone-land"] .effects-master-mix-label {
+    font-size: var(--sslu-fs-px-base);
+}
+
+[data-layout="phone-land"] .effects-master-mix-slider {
+    height: 4px;
+}
+
+[data-layout="phone-land"] .effects-master-mix-slider::-webkit-slider-thumb {
+    width: 14px;
+    height: 14px;
+}
+
+[data-layout="phone-land"] .effects-master-mix-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+}
+
+[data-layout="phone-land"] .effects-master-mix-value {
+    font-size: var(--sslu-fs-px-sm);
+    min-width: 35px;
+}
+
+/* --- Bottom bar: compact --- */
+[data-layout="phone-land"] .effects-screen-bottom-bar {
+    padding: 1px 0.4rem;
+    min-height: 22px;
+    gap: var(--sslu-gap-sm);
+}
+
+[data-layout="phone-land"] .effects-test-btn,
+[data-layout="phone-land"] .effects-ab-btn {
+    padding: 1px 0.5rem;
+    font-size: var(--sslu-fs-px-sm);
+}
+
+/* --- Effects Q2: clip phrase looper overflow at 220px viewport --- */
+[data-layout="phone-land"] #screen-effects .sslu-quad-2 {
+    overflow: hidden;
+}
+
+/* --- Phrase looper: hide on phone-land (available on Design screen) --- */
+[data-layout="phone-land"] .fx-phrase-section {
+    display: none !important;
+}
+
+/* Hide the "303 Phrase Looper" title to save ~24px */
+[data-layout="phone-land"] .fx-phrase-section h4 {
+    display: none;
+}
+
+[data-layout="phone-land"] .fx-phrase-play-btn {
+    width: 18px;
+    height: 18px;
+    font-size: var(--ssli-fs-sm);
+}
+
+[data-layout="phone-land"] .fx-phrase-transport {
+    gap: var(--ssli-gap-xs);
+    margin-bottom: 0;
+}
+
+[data-layout="phone-land"] .fx-phrase-grid {
+    margin-bottom: 0;
+    gap: 0;
+}
+
+[data-layout="phone-land"] .fx-phrase-step {
+    padding: 0 1px;
+    gap: 0;
+}
+
+[data-layout="phone-land"] .fx-phrase-step .fx-phrase-note {
+    font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone-land"] .fx-phrase-accent,
+[data-layout="phone-land"] .fx-phrase-slide {
+    width: 12px;
+    height: 10px;
+    font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone-land"] .fx-phrase-controls {
+    margin-bottom: 0;
+    gap: var(--sslu-space-1);
+}
+
+/* Effects Q2: compact the bottom bar inside Q2 */
+[data-layout="phone-land"] #screen-effects .sslu-quad-2 .effects-screen-bottom-bar {
+    padding: 0 0.3rem;
+    min-height: 18px;
+}
+
+/* Effects Q2: compact the phrase controls buttons */
+[data-layout="phone-land"] .fx-phrase-controls .effects-add-btn {
+    padding: 1px 4px;
+    font-size: var(--ssli-fs-xs);
+}
+
+/* Effects Q2: compact transport/nav bar appended to tools quad */
+[data-layout="phone-land"] #screen-effects .sslu-quad-2 > div[style*="padding"] {
+    padding: 1px 4px !important;
+    gap: var(--ssli-gap-xs) !important;
+}
+
+/* ========================================
+   Category Headers
+   ======================================== */
+
+/* Category divider headers — clear separation between effect groups */
+.effects-cat-header {
+    font-size: var(--sslu-fs-px-md);
+    font-weight: var(--sslu-fw-bold);
+    text-transform: uppercase;
+    letter-spacing: var(--sslu-ls-widest);
+    color: var(--sslu-cyan);
+    padding: var(--sslu-space-4) var(--sslu-space-4) var(--sslu-space-2);
+    margin-top: var(--sslu-space-4);
+    border-top: var(--sslu-border-w-thick) solid rgba(76, 201, 240, 0.25);
+    width: 100%;
+    flex-shrink: 0;
+    background: linear-gradient(180deg, rgba(76, 201, 240, 0.04) 0%, transparent 100%);
+    border-radius: var(--sslu-radius-sm) var(--sslu-radius-sm) 0 0;
+}
+
+.effects-cat-header:first-child {
+    border-top: none;
+    margin-top: 0;
+}

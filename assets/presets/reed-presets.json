@@ -1,0 +1,354 @@
+{
+  "presets": [
+    {
+      "name": "Bb Clarinet",
+      "category": "Clarinet",
+      "description": "Standard orchestral Bb clarinet, warm chalumeau register.",
+      "settings": {
+        "reedType": "clarinet",
+        "reedStiffness": 50,
+        "embouchurePressure": 50,
+        "register": "normal",
+        "vibratoRate": 4.5,
+        "vibratoDepth": 10,
+        "breathNoise": 15
+      }
+    },
+    {
+      "name": "Clarinet Altissimo",
+      "category": "Clarinet",
+      "description": "Clarinet overblown into the upper register.",
+      "settings": {
+        "reedType": "clarinet",
+        "reedStiffness": 60,
+        "embouchurePressure": 65,
+        "register": "overblown",
+        "vibratoRate": 5.0,
+        "vibratoDepth": 15,
+        "breathNoise": 10
+      }
+    },
+    {
+      "name": "Bass Clarinet",
+      "category": "Clarinet",
+      "description": "Dark, resonant bass clarinet tone.",
+      "settings": {
+        "reedType": "clarinet",
+        "reedStiffness": 35,
+        "embouchurePressure": 55,
+        "register": "normal",
+        "vibratoRate": 4.0,
+        "vibratoDepth": 8,
+        "breathNoise": 20
+      }
+    },
+    {
+      "name": "Bright Clarinet",
+      "category": "Clarinet",
+      "description": "Brilliant, projecting clarinet with stiff reed.",
+      "settings": {
+        "reedType": "clarinet",
+        "reedStiffness": 75,
+        "embouchurePressure": 60,
+        "register": "normal",
+        "vibratoRate": 5.0,
+        "vibratoDepth": 12,
+        "breathNoise": 10
+      }
+    },
+    {
+      "name": "Jazz Clarinet",
+      "category": "Clarinet",
+      "description": "Smooth jazz clarinet with wide vibrato.",
+      "settings": {
+        "reedType": "clarinet",
+        "reedStiffness": 40,
+        "embouchurePressure": 45,
+        "register": "normal",
+        "vibratoRate": 5.5,
+        "vibratoDepth": 30,
+        "breathNoise": 18
+      }
+    },
+    {
+      "name": "Klezmer Clarinet",
+      "category": "Clarinet",
+      "description": "Expressive Eastern European style with heavy vibrato.",
+      "settings": {
+        "reedType": "clarinet",
+        "reedStiffness": 55,
+        "embouchurePressure": 70,
+        "register": "normal",
+        "vibratoRate": 6.5,
+        "vibratoDepth": 45,
+        "breathNoise": 12
+      }
+    },
+    {
+      "name": "Concert Oboe",
+      "category": "Oboe",
+      "description": "Standard orchestral oboe, clear and focused.",
+      "settings": {
+        "reedType": "oboe",
+        "reedStiffness": 55,
+        "embouchurePressure": 60,
+        "register": "normal",
+        "vibratoRate": 5.0,
+        "vibratoDepth": 18,
+        "breathNoise": 8
+      }
+    },
+    {
+      "name": "Oboe d'Amore",
+      "category": "Oboe",
+      "description": "Warmer, darker mezzo-soprano oboe.",
+      "settings": {
+        "reedType": "oboe",
+        "reedStiffness": 42,
+        "embouchurePressure": 50,
+        "register": "normal",
+        "vibratoRate": 4.5,
+        "vibratoDepth": 15,
+        "breathNoise": 10
+      }
+    },
+    {
+      "name": "English Horn",
+      "category": "Oboe",
+      "description": "Alto oboe with dark, melancholic timbre.",
+      "settings": {
+        "reedType": "oboe",
+        "reedStiffness": 38,
+        "embouchurePressure": 55,
+        "register": "normal",
+        "vibratoRate": 4.8,
+        "vibratoDepth": 20,
+        "breathNoise": 12
+      }
+    },
+    {
+      "name": "Baroque Oboe",
+      "category": "Oboe",
+      "description": "Historical baroque oboe, softer and less focused.",
+      "settings": {
+        "reedType": "oboe",
+        "reedStiffness": 30,
+        "embouchurePressure": 42,
+        "register": "normal",
+        "vibratoRate": 4.0,
+        "vibratoDepth": 10,
+        "breathNoise": 18
+      }
+    },
+    {
+      "name": "Bassoon",
+      "category": "Oboe",
+      "description": "Deep double-reed bassoon tone.",
+      "settings": {
+        "reedType": "oboe",
+        "reedStiffness": 45,
+        "embouchurePressure": 65,
+        "register": "normal",
+        "vibratoRate": 4.2,
+        "vibratoDepth": 12,
+        "breathNoise": 15
+      }
+    },
+    {
+      "name": "Alto Saxophone",
+      "category": "Saxophone",
+      "description": "Classic alto sax, versatile and expressive.",
+      "settings": {
+        "reedType": "saxophone",
+        "reedStiffness": 50,
+        "embouchurePressure": 55,
+        "register": "normal",
+        "vibratoRate": 5.5,
+        "vibratoDepth": 25,
+        "breathNoise": 20
+      }
+    },
+    {
+      "name": "Tenor Saxophone",
+      "category": "Saxophone",
+      "description": "Rich, warm tenor sax for jazz ballads.",
+      "settings": {
+        "reedType": "saxophone",
+        "reedStiffness": 42,
+        "embouchurePressure": 50,
+        "register": "normal",
+        "vibratoRate": 5.0,
+        "vibratoDepth": 30,
+        "breathNoise": 22
+      }
+    },
+    {
+      "name": "Soprano Saxophone",
+      "category": "Saxophone",
+      "description": "Bright, focused soprano sax.",
+      "settings": {
+        "reedType": "saxophone",
+        "reedStiffness": 60,
+        "embouchurePressure": 58,
+        "register": "normal",
+        "vibratoRate": 5.5,
+        "vibratoDepth": 20,
+        "breathNoise": 15
+      }
+    },
+    {
+      "name": "Baritone Saxophone",
+      "category": "Saxophone",
+      "description": "Deep, powerful baritone sax.",
+      "settings": {
+        "reedType": "saxophone",
+        "reedStiffness": 38,
+        "embouchurePressure": 60,
+        "register": "normal",
+        "vibratoRate": 4.5,
+        "vibratoDepth": 15,
+        "breathNoise": 25
+      }
+    },
+    {
+      "name": "Sax Growl",
+      "category": "Saxophone",
+      "description": "Aggressive sax with overblown growl effect.",
+      "settings": {
+        "reedType": "saxophone",
+        "reedStiffness": 70,
+        "embouchurePressure": 80,
+        "register": "overblown",
+        "vibratoRate": 6.0,
+        "vibratoDepth": 35,
+        "breathNoise": 35
+      }
+    },
+    {
+      "name": "Smooth Sax",
+      "category": "Saxophone",
+      "description": "Silky smooth jazz sax, minimal breath noise.",
+      "settings": {
+        "reedType": "saxophone",
+        "reedStiffness": 35,
+        "embouchurePressure": 42,
+        "register": "normal",
+        "vibratoRate": 5.2,
+        "vibratoDepth": 28,
+        "breathNoise": 8
+      }
+    },
+    {
+      "name": "Blues Harmonica",
+      "category": "Harmonica",
+      "description": "Classic blues harp with bends.",
+      "settings": {
+        "reedType": "harmonica",
+        "reedStiffness": 55,
+        "embouchurePressure": 60,
+        "register": "normal",
+        "vibratoRate": 6.0,
+        "vibratoDepth": 35,
+        "breathNoise": 30
+      }
+    },
+    {
+      "name": "Folk Harmonica",
+      "category": "Harmonica",
+      "description": "Bright, clean folk harmonica.",
+      "settings": {
+        "reedType": "harmonica",
+        "reedStiffness": 45,
+        "embouchurePressure": 45,
+        "register": "normal",
+        "vibratoRate": 5.0,
+        "vibratoDepth": 18,
+        "breathNoise": 20
+      }
+    },
+    {
+      "name": "Chromatic Harmonica",
+      "category": "Harmonica",
+      "description": "Smooth chromatic harmonica for jazz.",
+      "settings": {
+        "reedType": "harmonica",
+        "reedStiffness": 40,
+        "embouchurePressure": 50,
+        "register": "normal",
+        "vibratoRate": 5.5,
+        "vibratoDepth": 22,
+        "breathNoise": 15
+      }
+    },
+    {
+      "name": "Tremolo Harmonica",
+      "category": "Harmonica",
+      "description": "Wide tremolo effect, Asian folk style.",
+      "settings": {
+        "reedType": "harmonica",
+        "reedStiffness": 50,
+        "embouchurePressure": 55,
+        "register": "normal",
+        "vibratoRate": 8.0,
+        "vibratoDepth": 50,
+        "breathNoise": 18
+      }
+    },
+    {
+      "name": "Reed Organ",
+      "category": "Hybrid",
+      "description": "Pump organ with free reed tonality.",
+      "settings": {
+        "reedType": "harmonica",
+        "reedStiffness": 50,
+        "embouchurePressure": 65,
+        "register": "normal",
+        "vibratoRate": 0,
+        "vibratoDepth": 0,
+        "breathNoise": 8
+      }
+    },
+    {
+      "name": "Duduk",
+      "category": "Hybrid",
+      "description": "Armenian double reed with haunting, breathy quality.",
+      "settings": {
+        "reedType": "oboe",
+        "reedStiffness": 28,
+        "embouchurePressure": 58,
+        "register": "normal",
+        "vibratoRate": 4.0,
+        "vibratoDepth": 22,
+        "breathNoise": 30
+      }
+    },
+    {
+      "name": "Crumhorn",
+      "category": "Hybrid",
+      "description": "Renaissance capped double reed, buzzy and nasal.",
+      "settings": {
+        "reedType": "oboe",
+        "reedStiffness": 70,
+        "embouchurePressure": 75,
+        "register": "normal",
+        "vibratoRate": 3.5,
+        "vibratoDepth": 8,
+        "breathNoise": 12
+      }
+    },
+    {
+      "name": "Zurna",
+      "category": "Hybrid",
+      "description": "Loud Middle Eastern shawm, piercing and bright.",
+      "settings": {
+        "reedType": "oboe",
+        "reedStiffness": 80,
+        "embouchurePressure": 85,
+        "register": "overblown",
+        "vibratoRate": 7.0,
+        "vibratoDepth": 40,
+        "breathNoise": 20
+      }
+    }
+  ]
+}

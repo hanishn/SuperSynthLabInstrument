@@ -1,0 +1,180 @@
+/**
+ * fm.css - FM Synthesis Controls Styles for Synth Lab
+ * 6-operator FM synth panel, algorithm selector, operator strips
+ */
+
+/* ========================================
+   FM Controls Container (Modal)
+   ======================================== */
+
+.fm-controls-modal {
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--sslu-radius-lg);
+    margin-bottom: 0.5rem;
+}
+
+/* ========================================
+   FM Section Title
+   ======================================== */
+
+.fm-title-modal {
+    font-size: var(--ssli-fs-body);
+    font-weight: var(--ssli-fw-semibold);
+    color: var(--sslu-synth-fm);
+    letter-spacing: 0.05em;
+    margin-bottom: 0.4rem;
+    text-transform: uppercase;
+}
+
+/* ========================================
+   Algorithm + Feedback Row
+   ======================================== */
+
+.fm-algorithm-row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.fm-algorithm-row label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: var(--ssli-fs-sm);
+    color: #ccc;
+}
+
+.fm-algorithm-row select {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--sslu-radius-sm);
+    padding: 2px 4px;
+    font-size: var(--ssli-fs-sm);
+    cursor: pointer;
+}
+
+.fm-algorithm-row input[type="range"] {
+    width: 80px;
+    height: 4px;
+    accent-color: var(--sslu-synth-fm);
+    cursor: pointer;
+}
+
+.fm-algorithm-row span {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-synth-fm);
+    min-width: 1em;
+    text-align: center;
+}
+
+/* ========================================
+   Operators Container
+   ======================================== */
+
+.fm-operators {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
+}
+
+@media (max-width: 600px) {
+    .fm-operators {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ========================================
+   Individual Operator Strip
+   ======================================== */
+
+.fm-op-strip {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--sslu-radius-md);
+    padding: 0.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+/* ========================================
+   Operator Header
+   ======================================== */
+
+.fm-op-header {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--sslu-synth-fm);
+    letter-spacing: 0.08em;
+    text-align: center;
+    padding-bottom: 0.15rem;
+    border-bottom: 1px solid rgba(224, 160, 255, 0.2);
+}
+
+/* ========================================
+   Operator Parameter Row
+   ======================================== */
+
+.fm-op-param {
+    display: flex;
+    gap: 0.3rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.fm-op-param label {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: var(--ssli-fs-sm);
+    color: #aaa;
+    white-space: nowrap;
+}
+
+.fm-op-param input[type="number"] {
+    width: 36px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--sslu-radius-xs);
+    padding: 1px 3px;
+    font-size: var(--ssli-fs-sm);
+    text-align: center;
+}
+
+.fm-op-param input[type="range"] {
+    width: 50px;
+    height: 3px;
+    accent-color: var(--sslu-synth-fm);
+    cursor: pointer;
+}
+
+.fm-op-param span {
+    font-size: var(--ssli-fs-sm);
+    color: #ccc;
+    min-width: 1.2em;
+    text-align: center;
+}
+
+/* ========================================
+   Operator Envelope Section
+   ======================================== */
+
+.fm-op-env {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: var(--sslu-radius-sm);
+    padding: 0.2rem;
+    margin-top: 0.1rem;
+}
+
+.fm-op-env-label {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-semibold);
+    color: #888;
+    letter-spacing: 0.06em;
+    margin-right: 0.2rem;
+}

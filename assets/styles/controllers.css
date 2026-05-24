@@ -1,0 +1,967 @@
+/**
+ * controllers.css - New controller modality styles for SuperSynthLab
+ * Guitar, Bass, Ribbon, Loom, Chord Pads, XY Pad
+ */
+
+/* ========================================
+   Guitar / Bass Fretboard
+   ======================================== */
+
+.ctrl-fretboard {
+    background: linear-gradient(135deg, #1a1208 0%, #231a0e 40%, #1a1208 60%, #15100a 100%);
+    border-radius: var(--ssli-radius-md);
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.ctrl-string-line {
+    background: linear-gradient(to bottom, #d4b870, #c0a060, #907840);
+    opacity: var(--ssli-opacity-hover);
+    pointer-events: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 1px rgba(200, 170, 100, 0.3);
+    border-radius: 1px;
+}
+
+.ctrl-fretboard-bass .ctrl-string-line {
+    opacity: var(--ssli-opacity-hover);
+    background: linear-gradient(to bottom, #b0b0b0, #909090, #707070);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6), 0 0 2px rgba(180, 180, 200, 0.2);
+}
+
+.ctrl-fret-line {
+    background: linear-gradient(to bottom, #aaa, #888, #aaa);
+    opacity: var(--ssli-opacity-inactive);
+    pointer-events: none;
+}
+
+.ctrl-fret-pos {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: 1px solid transparent;
+    box-sizing: border-box;
+    transition: background 0.08s, box-shadow 0.08s;
+    touch-action: none;
+}
+
+.ctrl-fret-pos:hover {
+    background: rgba(76, 201, 240, 0.15);
+}
+
+.ctrl-fret-pos[data-midi].perf-active,
+.ctrl-fret-pos[data-midi].playing {
+    background: rgba(76, 201, 240, 0.35);
+    box-shadow: inset 0 0 8px rgba(76, 201, 240, 0.5), 0 0 6px rgba(76, 201, 240, 0.3);
+}
+
+.ctrl-fret-note {
+    font-size: var(--ssli-fs-body);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--ssli-text-muted);
+    pointer-events: none;
+}
+
+.ctrl-fret-pos:hover .ctrl-fret-note,
+.ctrl-fret-pos.perf-active .ctrl-fret-note {
+    color: #e0e0ff;
+    text-shadow: 0 0 4px rgba(76, 201, 240, 0.5);
+}
+
+.ctrl-fret-number {
+    pointer-events: none;
+}
+
+.ctrl-fret-marker {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #777, #555);
+    pointer-events: none;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}
+
+.ctrl-fret-marker-double {
+    /* handled in JS with two dots */
+}
+
+.ctrl-open-label {
+    pointer-events: none;
+    background: rgba(20, 20, 40, 0.85);
+    color: #d0d0ff;
+    border-radius: var(--ssli-radius-sm);
+    border: 1px solid rgba(100, 100, 140, 0.3);
+    font-size: var(--ssli-fs-xl);
+    font-weight: var(--ssli-fw-bold);
+}
+
+/* Strum / pick zone (right side of fretboard) */
+.ctrl-strum-zone {
+    position: absolute;
+    background: linear-gradient(to right, rgba(40, 60, 80, 0.15), rgba(40, 80, 120, 0.3));
+    border-left: 2px solid rgba(76, 201, 240, 0.25);
+    cursor: pointer;
+    z-index: 5;
+    touch-action: none;
+}
+
+.ctrl-strum-zone:hover {
+    background: linear-gradient(to right, rgba(40, 60, 80, 0.2), rgba(40, 80, 120, 0.4));
+}
+
+.ctrl-strum-zone:active {
+    background: linear-gradient(to right, rgba(60, 100, 140, 0.3), rgba(60, 120, 160, 0.5));
+}
+
+.ctrl-strum-zone-label {
+    position: absolute;
+    top: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: var(--ssli-fs-xs);
+    font-weight: var(--ssli-fw-bold);
+    letter-spacing: 2px;
+    color: rgba(76, 201, 240, 0.45);
+    pointer-events: none;
+    text-transform: uppercase;
+}
+
+.ctrl-strum-zone-string-indicator {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(76, 201, 240, 0.2);
+    pointer-events: none;
+}
+
+/* Fretted position (finger placed on fret, not yet strummed) */
+.ctrl-fret-pos.ctrl-fret-fretted {
+    background: rgba(255, 180, 50, 0.4);
+    box-shadow: inset 0 0 8px rgba(255, 180, 50, 0.5), 0 0 6px rgba(255, 180, 50, 0.3);
+}
+
+.ctrl-fret-pos.ctrl-fret-fretted .ctrl-fret-note {
+    color: #ffe0a0;
+    font-weight: 800;
+}
+
+/* Open string highlight when no fret is held */
+.ctrl-open-label.ctrl-fret-open-active {
+    border-color: rgba(76, 201, 240, 0.4);
+    color: #b0d0ff;
+}
+
+/* Muted string indicator */
+.ctrl-open-label.ctrl-fret-muted {
+    color: var(--ssli-text-disabled);
+    text-decoration: line-through;
+}
+
+/* String vibration animation */
+@keyframes ctrl-string-vibrate {
+    0%   { transform: translateY(0px); }
+    10%  { transform: translateY(-2px); }
+    20%  { transform: translateY(1.8px); }
+    30%  { transform: translateY(-1.5px); }
+    40%  { transform: translateY(1.2px); }
+    50%  { transform: translateY(-0.9px); }
+    60%  { transform: translateY(0.7px); }
+    70%  { transform: translateY(-0.4px); }
+    80%  { transform: translateY(0.2px); }
+    90%  { transform: translateY(-0.1px); }
+    100% { transform: translateY(0px); }
+}
+
+.ctrl-string-vibrating {
+    animation: ctrl-string-vibrate 0.8s ease-out;
+    opacity: var(--ssli-opacity-active) !important;
+    box-shadow: 0 0 4px rgba(76, 201, 240, 0.4), 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Strum sweep animation */
+.ctrl-strum-sweep {
+    z-index: 10;
+}
+
+/* ========================================
+   Ribbon Controller
+   ======================================== */
+
+.ctrl-ribbon-wrapper {
+    background: var(--ssli-bg-surface);
+    border-radius: var(--ssli-radius-md);
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.ctrl-ribbon-note-display {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: var(--ssli-fs-h2);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--ssli-accent-cyan);
+    text-shadow: 0 0 10px rgba(76, 201, 240, 0.5);
+    pointer-events: none;
+    z-index: 2;
+}
+
+.ctrl-ribbon-strip {
+    background: linear-gradient(to right,
+        #1a0a2e, #2a1a4e, #1a2a6e, #1a4a5e,
+        #2a5a3e, #4a6a2e, #6a5a1e, #6a3a1e,
+        #5a1a2e, #3a1a3e, #1a0a2e);
+    border-radius: var(--ssli-radius-md);
+    border: 2px solid var(--ssli-bg-input);
+    cursor: crosshair;
+    overflow: hidden;
+    touch-action: none;
+}
+
+.ctrl-ribbon-strip:active {
+    border-color: var(--ssli-accent-cyan);
+}
+
+.ctrl-ribbon-cursor {
+    background: #fff;
+    box-shadow: 0 0 8px var(--ssli-accent-cyan), 0 0 16px rgba(76, 201, 240, 0.5);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.ctrl-ribbon-oct-marker {
+    font-size: var(--ssli-fs-sm);
+    color: #888;
+    pointer-events: none;
+    /* Center each marker on its tick. Without this, the last-octave marker
+       (anchored at RIBBON_PADDING + stripWidth) overhangs the viewport by
+       its text width, causing a ~3px horizontal overflow. */
+    transform: translateX(-50%);
+}
+
+.ctrl-ribbon-tick {
+    background: rgba(255, 255, 255, 0.25);
+    pointer-events: none;
+}
+
+.ctrl-ribbon-semi-tick {
+    background: rgba(255, 255, 255, 0.08);
+    pointer-events: none;
+}
+
+.ctrl-ribbon-brightness-label {
+    position: absolute;
+    top: 3px;
+    right: 8px;
+    font-size: var(--ssli-fs-xs);
+    color: var(--ssli-text-disabled);
+    pointer-events: none;
+    z-index: 2;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.ctrl-ribbon-brightness-indicator {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 0;
+    background: linear-gradient(to top, rgba(76, 201, 240, 0.05) 0%, rgba(76, 201, 240, 0.2) 100%);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 0.12s;
+    border-radius: 0 0 4px 4px;
+}
+
+/* ========================================
+   Loom Controller
+   ======================================== */
+
+.ctrl-loom-wrapper {
+    background: var(--ssli-bg-surface);
+    border-radius: var(--ssli-radius-md);
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.ctrl-loom-strip {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    cursor: pointer;
+    border-right: 1px solid rgba(0, 0, 0, 0.4);
+    transition: filter 0.08s, box-shadow 0.08s;
+    box-sizing: border-box;
+    position: relative;
+    touch-action: none;
+}
+
+.ctrl-loom-strip:last-child {
+    border-right: none;
+}
+
+.ctrl-loom-strip:hover {
+    filter: brightness(1.3);
+}
+
+.ctrl-loom-strip.ctrl-loom-active {
+    filter: brightness(1.6);
+    box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+.ctrl-loom-root {
+    border-left: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.ctrl-loom-label {
+    font-size: var(--ssli-fs-lg);
+    color: var(--ssli-text-primary);
+    padding-top: 8px;
+    pointer-events: none;
+    font-weight: var(--ssli-fw-bold);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.ctrl-loom-strip.ctrl-loom-active .ctrl-loom-label {
+    color: #fff;
+}
+
+.ctrl-loom-glow-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.12s;
+    z-index: 0;
+}
+
+.ctrl-loom-velocity-label {
+    position: static;
+    font-size: var(--ssli-fs-xs);
+    color: var(--ssli-text-disabled);
+    pointer-events: none;
+    z-index: 2;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-left: auto;
+    line-height: 1;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+}
+
+/* ========================================
+   Chord Pad Controller
+   ======================================== */
+
+.ctrl-chordpad-wrapper {
+    background: var(--ssli-bg-surface);
+    border-radius: var(--ssli-radius-md);
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.ctrl-chord-pad {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--ssli-radius-lg);
+    cursor: pointer;
+    transition: filter 0.08s, transform 0.08s;
+    box-sizing: border-box;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    min-height: 0;
+    overflow: hidden;
+    touch-action: none;
+}
+
+.ctrl-chord-pad:hover {
+    filter: brightness(1.3);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.ctrl-chord-pad.ctrl-chord-active {
+    filter: brightness(1.6);
+    transform: scale(0.96);
+    border-color: #fff;
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+}
+
+.ctrl-chord-name {
+    font-size: var(--ssli-fs-h1);
+    font-weight: var(--ssli-fw-bold);
+    color: #fff;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+    pointer-events: none;
+    line-height: 1;
+}
+
+.ctrl-chord-roman {
+    font-size: var(--ssli-fs-body);
+    color: var(--ssli-text-muted);
+    margin-top: 2px;
+    pointer-events: none;
+    line-height: 1;
+}
+
+.ctrl-chord-notes {
+    font-size: var(--ssli-fs-xs);
+    color: var(--ssli-text-disabled);
+    margin-top: 1px;
+    pointer-events: none;
+    letter-spacing: 1px;
+    line-height: 1;
+}
+
+.ctrl-chord-inv-btn {
+    position: absolute;
+    top: 3px;
+    right: 4px;
+    width: 20px;
+    height: 18px;
+    font-size: var(--ssli-fs-xs);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--ssli-text-muted);
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--ssli-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.ctrl-chord-inv-btn:hover {
+    background: rgba(0, 0, 0, 0.7);
+    border-color: rgba(255, 255, 255, 0.5);
+    color: #fff;
+}
+
+/* Quality cycle button (top-left, mirrors inversion button) */
+.ctrl-chord-qual-btn {
+    position: absolute;
+    top: 3px;
+    left: 4px;
+    width: 72px;
+    height: 18px;
+    padding: 0 2px;
+    font-size: var(--ssli-fs-xs);
+    font-weight: var(--ssli-fw-bold);
+    color: rgba(255, 200, 100, 0.7);
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 200, 100, 0.3);
+    border-radius: var(--ssli-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ctrl-chord-qual-btn:hover {
+    background: rgba(0, 0, 0, 0.7);
+    border-color: rgba(255, 200, 100, 0.6);
+    color: #ffe0a0;
+}
+
+/* ========================================
+   XY Pad Controller
+   ======================================== */
+
+.ctrl-xypad-wrapper {
+    background: var(--ssli-bg-surface);
+    border-radius: var(--ssli-radius-md);
+    border: 1px solid #2a2a4a;
+    cursor: crosshair;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+}
+
+.ctrl-xy-gridline-v {
+    background: rgba(76, 201, 240, 0.3);
+    pointer-events: none;
+}
+
+.ctrl-xy-gridline-h {
+    background: rgba(76, 201, 240, 0.25);
+    pointer-events: none;
+}
+
+.ctrl-xy-cross-v {
+    background: var(--ssli-accent-cyan);
+    box-shadow: 0 0 6px rgba(76, 201, 240, 0.6);
+    pointer-events: none;
+    z-index: 2;
+}
+
+.ctrl-xy-cross-h {
+    background: var(--ssli-accent-cyan);
+    box-shadow: 0 0 6px rgba(76, 201, 240, 0.6);
+    pointer-events: none;
+    z-index: 2;
+}
+
+.ctrl-xy-readout {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-size: var(--ssli-fs-body);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--ssli-accent-cyan);
+    text-shadow: 0 0 6px rgba(76, 201, 240, 0.5);
+    pointer-events: none;
+    z-index: 3;
+}
+
+/* ========================================
+   Marimba Controller
+   ======================================== */
+
+.ctrl-marimba-wrapper {
+    background: linear-gradient(135deg, #1a1208 0%, #0e0a06 100%);
+    border-radius: var(--ssli-radius-md);
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+}
+
+.ctrl-marimba-bar {
+    transition: filter 0.06s, transform 0.06s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+}
+
+.ctrl-marimba-bar:hover {
+    filter: brightness(1.25);
+}
+
+.ctrl-marimba-bar.ctrl-marimba-active {
+    filter: brightness(1.5);
+    transform: scale(0.95);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), inset 0 0 12px rgba(255, 200, 100, 0.3);
+}
+
+.ctrl-marimba-label {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-bold);
+    color: rgba(255, 255, 255, 0.75);
+    pointer-events: none;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.ctrl-marimba-bar.ctrl-marimba-active .ctrl-marimba-label {
+    color: #fff;
+}
+
+/* ========================================
+   Harp Controller
+   ======================================== */
+
+.ctrl-harp-wrapper {
+    background: linear-gradient(180deg, #0a0a14 0%, #12101e 100%);
+    border-radius: var(--ssli-radius-md);
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.ctrl-harp-string {
+    transition: transform 0.04s;
+    touch-action: none;
+}
+
+.ctrl-harp-string:hover .ctrl-harp-string-line {
+    opacity: var(--ssli-opacity-active);
+    box-shadow: 0 0 6px rgba(212, 200, 160, 0.5);
+}
+
+.ctrl-harp-string.ctrl-harp-active .ctrl-harp-string-line {
+    opacity: var(--ssli-opacity-active);
+    box-shadow: 0 0 10px rgba(212, 200, 160, 0.7);
+    animation: harp-pluck 0.3s ease-out;
+}
+
+@keyframes harp-pluck {
+    0% { transform: translateX(-3px); }
+    20% { transform: translateX(3px); }
+    40% { transform: translateX(-2px); }
+    60% { transform: translateX(1px); }
+    80% { transform: translateX(-0.5px); }
+    100% { transform: translateX(0); }
+}
+
+.ctrl-harp-label {
+    font-size: var(--ssli-fs-xs);
+    color: var(--ssli-text-muted);
+    pointer-events: none;
+}
+
+.ctrl-harp-string.ctrl-harp-active .ctrl-harp-label {
+    color: #fff;
+}
+
+/* ========================================
+   Theremin Controller
+   ======================================== */
+
+.ctrl-theremin-wrapper {
+    background: radial-gradient(ellipse at center, #0a0a18 0%, #050510 60%, #020208 100%);
+    border-radius: var(--ssli-radius-md);
+    cursor: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.ctrl-theremin-orb {
+    background: radial-gradient(circle, rgba(76, 201, 240, 0.9), rgba(76, 201, 240, 0.3) 40%, transparent 70%);
+}
+
+.ctrl-theremin-readout {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: var(--ssli-fs-xl);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--ssli-accent-cyan);
+    text-shadow: 0 0 12px rgba(76, 201, 240, 0.6);
+    pointer-events: none;
+    z-index: 3;
+    opacity: var(--ssli-opacity-hover);
+}
+
+.ctrl-theremin-vol-bar {
+    background: linear-gradient(to top, rgba(76, 201, 240, 0.1), rgba(76, 201, 240, 0.4));
+    border-radius: var(--ssli-radius-sm);
+}
+
+/* ========================================
+   Air Synth (Tilt/Gyroscope) Controller
+   ======================================== */
+
+.ssli-airsynth-wrapper {
+    perspective: 400px;
+    overflow: hidden;
+}
+
+.ssli-airsynth-rings {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.ssli-airsynth-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 2px solid rgba(76, 201, 240, 0.4);
+    background: transparent;
+    opacity: var(--ssli-opacity-disabled);
+    transition: transform 0.08s linear, opacity 0.12s linear;
+}
+
+.ssli-airsynth-orb {
+    z-index: 2;
+    width: 28px;
+    height: 28px;
+}
+
+.ssli-airsynth-readout {
+    z-index: 3;
+}
+
+.ssli-airsynth-mode-label {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    font-size: var(--ssli-fs-xs);
+    color: var(--ssli-text-disabled);
+    pointer-events: none;
+    z-index: 3;
+}
+
+.ssli-airsynth-hint {
+    z-index: 3;
+}
+
+[data-layout="phone-land"] .ssli-airsynth-mode-label {
+    font-size: var(--ssli-fs-xs);
+    bottom: 4px;
+    right: 4px;
+}
+
+[data-layout="phone"] .ssli-airsynth-mode-label {
+    font-size: var(--ssli-fs-xs);
+    bottom: 4px;
+    right: 4px;
+}
+
+/* ========================================
+   Universal Pitch-Class Color Coding
+   Applied to ALL controller elements with data-midi + pc-N class
+   Uses colored left border as a subtle, non-intrusive indicator
+   ======================================== */
+
+/* Pitch-class accent colors (Scriabin-inspired) */
+[data-midi].pc-0  { border-left: 3px solid #ff4040 !important; } /* C  - red */
+[data-midi].pc-1  { border-left: 3px solid #cc5533 !important; } /* C# - dark red-orange */
+[data-midi].pc-2  { border-left: 3px solid #ff9922 !important; } /* D  - orange */
+[data-midi].pc-3  { border-left: 3px solid #bb7718 !important; } /* D# - dark orange */
+[data-midi].pc-4  { border-left: 3px solid #ddcc00 !important; } /* E  - yellow */
+[data-midi].pc-5  { border-left: 3px solid #33aa33 !important; } /* F  - green */
+[data-midi].pc-6  { border-left: 3px solid #227722 !important; } /* F# - dark green */
+[data-midi].pc-7  { border-left: 3px solid #2288cc !important; } /* G  - blue */
+[data-midi].pc-8  { border-left: 3px solid #336699 !important; } /* G# - dark blue */
+[data-midi].pc-9  { border-left: 3px solid #7733cc !important; } /* A  - violet */
+[data-midi].pc-10 { border-left: 3px solid #993399 !important; } /* A# - dark purple */
+[data-midi].pc-11 { border-left: 3px solid #cc3388 !important; } /* B  - rose */
+
+/* Piano keys already have their own color system — skip the border */
+.perf-key[data-midi] { border-left: none !important; }
+
+/* V-06: LinnStrument cells — colorblind-safe pitch class tints.
+   Replaced red (pc-0 = C) with blue and green (pc-5 = F) with orange
+   so deuteranopes can distinguish root/fourth markers. */
+.ctrl-linn-cell.pc-0  { background-color: #204080 !important; }
+.ctrl-linn-cell.pc-1  { background-color: #604030 !important; }
+.ctrl-linn-cell.pc-2  { background-color: #806020 !important; }
+.ctrl-linn-cell.pc-3  { background-color: #605020 !important; }
+.ctrl-linn-cell.pc-4  { background-color: #707020 !important; }
+.ctrl-linn-cell.pc-5  { background-color: #805020 !important; }
+.ctrl-linn-cell.pc-6  { background-color: #205020 !important; }
+.ctrl-linn-cell.pc-7  { background-color: #205080 !important; }
+.ctrl-linn-cell.pc-8  { background-color: #304060 !important; }
+.ctrl-linn-cell.pc-9  { background-color: #503080 !important; }
+.ctrl-linn-cell.pc-10 { background-color: #603060 !important; }
+.ctrl-linn-cell.pc-11 { background-color: #703050 !important; }
+
+/* ========================================
+   LinnStrument Grid Controller
+   ======================================== */
+
+.ctrl-linn-wrapper {
+    background: var(--ssli-bg-surface);
+    position: relative;
+    overflow: hidden;
+}
+
+.ctrl-linn-cell {
+    box-sizing: border-box;
+    border: 1px solid rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: filter 0.08s ease;
+    opacity: var(--ssli-opacity-hover);
+    touch-action: manipulation;
+}
+
+.ctrl-linn-cell:hover {
+    opacity: var(--ssli-opacity-active);
+    filter: brightness(1.15);
+}
+
+.ctrl-linn-cell.ctrl-linn-active {
+    opacity: var(--ssli-opacity-active);
+    filter: brightness(1.4);
+    box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.3);
+    z-index: 1;
+}
+
+.ctrl-linn-c {
+    border-color: rgba(255, 255, 255, 0.15);
+    opacity: var(--ssli-opacity-hover);
+}
+
+.ctrl-linn-label {
+    font-size: var(--ssli-fs-xs);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--ssli-text-secondary);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+    user-select: none;
+    line-height: 1.1;
+}
+
+.ctrl-linn-oct-label {
+    font-weight: var(--ssli-fw-semibold);
+    color: var(--ssli-text-disabled);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+    user-select: none;
+    line-height: 1;
+}
+
+.ctrl-linn-cell.ctrl-linn-c .ctrl-linn-oct-label {
+    color: var(--ssli-text-secondary);
+    font-weight: 800;
+}
+
+/* ========================================
+   Drum Pad Toolbar (Kit Selector)
+   ======================================== */
+
+.perf-pad-toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--ssli-gap-md);
+    padding: 4px 8px;
+    flex: 0 0 auto;
+    background: rgba(10, 10, 20, 0.6);
+    border-bottom: 1px solid rgba(76, 201, 240, 0.15);
+}
+
+.perf-pad-kit-label {
+    font-size: var(--ssli-fs-body);
+    font-weight: var(--ssli-fw-bold);
+    color: rgba(200, 200, 220, 0.7);
+    flex-shrink: 0;
+}
+
+.perf-pad-kit-select {
+    max-width: 160px;
+}
+
+/* ========================================
+   Hex Grid (Wicki-Hayden) — Pointy-Top
+   ======================================== */
+
+.perf-hex-grid .perf-iso-key.hex {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: filter 0.08s, box-shadow 0.08s;
+    box-sizing: border-box;
+    background: rgba(120, 130, 180, 0.35);
+    border: none;
+}
+.perf-hex-grid .perf-iso-key.hex::before {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    background: rgba(20, 20, 40, 0.92);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    -webkit-clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    z-index: 0;
+    pointer-events: none;
+}
+
+.perf-hex-grid .perf-iso-key.hex:hover {
+    filter: brightness(1.4);
+}
+
+.perf-hex-grid .perf-iso-key.hex.root {
+    background: rgba(76, 140, 220, 0.4);
+}
+.perf-hex-grid .perf-iso-key.hex.root::before {
+    background: rgba(30, 25, 55, 0.95);
+}
+
+.perf-hex-grid .perf-iso-key.hex.iso-glow {
+    filter: brightness(2.2);
+    box-shadow: inset 0 0 20px rgba(76, 201, 240, 0.7), 0 0 12px rgba(76, 201, 240, 0.4);
+    transform: scale(0.92);
+}
+
+.hex-note-name {
+    font-weight: var(--ssli-fw-bold);
+    color: rgba(220, 220, 240, 0.9);
+    pointer-events: none;
+    line-height: 1.1;
+    position: relative;
+    z-index: 1;
+}
+
+.hex-octave-num {
+    font-weight: var(--ssli-fw-bold);
+    color: rgba(180, 180, 210, 0.7);
+    pointer-events: none;
+    line-height: 1;
+    position: relative;
+    z-index: 1;
+}
+
+.perf-iso-key.hex.root .hex-note-name {
+    color: #fff;
+    text-shadow: 0 0 6px rgba(76, 201, 240, 0.5);
+}
+
+.perf-iso-key.hex.root .hex-octave-num {
+    font-weight: 800;
+    color: rgba(76, 201, 240, 0.7);
+}
+
+/* ========================================
+   Rectangular Grid — Prominent Octave Numbers
+   ======================================== */
+
+.iso-note-name {
+    font-weight: var(--ssli-fw-bold);
+    color: var(--ssli-text-secondary);
+    pointer-events: none;
+    line-height: 1.1;
+}
+
+.iso-octave-num {
+    font-weight: var(--ssli-fw-bold);
+    color: rgba(160, 160, 190, 0.65);
+    pointer-events: none;
+    line-height: 1;
+}
+
+.perf-iso-key.root .iso-note-name {
+    color: #fff;
+    text-shadow: 0 0 4px rgba(76, 201, 240, 0.4);
+}
+
+.perf-iso-key.root .iso-octave-num {
+    color: rgba(76, 201, 240, 0.7);
+}
+
+.perf-iso-key {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 800px) {
+    .perf-iso-key {
+        min-width: 44px;
+        min-height: 44px;
+    }
+}

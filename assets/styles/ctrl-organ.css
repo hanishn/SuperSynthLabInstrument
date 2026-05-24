@@ -1,0 +1,336 @@
+/* Organ Drawbars surface styles */
+
+.ssli-organ-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  background: #0e0e14;
+}
+
+/* ---------- Preset bar ---------- */
+
+.ssli-organ-preset-bar {
+  display: flex;
+  align-items: center;
+  height: var(--ssli-topbar-h);
+  min-height: var(--ssli-topbar-h);
+  padding: 2px 10px;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  background: rgba(14, 14, 20, 0.9);
+  border-bottom: 1px solid rgba(76, 201, 240, 0.12);
+  gap: var(--ssli-gap-md);
+}
+
+.ssli-organ-preset-select {
+  font-size: var(--ssli-fs-sm);
+  background: #1a1a2e;
+  color: #c8c8d0;
+  border: 1px solid rgba(76, 201, 240, 0.2);
+  border-radius: var(--ssli-radius-sm);
+  padding: 1px 4px;
+}
+
+.ssli-organ-perc-btn {
+  font-size: var(--ssli-fs-sm);
+  background: #1a1a2e;
+  color: #c8c8d0;
+  border: 1px solid rgba(76, 201, 240, 0.2);
+  border-radius: var(--ssli-radius-sm);
+  padding: 1px 8px;
+  cursor: pointer;
+  transition: background 0.08s ease, box-shadow 0.08s ease;
+}
+
+.ssli-organ-perc-btn:hover {
+  filter: brightness(1.2);
+}
+
+.ssli-organ-perc-btn.active {
+  background: rgba(232, 160, 64, 0.25);
+  border-color: rgba(232, 160, 64, 0.5);
+  color: #f0e0c0;
+  box-shadow: 0 0 6px rgba(232, 160, 64, 0.3);
+}
+
+/* ---------- Drawbar panel ---------- */
+
+.ssli-organ-drawbar-panel {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: center;
+  flex: 0 0 150px;
+  max-height: 160px;
+  min-height: 100px;
+  padding: 4px 8px;
+  box-sizing: border-box;
+  gap: var(--ssli-gap-sm);
+  background: #12121c;
+  border-bottom: 1px solid rgba(76, 201, 240, 0.08);
+}
+
+.ssli-organ-drawbar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 60px;
+  gap: var(--ssli-gap-xs);
+}
+
+.ssli-organ-drawbar-label {
+  font-size: var(--ssli-fs-xs);
+  color: rgba(200, 200, 208, 0.75);
+  text-align: center;
+  flex: 0 0 auto;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  font-weight: var(--ssli-fw-semibold);
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.ssli-organ-drawbar-track {
+  position: relative;
+  width: 22px;
+  flex: 1 1 0;
+  min-height: 0;
+  background: linear-gradient(180deg, #22223a 0%, #1a1a2a 100%);
+  border-radius: var(--ssli-radius-md);
+  cursor: pointer;
+  border: 1px solid rgba(76, 201, 240, 0.12);
+}
+
+.ssli-organ-drawbar-thumb {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 18px;
+  border-radius: var(--ssli-radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  pointer-events: none;
+  transition: bottom 0.04s ease-out;
+  margin-bottom: -9px;
+}
+
+.ssli-organ-drawbar-thumb.dark-thumb {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.ssli-organ-drawbar-readout {
+  font-size: var(--ssli-fs-xs);
+  color: rgba(200, 200, 208, 0.7);
+  text-align: center;
+  flex: 0 0 auto;
+  font-family: monospace;
+  min-height: 14px;
+}
+
+/* ---------- Keyboard zone ---------- */
+
+.ssli-organ-keyboard-zone {
+  display: flex;
+  flex-direction: row;
+  flex: 1 1 0;
+  min-height: 80px;
+  position: relative;
+  overflow: hidden;
+  border-top: 1px solid rgba(76, 201, 240, 0.1);
+}
+
+.ssli-organ-key {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background 0.06s ease;
+  touch-action: manipulation;
+  position: relative;
+}
+
+.ssli-organ-white {
+  flex: 1 1 0;
+  min-width: 0;
+  background: linear-gradient(180deg, #e8e8e8 0%, #d0d0d0 100%);
+  border: 1px solid #999;
+  border-radius: 0 0 4px 4px;
+  z-index: 1;
+}
+
+.ssli-organ-black {
+  width: 60%;
+  max-width: 32px;
+  height: 58%;
+  background: linear-gradient(180deg, #333 0%, #1a1a1a 100%);
+  border: 1px solid #111;
+  border-radius: 0 0 3px 3px;
+  margin-left: -30%;
+  margin-right: -30%;
+  z-index: 2;
+  position: relative;
+}
+
+.ssli-organ-white.active {
+  background: linear-gradient(180deg, rgba(76, 201, 240, 0.5) 0%, rgba(76, 201, 240, 0.3) 100%);
+}
+
+.ssli-organ-black.active {
+  background: linear-gradient(180deg, rgba(76, 201, 240, 0.6) 0%, rgba(76, 201, 240, 0.4) 100%);
+}
+
+.ssli-organ-key-label {
+  font-size: var(--ssli-fs-xs);
+  color: rgba(0, 0, 0, 0.35);
+  padding-bottom: 2px;
+  pointer-events: none;
+}
+
+.ssli-organ-black .ssli-organ-key-label {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* ========== Phone landscape overrides ========== */
+
+[data-layout="phone-land"] .ssli-organ-preset-bar {
+  height: var(--ssli-topbar-h-phone);
+  padding: 1px 6px;
+}
+
+[data-layout="phone-land"] .ssli-organ-preset-select {
+  font-size: var(--ssli-fs-xs);
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+[data-layout="phone-land"] .ssli-organ-perc-btn {
+  font-size: var(--ssli-fs-xs);
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 1px 4px;
+}
+
+[data-layout="phone-land"] .ssli-organ-drawbar-panel {
+  padding: 2px 4px;
+  gap: var(--ssli-gap-xs);
+  max-height: 100px;
+  min-height: 60px;
+}
+
+[data-layout="phone-land"] .ssli-organ-keyboard-zone {
+  flex: 1 1 0;
+  min-height: 56px;
+}
+
+[data-layout="phone-land"] .ssli-organ-drawbar-col {
+  width: 32px;
+}
+
+[data-layout="phone-land"] .ssli-organ-drawbar-label {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone-land"] .ssli-organ-drawbar-track {
+  width: 22px;
+}
+
+[data-layout="phone-land"] .ssli-organ-drawbar-thumb {
+  width: 26px;
+  height: 16px;
+  margin-bottom: -8px;
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+[data-layout="phone-land"] .ssli-organ-drawbar-readout {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone-land"] .ssli-organ-white {
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+[data-layout="phone-land"] .ssli-organ-black {
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+[data-layout="phone-land"] .ssli-organ-key-label {
+  font-size: var(--ssli-fs-xs);
+}
+
+/* ========== Phone portrait overrides ========== */
+
+[data-layout="phone"] .ssli-organ-preset-bar {
+  height: var(--ssli-topbar-h-phone);
+  padding: 1px 6px;
+}
+
+[data-layout="phone"] .ssli-organ-preset-select {
+  font-size: var(--ssli-fs-xs);
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+[data-layout="phone"] .ssli-organ-perc-btn {
+  font-size: var(--ssli-fs-xs);
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 1px 4px;
+}
+
+[data-layout="phone"] .ssli-organ-drawbar-panel {
+  padding: 2px 4px;
+  gap: var(--ssli-gap-xs);
+  max-height: 100px;
+  min-height: 60px;
+}
+
+[data-layout="phone"] .ssli-organ-keyboard-zone {
+  flex: 1 1 0;
+  min-height: 56px;
+}
+
+[data-layout="phone"] .ssli-organ-drawbar-col {
+  width: 32px;
+}
+
+[data-layout="phone"] .ssli-organ-drawbar-label {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone"] .ssli-organ-drawbar-thumb {
+  width: 20px;
+  height: 14px;
+  margin-bottom: -7px;
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+[data-layout="phone"] .ssli-organ-drawbar-readout {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone"] .ssli-organ-white {
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+[data-layout="phone"] .ssli-organ-black {
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+[data-layout="phone"] .ssli-organ-key-label {
+  font-size: var(--ssli-fs-xs);
+}

@@ -1,0 +1,175 @@
+/* Vector Synthesis Engine Controls - Purple to Cyan gradient accent */
+
+#vectorControlsModal {
+  padding: 10px 0;
+}
+
+.vector-controls-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ssli-gap-lg);
+  margin-bottom: 12px;
+}
+
+.vector-param-group {
+  background: rgba(128, 0, 255, 0.03);
+  border-radius: var(--sslu-radius-lg);
+  padding: 10px;
+  border: 1px solid rgba(128, 0, 255, 0.08);
+}
+
+.vector-param-group label {
+  display: block;
+  font-size: var(--sslu-fs-px-base);
+  color: #a080e0;
+  margin-bottom: 4px;
+}
+
+.vector-param-group select,
+.vector-param-group input[type="range"] {
+  width: 100%;
+}
+
+.vector-param-group .param-value {
+  text-align: right;
+  font-size: var(--sslu-fs-px-base);
+  color: #80e0ff;
+  margin-top: 2px;
+}
+
+.vector-xy-pad {
+  width: 200px;
+  height: 200px;
+  background: linear-gradient(135deg, rgba(128, 0, 255, 0.15), rgba(0, 200, 255, 0.15));
+  border: 1px solid rgba(128, 0, 255, 0.3);
+  border-radius: var(--sslu-radius-lg);
+  position: relative;
+  margin: 0 auto 12px auto;
+  cursor: crosshair;
+}
+
+.vector-xy-pad .vector-cursor {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a040ff, #00d4ff);
+  border: 2px solid #fff;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  box-shadow: 0 0 8px rgba(128, 0, 255, 0.5);
+}
+
+.vector-xy-pad .vector-corner-label {
+  position: absolute;
+  font-size: var(--sslu-fs-px-xs);
+  color: #888;
+  padding: 3px;
+}
+
+.vector-xy-pad .vector-corner-label.tl { top: 0; left: 0; color: #a040ff; }
+.vector-xy-pad .vector-corner-label.tr { top: 0; right: 0; color: #6080ff; }
+.vector-xy-pad .vector-corner-label.bl { bottom: 0; left: 0; color: #40c0ff; }
+.vector-xy-pad .vector-corner-label.br { bottom: 0; right: 0; color: #00d4ff; }
+
+.vector-source-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ssli-gap-md);
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  border-radius: var(--sslu-radius-md);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.vector-source-row .source-label {
+  font-size: var(--sslu-fs-px-base);
+  font-weight: var(--ssli-fw-bold);
+  width: 20px;
+  text-align: center;
+}
+
+.vector-source-row.source-a .source-label { color: #a040ff; }
+.vector-source-row.source-b .source-label { color: #6080ff; }
+.vector-source-row.source-c .source-label { color: #40c0ff; }
+.vector-source-row.source-d .source-label { color: #00d4ff; }
+
+.vector-source-row select {
+  flex: 1;
+  font-size: var(--sslu-fs-px-base);
+}
+
+.vector-source-row .detune-input {
+  width: 60px;
+  font-size: var(--sslu-fs-px-base);
+}
+
+.vector-env-section {
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(128, 0, 255, 0.04);
+  border: 1px solid rgba(128, 0, 255, 0.1);
+  border-radius: var(--sslu-radius-lg);
+}
+
+.vector-env-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.vector-env-header .env-title {
+  font-size: var(--sslu-fs-px-base);
+  color: #a080e0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.vector-env-point {
+  display: flex;
+  gap: var(--ssli-gap-sm);
+  align-items: center;
+  margin-bottom: 4px;
+  font-size: var(--sslu-fs-px-sm);
+  color: #999;
+}
+
+.vector-env-point input {
+  width: 50px;
+  font-size: var(--sslu-fs-px-sm);
+}
+
+.vector-section-label {
+  font-size: var(--sslu-fs-px-sm);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #a080e0;
+  margin-bottom: 6px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid rgba(128, 0, 255, 0.15);
+}
+
+.vector-mix-display {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ssli-gap-xs);
+  font-size: var(--sslu-fs-px-sm);
+  text-align: center;
+  margin-top: 6px;
+}
+
+.vector-mix-display .mix-bar {
+  height: 4px;
+  border-radius: var(--sslu-radius-xs);
+  margin-top: 2px;
+}
+
+.vector-mix-display .mix-a { color: #a040ff; }
+.vector-mix-display .mix-a .mix-bar { background: #a040ff; }
+.vector-mix-display .mix-b { color: #6080ff; }
+.vector-mix-display .mix-b .mix-bar { background: #6080ff; }
+.vector-mix-display .mix-c { color: #40c0ff; }
+.vector-mix-display .mix-c .mix-bar { background: #40c0ff; }
+.vector-mix-display .mix-d { color: #00d4ff; }
+.vector-mix-display .mix-d .mix-bar { background: #00d4ff; }

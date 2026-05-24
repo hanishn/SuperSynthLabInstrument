@@ -1,0 +1,484 @@
+{
+  "presets": [
+    {
+      "name": "CZ Sawtooth",
+      "category": "CZ Classic",
+      "description": "Classic CZ-101 sawtooth timbre with envelope on distortion.",
+      "settings": {
+        "pdType": "saw",
+        "pdAmount": 80,
+        "windowShape": "cosine",
+        "resonantFreqRatio": 4.0,
+        "pdEnvAmount": 70,
+        "pdEnvAttack": 5,
+        "pdEnvDecay": 150,
+        "pdEnvSustain": 40,
+        "pdEnvRelease": 200
+      }
+    },
+    {
+      "name": "CZ Square",
+      "category": "CZ Classic",
+      "description": "Hollow square-like tone reminiscent of the CZ series.",
+      "settings": {
+        "pdType": "square",
+        "pdAmount": 75,
+        "windowShape": "cosine",
+        "resonantFreqRatio": 4.0,
+        "pdEnvAmount": 60,
+        "pdEnvAttack": 10,
+        "pdEnvDecay": 180,
+        "pdEnvSustain": 35,
+        "pdEnvRelease": 250
+      }
+    },
+    {
+      "name": "CZ Resonance 1",
+      "category": "CZ Classic",
+      "description": "Classic CZ resonant waveform with formant-like peak.",
+      "settings": {
+        "pdType": "resonant",
+        "pdAmount": 70,
+        "windowShape": "cosine",
+        "resonantFreqRatio": 4.0,
+        "pdEnvAmount": 80,
+        "pdEnvAttack": 5,
+        "pdEnvDecay": 200,
+        "pdEnvSustain": 25,
+        "pdEnvRelease": 180
+      }
+    },
+    {
+      "name": "CZ Resonance 2",
+      "category": "CZ Classic",
+      "description": "Higher resonant peak for nasal, vocal quality.",
+      "settings": {
+        "pdType": "resonant",
+        "pdAmount": 85,
+        "windowShape": "cosine",
+        "resonantFreqRatio": 8.0,
+        "pdEnvAmount": 75,
+        "pdEnvAttack": 8,
+        "pdEnvDecay": 250,
+        "pdEnvSustain": 20,
+        "pdEnvRelease": 200
+      }
+    },
+    {
+      "name": "CZ Pulse",
+      "category": "CZ Classic",
+      "description": "Narrow pulse waveform with bright attack.",
+      "settings": {
+        "pdType": "pulse",
+        "pdAmount": 70,
+        "windowShape": "cosine",
+        "resonantFreqRatio": 4.0,
+        "pdEnvAmount": 65,
+        "pdEnvAttack": 3,
+        "pdEnvDecay": 120,
+        "pdEnvSustain": 30,
+        "pdEnvRelease": 150
+      }
+    },
+    {
+      "name": "Deep PD Bass",
+      "category": "Bass",
+      "description": "Thick bass with saw distortion and heavy envelope.",
+      "settings": {
+        "pdType": "saw",
+        "pdAmount": 90,
+        "windowShape": "exponential",
+        "resonantFreqRatio": 4.0,
+        "pdEnvAmount": 85,
+        "pdEnvAttack": 2,
+        "pdEnvDecay": 100,
+        "pdEnvSustain": 50,
+        "pdEnvRelease": 80
+      }
+    },
+    {
+      "name": "Rubber Bass",
+      "category": "Bass",
+      "description": "Bouncy bass with square PD and fast decay.",
+      "settings": {
+        "pdType": "square",
+        "pdAmount": 65,
+        "windowShape": "triangle",
+        "resonantFreqRatio": 4.0,
+        "pdEnvAmount": 90,
+        "pdEnvAttack": 1,
+        "pdEnvDecay": 80,
+        "pdEnvSustain": 20,
+        "pdEnvRelease": 60
+      }
+    },
+    {
+      "name": "Acid Bass",
+      "category": "Bass",
+      "description": "Squelchy resonant bass with aggressive PD envelope.",
+      "settings": {
+        "pdType": "resonant",
+        "pdAmount": 95,
+        "windowShape": "exponential",
+        "resonantFreqRatio": 5.0,
+        "pdEnvAmount": 95,
+        "pdEnvAttack": 1,
+        "pdEnvDecay": 150,
+        "pdEnvSustain": 15,
+        "pdEnvRelease": 100
+      }
+    },
+    {
+      "name": "Pulse Bass",
+      "category": "Bass",
+      "description": "Punchy bass using narrow pulse distortion.",
+      "settings": {
+        "pdType": "pulse",
+        "pdAmount": 75,
+        "windowShape": "cosine",
+        "resonantFreqRatio": 4.0,
+        "pdEnvAmount": 80,
+        "pdEnvAttack": 2,
+        "pdEnvDecay": 90,
+        "pdEnvSustain": 35,
+        "pdEnvRelease": 70
+      }
+    },
+    {
+      "name": "Sub Octave Bass",
+      "category": "Bass",
+      "description": "Double sine for sub-octave weight.",
+      "settings": {
+        "pdType": "doublesine",
+        "pdAmount": 60,
+        "windowShape": "cosine",
+        "resonantFreqRatio": 4.0,
+        "pdEnvAmount": 40,
+        "pdEnvAttack": 5,
+        "pdEnvDecay": 120,
+        "pdEnvSustain": 50,
+        "pdEnvRelease": 100
+      }
+    },
+    {
+      "name": "Bright Saw Lead",
+      "category": "Leads",
+      "description": "Cutting lead with maximum saw PD and fast attack.",
+      "settings": {
+        "pdType": "saw",
+        "pdAmount": 100,
+        "windowShape": "cosine",
+        "resonantFreqRatio": 4.0,
+        "pdEnvAmount": 30,
+        "pdEnvAttack": 2,
+        "pdEnvDecay": 200,
+        "pdEnvSustain": 60,
+        "pdEnvRelease": 150
+      }
+    },
+    {
+      "name": "Singing Lead",
+      "category": "Leads",
+      "description": "Resonant lead with vocal quality from high ratio.",
+      "settings": {
+        "pdType": "resonant",
+        "pdAmount": 80,
+        "windowShape": "cosine",
+        "resonantFreqRatio": 6.0,
+        "pdEnvAmount": 50,
+        "pdEnvAttack": 15,
+        "pdEnvDecay": 300,
+        "pdEnvSustain": 45,
+        "pdEnvRelease": 200
+      }
+    },
+    {
+      "name": "Pulse Lead",
+      "category": "Leads",
+      "description": "Nasal, reedy lead from narrow pulse PD.",
+      "settings": {
+        "pdType": "pulse",
+        "pdAmount": 85,
+        "windowShape": "triangle",
+        "resonantFreqRatio": 4.0,
+        "pdEnvAmount": 40,
+        "pdEnvAttack": 5,
+        "pdEnvDecay": 150,
+        "pdEnvSustain": 55,
+        "pdEnvRelease": 180
+      }
+    },
+    {
+      "name": "Whistle Lead",
+      "category": "Leads",
+      "description": "Pure, whistling tone with subtle PD modulation.",
+      "settings": {
+        "pdType": "doublesine",
+        "pdAmount": 30,
+        "windowShape": "cosine",
+        "resonantFreqRatio": 4.0,
+        "pdEnvAmount": 20,
+        "pdEnvAttack": 20,
+        "pdEnvDecay": 100,
+        "pdEnvSustain": 70,
+        "pdEnvRelease": 200
+      }
+    },
+    {
+      "name": "Screaming Lead",
+      "category": "Leads",
+      "description": "Aggressive lead with exponential window and max distortion.",
+      "settings": {
+        "pdType": "saw",
+        "pdAmount": 100,
+        "windowShape": "exponential",
+        "resonantFreqRatio": 4.0,
+        "pdEnvAmount": 10,
+        "pdEnvAttack": 1,
+        "pdEnvDecay": 50,
+        "pdEnvSustain": 80,
+        "pdEnvRelease": 100
+      }
+    },
+    {
+      "name": "Jazz Organ",
+      "category": "Organ",
+      "description": "Warm organ tone from double sine with mild PD.",
+      "settings": {
+        "pdType": "doublesine",
+        "pdAmount": 45,
+        "windowShape": "cosine",
+        "resonantFreqRatio": 4.0,
+        "pdEnvAmount": 10,
+        "pdEnvAttack": 5,
+        "pdEnvDecay": 50,
+        "pdEnvSustain": 80,
+        "pdEnvRelease": 80
+      }
+    },
+    {
+      "name": "Pipe Organ",
+      "category": "Organ",
+      "description": "Full pipe organ sound with square PD and sustain.",
+      "settings": {
+        "pdType": "square",
+        "pdAmount": 55,
+        "windowShape": "cosine",
+        "resonantFreqRatio": 4.0,
+        "pdEnvAmount": 15,
+        "pdEnvAttack": 30,
+        "pdEnvDecay": 100,
+        "pdEnvSustain": 85,
+        "pdEnvRelease": 150
+      }
+    },
+    {
+      "name": "Combo Organ",
+      "category": "Organ",
+      "description": "Bright combo organ with pulse PD character.",
+      "settings": {
+        "pdType": "pulse",
+        "pdAmount": 50,
+        "windowShape": "triangle",
+        "resonantFreqRatio": 4.0,
+        "pdEnvAmount": 5,
+        "pdEnvAttack": 3,
+        "pdEnvDecay": 30,
+        "pdEnvSustain": 90,
+        "pdEnvRelease": 60
+      }
+    },
+    {
+      "name": "Reed Organ",
+      "category": "Organ",
+      "description": "Reedy harmonium-like tone with resonant PD.",
+      "settings": {
+        "pdType": "resonant",
+        "pdAmount": 40,
+        "windowShape": "cosine",
+        "resonantFreqRatio": 3.0,
+        "pdEnvAmount": 20,
+        "pdEnvAttack": 40,
+        "pdEnvDecay": 200,
+        "pdEnvSustain": 75,
+        "pdEnvRelease": 200
+      }
+    },
+    {
+      "name": "Drawbar Organ",
+      "category": "Organ",
+      "description": "Classic drawbar organ from saw PD at moderate amount.",
+      "settings": {
+        "pdType": "saw",
+        "pdAmount": 35,
+        "windowShape": "cosine",
+        "resonantFreqRatio": 4.0,
+        "pdEnvAmount": 0,
+        "pdEnvAttack": 5,
+        "pdEnvDecay": 50,
+        "pdEnvSustain": 90,
+        "pdEnvRelease": 60
+      }
+    },
+    {
+      "name": "Crystal Bell",
+      "category": "Bells",
+      "description": "Pure bell tone with resonant PD and fast decay.",
+      "settings": {
+        "pdType": "resonant",
+        "pdAmount": 60,
+        "windowShape": "cosine",
+        "resonantFreqRatio": 7.0,
+        "pdEnvAmount": 90,
+        "pdEnvAttack": 1,
+        "pdEnvDecay": 400,
+        "pdEnvSustain": 5,
+        "pdEnvRelease": 300
+      }
+    },
+    {
+      "name": "Tubular Bell",
+      "category": "Bells",
+      "description": "Metallic tubular bell with double sine harmonics.",
+      "settings": {
+        "pdType": "doublesine",
+        "pdAmount": 75,
+        "windowShape": "exponential",
+        "resonantFreqRatio": 4.0,
+        "pdEnvAmount": 85,
+        "pdEnvAttack": 1,
+        "pdEnvDecay": 350,
+        "pdEnvSustain": 10,
+        "pdEnvRelease": 400
+      }
+    },
+    {
+      "name": "Music Box",
+      "category": "Bells",
+      "description": "Delicate music box with gentle PD and triangle window.",
+      "settings": {
+        "pdType": "pulse",
+        "pdAmount": 40,
+        "windowShape": "triangle",
+        "resonantFreqRatio": 4.0,
+        "pdEnvAmount": 80,
+        "pdEnvAttack": 1,
+        "pdEnvDecay": 300,
+        "pdEnvSustain": 0,
+        "pdEnvRelease": 200
+      }
+    },
+    {
+      "name": "Glockenspiel",
+      "category": "Bells",
+      "description": "Bright glockenspiel with high resonant ratio.",
+      "settings": {
+        "pdType": "resonant",
+        "pdAmount": 55,
+        "windowShape": "cosine",
+        "resonantFreqRatio": 12.0,
+        "pdEnvAmount": 95,
+        "pdEnvAttack": 1,
+        "pdEnvDecay": 250,
+        "pdEnvSustain": 0,
+        "pdEnvRelease": 150
+      }
+    },
+    {
+      "name": "Temple Bell",
+      "category": "Bells",
+      "description": "Deep resonant temple bell with long decay.",
+      "settings": {
+        "pdType": "resonant",
+        "pdAmount": 50,
+        "windowShape": "exponential",
+        "resonantFreqRatio": 5.0,
+        "pdEnvAmount": 70,
+        "pdEnvAttack": 1,
+        "pdEnvDecay": 500,
+        "pdEnvSustain": 8,
+        "pdEnvRelease": 500
+      }
+    },
+    {
+      "name": "Noise Sweep",
+      "category": "Experimental",
+      "description": "Max distortion with fast envelope for noise-like sweep.",
+      "settings": {
+        "pdType": "saw",
+        "pdAmount": 100,
+        "windowShape": "exponential",
+        "resonantFreqRatio": 4.0,
+        "pdEnvAmount": 100,
+        "pdEnvAttack": 1,
+        "pdEnvDecay": 500,
+        "pdEnvSustain": 0,
+        "pdEnvRelease": 100
+      }
+    },
+    {
+      "name": "Alien Voice",
+      "category": "Experimental",
+      "description": "Resonant PD at extreme ratio for alien vocal quality.",
+      "settings": {
+        "pdType": "resonant",
+        "pdAmount": 90,
+        "windowShape": "triangle",
+        "resonantFreqRatio": 15.0,
+        "pdEnvAmount": 60,
+        "pdEnvAttack": 20,
+        "pdEnvDecay": 300,
+        "pdEnvSustain": 50,
+        "pdEnvRelease": 250
+      }
+    },
+    {
+      "name": "Phase Chaos",
+      "category": "Experimental",
+      "description": "Maximum PD on all types blended for chaotic results.",
+      "settings": {
+        "pdType": "pulse",
+        "pdAmount": 100,
+        "windowShape": "exponential",
+        "resonantFreqRatio": 16.0,
+        "pdEnvAmount": 100,
+        "pdEnvAttack": 1,
+        "pdEnvDecay": 80,
+        "pdEnvSustain": 100,
+        "pdEnvRelease": 50
+      }
+    },
+    {
+      "name": "Underwater",
+      "category": "Experimental",
+      "description": "Slow PD envelope with resonance for submerged feel.",
+      "settings": {
+        "pdType": "resonant",
+        "pdAmount": 45,
+        "windowShape": "cosine",
+        "resonantFreqRatio": 3.0,
+        "pdEnvAmount": 70,
+        "pdEnvAttack": 200,
+        "pdEnvDecay": 400,
+        "pdEnvSustain": 40,
+        "pdEnvRelease": 500
+      }
+    },
+    {
+      "name": "Harsh Industrial",
+      "category": "Experimental",
+      "description": "Aggressive industrial tone with exponential window.",
+      "settings": {
+        "pdType": "square",
+        "pdAmount": 95,
+        "windowShape": "exponential",
+        "resonantFreqRatio": 4.0,
+        "pdEnvAmount": 30,
+        "pdEnvAttack": 1,
+        "pdEnvDecay": 50,
+        "pdEnvSustain": 80,
+        "pdEnvRelease": 40
+      }
+    }
+  ]
+}

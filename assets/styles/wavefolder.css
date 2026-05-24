@@ -1,0 +1,123 @@
+/**
+ * wavefolder.css - Wavefolder Synthesis Controls Styles
+ * West Coast synthesis: source selector, fold amount, symmetry, bias, pre-gain
+ * Accent color: magenta var(--sslu-synth-wavefold) (Buchla/West Coast vibe)
+ */
+
+/* ========================================
+   Wavefolder Controls Container (Modal)
+   ======================================== */
+
+.wavefold-controls-modal {
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--sslu-radius-lg);
+    margin-bottom: 0.5rem;
+}
+
+.wavefold-title-modal {
+    font-size: var(--ssli-fs-body);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--sslu-synth-wavefold);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ========================================
+   Source Waveform Selector
+   ======================================== */
+
+.wavefold-source-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.wavefold-source-row label {
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+    min-width: 80px;
+}
+
+.wavefold-source-row select {
+    padding: 2px 6px;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-input);
+    color: #e0e0e0;
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+}
+
+/* ========================================
+   Parameter Sliders
+   ======================================== */
+
+.wavefold-param-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.wavefold-param-row label {
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+    min-width: 80px;
+}
+
+.wavefold-param-row input[type="range"] {
+    flex: 1;
+    min-width: 80px;
+    max-width: 200px;
+    cursor: pointer;
+}
+
+.wavefold-param-row .wavefold-param-val {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-synth-wavefold);
+    min-width: 40px;
+    text-align: right;
+}
+
+/* ========================================
+   Source Waveform Buttons (alternative)
+   ======================================== */
+
+.wavefold-source-btn {
+    padding: 3px 10px;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-input);
+    color: #b0b0b0;
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    min-width: 28px;
+    text-align: center;
+}
+
+.wavefold-source-btn:hover {
+    background: var(--sslu-bg-button);
+    color: #e0e0e0;
+}
+
+.wavefold-source-btn.active {
+    background: #5a1a3e;
+    color: var(--sslu-synth-wavefold);
+    border-color: var(--sslu-synth-wavefold);
+}
+
+/* ========================================
+   Instrument Type Button Accent
+   ======================================== */
+
+.instrument-type-btn[data-type="wavefolder"].active {
+    background: #5a1a3e;
+    color: var(--sslu-synth-wavefold);
+    border-color: var(--sslu-synth-wavefold);
+}

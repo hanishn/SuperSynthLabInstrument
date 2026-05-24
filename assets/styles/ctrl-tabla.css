@@ -1,0 +1,185 @@
+/* Tabla surface styles */
+
+.tabla-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.tabla-playfield {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: var(--ssli-bg-surface);
+}
+
+.tabla-drum {
+  position: absolute;
+  border-radius: 50%;
+  overflow: hidden;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.tabla-zone {
+  position: absolute;
+  border-radius: 50%;
+  box-sizing: border-box;
+  pointer-events: none;
+  transition: filter 0.1s ease, background-color 0.1s ease;
+  touch-action: none;
+}
+
+/* ---- Bayan (bass drum, left): warm gold/amber tones ---- */
+.tabla-bayan .tabla-zone:nth-child(1) {
+  background: radial-gradient(circle at 45% 40%, #c8982a 0%, #a07820 50%, #7a5a14 100%);
+  border: 1px solid rgba(200, 160, 50, 0.35);
+}
+
+.tabla-bayan .tabla-zone:nth-child(2) {
+  background: radial-gradient(circle at 45% 40%, #b08820 0%, #8a6a18 50%, #6a5010 100%);
+  border: 1px solid rgba(180, 140, 40, 0.3);
+}
+
+.tabla-bayan .tabla-zone:nth-child(3) {
+  background: radial-gradient(circle at 45% 40%, #986e18 0%, #785812 50%, #5a420e 100%);
+  border: 1px solid rgba(160, 120, 30, 0.25);
+}
+
+/* ---- Dayan (treble drum, right): cool blue/teal tones ---- */
+.tabla-dayan .tabla-zone:nth-child(1) {
+  background: radial-gradient(circle at 45% 40%, #3a9aba 0%, #2a7a9a 50%, #1c5a78 100%);
+  border: 1px solid rgba(60, 160, 200, 0.35);
+}
+
+.tabla-dayan .tabla-zone:nth-child(2) {
+  background: radial-gradient(circle at 45% 40%, #2e88a8 0%, #226a88 50%, #184e68 100%);
+  border: 1px solid rgba(50, 140, 180, 0.3);
+}
+
+.tabla-dayan .tabla-zone:nth-child(3) {
+  background: radial-gradient(circle at 45% 40%, #247898 0%, #1a5c78 50%, #124458 100%);
+  border: 1px solid rgba(40, 120, 160, 0.25);
+}
+
+.tabla-dayan .tabla-zone:nth-child(4) {
+  background: radial-gradient(circle at 45% 40%, #1c6888 0%, #124e68 50%, #0e3a4e 100%);
+  border: 1px solid rgba(30, 100, 140, 0.2);
+}
+
+/* ---- Hit state: brighter version of zone color ---- */
+.tabla-bayan .tabla-zone-hit {
+  filter: brightness(1.5);
+  box-shadow: 0 0 16px rgba(200, 160, 50, 0.5), inset 0 0 8px rgba(255, 220, 100, 0.3);
+}
+
+.tabla-dayan .tabla-zone-hit {
+  filter: brightness(1.5);
+  box-shadow: 0 0 16px rgba(60, 160, 200, 0.5), inset 0 0 8px rgba(120, 200, 240, 0.3);
+}
+
+.tabla-ripple {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(76, 201, 240, 0.6);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: tabla-ripple-expand 200ms ease-out forwards;
+}
+
+.tabla-bayan .tabla-ripple {
+  border-color: rgba(220, 180, 60, 0.7);
+}
+
+.tabla-dayan .tabla-ripple {
+  border-color: rgba(80, 180, 220, 0.7);
+}
+
+@keyframes tabla-ripple-expand {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: var(--ssli-opacity-active);
+  }
+  100% {
+    width: 80px;
+    height: 80px;
+    opacity: 0;
+  }
+}
+
+.tabla-stroke-label {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--ssli-accent-amber);
+  font-size: var(--ssli-fs-h2);
+  font-weight: var(--ssli-fw-semibold);
+  letter-spacing: 1px;
+  text-shadow: 0 0 12px rgba(232, 200, 122, 0.5);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 5;
+}
+
+.tabla-drum-label {
+  font-size: var(--ssli-fs-body);
+  line-height: 28px;
+  min-height: 28px;
+  min-width: 28px;
+  color: var(--ssli-text-primary);
+  pointer-events: none;
+  z-index: 3;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Phone landscape overrides */
+[data-layout="phone-land"] .tabla-stroke-label {
+  font-size: var(--ssli-fs-lg);
+  bottom: 16px;
+}
+
+[data-layout="phone-land"] .tabla-drum-label {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone-land"] .tabla-ripple {
+  animation-name: tabla-ripple-expand-phone;
+}
+
+@keyframes tabla-ripple-expand-phone {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: var(--ssli-opacity-active);
+  }
+  100% {
+    width: 50px;
+    height: 50px;
+    opacity: 0;
+  }
+}
+
+/* Phone portrait overrides */
+[data-layout="phone"] .tabla-stroke-label {
+  font-size: var(--ssli-fs-lg);
+  bottom: 16px;
+}
+
+[data-layout="phone"] .tabla-drum-label {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone"] .tabla-ripple {
+  animation-name: tabla-ripple-expand-phone;
+}

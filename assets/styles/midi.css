@@ -1,0 +1,186 @@
+/* MIDI Panel Styles */
+
+.midi-toggle {
+  background: #2a2a3a;
+  border: var(--sslu-border-w-thin) solid var(--sslu-border-strong);
+  color: var(--sslu-text-muted);
+  padding: 3px 8px;
+  border-radius: var(--sslu-radius-sm);
+  cursor: pointer;
+  font-size: var(--sslu-fs-px-base);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sslu-space-2);
+}
+.midi-toggle:hover {
+  background: #3a3a4a;
+  color: var(--sslu-text-secondary);
+}
+
+.midi-status {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--sslu-radius-pill);
+}
+.midi-connected { background: var(--sslu-success); }
+.midi-disconnected { background: var(--sslu-text-dim); }
+.midi-unavailable { background: #f44336; }
+
+.midi-panel {
+  position: fixed;
+  top: 60px;
+  right: var(--sslu-space-5);
+  background: #1a1a2a;
+  border: var(--sslu-border-w-thin) solid var(--sslu-border-strong);
+  border-radius: var(--sslu-radius-lg);
+  padding: var(--sslu-space-5) var(--sslu-space-6);
+  z-index: 1000;
+  min-width: 240px;
+  box-shadow: var(--sslu-shadow-md);
+}
+.midi-panel.hidden { display: none; }
+
+.midi-panel-title {
+  color: var(--sslu-text-secondary);
+  font-size: var(--sslu-fs-px-md);
+  font-weight: var(--sslu-fw-bold);
+  margin-bottom: var(--sslu-space-4);
+  text-transform: uppercase;
+  letter-spacing: var(--sslu-ls-wider);
+}
+
+.midi-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sslu-space-3);
+  margin-bottom: var(--sslu-space-3);
+}
+.midi-row label {
+  color: var(--sslu-text-label);
+  font-size: var(--sslu-fs-px-base);
+  min-width: 32px;
+}
+.midi-row select {
+  flex: 1;
+  background: #2a2a3a;
+  border: var(--sslu-border-w-thin) solid var(--sslu-border-hover);
+  color: var(--sslu-text-secondary);
+  padding: 3px 4px;
+  border-radius: var(--sslu-radius-sm);
+  font-size: var(--sslu-fs-px-base);
+}
+
+.midi-channel-map {
+  color: var(--sslu-text-dim);
+  font-size: var(--sslu-fs-px-sm);
+  margin: var(--sslu-space-3) 0 var(--sslu-space-4);
+  padding: var(--sslu-space-2) var(--sslu-space-3);
+  background: #222;
+  border-radius: var(--sslu-radius-sm);
+}
+
+.midi-panic-btn {
+  background: #8b0000;
+  border: var(--sslu-border-w-thin) solid #a00;
+  color: var(--sslu-text-primary);
+  padding: 5px 12px;
+  border-radius: var(--sslu-radius-sm);
+  cursor: pointer;
+  font-size: var(--sslu-fs-px-base);
+  font-weight: var(--sslu-fw-bold);
+  width: 100%;
+  text-transform: uppercase;
+  letter-spacing: var(--sslu-ls-wider);
+}
+.midi-panic-btn:hover {
+  background: #b00;
+}
+.midi-panic-btn.panic-flash {
+  background: #f00;
+  color: var(--sslu-text-primary);
+}
+
+/* Per-instrument MIDI config */
+.midi-inst-config {
+  margin: var(--sslu-space-4) 0;
+  border-top: var(--sslu-border-w-thin) solid var(--sslu-border-medium);
+  padding-top: var(--sslu-space-4);
+}
+
+.midi-inst-header {
+  display: grid;
+  grid-template-columns: 50px 28px 28px 1fr;
+  gap: var(--sslu-space-2);
+  align-items: center;
+  margin-bottom: var(--sslu-space-2);
+}
+.midi-inst-col-lbl {
+  color: var(--sslu-text-dim);
+  font-size: var(--sslu-fs-px-xs);
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.midi-inst-row {
+  display: grid;
+  grid-template-columns: 50px 28px 28px 1fr;
+  gap: var(--sslu-space-2);
+  align-items: center;
+  margin-bottom: var(--sslu-space-1);
+}
+.midi-inst-label {
+  color: var(--sslu-text-muted);
+  font-size: var(--sslu-fs-px-sm);
+}
+.midi-inst-row input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0 auto;
+  cursor: pointer;
+  accent-color: var(--sslu-success);
+}
+.midi-inst-row select {
+  background: #2a2a3a;
+  border: var(--sslu-border-w-thin) solid var(--sslu-border-hover);
+  color: var(--sslu-text-secondary);
+  padding: var(--sslu-pad-input);
+  border-radius: var(--sslu-radius-sm);
+  font-size: var(--sslu-fs-px-sm);
+}
+
+/* MIDIOUT instrument panel */
+.midiout-controls-modal {
+  padding: var(--sslu-space-5) 0;
+}
+.midiout-config-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sslu-space-6);
+  margin-top: var(--sslu-space-4);
+}
+.midiout-config-row label {
+  color: var(--sslu-text-muted);
+  font-size: var(--sslu-fs-px-md);
+  display: flex;
+  align-items: center;
+  gap: var(--sslu-space-3);
+}
+.midiout-config-row select,
+.midiout-config-row input[type="number"] {
+  background: #2a2a3a;
+  border: var(--sslu-border-w-thin) solid var(--sslu-border-hover);
+  color: var(--sslu-text-secondary);
+  padding: var(--sslu-space-2) var(--sslu-space-3);
+  border-radius: var(--sslu-radius-sm);
+  font-size: var(--sslu-fs-px-md);
+}
+.midiout-config-row input[type="number"] {
+  width: 60px;
+}
+.midiout-info {
+  color: var(--sslu-text-dim);
+  font-size: var(--sslu-fs-px-base);
+  margin-top: var(--sslu-space-6);
+  font-style: italic;
+}

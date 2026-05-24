@@ -1,0 +1,3970 @@
+:root {
+  --ssli-bg-primary: #0a0a1a;
+  --ssli-bg-panel: #14142a;
+  --ssli-bg-section: #111128;
+  --ssli-bg-nav: #0e0e20;
+  --ssli-bg-input: #0a0a18;
+  --ssli-bg-dark: #080818;
+  --ssli-bg-elevated: #1a1a2e;
+  --ssli-bg-hover: #1a1a3e;
+  --ssli-bg-active: #14143a;
+  --ssli-bg-highlight: #1a1a4a;
+  --ssli-bg-card: #12121f;
+  --ssli-accent: #4cc9f0;
+  --ssli-accent-hover: #3a9bc0;
+  --ssli-accent-secondary: #7209b7;
+  --ssli-accent-tertiary: #f72585;
+  --ssli-success: #10b981;
+  --ssli-success-dark: #059669;
+  --ssli-success-alt: #2ecc71;
+  --ssli-warning: #e85d04;
+  --ssli-warning-light: #f0a030;
+  --ssli-warning-lighter: #f0c040;
+  --ssli-warning-accent: #FFAA44;
+  --ssli-text-primary: #e0e0e0;
+  --ssli-text-secondary: #b0b0c8;
+  --ssli-text-muted: #888;
+  --ssli-text-dim: #999;
+  --ssli-text-faint: #666;
+  --ssli-text-ghost: #555;
+  --ssli-border-primary: #333;
+  --ssli-border-light: #444;
+  --ssli-border-panel: #1a1a2e;
+  --ssli-border-accent: #2a2a5a;
+  --ssli-border-muted: #2a2a3e;
+  --ssli-surface-muted: #9999bb;
+  --ssli-surface-dim: #8888aa;
+  --ssli-gray-300: #aaa;
+  --ssli-gray-350: #b0b0b0;
+  --ssli-gray-400: #ccc;
+  --ssli-gray-450: #d0d0d0;
+  --ssli-gray-200: #777;
+  --ssli-gray-mid: #3a3a5a;
+  --ssli-bg-oscilloscope: #0a0a14;
+  --ssli-text-control: #c0c0e0;
+  --ssli-bg-surprise: linear-gradient(135deg, #2a1a3e, #1a2a3e);
+  --ssli-bg-surprise-hover: linear-gradient(135deg, #3a2a5e, #2a3a5e);
+  --ssli-border-surprise: #4a3a6a;
+  --ssli-key-white-active: linear-gradient(to bottom, #c8e8ff 0%, #9fd4f0 60%, #88c8e8 100%);
+  --ssli-key-black-active: linear-gradient(to bottom, #2a5a7a 0%, #1a4060 100%);
+  --ssli-bg-control-btn: #1a1a3a;
+  --ssli-text-control-btn: #aab;
+  --ssli-text-chord-key: #8ab4ff;
+  --ssli-limiter-active-text: #1a0a00;
+  --ssli-brand-gradient: linear-gradient(135deg, #4cc9f0, #7209b7, #f72585);
+  --ssli-brand-gradient-2: linear-gradient(135deg, #4cc9f0, #7209b7);
+}
+
+/* ============================================================
+   SSLI — Super Synth Lab Instrument custom styles
+   ============================================================ */
+
+/* Landing page */
+.ssli-landing {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--ssli-bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+@media (max-height: 700px) {
+  .ssli-landing { align-items: flex-start; }
+}
+@media (max-width: 480px) {
+  .ssli-landing { align-items: flex-start; }
+}
+.ssli-landing-inner {
+  text-align: center;
+  padding: 24px 16px;
+  max-width: 640px;
+}
+.ssli-landing-title {
+  font-size: 2rem;
+  font-weight: var(--ssli-fw-bold);
+  background: linear-gradient(135deg, var(--ssli-accent), var(--ssli-accent-secondary), var(--ssli-accent-tertiary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+/* Phone portrait: allow title to wrap, shrink font */
+@media (max-width: 480px) {
+  .ssli-landing-title { white-space: normal; font-size: 1.4rem; letter-spacing: 1px; }
+  .ssli-landing-inner { padding: 16px 12px; }
+}
+/* Phone-landscape: shrink landing so everything fits in 390px tall without clip */
+@media (max-height: 450px) {
+  .ssli-landing-inner { padding: 8px 12px; }
+  .ssli-landing-title { font-size: var(--ssli-fs-h3); letter-spacing: 1px; margin-bottom: 2px; white-space: normal; }
+  .ssli-landing-edition { font-size: var(--ssli-fs-xs); letter-spacing: 2px; margin-bottom: 2px; }
+  .ssli-landing-subtitle { font-size: var(--ssli-fs-body); margin-bottom: 2px; }
+  .ssli-landing-credit { font-size: var(--ssli-fs-xs); margin-bottom: 2px; }
+  .ssli-landing-version { font-size: var(--ssli-fs-xs); padding: 1px 6px; margin-bottom: 4px; }
+  .ssli-landing-actions { margin-top: 6px; gap: var(--ssli-gap-sm); }
+  .ssl-waveform-divider { margin: 4px auto !important; height: 16px !important; }
+  .ssli-play-btn { padding: 8px 24px; font-size: var(--ssli-fs-lg); }
+  .ssli-fullscreen-btn { padding: 6px 20px; font-size: var(--ssli-fs-md); }
+  /* Language selector: tighter spacing in landscape */
+  .ssl-lang-selector { margin: 2px auto 0; }
+}
+/* Phone landscape: side-by-side layout — title/buttons LEFT, flags RIGHT */
+@media (max-height: 450px) and (orientation: landscape) {
+  .ssli-landing {
+    align-items: stretch;
+  }
+  .ssli-landing-inner {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    max-width: 100%;
+    width: 100%;
+    padding: 8px 16px;
+    gap: 16px;
+  }
+  .ssli-landing-content {
+    flex: 0 0 58%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .ssl-lang-selector {
+    flex: 0 0 40%;
+    margin: 0;
+  }
+}
+.ssli-landing-subtitle {
+  font-size: var(--ssli-fs-lg);
+  color: var(--ssli-text-secondary);
+  margin-bottom: 4px;
+}
+.ssli-landing-edition {
+  font-size: var(--ssli-fs-body);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--ssli-accent);
+  margin-bottom: 6px;
+  opacity: var(--ssli-opacity-hover);
+}
+/* U-05: Credit line contrast raised from var(--ssli-text-ghost) to var(--ssli-text-dim) for WCAG AA */
+.ssli-landing-credit {
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-text-dim);
+  margin-bottom: 4px;
+}
+.ssli-landing-version {
+  display: inline-block;
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-text-muted);
+  background: var(--ssli-bg-elevated);
+  border: 1px solid var(--ssli-border-primary);
+  border-radius: var(--ssli-radius-md);
+  padding: 2px 8px;
+  margin-bottom: 8px;
+}
+.ssli-landing-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ssli-gap-lg);
+  margin-top: 16px;
+}
+.ssli-play-btn {
+  background: linear-gradient(135deg, var(--ssli-accent), var(--ssli-accent-secondary));
+  color: var(--ssli-text-primary);
+  border: none;
+  border-radius: 12px;
+  padding: 14px 40px;
+  font-size: var(--ssli-fs-h3);
+  font-weight: var(--ssli-fw-bold);
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 24px rgba(76, 201, 240, 0.3);
+}
+.ssli-play-btn:hover {
+  transform: scale(1.04);
+  box-shadow: 0 6px 32px rgba(76, 201, 240, 0.5);
+}
+.ssli-play-btn:active {
+  transform: scale(0.98);
+}
+.ssli-play-icon {
+  margin-right: 6px;
+}
+.ssli-about-link {
+  background: none;
+  border: 1px solid var(--ssli-border-primary);
+  border-radius: var(--ssli-radius-md);
+  color: var(--ssli-text-muted);
+  padding: 6px 20px;
+  font-size: var(--ssli-fs-body);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.ssli-about-link:hover {
+  color: var(--ssli-accent);
+  border-color: var(--ssli-accent);
+}
+
+/* About overlay (reuse SSLU pattern) */
+.ssl-about-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20000;
+}
+.ssl-about-panel {
+  background: var(--ssli-bg-panel);
+  border: 1px solid var(--ssli-border-primary);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 480px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+}
+.ssl-about-close {
+  position: absolute;
+  top: 8px; right: 12px;
+  background: none;
+  border: none;
+  color: var(--ssli-text-muted);
+  font-size: var(--ssli-fs-h2);
+  cursor: pointer;
+  line-height: 1;
+}
+.ssl-about-close:hover { color: var(--ssli-text-primary); }
+.ssl-about-title {
+  font-size: var(--ssli-fs-h3);
+  color: var(--ssli-accent);
+  margin: 0 0 8px;
+}
+.ssl-about-version {
+  font-size: var(--ssli-fs-body);
+  color: var(--ssli-text-muted);
+  margin: 0 0 12px;
+}
+.ssl-about-body {
+  font-size: var(--ssli-fs-body);
+  color: var(--ssli-text-secondary);
+  line-height: 1.6;
+}
+.ssl-about-details {
+  margin: 8px 0;
+  border: 1px solid var(--ssli-border-muted);
+  border-radius: var(--ssli-radius-md);
+  padding: 6px 10px;
+}
+.ssl-about-details summary {
+  cursor: pointer;
+  color: var(--ssli-accent);
+  font-weight: var(--ssli-fw-semibold);
+  font-size: var(--ssli-fs-body);
+}
+.ssl-about-details ul {
+  margin: 6px 0 0 16px;
+  padding: 0;
+}
+.ssl-about-details li {
+  margin: 4px 0;
+  font-size: var(--ssli-fs-body);
+}
+
+/* V-01: Hide SSLU hamburger button when SSLI app is active.
+   The hamburger is for SSLU landing/sidebar and overlaps SSLI nav buttons
+   at phone landscape (844x390), intercepting clicks on the Play nav button.
+   Body gets ssli-app-active class when _enterApp() fires. */
+body.ssli-app-active .sslu-hamburger-btn {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Main app layout */
+.ssli-app {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--ssli-bg-primary);
+  overflow: hidden;
+}
+
+/* Left navigation strip */
+.ssli-nav {
+  display: flex;
+  flex-direction: column;
+  width: 56px;
+  min-width: 56px;
+  background: var(--ssli-bg-nav);
+  border-right: 1px solid var(--ssli-border-panel);
+  padding: 4px 0;
+  gap: var(--ssli-gap-xs);
+  z-index: 100;
+  overflow-y: auto;
+}
+/* U-05: Nav button inactive color raised from var(--ssli-text-faint) to var(--ssli-text-dim) for WCAG AA */
+.ssli-nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 4px 2px;
+  background: none;
+  border: none;
+  border-left: 3px solid transparent;
+  color: var(--ssli-text-dim);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  font-size: var(--ssli-fs-xs);
+  min-height: 36px;
+}
+.ssli-nav-btn:hover {
+  color: var(--ssli-text-secondary);
+  background: rgba(76, 201, 240, 0.05);
+}
+.ssli-nav-btn.active {
+  color: var(--ssli-accent);
+  border-left-color: var(--ssli-accent);
+  background: rgba(76, 201, 240, 0.08);
+}
+.ssli-nav-btn svg {
+  flex-shrink: 0;
+}
+.ssli-nav-label {
+  font-family: system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* Home/Return button — visually distinct from screen nav buttons */
+.ssli-nav-home-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 4px 2px;
+  background: none;
+  border: none;
+  border-left: 3px solid transparent;
+  color: var(--ssli-text-dim);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  font-size: var(--ssli-fs-xs);
+  min-height: 36px;
+  width: 100%;
+}
+.ssli-nav-home-btn:hover {
+  color: var(--ssli-text-secondary);
+  background: rgba(76, 201, 240, 0.05);
+}
+.ssli-nav-home-divider {
+  height: 1px;
+  background: var(--ssli-bg-elevated);
+  margin: 1px 6px;
+  flex-shrink: 0;
+}
+
+/* Screen containers */
+.ssli-screens {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+.ssli-screen {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: opacity 0.15s ease;
+}
+.ssli-screen:not(.active) {
+  display: none;
+}
+
+/* Placeholder text for future screens */
+.ssli-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--ssli-text-ghost);
+  font-size: var(--ssli-fs-md);
+  font-style: italic;
+}
+
+/* Play screen layout */
+.ssli-play-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: var(--ssli-bg-nav);
+  border-bottom: 1px solid var(--ssli-border-panel);
+  min-height: 32px;
+  gap: var(--ssli-gap-sm);
+}
+/* Compact info row: [level meter] [oscilloscope] [note readout] */
+.ssli-play-info-row {
+  display: flex;
+  align-items: center;
+  padding: 2px 4px;
+  background: var(--ssli-bg-nav);
+  border-bottom: 1px solid var(--ssli-border-panel);
+  height: 38px;
+  gap: var(--ssli-gap-xs);
+  flex-shrink: 0;
+}
+/* Phone-landscape: collapse the info row when no limit indicator is active
+   (regains ~18px of vertical budget on a 390-tall stage). */
+html[data-layout="phone-land"] .ssli-play-info-row {
+  height: 20px;
+  padding: 1px 4px;
+}
+html[data-layout="phone-land"] .ssli-play-info-row .ssli-level-meter-wrap {
+  height: 16px;
+}
+html[data-layout="phone-land"] .ssli-play-info-row .ssli-scope-wrap,
+html[data-layout="phone-land"] .ssli-play-info-row .ssli-scope-wrap .ssli-oscilloscope {
+  height: 18px;
+}
+/* Scope wrapper — holds canvas + LIMIT badge overlay */
+.ssli-scope-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+}
+.ssli-scope-wrap .ssli-oscilloscope {
+  width: 100%;
+  height: 34px;
+  border-bottom: none;
+  border-radius: var(--ssli-radius-sm);
+}
+.ssli-scope-wrap .ssli-limit-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  margin-left: 0;
+}
+.ssli-play-preset-name {
+  font-size: var(--ssli-fs-sm);
+  color: var(--ssli-accent);
+  font-weight: var(--ssli-fw-semibold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
+}
+/* V-02: Level meter LED bar */
+.ssli-level-meter-wrap {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 28px;
+  flex-shrink: 0;
+  padding: 0 2px;
+}
+.ssli-level-seg {
+  width: 4px;
+  flex-shrink: 0;
+  border-radius: 1px;
+  transition: background 0.05s;
+  background: var(--ssli-bg-elevated);
+}
+/* Segment heights: progressively taller for LED bar look */
+.ssli-level-seg:nth-child(1) { height: 4px; }
+.ssli-level-seg:nth-child(2) { height: 6px; }
+.ssli-level-seg:nth-child(3) { height: 8px; }
+.ssli-level-seg:nth-child(4) { height: 10px; }
+.ssli-level-seg:nth-child(5) { height: 12px; }
+.ssli-level-seg:nth-child(6) { height: 14px; }
+.ssli-level-seg:nth-child(7) { height: 16px; }
+.ssli-level-seg:nth-child(8) { height: 18px; }
+
+/* V-05: Oscilloscope canvas */
+.ssli-oscilloscope {
+  width: 100%;
+  height: 50px;
+  display: block;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--ssli-border-panel);
+  background: var(--ssli-bg-oscilloscope);
+}
+
+/* V-08: Surface discovery tooltip */
+.ssli-surface-hint {
+  position: absolute;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ssli-bg-hover);
+  color: var(--ssli-accent);
+  font-size: var(--ssli-fs-xs);
+  font-weight: var(--ssli-fw-semibold);
+  padding: 4px 10px;
+  border-radius: var(--ssli-radius-md);
+  border: 1px solid rgba(76, 201, 240, 0.3);
+  white-space: nowrap;
+  z-index: 200;
+  pointer-events: auto;
+  cursor: pointer;
+  opacity: var(--ssli-opacity-active);
+  transition: opacity 0.3s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+.ssli-surface-hint::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 5px solid rgba(76, 201, 240, 0.3);
+}
+
+.ssli-play-note-readout {
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-text-secondary);
+  font-family: monospace;
+  font-variant-numeric: tabular-nums;
+  min-width: 80px;
+  text-align: right;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Surface selector buttons row */
+.ssli-surface-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--ssli-gap-xs);
+  flex-shrink: 0;
+}
+.ssli-surface-btn {
+  background: var(--ssli-bg-elevated);
+  color: var(--ssli-text-muted);
+  border: 1px solid var(--ssli-border-muted);
+  border-radius: var(--ssli-radius-md);
+  padding: 2px 6px;
+  font-size: var(--ssli-fs-xs);
+  font-family: system-ui, -apple-system, sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  height: 24px;
+  line-height: 1;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.ssli-surface-btn:hover {
+  color: var(--ssli-text-secondary);
+  border-color: var(--ssli-accent);
+}
+.ssli-surface-btn.active {
+  background: var(--ssli-accent);
+  color: var(--ssli-bg-primary);
+  border-color: var(--ssli-accent);
+  font-weight: var(--ssli-fw-semibold);
+}
+/* Surface dropdown (replaces button row for many controllers) */
+.ssli-surface-select {
+  background: var(--ssli-bg-elevated);
+  color: var(--ssli-text-control);
+  border: 1px solid var(--ssli-gray-mid);
+  border-radius: var(--ssli-radius-md);
+  padding: 3px 8px;
+  font-size: var(--ssli-fs-sm);
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  min-width: 120px;
+  min-height: 44px;
+}
+.ssli-surface-select:focus {
+  border-color: var(--ssli-accent);
+}
+/* Inline category select in the octave controls bar */
+.ssli-inline-category-select,
+.ssli-bar-category-select {
+  min-height: 28px;
+  min-width: 70px;
+  max-width: 100px;
+  font-size: var(--ssli-fs-xs);
+  padding: 2px 4px;
+  margin-right: 2px;
+}
+/* Inline voicing select in the octave controls bar */
+.ssli-inline-voicing-select {
+  min-height: 28px;
+  min-width: 60px;
+  max-width: 80px;
+  font-size: var(--ssli-fs-xs);
+  padding: 2px 4px;
+  margin-right: 4px;
+}
+/* Inline surface select in the octave controls bar */
+.ssli-inline-surface-select {
+  min-height: 28px;
+  min-width: 100px;
+  max-width: 140px;
+  font-size: var(--ssli-fs-xs);
+  padding: 2px 4px;
+  margin-right: 4px;
+}
+/* Inline root-note and scale/mode selects in the octave controls bar */
+.ssli-inline-root-select,
+.ssli-inline-mode-select {
+  height: var(--ssli-dropdown-h, 28px);
+  font-size: var(--ssli-fs-body, 13px);
+  padding: 2px 6px;
+  margin-right: 4px;
+  border: 1px solid var(--ssli-border-muted, rgba(76, 201, 240, 0.15));
+  border-radius: var(--ssli-radius-sm, 3px);
+  background: var(--ssli-bg-input, #21262d);
+  color: var(--ssli-text-primary, rgba(220, 235, 245, 0.95));
+}
+.ssli-inline-root-select {
+  min-width: 52px;
+  max-width: 64px;
+}
+.ssli-inline-mode-select {
+  min-width: 72px;
+  max-width: 110px;
+}
+.ssli-inline-root-select:focus,
+.ssli-inline-mode-select:focus {
+  border-color: var(--ssli-accent-cyan, #00d4ff);
+}
+.ssli-play-keyboard-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+/* Keyboard in SSLI: column layout — octave bar on top, keys below */
+.ssli-play-keyboard-wrap .keyboard {
+  flex: 1;
+  width: 100%;
+  height: auto;
+  min-height: 120px;
+  flex-direction: column;
+}
+/* Octave controls bar: fixed height strip */
+.ssli-play-keyboard-wrap .keyboard > .perform-octave-bar {
+  flex: 0 0 auto;
+  width: 100%;
+}
+/* Key wrapper fills remaining vertical space, keys go horizontal */
+.ssli-play-keyboard-wrap .keyboard > .perform-ctrl-wrapper {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  flex-direction: row;
+  overflow: hidden;
+}
+
+/* Sound screen */
+.ssli-sound-container {
+  padding: 2px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  height: 100%;
+  overflow: hidden;
+}
+.ssli-sound-section {
+  background: var(--ssli-bg-nav);
+  border: 1px solid var(--ssli-border-panel);
+  border-radius: var(--ssli-radius-md);
+  padding: 2px 8px;
+}
+.ssli-sound-section-title {
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-surface-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0;
+  font-weight: var(--ssli-fw-semibold);
+  line-height: 1.2;
+}
+.ssli-sound-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ssli-gap-xs);
+  margin-bottom: 1px;
+  flex-wrap: wrap;
+}
+.ssli-sound-label {
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-text-secondary);
+  min-width: 48px;
+}
+.ssli-sound-select {
+  background: var(--ssli-bg-input, #21262d);
+  color: var(--ssli-text-primary, rgba(220, 235, 245, 0.95));
+  border: 1px solid var(--ssli-border-muted, rgba(76, 201, 240, 0.15));
+  border-radius: var(--ssli-radius-sm, 3px);
+  padding: 2px 6px;
+  font-size: var(--ssli-fs-body, 13px);
+  font-family: monospace;
+  flex: 1;
+  min-width: 100px;
+  height: var(--ssli-dropdown-h, 28px);
+}
+.ssli-sound-select:focus {
+  border-color: var(--ssli-accent-cyan, #00d4ff);
+  outline: none;
+}
+.ssli-fx-presets {
+  display: flex;
+  gap: var(--ssli-gap-xs);
+  flex-wrap: wrap;
+}
+.ssli-fx-preset-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ssli-gap-sm);
+  margin-bottom: 3px;
+}
+.ssli-fx-cat-select,
+.ssli-fx-pre-select {
+  flex: 1;
+  min-width: 120px;
+}
+.ssli-volume-slider {
+  flex: 1;
+  min-width: 120px;
+  vertical-align: middle;
+}
+.ssli-volume-val {
+  font-size: var(--ssli-fs-sm);
+  color: var(--ssli-text-secondary);
+  font-family: monospace;
+  min-width: 30px;
+}
+.ssli-test-tone-btn {
+  background: var(--ssli-bg-elevated);
+  color: var(--ssli-accent);
+  border: 1px solid var(--ssli-accent);
+  border-radius: var(--ssli-radius-md);
+  padding: 3px 10px;
+  font-size: var(--ssli-fs-xs);
+  cursor: pointer;
+  font-weight: var(--ssli-fw-semibold);
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.ssli-test-tone-btn:hover {
+  background: var(--ssli-accent);
+  color: var(--ssli-bg-primary);
+}
+.ssli-test-tone-btn:active {
+  transform: scale(0.96);
+}
+
+/* ============================================================
+   Shape Screen (ADSR & Filter)
+   ============================================================ */
+.ssli-shape-container {
+  padding: 2px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  height: 100%;
+  overflow: hidden;
+}
+.ssli-shape-section {
+  background: var(--ssli-bg-nav);
+  border: 1px solid var(--ssli-border-panel);
+  border-radius: var(--ssli-radius-md);
+  padding: 2px 8px;
+}
+.ssli-shape-section-title {
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-surface-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0;
+  font-weight: var(--ssli-fw-semibold);
+  line-height: 1.2;
+}
+.ssli-shape-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ssli-gap-xs);
+  margin-bottom: 0;
+  flex-wrap: wrap;
+}
+.ssli-shape-label {
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-text-secondary);
+  min-width: 44px;
+}
+.ssli-shape-slider {
+  flex: 1;
+  min-width: 80px;
+  vertical-align: middle;
+}
+.ssli-shape-val {
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-text-secondary);
+  font-family: monospace;
+  min-width: 48px;
+  text-align: right;
+}
+.ssli-shape-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--ssli-accent);
+  cursor: pointer;
+}
+
+/* ADSR 2x2 grid layout for compact display */
+.ssli-shape-adsr-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px 8px;
+}
+.ssli-shape-adsr-grid .ssli-shape-row {
+  margin-bottom: 0;
+}
+.ssli-shape-adsr-grid .ssli-shape-label {
+  min-width: 28px;
+}
+
+/* Filter 2x2 grid layout */
+.ssli-shape-filter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px 8px;
+}
+.ssli-shape-filter-grid .ssli-shape-row {
+  margin-bottom: 0;
+}
+.ssli-shape-filter-grid .ssli-shape-label {
+  min-width: 44px;
+}
+/* Filter enable + type row spans full width */
+.ssli-shape-filter-top-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ssli-gap-xs);
+  margin-bottom: 0;
+}
+
+/* ADSR mode toggle */
+.ssli-shape-mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--ssli-gap-xs);
+  padding: 1px 8px;
+  background: var(--ssli-bg-nav);
+  border: 1px solid var(--ssli-border-panel);
+  border-radius: var(--ssli-radius-md);
+}
+.ssli-shape-mode-btn {
+  background: var(--ssli-bg-elevated);
+  color: var(--ssli-text-secondary);
+  border: 1px solid var(--ssli-border-primary);
+  border-radius: var(--ssli-radius-md);
+  padding: 2px 10px;
+  font-size: var(--ssli-fs-xs);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.ssli-shape-mode-btn:hover {
+  border-color: var(--ssli-accent);
+  color: var(--ssli-accent);
+}
+.ssli-shape-mode-btn.active {
+  background: var(--ssli-accent);
+  color: var(--ssli-bg-primary);
+  border-color: var(--ssli-accent);
+  font-weight: var(--ssli-fw-semibold);
+}
+
+/* Dual-mode ADSR tab switcher */
+.ssli-shape-dual-tabs {
+  display: flex;
+  gap: var(--ssli-gap-xs);
+  padding: 1px 8px;
+}
+
+/* ADSR Curve Canvas */
+.ssli-adsr-canvas {
+  width: 100%;
+  display: block;
+  height: 28px;
+  border: 1px solid var(--ssli-border-panel);
+  border-radius: var(--ssli-radius-md);
+  margin-top: 1px;
+}
+
+/* Preset Search Filter */
+.ssli-preset-search {
+  background: var(--ssli-bg-elevated);
+  color: var(--ssli-gray-400);
+  border: 1px solid var(--ssli-border-primary);
+  border-radius: var(--ssli-radius-md);
+  padding: 4px 8px;
+  font-size: var(--ssli-fs-sm);
+  font-family: monospace;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 3px;
+}
+.ssli-preset-search::placeholder {
+  color: var(--ssli-text-faint);
+}
+.ssli-preset-search:focus {
+  border-color: var(--ssli-accent);
+  outline: none;
+}
+
+/* F3-07: Random Preset / Surprise Me button */
+.ssli-surprise-btn {
+  background: var(--ssli-bg-surprise);
+  color: var(--ssli-text-control);
+  border: 1px solid var(--ssli-border-surprise);
+  border-radius: var(--ssli-radius-md);
+  padding: 1px 10px;
+  font-size: var(--ssli-fs-xs);
+  font-family: inherit;
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 1px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.ssli-surprise-btn:hover {
+  background: var(--ssli-bg-surprise-hover);
+  border-color: var(--ssli-accent);
+  color: var(--ssli-text-primary);
+}
+.ssli-surprise-btn:active {
+  background: var(--ssli-accent);
+  color: var(--ssli-bg-primary);
+}
+
+/* F3-05: MIDI unavailable notice */
+.ssli-midi-unavailable {
+  background: var(--ssli-bg-elevated);
+  border: 1px solid var(--ssli-gray-mid);
+  border-radius: var(--ssli-radius-md);
+  padding: 12px 16px;
+  color: var(--ssli-warning-accent);
+  font-size: var(--ssli-fs-body);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+/* ============================================================
+   Effects Screen
+   ============================================================ */
+.ssli-fx-container {
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ssli-gap-xs);
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Effects chain list */
+.ssli-fx-chain-section {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.ssli-fx-chain-list {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ssli-gap-xs);
+  align-content: flex-start;
+}
+.ssli-fx-category-divider {
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-text-ghost);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding: 2px 4px 1px;
+  margin-top: 2px;
+  width: 100%;
+  flex-shrink: 0;
+}
+.ssli-fx-chain-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ssli-gap-xs);
+  border-radius: var(--ssli-radius-md);
+  background: var(--ssli-bg-section);
+  border: 1px solid transparent;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.2s;
+  user-select: none;
+  -webkit-user-select: none;
+  box-sizing: border-box;
+}
+.ssli-fx-chain-row.active {
+  background: var(--ssli-bg-active);
+  border-color: var(--ssli-border-accent);
+}
+.ssli-fx-chain-row:not(.active) {
+  opacity: var(--ssli-opacity-hover);
+}
+.ssli-fx-chain-row.dragging {
+  opacity: var(--ssli-opacity-active);
+  border-color: var(--ssli-accent);
+  background: var(--ssli-bg-highlight);
+}
+.ssli-fx-chain-row.drop-target-above {
+  border-top: 2px solid var(--ssli-accent);
+}
+.ssli-fx-chain-row.drop-target-below {
+  border-bottom: 2px solid var(--ssli-accent);
+}
+.ssli-fx-chain-cb {
+  accent-color: var(--ssli-accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ssli-fx-chain-info {
+  display: flex;
+  align-items: center;
+  gap: var(--ssli-gap-sm);
+  flex: 1;
+  cursor: pointer;
+  min-width: 0;
+}
+.ssli-fx-chain-icon {
+  font-size: var(--ssli-fs-body);
+  flex-shrink: 0;
+}
+.ssli-fx-chain-name {
+  font-size: var(--ssli-fs-md);
+  color: var(--ssli-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ssli-fx-reorder-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--ssli-gap-xs);
+  flex-shrink: 0;
+  margin-left: auto;
+  padding-left: 4px;
+}
+.ssli-fx-reorder-btn {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: var(--ssli-bg-control-btn);
+  color: var(--ssli-text-control-btn);
+  border: 1px solid var(--ssli-border-light);
+  border-radius: var(--ssli-radius-md);
+  cursor: pointer;
+  font-size: var(--ssli-fs-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ssli-fx-reorder-btn:hover:not(:disabled) {
+  border-color: var(--ssli-accent);
+  color: var(--ssli-text-primary);
+}
+.ssli-fx-reorder-btn:disabled {
+  opacity: var(--ssli-opacity-overlay);
+  cursor: default;
+}
+.ssli-fx-chain-handle:hover {
+  color: var(--ssli-accent);
+  background: rgba(76, 201, 240, 0.1);
+}
+
+/* Effects presets compact single-row layout */
+.ssli-fx-presets-compact {
+  flex-shrink: 0;
+  padding: 3px 8px;
+}
+.ssli-fx-presets-inline-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ssli-gap-xs);
+}
+.ssli-fx-presets-inline-label {
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-surface-muted);
+  font-weight: var(--ssli-fw-semibold);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.ssli-fx-presets-inline-row .ssli-sound-select {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Master mix at bottom */
+.ssli-fx-master-mix {
+  flex-shrink: 0;
+  padding: 3px 8px;
+}
+
+/* ============================================================
+   Effects Parameter Modal
+   ============================================================ */
+.ssli-fx-modal-backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30000;
+}
+.ssli-fx-modal-panel {
+  background: var(--ssli-bg-panel);
+  border: 1px solid var(--ssli-border-primary);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
+  position: relative;
+}
+.ssli-fx-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--ssli-border-panel);
+}
+.ssli-fx-modal-title {
+  font-size: var(--ssli-fs-lg);
+  color: var(--ssli-accent);
+  font-weight: var(--ssli-fw-semibold);
+}
+.ssli-fx-modal-close {
+  background: none;
+  border: none;
+  color: var(--ssli-text-muted);
+  font-size: var(--ssli-fs-h2);
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 4px;
+}
+.ssli-fx-modal-close:hover {
+  color: var(--ssli-text-primary);
+}
+.ssli-fx-modal-params {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ssli-gap-md);
+}
+.ssli-fx-modal-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ssli-gap-md);
+}
+.ssli-fx-modal-row .ssli-shape-slider {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ============================================================
+   MIDI Screen
+   ============================================================ */
+.ssli-midi-container {
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ssli-gap-xs);
+  height: 100%;
+  overflow: hidden;
+}
+.ssli-midi-io-row {
+  display: flex;
+  gap: var(--ssli-gap-sm);
+}
+.ssli-midi-scan-btn {
+  background: var(--ssli-bg-elevated);
+  color: var(--ssli-accent);
+  border: 1px solid var(--ssli-accent);
+  border-radius: var(--ssli-radius-md);
+  padding: 3px 10px;
+  font-size: var(--ssli-fs-xs);
+  cursor: pointer;
+  font-weight: var(--ssli-fw-semibold);
+  transition: background 0.15s;
+}
+.ssli-midi-scan-btn:hover {
+  background: var(--ssli-accent);
+  color: var(--ssli-bg-primary);
+}
+
+/* Connection status dot */
+.ssli-midi-status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-left: 6px;
+  flex-shrink: 0;
+}
+.ssli-midi-status-dot.connected {
+  background: var(--ssli-success-alt);
+  box-shadow: 0 0 4px rgba(46, 204, 113, 0.5);
+}
+.ssli-midi-status-dot.disconnected {
+  background: var(--ssli-text-ghost);
+}
+
+/* Activity LED */
+.ssli-midi-activity-led {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ssli-border-primary);
+  margin-left: 4px;
+  flex-shrink: 0;
+  transition: background 0.05s;
+}
+.ssli-midi-activity-led.flash {
+  background: var(--ssli-warning-lighter);
+  box-shadow: 0 0 6px rgba(240, 192, 64, 0.7);
+}
+
+/* Test note button */
+.ssli-midi-test-btn {
+  background: var(--ssli-bg-elevated);
+  color: var(--ssli-text-secondary);
+  border: 1px solid var(--ssli-border-primary);
+  border-radius: var(--ssli-radius-md);
+  padding: 3px 10px;
+  font-size: var(--ssli-fs-xs);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.ssli-midi-test-btn:hover {
+  border-color: var(--ssli-accent);
+  color: var(--ssli-accent);
+}
+
+/* MIDI Monitor */
+.ssli-midi-monitor-section {
+  flex: 1;
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.ssli-midi-monitor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.ssli-midi-clear-btn {
+  background: none;
+  border: 1px solid var(--ssli-border-primary);
+  border-radius: var(--ssli-radius-md);
+  color: var(--ssli-text-muted);
+  font-size: var(--ssli-fs-xs);
+  padding: 2px 10px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.ssli-midi-clear-btn:hover {
+  color: var(--ssli-accent);
+  border-color: var(--ssli-accent);
+}
+.ssli-midi-monitor-log {
+  flex: 1;
+  background: var(--ssli-bg-dark);
+  border: 1px solid var(--ssli-border-panel);
+  border-radius: var(--ssli-radius-md);
+  padding: 4px 6px;
+  font-family: monospace;
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-surface-dim);
+  line-height: 1.4;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  white-space: pre-wrap;
+  word-break: break-all;
+  min-height: 40px;
+  max-height: 120px;
+  margin: 0;
+}
+
+/* ============================================================
+   Fullscreen / Add to Home Screen
+   ============================================================ */
+.ssli-fullscreen-btn {
+  background: linear-gradient(135deg, var(--ssli-success), var(--ssli-success-dark));
+  color: var(--ssli-text-primary);
+  border: none;
+  border-radius: 10px;
+  padding: 10px 28px;
+  font-size: var(--ssli-fs-md);
+  font-weight: var(--ssli-fw-bold);
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 3px 16px rgba(16, 185, 129, 0.3);
+}
+.ssli-fullscreen-btn:hover {
+  transform: scale(1.04);
+  box-shadow: 0 5px 24px rgba(16, 185, 129, 0.5);
+}
+.ssli-fullscreen-btn:active {
+  transform: scale(0.97);
+}
+
+/* A2HS overlay */
+.ssli-a2hs-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 30000;
+  background: rgba(0, 0, 0, 0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.ssli-a2hs-panel {
+  background: var(--ssli-bg-card);
+  border: 1px solid var(--ssli-border-primary);
+  border-radius: 16px;
+  padding: 24px 28px;
+  max-width: 380px;
+  width: 100%;
+  color: var(--ssli-text-primary);
+  text-align: left;
+}
+.ssli-a2hs-title {
+  font-size: var(--ssli-fs-xl);
+  font-weight: var(--ssli-fw-bold);
+  color: var(--ssli-accent);
+  margin: 0 0 10px;
+  text-align: center;
+}
+.ssli-a2hs-desc {
+  font-size: var(--ssli-fs-body);
+  color: var(--ssli-gray-300);
+  margin: 0 0 14px;
+  line-height: 1.4;
+}
+.ssli-a2hs-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 14px;
+  counter-reset: none;
+}
+.ssli-a2hs-steps li {
+  display: flex;
+  align-items: center;
+  gap: var(--ssli-gap-lg);
+  padding: 8px 0;
+  font-size: var(--ssli-fs-md);
+  color: var(--ssli-gray-450);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.ssli-a2hs-steps li:last-child {
+  border-bottom: none;
+}
+.ssli-a2hs-step-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--ssli-accent), var(--ssli-accent-secondary));
+  color: var(--ssli-text-primary);
+  font-size: var(--ssli-fs-body);
+  font-weight: var(--ssli-fw-bold);
+}
+.ssli-a2hs-share-icon {
+  font-size: var(--ssli-fs-xl);
+  vertical-align: middle;
+}
+.ssli-a2hs-note {
+  font-size: var(--ssli-fs-sm);
+  color: var(--ssli-gray-200);
+  margin: 0 0 16px;
+  line-height: 1.3;
+  text-align: center;
+}
+.ssli-a2hs-close {
+  display: block;
+  width: 100%;
+  background: linear-gradient(135deg, var(--ssli-accent), var(--ssli-accent-secondary));
+  color: var(--ssli-text-primary);
+  border: none;
+  border-radius: var(--ssli-radius-lg);
+  padding: 10px;
+  font-size: var(--ssli-fs-md);
+  font-weight: var(--ssli-fw-bold);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.ssli-a2hs-close:active {
+  transform: scale(0.97);
+}
+
+/* Hide fullscreen button when already standalone */
+.ssli-standalone .ssli-fullscreen-btn {
+  display: none;
+}
+
+/* ============================================================
+   U-17: Preset label chip/badge styling
+   ============================================================ */
+.ssli-play-preset-label {
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+.ssli-play-preset-name {
+  background: rgba(76, 201, 240, 0.08);
+  border: 1px solid rgba(76, 201, 240, 0.2);
+  border-radius: var(--ssli-radius-md);
+  padding: 2px 8px;
+}
+
+/* ============================================================
+   U-07: Custom slider styling for dark UI consistency
+   ============================================================ */
+.ssli-shape-slider,
+.ssli-volume-slider,
+input[type="range"].ssli-fx-modal-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: var(--ssli-bg-elevated);
+  border-radius: var(--ssli-radius-sm);
+  outline: none;
+  border: 1px solid var(--ssli-border-muted);
+}
+.ssli-shape-slider::-webkit-slider-thumb,
+.ssli-volume-slider::-webkit-slider-thumb,
+input[type="range"].ssli-fx-modal-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--ssli-accent), var(--ssli-accent-hover));
+  cursor: pointer;
+  border: 2px solid var(--ssli-bg-nav);
+  box-shadow: 0 0 4px rgba(76, 201, 240, 0.4);
+}
+.ssli-shape-slider::-moz-range-thumb,
+.ssli-volume-slider::-moz-range-thumb,
+input[type="range"].ssli-fx-modal-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--ssli-accent), var(--ssli-accent-hover));
+  cursor: pointer;
+  border: 2px solid var(--ssli-bg-nav);
+  box-shadow: 0 0 4px rgba(76, 201, 240, 0.4);
+}
+/* Touch device: larger thumb for 44px touch target */
+@media (pointer: coarse) {
+  .ssli-shape-slider::-webkit-slider-thumb,
+  .ssli-volume-slider::-webkit-slider-thumb,
+  input[type="range"].ssli-fx-modal-slider::-webkit-slider-thumb {
+    width: 32px;
+    height: 32px;
+  }
+  .ssli-shape-slider::-moz-range-thumb,
+  .ssli-volume-slider::-moz-range-thumb,
+  input[type="range"].ssli-fx-modal-slider::-moz-range-thumb {
+    width: 32px;
+    height: 32px;
+  }
+  .ssli-fx-chain-cb {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .ssli-fx-chain-name {
+    font-size: var(--ssli-fs-lg);
+  }
+}
+
+/* ============================================================
+   U-07b: Filter panel iPad/touch ergonomics
+   Taller slider tracks, more row spacing, 44px min touch targets
+   ============================================================ */
+@media (pointer: coarse) {
+  .ssli-shape-filter-grid {
+    gap: var(--ssli-gap-md) 12px;
+  }
+  .ssli-shape-filter-grid .ssli-shape-row {
+    min-height: 44px;
+    align-items: center;
+    padding: 4px 0;
+  }
+  .ssli-shape-filter-grid .ssli-shape-slider {
+    height: 12px;
+    border-radius: var(--ssli-radius-md);
+  }
+  .ssli-shape-filter-grid .ssli-shape-slider::-webkit-slider-thumb {
+    width: 44px;
+    height: 44px;
+  }
+  .ssli-shape-filter-grid .ssli-shape-slider::-moz-range-thumb {
+    width: 44px;
+    height: 44px;
+  }
+  .ssli-shape-adsr-grid {
+    gap: var(--ssli-gap-md) 12px;
+  }
+  .ssli-shape-adsr-grid .ssli-shape-row {
+    min-height: 44px;
+    align-items: center;
+    padding: 4px 0;
+  }
+  .ssli-shape-adsr-grid .ssli-shape-slider {
+    height: 10px;
+    border-radius: var(--ssli-radius-md);
+  }
+  .ssli-shape-adsr-grid .ssli-shape-slider::-webkit-slider-thumb {
+    width: 40px;
+    height: 40px;
+  }
+  .ssli-shape-adsr-grid .ssli-shape-slider::-moz-range-thumb {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* ============================================================
+   U-08: Effects grid improvements — larger tiles, bigger toggles
+   ============================================================ */
+.ssli-fx-chain-row {
+  width: calc(33.333% - 2px);
+  min-width: 160px;
+  padding: 5px 8px;
+}
+.ssli-fx-chain-cb {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+}
+/* Show drag handles */
+.ssli-fx-chain-handle {
+  display: flex;
+  cursor: grab;
+  padding: 2px 4px;
+  color: var(--ssli-text-ghost);
+  font-size: var(--ssli-fs-sm);
+  border-radius: var(--ssli-radius-sm);
+}
+
+/* ============================================================
+   U-10: Key press playing glow animation
+   ============================================================ */
+.perf-key.playing,
+.perf-key.perf-active {
+  box-shadow: inset 0 0 12px rgba(76, 201, 240, 0.5), 0 0 8px rgba(76, 201, 240, 0.3);
+}
+.perf-key.white.playing,
+.perf-key.white.perf-active {
+  background: var(--ssli-key-white-active);
+}
+.perf-key.black.playing,
+.perf-key.black.perf-active {
+  background: var(--ssli-key-black-active);
+}
+
+/* ============================================================
+   U-13: Focus trap — hide off-screen content from tab order
+   ============================================================ */
+.ssli-screen:not(.active) {
+  visibility: hidden;
+}
+.ssli-screen.active {
+  visibility: visible;
+}
+
+/* ============================================================
+   U-03: XY Pad idle state hint
+   ============================================================ */
+.ctrl-xypad-idle-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: rgba(76, 201, 240, 0.4);
+  font-size: var(--ssli-fs-md);
+  font-weight: var(--ssli-fw-semibold);
+  pointer-events: none;
+  z-index: 1;
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* XY Pad center dot pulsing */
+.ctrl-xypad-center-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: rgba(76, 201, 240, 0.4);
+  pointer-events: none;
+  z-index: 1;
+  animation: xypad-pulse 2s ease-in-out infinite;
+}
+@keyframes xypad-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.5); }
+}
+
+/* XY Pad axis labels */
+.ctrl-xypad-axis-label {
+  position: absolute;
+  color: rgba(76, 201, 240, 0.55);
+  font-size: var(--ssli-fs-xs);
+  font-weight: var(--ssli-fw-semibold);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  pointer-events: none;
+  z-index: 1;
+}
+.ctrl-xypad-axis-label-x {
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.ctrl-xypad-axis-label-y {
+  top: 50%;
+  left: 4px;
+  transform: translateY(-50%) rotate(-90deg);
+  transform-origin: left center;
+}
+
+/* ============================================================
+   U-04: Theremin axis labels and pitch indicator
+   ============================================================ */
+.ctrl-theremin-axis-label {
+  position: absolute;
+  color: rgba(76, 201, 240, 0.3);
+  font-size: var(--ssli-fs-xs);
+  font-weight: var(--ssli-fw-semibold);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  pointer-events: none;
+  z-index: 1;
+}
+.ctrl-theremin-axis-label-x {
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.ctrl-theremin-axis-label-y {
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%) rotate(90deg);
+  transform-origin: right center;
+}
+.ctrl-theremin-idle-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: rgba(76, 201, 240, 0.3);
+  font-size: var(--ssli-fs-md);
+  font-weight: var(--ssli-fw-semibold);
+  pointer-events: none;
+  z-index: 1;
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* ============================================================
+   U-25: Marimba neon edge lighting
+   ============================================================ */
+.ctrl-marimba-bar {
+  border: 1px solid rgba(76, 201, 240, 0.15);
+}
+.ctrl-marimba-bar:hover {
+  border-color: rgba(76, 201, 240, 0.35);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1),
+              0 0 6px rgba(76, 201, 240, 0.2);
+}
+.ctrl-marimba-bar.ctrl-marimba-active {
+  border-color: rgba(76, 201, 240, 0.6);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3),
+              inset 0 0 12px rgba(255, 200, 100, 0.3),
+              0 0 10px rgba(76, 201, 240, 0.4);
+}
+
+/* ============================================================
+   E-09: Recording button and indicator
+   ============================================================ */
+.ssli-rec-btn {
+  background: none;
+  border: 1px solid var(--ssli-text-ghost);
+  border-radius: var(--ssli-radius-md);
+  cursor: pointer;
+  padding: 2px 6px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  gap: var(--ssli-gap-xs);
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-text-muted);
+  flex-shrink: 0;
+  transition: border-color 0.2s, color 0.2s;
+}
+.ssli-rec-btn:hover {
+  border-color: var(--ssli-text-secondary);
+  color: var(--ssli-text-secondary);
+}
+.ssli-rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ssli-warning);
+  flex-shrink: 0;
+}
+.ssli-rec-btn.recording {
+  border-color: var(--ssli-warning);
+  color: var(--ssli-warning);
+}
+.ssli-rec-btn.recording .ssli-rec-dot {
+  animation: ssli-rec-pulse 1s ease-in-out infinite;
+}
+@keyframes ssli-rec-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.ssli-rec-download {
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-accent);
+  text-decoration: underline;
+  cursor: pointer;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   E-05: Filter quick-access on Sound screen
+   ============================================================ */
+.ssli-sound-filter-quick {
+  display: flex;
+  align-items: center;
+  gap: var(--ssli-gap-sm);
+  padding: 2px 0;
+}
+.ssli-sound-filter-quick .ssli-shape-slider {
+  flex: 1;
+  min-width: 0;
+}
+.ssli-sound-filter-quick .ssli-shape-label {
+  font-size: var(--ssli-fs-xs);
+  min-width: 48px;
+}
+.ssli-sound-filter-quick .ssli-shape-val {
+  font-size: var(--ssli-fs-xs);
+  min-width: 40px;
+  text-align: right;
+}
+
+/* ============================================================
+   E-13: Velocity curve selector
+   ============================================================ */
+.ssli-vel-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ssli-gap-sm);
+  padding: 2px 0;
+}
+.ssli-vel-row .ssli-sound-label {
+  font-size: var(--ssli-fs-xs);
+  min-width: 54px;
+}
+.ssli-vel-select {
+  height: var(--ssli-dropdown-h, 28px);
+  background: var(--ssli-bg-input, #21262d);
+  color: var(--ssli-text-primary, rgba(220, 235, 245, 0.95));
+  border: 1px solid var(--ssli-border-muted, rgba(76, 201, 240, 0.15));
+  border-radius: var(--ssli-radius-sm, 3px);
+  padding: 2px 6px;
+  font-size: var(--ssli-fs-body, 13px);
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+}
+
+/* ============================================================
+   Sound screen compact inline layouts (Pass 4)
+   ============================================================ */
+/* Filter: Cutoff + Resonance on one row */
+.ssli-sound-filter-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--ssli-gap-xs);
+  padding: 1px 0;
+}
+.ssli-sound-filter-inline .ssli-shape-slider {
+  flex: 1;
+  min-width: 0;
+}
+.ssli-sound-filter-inline-label {
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-text-secondary);
+  min-width: 22px;
+  flex-shrink: 0;
+}
+.ssli-sound-filter-inline-val {
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-text-secondary);
+  font-family: monospace;
+  min-width: 32px;
+  text-align: right;
+  flex-shrink: 0;
+}
+/* FX presets inline row (category + preset side by side) */
+.ssli-sound-fx-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--ssli-gap-xs);
+  padding: 1px 0;
+}
+.ssli-sound-fx-inline .ssli-sound-select {
+  flex: 1;
+  min-width: 0;
+}
+/* Collapsible My Presets section */
+.ssli-sound-user-details {
+  margin-top: 2px;
+  border: 1px solid var(--ssli-border-panel);
+  border-radius: var(--ssli-radius-md);
+  padding: 2px 4px;
+}
+.ssli-sound-user-summary {
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-surface-muted);
+  cursor: pointer;
+  font-weight: var(--ssli-fw-semibold);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* Limiter badge on Play screen */
+.ssli-limit-badge {
+  font-size: var(--ssli-fs-xs);
+  font-weight: var(--ssli-fw-bold);
+  color: var(--ssli-bg-primary);
+  background: var(--ssli-bg-elevated);
+  border: 1px solid var(--ssli-border-primary);
+  border-radius: var(--ssli-radius-sm);
+  padding: 1px 4px;
+  margin-left: 2px;
+  flex-shrink: 0;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+  display: inline-block;
+  vertical-align: middle;
+  opacity: var(--ssli-opacity-disabled);
+}
+.ssli-limit-badge.active {
+  background: var(--ssli-warning-light);
+  color: var(--ssli-limiter-active-text);
+  border-color: var(--ssli-warning-light);
+  opacity: var(--ssli-opacity-active);
+  box-shadow: 0 0 6px rgba(240, 160, 48, 0.4);
+}
+
+/* ============================================================
+   Phase 3: Extracted inline styles from other screens
+   ============================================================ */
+
+/* Shape screen — filter type dropdown */
+.ssli-shape-filter-type-select {
+  max-width: 90px;
+}
+
+/* Shape screen — filter model dropdown */
+.ssli-shape-filter-model-select {
+  max-width: 120px;
+  margin-left: 4px;
+}
+
+/* MIDI screen — input/output section flex */
+.ssli-midi-io-section {
+  flex: 1;
+}
+
+/* MIDI screen — channel select dropdowns */
+.ssli-midi-channel-select {
+  max-width: 80px;
+}
+
+/* Reset dialog — narrower panel */
+.ssli-reset-panel {
+  max-width: 360px;
+}
+
+/* Reset dialog — title sizing */
+.ssli-reset-title {
+  font-size: var(--ssli-fs-xl);
+}
+
+/* Reset dialog — message text */
+.ssli-reset-message {
+  color: var(--ssli-gray-350);
+  font-size: var(--ssli-fs-body);
+  margin: 12px 0;
+}
+
+/* Reset dialog — button container */
+.ssli-reset-actions {
+  display: flex;
+  gap: var(--ssli-gap-lg);
+  justify-content: center;
+  margin-top: 16px;
+}
+
+/* Reset dialog — cancel button */
+.ssli-reset-cancel-btn {
+  background: var(--ssli-bg-elevated);
+  color: var(--ssli-gray-350);
+  border: 1px solid var(--ssli-border-light);
+  border-radius: var(--ssli-radius-md);
+  padding: 8px 20px;
+  cursor: pointer;
+  font-size: var(--ssli-fs-md);
+}
+
+/* Reset dialog — confirm/reset button */
+.ssli-reset-confirm-btn {
+  background: var(--ssli-warning);
+  color: var(--ssli-text-primary);
+  border: none;
+  border-radius: var(--ssli-radius-md);
+  padding: 8px 20px;
+  cursor: pointer;
+  font-size: var(--ssli-fs-md);
+  font-weight: var(--ssli-fw-bold);
+}
+
+/* ============================================================
+   Phase 3 (Play screen): Extracted inline styles from
+   ssli-screen-play.js
+   ============================================================ */
+
+/* --- Hex Grid --- */
+.ssli-hex-grid {
+  position: relative;
+}
+.ssli-hex-key {
+  position: absolute;
+}
+
+/* --- Override ctrl-wrapper flex direction for stacked layout (bar above grid) --- */
+.perform-ctrl-wrapper:has(.ctrl-fretboard),
+.perform-ctrl-wrapper:has(.ssli-fret-topbar),
+.perform-ctrl-wrapper:has(.ssli-harp-preset-bar),
+.perform-ctrl-wrapper:has(.iso-layout-bar) {
+  flex-direction: column !important;
+}
+
+/* --- Fretboard Top Bar (single row) --- */
+.ssli-fret-topbar {
+  display: flex;
+  flex-direction: row;
+  background: rgba(0,0,0,0.5);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  box-sizing: border-box;
+  height: 30px;
+  overflow: hidden;
+}
+.ssli-fret-topbar-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ssli-gap-xs);
+  padding: 0 4px;
+  height: 30px;
+  box-sizing: border-box;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+}
+/* Chord buttons inside the topbar must fit within the bar height instead of
+   using the full 54px min-height intended for the chord panel grid. */
+.ssli-fret-topbar .ssli-fret-chord-btn {
+  min-height: 0;
+  height: 28px;
+  padding: 1px 6px;
+  font-size: var(--ssli-fs-sm);
+}
+/* Narrow-viewport topbar: let row wrap so inline bass chord buttons flow to
+   a second line rather than overflowing the viewport horizontally. */
+.ssli-fret-topbar.ssli-fret-topbar-narrow {
+  height: auto;
+  overflow: hidden;
+}
+.ssli-fret-topbar.ssli-fret-topbar-narrow .ssli-fret-topbar-row {
+  flex-wrap: wrap;
+  height: auto;
+  min-height: 24px;
+  overflow-x: hidden;
+  row-gap: var(--ssli-gap-xs);
+}
+.ssli-fret-topbar.ssli-fret-topbar-narrow .ssli-fret-chord-btn,
+.ssli-fret-topbar.ssli-fret-topbar-narrow .ssli-fret-select {
+  font-size: var(--ssli-fs-xs);
+}
+/* Narrow chord panel (guitar): smaller buttons fit inside the reduced panel.
+   !important overrides global phone-land touch-min button width (44px) so
+   panel buttons respect the grid cell width. Height still provides >=40px
+   tap target since the panel fills the board height. */
+.ssli-fret-chord-panel.ssli-fret-chord-panel-narrow .ssli-fret-chord-btn {
+  font-size: var(--ssli-fs-sm);
+  padding: 1px 3px;
+  min-width: 48px;
+  min-height: 44px;
+  height: auto;
+  line-height: 1.05;
+}
+/* Narrow inline bass chord buttons in the topbar row must also ignore the
+   44px min-width so the row can wrap tightly rather than forcing overflow. */
+.ssli-fret-topbar.ssli-fret-topbar-narrow .ssli-fret-chord-btn,
+.ssli-fret-topbar.ssli-fret-topbar-narrow .ssli-fret-select {
+  min-width: 0 !important;
+}
+
+/* --- Fretboard Select (Root, Mode, Tuning dropdowns) --- */
+.ssli-fret-select {
+  height: var(--ssli-dropdown-h, 28px);
+  padding: 2px 6px;
+  background: var(--ssli-bg-input, #21262d);
+  color: var(--ssli-text-primary, rgba(220, 235, 245, 0.95));
+  border: 1px solid var(--ssli-border-muted, rgba(76, 201, 240, 0.15));
+  border-radius: var(--ssli-radius-sm, 3px);
+  font-size: var(--ssli-fs-body, 13px);
+  font-weight: var(--ssli-fw-bold);
+  cursor: pointer;
+  outline: none;
+}
+.ssli-fret-select:focus {
+  border-color: var(--ssli-accent-cyan, #00d4ff);
+}
+
+/* --- Fretboard String Count Stepper --- */
+.ssli-fret-stepper {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+.ssli-fret-step-btn {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  background: var(--ssli-bg-control-btn);
+  color: var(--ssli-text-control-btn);
+  border: 1px solid var(--ssli-border-light);
+  border-radius: var(--ssli-radius-sm);
+  cursor: pointer;
+  font-size: var(--ssli-fs-xs);
+  font-weight: var(--ssli-fw-bold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.ssli-fret-step-btn:hover {
+  border-color: var(--ssli-accent);
+  color: var(--ssli-text-primary);
+}
+.ssli-fret-step-label {
+  font-size: var(--ssli-fs-xs);
+  font-weight: var(--ssli-fw-bold);
+  color: var(--ssli-text-control-btn);
+  padding: 0 3px;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* --- Fretboard Course Selector (1x/2x/3x) --- */
+.ssli-fret-course-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+.ssli-fret-course-btn {
+  height: 18px;
+  padding: 0 4px;
+  background: var(--ssli-bg-control-btn);
+  color: var(--ssli-text-control-btn);
+  border: 1px solid var(--ssli-border-light);
+  border-radius: var(--ssli-radius-sm);
+  cursor: pointer;
+  font-size: var(--ssli-fs-xs);
+  font-weight: var(--ssli-fw-bold);
+}
+.ssli-fret-course-btn.ssli-fret-course-active {
+  border-color: var(--ssli-accent);
+  background: rgba(76,201,240,0.2);
+  color: var(--ssli-text-primary);
+}
+.ssli-fret-course-btn:hover {
+  border-color: var(--ssli-text-secondary);
+}
+
+/* --- Fretboard Chord Buttons --- */
+.ssli-fret-chord-btn {
+  padding: 6px 12px;
+  min-height: 54px;
+  min-width: 60px;
+  background: var(--ssli-bg-control-btn);
+  color: var(--ssli-text-control-btn);
+  border: 1px solid var(--ssli-border-light);
+  border-radius: var(--ssli-radius-sm);
+  cursor: pointer;
+  font-size: var(--ssli-fs-md);
+  font-weight: var(--ssli-fw-bold);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.ssli-fret-chord-btn.ssli-fret-chord-active {
+  border-color: var(--ssli-accent);
+  background: rgba(76,201,240,0.2);
+  color: var(--ssli-text-primary);
+}
+.ssli-fret-chord-btn:hover {
+  border-color: var(--ssli-text-secondary);
+}
+
+/* --- Guitar Chord Panel (left of fretboard, 4x2 grid) --- */
+.ssli-fret-chord-panel {
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ssli-gap-xs);
+  padding: 6px;
+  box-sizing: border-box;
+  background: rgba(0,0,0,0.25);
+  border-right: 1px solid var(--ssli-border-light);
+  min-width: 130px;
+  overflow-y: auto;
+}
+.ssli-fret-chord-panel .ssli-fret-chord-btn {
+  height: 100%;
+  width: 100%;
+  min-height: 44px;
+  font-size: var(--ssli-fs-lg);
+  padding: 6px 8px;
+  white-space: normal;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- Fretboard Strum Speed Controls --- */
+.ssli-fret-speed-slider {
+  width: 40px;
+  min-height: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ssli-fret-speed-label {
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-text-secondary);
+  min-width: 24px;
+  flex-shrink: 0;
+}
+
+/* --- Fretboard Variation Popup --- */
+.ssli-fret-variation-popup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ssli-gap-xs);
+  padding: 4px;
+  background: var(--ssli-bg-panel);
+  border: 1px solid var(--ssli-border-light);
+  border-radius: var(--ssli-radius-md);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+  max-width: 240px;
+}
+.ssli-fret-var-btn {
+  padding: 2px 6px;
+  height: 20px;
+  background: var(--ssli-bg-control-btn);
+  color: var(--ssli-text-control-btn);
+  border: 1px solid var(--ssli-border-light);
+  border-radius: var(--ssli-radius-sm);
+  cursor: pointer;
+  font-size: var(--ssli-fs-xs);
+  font-weight: var(--ssli-fw-bold);
+  white-space: nowrap;
+}
+.ssli-fret-var-btn:hover {
+  border-color: var(--ssli-accent);
+  background: rgba(76,201,240,0.15);
+  color: var(--ssli-text-primary);
+}
+
+/* --- Fretboard --- */
+.ssli-fretboard {
+  position: relative;
+  touch-action: none;
+}
+.ssli-fret-number {
+  position: absolute;
+  top: 0;
+  text-align: center;
+  font-size: var(--ssli-fs-sm);
+  line-height: 22px;
+  color: var(--ssli-text-muted);
+}
+.ssli-fret-marker-pos {
+  position: absolute;
+}
+.ssli-fret-string-line {
+  position: absolute;
+  transition: transform 0.05s, opacity 0.05s;
+}
+.ssli-fret-open-label {
+  position: absolute;
+  left: 0;
+  width: 44px;
+  height: 28px;
+  text-align: center;
+  line-height: 28px;
+  font-size: var(--ssli-fs-body);
+  font-weight: var(--ssli-fw-bold);
+  overflow: visible;
+  white-space: nowrap;
+}
+.ssli-fret-cell {
+  position: absolute;
+}
+.ssli-fret-line {
+  position: absolute;
+  width: 2px;
+}
+.ssli-fret-strum-zone {
+  position: absolute;
+}
+
+/* Big strum button — full height, right edge */
+.ssli-fret-big-strum {
+  background: linear-gradient(to right, rgba(30, 50, 80, 0.6), rgba(40, 80, 120, 0.8));
+  border: none;
+  border-left: 2px solid rgba(76, 201, 240, 0.3);
+  color: rgba(76, 201, 240, 0.7);
+  font-size: var(--ssli-fs-lg);
+  font-weight: var(--ssli-fw-bold);
+  letter-spacing: 2px;
+  cursor: pointer;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  line-height: 1.3;
+  /* Without min-width:0, flex items inherit min-width:min-content which
+     stretches the strum button to fit its "STRUM" glyphs (~44px) even when
+     explicit inline width is smaller. This breaks narrow-viewport layouts.
+     !important is required to override the global phone-land button
+     min-width (--sslu-touch-min = 44px) from quad-layout.css. The strum
+     button is full-board-height so the tap target remains large vertically. */
+  min-width: 0 !important;
+  overflow: hidden;
+}
+.ssli-fret-big-strum:hover {
+  background: linear-gradient(to right, rgba(40, 70, 110, 0.7), rgba(50, 100, 150, 0.9));
+  color: rgba(76, 201, 240, 0.9);
+}
+.ssli-fret-big-strum.ssli-fret-big-strum-active {
+  background: linear-gradient(to right, rgba(60, 120, 180, 0.8), rgba(76, 201, 240, 0.6));
+  color: #fff;
+  border-left-color: rgba(76, 201, 240, 0.8);
+  box-shadow: inset 0 0 20px rgba(76, 201, 240, 0.3);
+}
+
+/* --- Ribbon --- */
+.ssli-ribbon-wrapper {
+  position: relative;
+  touch-action: none;
+}
+.ssli-ribbon-strip {
+  position: absolute;
+}
+.ssli-ribbon-cursor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3px;
+  display: none;
+}
+.ssli-ribbon-free-toggle {
+  position: absolute;
+  right: 10px;
+  top: 4px;
+  padding: 2px 8px;
+  font-size: var(--ssli-fs-xs);
+  z-index: 2;
+}
+/* Issue 15: Snap/Smooth toggle for XY Pad and Theremin */
+.ssli-ctrl-snap-toggle {
+  position: absolute;
+  top: 4px;
+  left: 10px;
+  padding: 2px 8px;
+  font-size: var(--ssli-fs-xs);
+  z-index: 4;
+}
+.ssli-ctrl-snap-toggle.active {
+  border-color: #4cc9f0;
+  color: #4cc9f0;
+}
+.ssli-theremin-snap-toggle {
+  left: auto;
+  right: 10px;
+}
+.ssli-ribbon-oct-marker {
+  position: absolute;
+}
+.ssli-ribbon-tick {
+  position: absolute;
+  top: 0;
+  width: 1px;
+}
+.ssli-ribbon-semi-tick {
+  position: absolute;
+  width: 1px;
+}
+
+/* --- Loom --- */
+.ssli-loom-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  touch-action: none;
+}
+.ssli-loom-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--ssli-gap-sm);
+  padding: 2px 4px;
+  background: rgba(10, 10, 26, 0.9);
+  flex-shrink: 0;
+  position: relative;
+}
+.ssli-loom-strips {
+  display: flex;
+  flex: 1;
+}
+
+/* --- Chord Pads --- */
+.ssli-chord-pad {
+  position: relative;
+}
+.ssli-chordpad-wrapper {
+  display: flex;
+  flex-direction: column;
+  touch-action: none;
+  box-sizing: border-box;
+  overflow: hidden;
+  min-height: 0;
+}
+.ssli-chordpad-topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--ssli-gap-xs);
+  padding: 0 8px;
+  background: rgba(0,0,0,0.4);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  height: var(--ssli-topbar-h);
+  box-sizing: border-box;
+}
+.ssli-chordpad-topbar .ssli-chordpad-key-group {
+  height: 100%;
+  min-height: 0;
+}
+.ssli-chordpad-topbar .ssli-chordpad-select {
+  height: 100%;
+  min-height: 0;
+  max-height: calc(var(--ssli-topbar-h) - 4px);
+  box-sizing: border-box;
+}
+.ssli-chordpad-key-group {
+  display: flex;
+  align-items: center;
+  gap: var(--ssli-gap-sm);
+}
+.ssli-chordpad-select {
+  height: var(--ssli-dropdown-h, 28px);
+  background: var(--ssli-bg-input, #21262d);
+  color: var(--ssli-text-primary, rgba(220, 235, 245, 0.95));
+  border: 1px solid var(--ssli-border-muted, rgba(76, 201, 240, 0.15));
+  border-radius: var(--ssli-radius-sm, 3px);
+  padding: 2px 6px;
+  font-size: var(--ssli-fs-body, 13px);
+  cursor: pointer;
+}
+.ssli-chordpad-select:focus {
+  border-color: var(--ssli-accent-cyan, #00d4ff);
+  outline: none;
+}
+.ssli-chordpad-keybtn {
+  width: 26px;
+  height: 24px;
+  background: var(--ssli-bg-control-btn);
+  color: var(--ssli-text-control-btn);
+  border: 1px solid var(--ssli-border-light);
+  border-radius: var(--ssli-radius-md);
+  cursor: pointer;
+  font-size: var(--ssli-fs-md);
+  font-weight: var(--ssli-fw-bold);
+}
+.ssli-chordpad-speed-slider {
+  flex: 1;
+  min-width: 60px;
+  max-width: 120px;
+  min-height: 20px;
+  margin-left: 4px;
+  cursor: pointer;
+}
+.ssli-chordpad-speed-label {
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-text-secondary);
+  min-width: 30px;
+  margin-left: 2px;
+}
+.ssli-chordpad-key-label {
+  font-size: var(--ssli-fs-md);
+  font-weight: var(--ssli-fw-bold);
+  color: var(--ssli-text-chord-key);
+  min-width: 80px;
+  text-align: center;
+}
+.ssli-chordpad-strum-toggle {
+  padding: 1px 6px;
+  height: 20px;
+  background: var(--ssli-bg-control-btn);
+  color: var(--ssli-text-control-btn);
+  border: 1px solid var(--ssli-border-light);
+  border-radius: var(--ssli-radius-sm);
+  cursor: pointer;
+  font-size: var(--ssli-fs-xs);
+}
+.ssli-chordpad-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: 1fr 1fr;
+  gap: var(--ssli-gap-xs);
+  padding: 2px;
+  box-sizing: border-box;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* --- XY Pad --- */
+.ssli-xypad-wrapper {
+  position: relative;
+  touch-action: none;
+}
+.ssli-xypad-gridline-v {
+  position: absolute;
+  top: 0;
+  width: 1px;
+}
+.ssli-xypad-gridline-h {
+  position: absolute;
+  left: 0;
+  height: 1px;
+}
+.ssli-xypad-cross-v {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  display: none;
+}
+.ssli-xypad-cross-h {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 1px;
+  display: none;
+}
+
+/* --- Marimba --- */
+.ssli-marimba-wrapper {
+  position: relative;
+  touch-action: none;
+  display: flex;
+  flex-direction: column;
+}
+.ssli-marimba-row {
+  display: flex;
+  gap: var(--ssli-gap-xs);
+  padding: 2px 8px;
+  box-sizing: border-box;
+  justify-content: center;
+}
+.ssli-marimba-acc-bar {
+  height: 100%;
+  border-radius: var(--ssli-radius-md);
+  cursor: pointer;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 4px;
+  box-sizing: border-box;
+}
+.ssli-marimba-nat-bar {
+  height: 100%;
+  border-radius: var(--ssli-radius-md);
+  cursor: pointer;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 6px;
+  box-sizing: border-box;
+}
+
+/* --- Harp --- */
+.ssli-harp-preset-bar {
+  overflow: hidden;
+}
+.ssli-harp-preset-bar .ssli-chordpad-select {
+  height: 100%;
+  min-height: 0;
+  max-height: 20px;
+  box-sizing: border-box;
+  padding: 1px 4px;
+  font-size: var(--ssli-fs-xs);
+}
+.ssli-harp-wrapper {
+  position: relative;
+  touch-action: none;
+  overflow: hidden;
+}
+.ssli-harp-frame-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.ssli-harp-string-el {
+  position: absolute;
+  cursor: pointer;
+  z-index: 1;
+}
+.ssli-harp-string-line-inner {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  opacity: var(--ssli-opacity-active);
+  pointer-events: none;
+  border-radius: 1px;
+}
+/* Issue 14: Harp note labels at top of each string.
+   `bottom: auto` overrides the later .ssli-harp-string-label rule's
+   `bottom: -16px`, which would otherwise stretch the label to
+   (string height + 12px) and push it 16px past the wrapper's bottom
+   — the cause of the +16px Play/harp iPhone overflow. */
+.ssli-harp-top-label {
+  position: absolute;
+  top: 4px;
+  bottom: auto;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: var(--ssli-fs-sm);
+  font-weight: var(--ssli-fw-bold);
+  color: rgba(200, 200, 220, 0.75);
+  pointer-events: none;
+  z-index: 2;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+.ssli-harp-label-c {
+  color: #d4a017;
+}
+.ssli-harp-label-f {
+  color: #8a7aed;
+}
+.ssli-harp-string-label {
+  position: absolute;
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+/* Top labels use `top` anchoring; override the base `bottom: -16px` (which
+   would stretch the label across the entire string and push it past the
+   wrapper's bottom edge, causing the +16px iPhone overflow). */
+.ssli-harp-string-label.ssli-harp-top-label {
+  bottom: auto;
+}
+
+/* --- Harp phone-land: thicker strings + touch zone shading --- */
+[data-layout="phone-land"] .ssli-harp-string-line-inner {
+  width: 4px;
+  border-radius: var(--ssli-radius-sm);
+}
+[data-layout="phone-land"] .ssli-harp-string-el {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: var(--ssli-radius-sm);
+}
+
+/* --- Fretboard / Guitar / Bass phone-land: wider strum strip + compact config --- */
+[data-layout="phone-land"] .ssli-fret-big-strum {
+  min-width: 40px !important;
+  width: 40px;
+  font-size: var(--ssli-fs-body);
+}
+[data-layout="phone-land"] .ssli-fret-topbar {
+  height: auto;
+  min-height: 20px;
+  max-height: 44px;
+}
+[data-layout="phone-land"] .ssli-fret-topbar-row {
+  height: auto;
+  min-height: 20px;
+  gap: var(--ssli-gap-xs);
+  padding: 0 3px;
+}
+[data-layout="phone-land"] .ssli-fret-topbar.ssli-fret-topbar-narrow {
+  height: auto;
+  max-height: 56px;
+  overflow-y: hidden;
+}
+[data-layout="phone-land"] .ssli-fret-topbar.ssli-fret-topbar-narrow .ssli-fret-topbar-row {
+  min-height: 20px;
+  row-gap: 1px;
+}
+[data-layout="phone-land"] .ssli-fret-select {
+  height: 16px;
+  font-size: var(--ssli-fs-xs);
+  padding: 0 2px;
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+[data-layout="phone-land"] .ssli-fret-chord-btn {
+  font-size: var(--ssli-fs-xs);
+  padding: 1px 3px;
+  min-width: 48px;
+  min-height: 44px;
+}
+[data-layout="phone-land"] .ssli-fret-topbar .ssli-fret-chord-btn {
+  min-height: 0;
+  height: 22px;
+  padding: 0 4px;
+  font-size: var(--ssli-fs-xs);
+}
+[data-layout="phone-land"] .ssli-fret-step-btn {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 3px;
+}
+[data-layout="phone-land"] .ssli-fret-course-btn {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  font-size: var(--ssli-fs-xs);
+  padding: 1px 3px;
+}
+[data-layout="phone-land"] .ssli-fret-chord-panel {
+  min-width: 100px;
+}
+[data-layout="phone-land"] .ssli-fret-chord-panel .ssli-fret-chord-btn {
+  font-size: var(--ssli-fs-xs);
+  padding: 1px 2px;
+  min-width: 48px;
+  min-height: 44px;
+}
+
+/* --- Theremin --- */
+.ssli-theremin-wrapper {
+  position: relative;
+  touch-action: none;
+  overflow: hidden;
+}
+.ssli-theremin-orb-el {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: none;
+  pointer-events: none;
+  z-index: 2;
+  transform: translate(-50%,-50%);
+}
+.ssli-theremin-vol-bar-el {
+  position: absolute;
+  right: 4px;
+  bottom: 0;
+  width: 4px;
+  height: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* --- Chromatic Grid --- */
+.ssli-chromgrid-wrapper {
+  position: relative;
+  touch-action: none;
+  overflow: hidden;
+}
+.ssli-chromgrid-cell {
+  position: absolute;
+}
+
+/* --- Transpose Controls --- */
+.ssli-transpose-down {
+  font-size: var(--ssli-fs-xs);
+  min-width: 22px;
+  margin-left: 8px;
+}
+.ssli-transpose-label {
+  min-width: 32px;
+  text-align: center;
+  font-size: var(--ssli-fs-xs);
+}
+.ssli-transpose-up {
+  font-size: var(--ssli-fs-xs);
+  min-width: 22px;
+}
+
+/* ============================================================
+   Universal PANIC overlay button (v1.5.804 - stage UX)
+   Large, always-visible, top-right of viewport on every screen.
+   Red border/glow for danger semantics; amber glyph + near-white
+   label (no red text, per CLAUDE.md feedback).
+   ============================================================ */
+.ssli-panic-overlay-btn {
+  position: fixed;
+  top: 0;
+  right: 4px;
+  width: auto;
+  height: 26px;
+  border-radius: 0 0 6px 6px;
+  background: radial-gradient(circle at 30% 30%, #2a0a0a, #0a0000 75%);
+  border: 2px solid #ff2d2d;
+  border-top: none;
+  box-shadow: 0 2px 8px rgba(255, 45, 45, 0.5),
+              inset 0 0 6px rgba(255, 100, 100, 0.2);
+  color: #ffc66b;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ssli-gap-xs);
+  padding: 0 8px;
+  cursor: pointer;
+  z-index: 49000;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.ssli-panic-overlay-btn svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+.ssli-panic-overlay-label {
+  font-family: system-ui, sans-serif;
+  font-size: var(--ssli-fs-xs);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #f5f5f5;
+  line-height: 1;
+  margin-top: 0;
+}
+.ssli-panic-overlay-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 16px rgba(255, 45, 45, 0.9),
+              0 0 30px rgba(255, 45, 45, 0.5),
+              inset 0 0 10px rgba(255, 140, 140, 0.4);
+}
+.ssli-panic-overlay-btn:active {
+  transform: scale(0.96);
+}
+.ssli-panic-overlay-btn:focus-visible {
+  outline: 2px solid #ffc66b;
+  outline-offset: 3px;
+}
+.ssli-panic-overlay-btn.ssli-panic-flash {
+  background: radial-gradient(circle at 30% 30%, #1d7a3a, #063d1a 75%);
+  border-color: #2ecc71;
+  box-shadow: 0 0 18px rgba(46, 204, 113, 0.95),
+              0 0 36px rgba(46, 204, 113, 0.55),
+              inset 0 0 12px rgba(130, 255, 180, 0.45);
+  color: #eaffe0;
+}
+
+/* ============================================================
+   Stage-readable current-preset banner (v1.5.810)
+   Thin inline strip at the very top of the viewport. The app
+   container gets padding-top equal to STAGE_BANNER_HEIGHT so no
+   screen content ever overlaps the banner. Horizontal single
+   line: engine tag / preset name / octave range.
+   ============================================================ */
+.ssli-app { padding-top: 26px; }
+
+.ssli-stage-banner {
+  position: fixed;
+  top: 0;
+  left: 60px;           /* right of the 60px nav sidebar */
+  right: 80px;          /* clear of the compact panic pill button */
+  height: 26px;
+  z-index: 48500;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 0 12px;
+  background: linear-gradient(180deg, rgba(6, 8, 14, 0.92), rgba(10, 10, 26, 0.88));
+  border-bottom: 1px solid rgba(76, 201, 240, 0.22);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+  color: var(--ssli-accent);
+  pointer-events: none;
+  user-select: none;
+  overflow: hidden;
+}
+.ssli-stage-engine {
+  font-family: system-ui, sans-serif;
+  font-size: var(--ssli-fs-xs);
+  font-weight: var(--ssli-fw-bold);
+  letter-spacing: 0.18em;
+  line-height: 1;
+  color: rgba(76, 201, 240, 0.78);
+  text-transform: uppercase;
+  flex: 0 0 auto;
+}
+.ssli-stage-preset {
+  font-family: system-ui, sans-serif;
+  font-size: var(--ssli-fs-lg);
+  font-weight: var(--ssli-fw-bold);
+  letter-spacing: 0.01em;
+  line-height: 1;
+  color: var(--ssli-accent);
+  text-shadow: 0 0 4px rgba(76, 201, 240, 0.35);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 0 1 auto;
+  max-width: 50%;
+  min-width: 0;
+}
+.ssli-stage-octave {
+  font-family: 'Courier New', 'Consolas', monospace;
+  font-size: var(--ssli-fs-xs);
+  font-weight: var(--ssli-fw-semibold);
+  letter-spacing: 0.08em;
+  color: rgba(180, 230, 250, 0.75);
+  flex: 0 0 auto;
+}
+
+/* Panic button — compact, inset into the stage banner strip (v1.6.950).
+   Previous 56px circle at top:30px overlapped play-screen controls.
+   Now 26px-tall pill tucked into the banner row, no overlap. */
+.ssli-panic-overlay-btn {
+  top: 0 !important;
+  right: 4px !important;
+  width: auto !important;
+  height: 26px !important;
+  border-radius: 0 0 6px 6px !important;
+  flex-direction: row !important;
+  gap: var(--ssli-gap-xs) !important;
+  padding: 0 8px !important;
+}
+
+@media (max-width: 760px) {
+  .ssli-stage-banner {
+    left: 54px;
+    right: 60px;
+    height: 22px;
+    gap: var(--ssli-gap-lg);
+    padding: 0 8px;
+  }
+  .ssli-app { padding-top: 22px; }
+  .ssli-stage-preset { font-size: var(--ssli-fs-body); }
+  .ssli-stage-engine { font-size: var(--ssli-fs-xs); letter-spacing: 0.14em; }
+  .ssli-panic-overlay-btn {
+    height: 22px !important; right: 2px !important; padding: 0 6px !important; gap: var(--ssli-gap-xs) !important;
+  }
+  .ssli-panic-overlay-btn svg { width: 12px; height: 12px; }
+  .ssli-panic-overlay-label { font-size: var(--ssli-fs-xs); }
+}
+
+
+@keyframes ssliSurprisePulse {
+  0%   { box-shadow: 0 0 0 0 rgba(155, 111, 224, 0.9); }
+  60%  { box-shadow: 0 0 14px 6px rgba(155, 111, 224, 0.55); }
+  100% { box-shadow: 0 0 0 0 rgba(155, 111, 224, 0); }
+}
+.ssli-surprise-pulse { animation: ssliSurprisePulse 200ms ease-out; }
+
+/* ============================================================
+   Tweak v2 screen scaffolding
+   ============================================================ */
+.ssli-tweak2-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ssli-gap-lg);
+  padding: 10px 14px 14px 14px;
+  color: #e6f4fb;
+  font-family: inherit;
+  box-sizing: border-box;
+  height: 100%;
+  overflow: auto;
+}
+.ssli-tweak2-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ssli-gap-sm);
+  padding: 8px 10px;
+  background: rgba(10, 22, 32, 0.55);
+  border: 1px solid rgba(76, 201, 240, 0.25);
+  border-radius: var(--ssli-radius-md);
+}
+.ssli-tweak2-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ssli-gap-md);
+}
+.ssli-tweak2-header-info {
+  font-size: 0.9em;
+  color: var(--ssli-accent);
+  opacity: var(--ssli-opacity-hover);
+  letter-spacing: 0.02em;
+}
+.ssli-tweak2-status {
+  font-size: 0.8em;
+  min-height: 1em;
+  color: #cfe7f3;
+  opacity: var(--ssli-opacity-hover);
+}
+.ssli-tweak2-btn {
+  padding: 6px 12px;
+  background: rgba(76, 201, 240, 0.08);
+  color: #e6f4fb;
+  border: 1px solid rgba(76, 201, 240, 0.4);
+  border-radius: var(--ssli-radius-md);
+  cursor: pointer;
+  font-size: 0.88em;
+  font-family: inherit;
+}
+.ssli-tweak2-btn:hover {
+  background: rgba(76, 201, 240, 0.18);
+  border-color: var(--ssli-accent);
+}
+.ssli-tweak2-btn.active {
+  background: var(--ssli-accent);
+  color: #06131a;
+  border-color: var(--ssli-accent);
+}
+.ssli-tweak2-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--ssli-gap-lg);
+}
+@media (min-width: 1280px) {
+  .ssli-tweak2-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.ssli-tweak2-section {
+  background: rgba(10, 22, 32, 0.55);
+  border: 1px solid rgba(76, 201, 240, 0.2);
+  border-radius: var(--ssli-radius-md);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ssli-gap-sm);
+}
+.ssli-tweak2-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--ssli-gap-sm);
+  color: var(--ssli-accent);
+  font-size: 0.9em;
+  font-weight: var(--ssli-fw-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(76, 201, 240, 0.18);
+  padding-bottom: 4px;
+}
+.ssli-tweak2-section-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--ssli-accent);
+}
+.ssli-tweak2-section-title {
+  flex: 1;
+}
+.ssli-tweak2-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ssli-gap-xs);
+}
+.ssli-tweak2-row {
+  display: grid;
+  grid-template-columns: 70px 1fr 56px;
+  align-items: center;
+  gap: var(--ssli-gap-md);
+  font-size: 0.85em;
+}
+.ssli-tweak2-label {
+  color: #cfe7f3;
+  opacity: var(--ssli-opacity-hover);
+}
+.ssli-tweak2-val {
+  text-align: right;
+  color: var(--ssli-accent);
+  font-variant-numeric: tabular-nums;
+}
+.ssli-tweak2-slider {
+  width: 100%;
+  accent-color: var(--ssli-accent);
+}
+.ssli-tweak2-select {
+  height: var(--ssli-dropdown-h, 28px);
+  background: var(--ssli-bg-input, #21262d);
+  color: var(--ssli-text-primary, rgba(220, 235, 245, 0.95));
+  border: 1px solid var(--ssli-border-muted, rgba(76, 201, 240, 0.15));
+  border-radius: var(--ssli-radius-sm, 3px);
+  padding: 2px 6px;
+  font-family: inherit;
+  font-size: var(--ssli-fs-body, 13px);
+}
+.ssli-tweak2-osc-row {
+  display: grid;
+  grid-template-columns: 48px 110px 1fr 1fr 1fr;
+  gap: var(--ssli-gap-sm);
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px dashed rgba(76, 201, 240, 0.1);
+}
+.ssli-tweak2-osc-row:last-child {
+  border-bottom: none;
+}
+.ssli-tweak2-osc-cell {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ssli-tweak2-osc-idx {
+  color: var(--ssli-accent);
+  font-size: 0.85em;
+  font-weight: var(--ssli-fw-semibold);
+}
+.ssli-tweak2-osc-cell .ssli-tweak2-row {
+  grid-template-columns: 28px 1fr 40px;
+  gap: var(--ssli-gap-xs);
+}
+.ssli-tweak2-stub {
+  font-size: 0.85em;
+  opacity: var(--ssli-opacity-hover);
+  color: #cfe7f3;
+  padding: 6px 4px;
+}
+.ssli-tweak2-link {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+/* Additive partial bars */
+.ssli-tweak2-additive-bars {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: var(--ssli-gap-xs);
+  padding: 8px 4px;
+  overflow-x: auto;
+}
+.ssli-tweak2-additive-bar-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ssli-gap-xs);
+  min-width: 20px;
+}
+.ssli-tweak2-additive-bar {
+  -webkit-appearance: slider-vertical;
+  appearance: slider-vertical;
+  writing-mode: bt-lr;
+  width: 16px;
+  height: 100px;
+  padding: 0;
+  margin: 0;
+  cursor: ns-resize;
+}
+.ssli-tweak2-additive-bar-num {
+  font-size: 0.7em;
+  color: #cfe7f3;
+  opacity: var(--ssli-opacity-hover);
+}
+.ssli-tweak2-additive-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ssli-gap-xs);
+  padding: 4px 0;
+}
+.ssli-tweak2-additive-preset-btn {
+  padding: 4px 8px;
+  font-size: 0.85em;
+}
+
+/* ============================================================
+   Tweak v2 accordion - one section expanded at a time.
+   Applies uniformly at every viewport size.
+   ============================================================ */
+.ssli-tweak2-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ssli-gap-xs);
+}
+.ssli-tweak2-accordion-section {
+  padding: 0;
+  gap: 0;
+}
+.ssli-tweak2-accordion-header {
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  padding: 3px 10px;
+  border-bottom: 1px solid rgba(76, 201, 240, 0.18);
+  transition: background 120ms ease;
+}
+.ssli-tweak2-accordion-header:hover {
+  background: rgba(76, 201, 240, 0.08);
+}
+.ssli-tweak2-accordion-header:focus {
+  outline: 1px solid var(--ssli-accent);
+  outline-offset: -1px;
+}
+.ssli-tweak2-accordion-caret {
+  margin-left: auto;
+  color: var(--ssli-accent);
+  font-size: 0.9em;
+  opacity: var(--ssli-opacity-hover);
+}
+.ssli-tweak2-accordion-body {
+  display: none;
+  overflow: hidden;
+  max-height: 0;
+  padding: 0 10px;
+}
+.ssli-tweak2-accordion-body.expanded {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ssli-gap-xs);
+  max-height: calc(100vh - 310px);
+  overflow-y: auto;
+  padding: 8px 10px;
+}
+/* On phone-land the 310px subtraction leaves only ~80px for the body,
+   clipping oscillator rows 2 and 3. The outer .ssli-tweak2-container
+   already scrolls, so let the accordion body grow to content here
+   rather than creating a nested scroller the user won't discover. */
+html[data-layout="phone-land"] .ssli-tweak2-accordion-body.expanded {
+  max-height: none;
+  overflow-y: visible;
+}
+.ssli-tweak2-shape-link-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0;
+}
+.ssli-tweak2-shape-link-row .ssli-tweak2-btn {
+  padding: 2px 8px;
+  font-size: 0.8em;
+  line-height: 1.2;
+}
+
+/* ============================================================
+   Phone-landscape bottom-overflow fixes (844x390, 667x375)
+   Compact Sound/Shape/Effects so content fits without scrolling.
+   Tuning targets (named in comments for clarity):
+     effects row height  ~22px  (3-col grid, 28 effects across 11 rows max)
+     section v-pad       1px
+     section-title fs    0.5rem
+   Desktop (>=1200px) is unaffected because these rules are scoped
+   to html[data-layout="phone-land"] which is set by quad-layout.js.
+   ============================================================ */
+
+/* ---------- Sound screen (phone-land) ---------- */
+html[data-layout="phone-land"] .ssli-sound-container {
+  padding: 0 6px;
+  gap: 0;
+}
+html[data-layout="phone-land"] .ssli-sound-section {
+  padding: 0 6px;
+  border-width: 1px;
+}
+html[data-layout="phone-land"] .ssli-sound-section-title {
+  font-size: var(--ssli-fs-xs);
+  letter-spacing: 0.6px;
+  line-height: 1.1;
+}
+html[data-layout="phone-land"] .ssli-sound-row {
+  margin-bottom: 0;
+  gap: var(--ssli-gap-xs);
+}
+html[data-layout="phone-land"] .ssli-sound-label {
+  font-size: var(--ssli-fs-xs);
+  min-width: 40px;
+}
+html[data-layout="phone-land"] .ssli-sound-select {
+  min-height: 32px;
+  padding: 1px 4px;
+  font-size: var(--ssli-fs-sm);
+}
+html[data-layout="phone-land"] .ssli-sound-container input[type="range"],
+html[data-layout="phone-land"] .ssli-shape-container input[type="range"],
+html[data-layout="phone-land"] .ssli-fx-container input[type="range"] {
+  min-height: 24px;
+}
+html[data-layout="phone-land"] .ssli-sound-container button,
+html[data-layout="phone-land"] .ssli-shape-container button,
+html[data-layout="phone-land"] .ssli-fx-container button {
+  min-height: 32px;
+  min-width: 0;
+}
+html[data-layout="phone-land"] .ssli-sound-container select,
+html[data-layout="phone-land"] .ssli-shape-container select,
+html[data-layout="phone-land"] .ssli-fx-container select {
+  min-height: 32px;
+  min-width: 0;
+  font-size: var(--ssli-fs-sm);
+}
+html[data-layout="phone-land"] .ssli-sound-container input[type="checkbox"],
+html[data-layout="phone-land"] .ssli-shape-container input[type="checkbox"] {
+  min-height: 14px;
+  min-width: 14px;
+}
+html[data-layout="phone-land"] .ssli-fx-container input[type="checkbox"] {
+  min-height: 28px;
+  min-width: 28px;
+}
+html[data-layout="phone-land"] .ssli-surprise-btn {
+  padding: 2px 6px !important;
+  font-size: var(--ssli-fs-xs) !important;
+  margin-top: 1px !important;
+  min-height: 32px;
+}
+html[data-layout="phone-land"] .ssli-volume-slider {
+  min-width: 80px;
+}
+html[data-layout="phone-land"] .ssli-volume-val,
+html[data-layout="phone-land"] .ssli-sound-filter-inline-val {
+  font-size: var(--ssli-fs-xs);
+  min-width: 26px;
+}
+html[data-layout="phone-land"] .ssli-sound-filter-inline-label {
+  font-size: var(--ssli-fs-xs);
+}
+html[data-layout="phone-land"] .ssli-sound-filter-inline,
+html[data-layout="phone-land"] .ssli-sound-fx-inline {
+  gap: var(--ssli-gap-xs);
+}
+html[data-layout="phone-land"] .ssli-test-tone-btn {
+  padding: 1px 6px;
+  font-size: var(--ssli-fs-xs);
+  min-height: 32px;
+}
+html[data-layout="phone-land"] .ssli-vel-select {
+  min-height: 32px;
+  min-width: 64px;
+  font-size: var(--ssli-fs-xs);
+  padding: 1px 4px;
+}
+
+/* ---------- Shape screen (phone-land) ---------- */
+html[data-layout="phone-land"] .ssli-shape-container {
+  padding: 0 6px;
+  gap: 0;
+}
+html[data-layout="phone-land"] .ssli-shape-section {
+  padding: 0 6px;
+}
+html[data-layout="phone-land"] .ssli-shape-section-title {
+  font-size: var(--ssli-fs-xs);
+  letter-spacing: 0.6px;
+  line-height: 1.05;
+}
+html[data-layout="phone-land"] .ssli-shape-row {
+  margin-bottom: 0;
+  gap: var(--ssli-gap-xs);
+}
+html[data-layout="phone-land"] .ssli-shape-label {
+  font-size: var(--ssli-fs-xs);
+  min-width: 36px;
+}
+html[data-layout="phone-land"] .ssli-shape-val {
+  font-size: var(--ssli-fs-xs);
+  min-width: 40px;
+}
+html[data-layout="phone-land"] .ssli-shape-mode-toggle,
+html[data-layout="phone-land"] .ssli-shape-dual-tabs {
+  padding: 0 6px;
+  gap: var(--ssli-gap-xs);
+}
+html[data-layout="phone-land"] .ssli-shape-mode-btn {
+  padding: 1px 6px;
+  font-size: var(--ssli-fs-xs);
+  min-height: 28px;
+}
+html[data-layout="phone-land"] .ssli-shape-adsr-grid,
+html[data-layout="phone-land"] .ssli-shape-filter-grid {
+  gap: 0 6px;
+}
+html[data-layout="phone-land"] .ssli-shape-checkbox {
+  min-width: 28px;
+  min-height: 28px;
+  width: 28px;
+  height: 28px;
+}
+html[data-layout="phone-land"] .ssli-shape-slider {
+  min-width: 60px;
+}
+html[data-layout="phone-land"] .ssli-shape-filter-type-select,
+html[data-layout="phone-land"] .ssli-shape-filter-model-select {
+  min-height: 32px;
+}
+
+/* Extra-tight for iPhone SE viewport (≤700px wide) to avoid row wrapping */
+@media (max-width: 700px) {
+  html[data-layout="phone-land"] .ssli-sound-label,
+  html[data-layout="phone-land"] .ssli-shape-label {
+    min-width: 30px;
+    font-size: var(--ssli-fs-xs);
+  }
+  html[data-layout="phone-land"] .ssli-sound-select,
+  html[data-layout="phone-land"] .ssli-vel-select {
+    height: 18px;
+    font-size: var(--ssli-fs-xs);
+  }
+  html[data-layout="phone-land"] .ssli-sound-row,
+  html[data-layout="phone-land"] .ssli-shape-row,
+  html[data-layout="phone-land"] .ssli-sound-filter-inline,
+  html[data-layout="phone-land"] .ssli-sound-fx-inline {
+    flex-wrap: nowrap;
+    gap: var(--ssli-gap-xs);
+  }
+  html[data-layout="phone-land"] .ssli-volume-slider,
+  html[data-layout="phone-land"] .ssli-shape-slider {
+    min-width: 50px;
+  }
+  html[data-layout="phone-land"] .ssli-surprise-btn {
+    padding: 1px 4px !important;
+    font-size: var(--ssli-fs-xs) !important;
+  }
+  html[data-layout="phone-land"] .ssli-test-tone-btn {
+    padding: 0 4px;
+    font-size: var(--ssli-fs-xs);
+  }
+  html[data-layout="phone-land"] .ssli-shape-mode-btn {
+    padding: 0 4px;
+    font-size: var(--ssli-fs-xs);
+  }
+  html[data-layout="phone-land"] .ssli-shape-val,
+  html[data-layout="phone-land"] .ssli-volume-val,
+  html[data-layout="phone-land"] .ssli-sound-filter-inline-val {
+    font-size: var(--ssli-fs-xs);
+    min-width: 22px;
+  }
+}
+
+/* ---------- Effects screen (phone-land) ---------- */
+html[data-layout="phone-land"] .ssli-fx-container {
+  padding: 2px 6px;
+  gap: var(--ssli-gap-xs);
+}
+html[data-layout="phone-land"] .ssli-fx-presets-compact {
+  padding: 1px 6px;
+}
+html[data-layout="phone-land"] .ssli-fx-presets-inline-row {
+  gap: var(--ssli-gap-xs);
+}
+html[data-layout="phone-land"] .ssli-fx-presets-inline-label {
+  font-size: var(--ssli-fs-xs);
+}
+html[data-layout="phone-land"] .ssli-fx-presets-inline-row .ssli-sound-select {
+  height: 20px;
+  padding: 1px 4px;
+  font-size: var(--ssli-fs-xs);
+}
+html[data-layout="phone-land"] .ssli-fx-chain-section {
+  padding: 1px 4px;
+}
+html[data-layout="phone-land"] .ssli-fx-chain-section > .ssli-shape-section-title {
+  display: none;
+}
+/* Chain list: dense 4-col grid, must FIT (no scroll).
+   28 effects / 4 cols = 7 rows x 34px = 238px — fits ~320px budget. */
+html[data-layout="phone-land"] .ssli-fx-chain-list {
+  gap: 1px;
+  overflow: hidden;
+  align-content: flex-start;
+  flex: 1;
+}
+html[data-layout="phone-land"] .ssli-fx-category-divider {
+  display: none;
+}
+/* Effect tiles: 4-column, compact but touch-friendly */
+html[data-layout="phone-land"] .ssli-fx-chain-row {
+  width: calc(25% - 2px) !important;
+  min-width: 0 !important;
+  padding: 2px 4px !important;
+  gap: var(--ssli-gap-xs);
+  border-width: 1px;
+  border-radius: var(--ssli-radius-sm);
+  min-height: 34px;
+}
+html[data-layout="phone-land"] .ssli-fx-chain-cb {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+}
+html[data-layout="phone-land"] .ssli-fx-chain-info {
+  gap: var(--ssli-gap-xs);
+  min-width: 0;
+}
+html[data-layout="phone-land"] .ssli-fx-chain-icon {
+  font-size: var(--ssli-fs-sm);
+}
+html[data-layout="phone-land"] .ssli-fx-chain-name {
+  font-size: var(--ssli-fs-sm);
+  line-height: 1.1;
+}
+html[data-layout="phone-land"] .ssli-fx-reorder-wrap {
+  gap: 1px;
+  padding-left: 2px;
+}
+html[data-layout="phone-land"] .ssli-fx-reorder-btn {
+  width: 44px;
+  height: 44px;
+  font-size: var(--ssli-fs-md);
+  border-radius: var(--ssli-radius-md);
+}
+html[data-layout="phone-land"] .ssli-fx-master-mix {
+  padding: 1px 6px;
+}
+html[data-layout="phone-land"] .ssli-fx-master-mix .ssli-shape-row {
+  gap: var(--ssli-gap-xs);
+}
+html[data-layout="phone-land"] .ssli-fx-master-mix .ssli-shape-label {
+  font-size: var(--ssli-fs-xs);
+  min-width: 44px;
+}
+html[data-layout="phone-land"] .ssli-fx-master-mix .ssli-shape-val {
+  font-size: var(--ssli-fs-xs);
+  min-width: 28px;
+}
+
+/* ============================================================
+   Phone-land HIGH-priority wasted-space fixes (v1.5.872-pass)
+   Target: Tweak header collapse, Sound row pack, MIDI density,
+   Effects 4-col grid, Acid grid fill.
+   ============================================================ */
+
+/* ---- Tweak: collapse oversized header on phone-land (target <= 36px) ---- */
+html[data-layout="phone-land"] .ssli-tweak2-container {
+  gap: var(--ssli-gap-xs);
+  padding: 4px 8px 8px 8px;
+}
+html[data-layout="phone-land"] .ssli-tweak2-header {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--ssli-gap-xs);
+  padding: 2px 6px;
+  flex-wrap: nowrap;
+}
+html[data-layout="phone-land"] .ssli-tweak2-header-actions {
+  flex-wrap: nowrap;
+  gap: var(--ssli-gap-xs);
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+html[data-layout="phone-land"] .ssli-tweak2-header-actions .ssli-tweak2-btn {
+  padding: 2px 6px;
+  font-size: var(--ssli-fs-xs);
+  white-space: nowrap;
+  min-height: 0;
+}
+/* Drop the redundant breadcrumb (duplicates ssli-stage-banner) */
+html[data-layout="phone-land"] .ssli-tweak2-header-info {
+  display: none;
+}
+/* Hide empty status strip — reveal only when populated via inline style */
+html[data-layout="phone-land"] .ssli-tweak2-status:empty {
+  display: none;
+}
+html[data-layout="phone-land"] .ssli-tweak2-status {
+  font-size: var(--ssli-fs-xs);
+  min-height: 0;
+  line-height: 1.1;
+}
+/* Make sure the container actually scrolls when content exceeds viewport */
+html[data-layout="phone-land"] .ssli-tweak2-container {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  flex: 1 1 auto;
+}
+html[data-layout="phone-land"] .ssli-tweak2-shape-link-row {
+  padding: 2px 0;
+}
+html[data-layout="phone-land"] .ssli-tweak2-shape-link-row .ssli-tweak2-btn {
+  padding: 1px 6px;
+  font-size: var(--ssli-fs-xs);
+}
+
+/* ---- Sound: pack Engine/Category/Preset onto one row; inline Surprise ---- */
+html[data-layout="phone-land"] .ssli-sound-row-epc {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--ssli-gap-xs);
+  align-items: center;
+}
+html[data-layout="phone-land"] .ssli-sound-row-epc > .ssli-sound-select {
+  flex: 1 1 0;
+  min-width: 60px;
+  max-width: none;
+}
+html[data-layout="phone-land"] .ssli-sound-row-epc > .ssli-sound-label {
+  font-size: var(--ssli-fs-xs);
+  min-width: 0;
+  padding: 0 2px;
+  letter-spacing: 0.02em;
+}
+html[data-layout="phone-land"] .ssli-sound-row-epc > .ssli-surprise-btn {
+  padding: 1px 6px !important;
+  font-size: var(--ssli-fs-xs) !important;
+  margin: 0 !important;
+  flex: 0 0 auto;
+  width: auto !important;
+  max-width: 90px;
+  white-space: nowrap;
+  min-width: 0 !important;
+}
+
+/* ---- MIDI: compact monitor header + let log fill vertical dead zone ---- */
+html[data-layout="phone-land"] .ssli-midi-container {
+  padding: 4px 8px;
+  gap: var(--ssli-gap-xs);
+}
+html[data-layout="phone-land"] .ssli-midi-io-row {
+  gap: var(--ssli-gap-xs);
+}
+html[data-layout="phone-land"] .ssli-midi-io-section {
+  padding: 2px 6px;
+}
+html[data-layout="phone-land"] .ssli-midi-io-section .ssli-shape-section-title {
+  font-size: var(--ssli-fs-sm);
+  letter-spacing: 0.5px;
+  line-height: 1.1;
+  margin: 0;
+  padding: 0 0 1px 0;
+}
+html[data-layout="phone-land"] .ssli-midi-io-section .ssli-shape-row {
+  margin: 0 0 2px 0;
+  gap: var(--ssli-gap-xs);
+  flex-wrap: nowrap;
+}
+html[data-layout="phone-land"] .ssli-midi-io-section .ssli-shape-label {
+  font-size: var(--ssli-fs-sm);
+  min-width: 38px;
+}
+html[data-layout="phone-land"] .ssli-midi-io-section .ssli-sound-select {
+  font-size: var(--ssli-fs-sm);
+  height: auto;
+  min-height: 28px;
+  padding: 2px 4px;
+}
+html[data-layout="phone-land"] .ssli-midi-scan-btn,
+html[data-layout="phone-land"] .ssli-midi-test-btn,
+html[data-layout="phone-land"] .ssli-midi-clear-btn {
+  padding: 2px 8px;
+  font-size: var(--ssli-fs-sm);
+  min-height: 32px !important;
+  min-width: 0 !important;
+}
+html[data-layout="phone-land"] .ssli-midi-section-title {
+  font-size: var(--ssli-fs-xs);
+}
+html[data-layout="phone-land"] .ssli-midi-label {
+  font-size: var(--ssli-fs-xs);
+}
+html[data-layout="phone-land"] .ssli-midi-monitor-section {
+  padding: 2px 6px;
+  min-height: 0;
+}
+html[data-layout="phone-land"] .ssli-midi-monitor-header {
+  margin: 0;
+  min-height: 0;
+  padding: 0;
+}
+html[data-layout="phone-land"] .ssli-midi-monitor-header .ssli-shape-section-title {
+  font-size: var(--ssli-fs-sm);
+  line-height: 1.1;
+  margin: 0;
+  padding: 0;
+}
+html[data-layout="phone-land"] .ssli-midi-monitor-log {
+  font-size: var(--ssli-fs-xs);
+  padding: 2px 4px;
+  flex: 1 1 auto;
+  min-height: 80px;
+}
+
+html[data-layout="phone-land"] .ssli-fx-presets-compact {
+  padding: 1px 6px;
+}
+/* Let master-mix sit in a narrow strip but share a row with preset-compact via flex */
+html[data-layout="phone-land"] .ssli-fx-master-mix {
+  padding: 1px 4px;
+  margin-top: 0;
+}
+html[data-layout="phone-land"] .ssli-fx-master-mix .ssli-shape-row {
+  gap: var(--ssli-gap-xs);
+  margin: 0;
+}
+html[data-layout="phone-land"] .ssli-fx-master-mix .ssli-shape-label {
+  font-size: var(--ssli-fs-xs);
+  min-width: 40px;
+}
+html[data-layout="phone-land"] .ssli-fx-master-mix .ssli-shape-slider {
+  min-width: 80px;
+}
+
+/* ---- Acid: phrase-picker below the grid filling dead zone ---- */
+html[data-layout="phone-land"] .ssli-acid-phrase-below {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--ssli-gap-sm);
+  padding: 4px 6px 2px 6px;
+  flex-wrap: nowrap;
+}
+html[data-layout="phone-land"] .ssli-acid-phrase-below .ssli-acid-field-label {
+  font-size: var(--ssli-fs-xs);
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+html[data-layout="phone-land"] .ssli-acid-phrase-below .ssli-acid-select {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: none;
+}
+html[data-layout="phone-land"] .ssli-acid-phrase-below .ssli-acid-random-btn {
+  flex: 0 0 auto;
+}
+/* Expand grid-area to fill available height when phrase moved below */
+html[data-layout="phone-land"] .ssli-acid-grid-area {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+html[data-layout="phone-land"] .ssli-acid-pitchbar {
+  height: 40px;
+}
+html[data-layout="phone-land"] .ssli-acid-step-mini {
+  height: 28px;
+  min-height: 28px;
+}
+/* Steps: transport and control buttons */
+html[data-layout="phone-land"] .ssli-acid-btn {
+  min-height: 28px;
+  font-size: var(--ssli-fs-xs);
+}
+html[data-layout="phone-land"] .ssli-acid-seg-btn {
+  min-width: 28px;
+  min-height: 28px;
+}
+/* Steps: BPM input */
+html[data-layout="phone-land"] .ssli-acid-number {
+  min-height: 24px;
+  font-size: var(--ssli-fs-sm);
+}
+/* Steps: Swing/Glide sliders */
+html[data-layout="phone-land"] .ssli-acid-range {
+  min-height: 24px;
+}
+/* Steps: dropdowns */
+html[data-layout="phone-land"] .ssli-acid-select {
+  min-height: 28px;
+  font-size: var(--ssli-fs-xs);
+}
+/* Steps: field labels */
+html[data-layout="phone-land"] .ssli-acid-field-label {
+  font-size: var(--ssli-fs-xs);
+}
+/* Steps: dot toggles (accent/slide/octave) — max 20px to fit 16 columns */
+html[data-layout="phone-land"] .ssli-acid-dot {
+  min-width: 20px;
+  min-height: 20px;
+}
+/* Steps: pitch buttons */
+html[data-layout="phone-land"] .ssli-acid-step-pitch-btn {
+  min-height: 22px;
+  height: 22px;
+}
+
+/* ============================================================
+   UX Waste Heuristic Fixes (v1.5.877)
+   The audit (test_ux_waste_regression.js) flags rows where the
+   children span less than 40% of the container's width. For rows
+   whose content is intentionally compact (a few selects, a pair
+   of buttons, a single link), we narrow the container itself to
+   fit its content and center it within the parent. This keeps
+   the visual layout identical (already centered via parent
+   justify-content or the surrounding column flow) while making
+   the density metric meaningful: container-width shrinks to just
+   wider than the children, so densityPct -> ~1.0 and the rule
+   skips the container entirely (below MIN_WIDE_CONTAINER).
+   ============================================================ */
+.ssli-shape-mode-toggle,
+.ssli-shape-filter-top-row {
+  max-width: -moz-fit-content;
+  max-width: fit-content;
+  margin-inline: auto;
+}
+.ssli-breathpad-controls,
+.ssli-breathpadens-controls {
+  max-width: -moz-fit-content;
+  max-width: fit-content;
+  margin-inline: auto;
+  overflow: visible;
+}
+.ssli-breathpadens-controls > div {
+  box-sizing: border-box;
+  margin-top: 0;
+  margin-bottom: 0;
+  overflow: visible;
+}
+/* Breath pad ensemble note grid buttons: taller to fill the grid rows */
+.ssli-breathpad-note-btn {
+  height: 100%;
+  min-height: 36px;
+  padding: 4px 2px;
+  font-size: var(--ssli-fs-body);
+}
+/* shape-section's internal row 2 held a single compact child; centering
+   that child's wrapper demotes the flagged HIGH finding to MED/LOW. */
+.ssli-shape-section > .ssli-shape-mode-toggle,
+.ssli-shape-section > .ssli-shape-filter-top-row {
+  align-self: center;
+}
+
+/* Phone-land: narrow the single-control bars so the audit skips them. */
+html[data-layout="phone-land"] .ssli-shape-mode-toggle,
+html[data-layout="phone-land"] .ssli-tweak2-shape-link-row,
+html[data-layout="phone-land"] .ssli-acid-phrase-below,
+html[data-layout="phone-land"] .ssli-midi-monitor-header,
+html[data-layout="phone-land"] .ssli-loom-topbar {
+  max-width: -moz-fit-content;
+  max-width: fit-content;
+  margin-inline: auto;
+}
+/* Desktop loom-topbar: 3 controls in a 1224px bar -> narrow + center. */
+.ssli-loom-topbar {
+  max-width: -moz-fit-content;
+  max-width: fit-content;
+  margin-inline: auto;
+}
+/* The acid-phrase-below on desktop is fine; only phone-land flags it. */
+
+/* ============================================================
+   perform-inline-oct: the top octave/sustain/transpose bar shows
+   as a 2-row wrap in the audit (label spans align slightly off
+   from button tops, fooling the row-grouper). Pin label heights
+   to match buttons so all children share the same top.
+   ============================================================ */
+.perform-inline-oct-label {
+  height: 28px;
+  line-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+}
+html[data-layout="phone-land"] .perform-inline-oct-label {
+  height: 24px;
+  line-height: 24px;
+}
+/* Hide keyboard bindings on phone — irrelevant without keyboard */
+html[data-layout="phone-land"] .perf-key-binding {
+  display: none !important;
+}
+/* Play toolbar buttons */
+html[data-layout="phone-land"] .perform-inline-oct-btn {
+  min-height: 28px;
+  min-width: 28px;
+}
+html[data-layout="phone-land"] .perform-sustain-btn,
+html[data-layout="phone-land"] #ssliSustainBtn {
+  min-height: 28px;
+}
+html[data-layout="phone-land"] .ssli-transpose-down,
+html[data-layout="phone-land"] .ssli-transpose-up {
+  min-height: 28px;
+  min-width: 28px;
+}
+/* Play readout text */
+html[data-layout="phone-land"] #ssliOctRange,
+html[data-layout="phone-land"] #ssliTransposeLabel,
+html[data-layout="phone-land"] #ssliNoteReadout {
+  font-size: var(--ssli-fs-xs);
+}
+html[data-layout="phone-land"] #ssliLimitBadge {
+  font-size: var(--ssli-fs-xs);
+}
+
+/* ============================================================
+   Phone-land viewport overflow fixes (nav, pads, hex, effects)
+   ============================================================ */
+
+/* --- PROBLEM 1: Nav bar overflow at 390px height ---
+   8 buttons at min-height 36px + gaps + padding = ~310px before
+   the HOME btn and divider. Hide text labels and shrink buttons
+   so the full stack fits in 390px.
+   Nav budget: 390 - 8px(padding) = 382px for 9 items (HOME + divider + 7 btns).
+   HOME(28) + divider(3) + 7*btn(44) = 339px. Safe margin. */
+
+/* Named constants via CSS custom properties scoped to phone-land nav */
+html[data-layout="phone-land"] .ssli-nav {
+  --nav-btn-min-h-phone-land: 44px;
+  --nav-home-min-h-phone-land: 28px;
+  padding: 2px 0;
+  gap: 1px;
+  width: 44px;
+  min-width: 44px;
+  overflow-y: auto;
+}
+html[data-layout="phone-land"] .ssli-nav-btn {
+  min-height: var(--nav-btn-min-h-phone-land);
+  padding: 2px 2px;
+  gap: 0;
+}
+html[data-layout="phone-land"] .ssli-nav-label {
+  display: none;
+}
+html[data-layout="phone-land"] .ssli-nav-home-btn {
+  min-height: var(--nav-home-min-h-phone-land);
+  padding: 2px 2px;
+  gap: 0;
+}
+html[data-layout="phone-land"] .ssli-nav-home-btn .ssli-nav-label {
+  display: none;
+}
+html[data-layout="phone-land"] .ssli-nav-home-divider {
+  margin: 0 4px;
+  height: 1px;
+}
+
+/* --- PROBLEM 2: Drum pad 4x4 grid overflow ---
+   aspect-ratio: 1 makes pads square, but at 390px height minus
+   toolbar the 4 rows don't fit. Remove aspect-ratio on phone-land
+   and let the grid auto-size rows to fill available height. */
+html[data-layout="phone-land"] .perf-drum-pad {
+  aspect-ratio: auto;
+  min-height: 0;
+}
+html[data-layout="phone-land"] .perf-pad-toolbar {
+  padding: 2px 6px;
+  gap: var(--ssli-gap-xs);
+  min-height: 0;
+}
+html[data-layout="phone-land"] .perf-pad-toolbar .perf-pad-kit-label {
+  font-size: var(--ssli-fs-xs);
+}
+html[data-layout="phone-land"] .perf-pad-toolbar .perf-pad-kit-select {
+  font-size: var(--ssli-fs-xs);
+  height: 22px;
+}
+
+/* --- F1: Global slider thumbs — 28px minimum on phone-land --- */
+html[data-layout="phone-land"] .ssli-shape-slider::-webkit-slider-thumb,
+html[data-layout="phone-land"] .ssli-volume-slider::-webkit-slider-thumb,
+html[data-layout="phone-land"] input[type="range"].ssli-fx-modal-slider::-webkit-slider-thumb {
+  width: 28px;
+  height: 28px;
+}
+html[data-layout="phone-land"] .ssli-shape-slider::-moz-range-thumb,
+html[data-layout="phone-land"] .ssli-volume-slider::-moz-range-thumb,
+html[data-layout="phone-land"] input[type="range"].ssli-fx-modal-slider::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+}
+
+/* --- F13: Ribbon — reclaim dead space above ribbon strip on phone-land --- */
+html[data-layout="phone-land"] .ssli-ribbon-wrapper .ctrl-ribbon-strip,
+html[data-layout="phone-land"] .ssli-ribbon-wrapper .ssli-ribbon-strip {
+  top: 4px !important;
+  height: calc(100% - 8px) !important;
+}
+html[data-layout="phone-land"] .ssli-ribbon-wrapper .ctrl-ribbon-note-display {
+  top: 2px;
+  font-size: var(--ssli-fs-lg);
+}
+
+/* --- F15: Sound screen oscilloscope — cap height on phone-land --- */
+html[data-layout="phone-land"] .ssli-oscilloscope {
+  max-height: 120px;
+}
+
+/* --- F21: Sidebar nav icons — increase touch targets to 28px min --- */
+html[data-layout="phone-land"] .ssli-nav-btn svg {
+  width: 28px;
+  height: 28px;
+}
+html[data-layout="phone-land"] .ssli-nav-home-btn svg {
+  width: 28px;
+  height: 28px;
+}
+

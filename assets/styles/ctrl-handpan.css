@@ -1,0 +1,391 @@
+/* Handpan surface styles */
+
+.handpan-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Top bar */
+.handpan-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ssli-gap-sm);
+  padding: 2px 8px;
+  background: var(--ssli-bg-elevated);
+  flex-shrink: 0;
+  min-height: 26px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.handpan-topbar-label {
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-text-muted);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.handpan-title {
+  font-size: var(--ssli-fs-sm);
+  font-weight: var(--ssli-fw-semibold);
+  color: var(--ssli-text-secondary);
+  letter-spacing: 2px;
+  margin: 0 8px;
+}
+
+.handpan-select {
+  height: var(--ssli-dropdown-h, 28px);
+  background: var(--ssli-bg-input, #21262d);
+  color: var(--ssli-text-primary, rgba(220, 235, 245, 0.95));
+  border: 1px solid var(--ssli-border-muted, rgba(76, 201, 240, 0.15));
+  border-radius: var(--ssli-radius-sm, 3px);
+  padding: 2px 6px;
+  font-size: var(--ssli-fs-body, 13px);
+  cursor: pointer;
+  outline: none;
+}
+
+.handpan-select:focus {
+  border-color: var(--ssli-accent-cyan, #00d4ff);
+}
+
+.handpan-oct-btn {
+  background: var(--ssli-bg-overlay);
+  color: var(--ssli-text-secondary);
+  border: 1px solid var(--ssli-bg-input);
+  border-radius: var(--ssli-radius-md);
+  padding: 6px 12px;
+  font-size: var(--ssli-fs-body);
+  min-width: 44px;
+  min-height: 0;
+  cursor: pointer;
+  outline: none;
+  line-height: 1;
+}
+
+.handpan-oct-btn:hover {
+  background: #242430;
+  border-color: rgba(212, 160, 23, 0.4);
+}
+
+.handpan-oct-btn:active {
+  background: #2a2a38;
+}
+
+.handpan-oct-display {
+  font-size: var(--ssli-fs-body);
+  font-weight: var(--ssli-fw-semibold);
+  color: var(--ssli-accent-amber);
+  min-width: 14px;
+  text-align: center;
+}
+
+/* Main area with side panels */
+.handpan-main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.handpan-side-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  flex-shrink: 0;
+  padding: 2px 1px;
+}
+
+.handpan-scale-info {
+  font-size: var(--ssli-fs-sm);
+  color: var(--ssli-text-muted);
+  text-align: center;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  letter-spacing: 1px;
+}
+/* When scale-info is inside the topbar, disable vertical writing mode
+   so it doesn't overflow the bar height */
+.handpan-topbar .handpan-scale-info {
+  writing-mode: horizontal-tb;
+  text-orientation: initial;
+  height: 100%;
+  min-height: 0;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+}
+
+.handpan-note-readout {
+  font-size: var(--ssli-fs-xl);
+  font-weight: var(--ssli-fw-bold);
+  color: var(--ssli-accent-amber);
+  text-align: center;
+  text-shadow: 0 0 12px rgba(212, 160, 23, 0.4);
+  transition: opacity 0.2s ease;
+}
+
+/* Playfield */
+.handpan-playfield {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  min-width: 0;
+  padding: 2px;
+}
+
+/* Pan body */
+.handpan-pan {
+  position: relative;
+  border-radius: 50%;
+  overflow: hidden;
+  touch-action: none;
+  cursor: pointer;
+  flex: 0 0 auto;
+  background: radial-gradient(circle at 40% 35%, #222830 0%, #1a1d22 50%, #12141a 100%);
+  box-shadow:
+    0 0 40px rgba(0, 0, 0, 0.6),
+    inset 0 0 30px rgba(0, 0, 0, 0.3),
+    0 0 1px 1px #334455;
+}
+
+/* Ding (center) */
+.handpan-ding {
+  position: absolute;
+  border-radius: 50%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 2;
+  background: radial-gradient(circle at 45% 40%, #665533 0%, #554422 60%, #443318 100%);
+  border: 1px solid rgba(212, 160, 23, 0.25);
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.3);
+  transition: filter 0.12s ease, box-shadow 0.12s ease;
+  touch-action: none;
+}
+
+/* Tone fields */
+.handpan-field {
+  position: absolute;
+  border-radius: 50%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(circle at center, #242e38 0%, #1e2830 100%);
+  border: 1px solid rgba(51, 68, 85, 0.3);
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.25);
+  transition: filter 0.12s ease, box-shadow 0.12s ease;
+  touch-action: none;
+}
+
+.handpan-field-alt {
+  background: radial-gradient(circle at center, #2a3440 0%, #222c36 100%);
+}
+
+/* Note labels */
+.handpan-label {
+  font-size: var(--ssli-fs-body);
+  font-weight: var(--ssli-fw-semibold);
+  color: var(--ssli-text-primary);
+  pointer-events: none;
+  text-align: center;
+  white-space: nowrap;
+  display: block;
+  opacity: var(--ssli-opacity-active);
+}
+
+/* Active / hit states */
+.handpan-zone-hit.handpan-ding,
+.handpan-ding.handpan-zone-hit {
+  filter: brightness(1.5);
+  box-shadow: 0 0 20px rgba(212, 160, 23, 0.5), inset 0 0 12px rgba(212, 160, 23, 0.2);
+}
+
+.handpan-zone-hit.handpan-field,
+.handpan-field.handpan-zone-hit {
+  filter: brightness(1.4);
+  box-shadow: 0 0 16px rgba(204, 136, 0, 0.4), inset 0 0 8px rgba(204, 136, 0, 0.15);
+}
+
+/* Ripple animation */
+.handpan-ripple {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 10;
+  animation: handpan-ripple-expand 300ms ease-out forwards;
+}
+
+@keyframes handpan-ripple-expand {
+  0% {
+    width: 20px;
+    height: 20px;
+    margin-left: -10px;
+    margin-top: -10px;
+    border: 2px solid rgba(212, 160, 23, 0.6);
+    opacity: var(--ssli-opacity-inactive);
+  }
+  100% {
+    width: 100px;
+    height: 100px;
+    margin-left: -50px;
+    margin-top: -50px;
+    border: 2px solid rgba(212, 160, 23, 0.1);
+    opacity: 0;
+  }
+}
+
+/* ================================================
+   Phone landscape overrides
+   ================================================ */
+
+[data-layout="phone-land"] .handpan-topbar {
+  min-height: var(--ssli-topbar-h-phone);
+  padding: 1px 6px;
+  gap: var(--ssli-gap-xs);
+}
+
+[data-layout="phone-land"] .handpan-topbar-label {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone-land"] .handpan-title {
+  font-size: var(--ssli-fs-xs);
+  margin: 0 4px;
+}
+
+[data-layout="phone-land"] .handpan-select {
+  padding: 1px 4px;
+  font-size: var(--ssli-fs-xs);
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+[data-layout="phone-land"] .handpan-oct-btn {
+  padding: 1px 4px;
+  font-size: var(--ssli-fs-xs);
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+[data-layout="phone-land"] .handpan-label {
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-text-secondary);
+  opacity: var(--ssli-opacity-active);
+}
+
+[data-layout="phone-land"] .handpan-playfield {
+  padding: 0;
+  margin: 0;
+}
+
+[data-layout="phone-land"] .handpan-pan {
+  aspect-ratio: 1 / 1;
+}
+
+[data-layout="phone-land"] .handpan-side-panel {
+  width: 24px;
+  padding: 2px 1px;
+}
+
+[data-layout="phone-land"] .handpan-scale-info {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone-land"] .handpan-note-readout {
+  font-size: var(--ssli-fs-md);
+}
+
+[data-layout="phone-land"] .handpan-ripple {
+  animation-name: handpan-ripple-expand-phone;
+}
+
+@keyframes handpan-ripple-expand-phone {
+  0% {
+    width: 14px;
+    height: 14px;
+    margin-left: -7px;
+    margin-top: -7px;
+    border: 2px solid rgba(212, 160, 23, 0.6);
+    opacity: var(--ssli-opacity-inactive);
+  }
+  100% {
+    width: 60px;
+    height: 60px;
+    margin-left: -30px;
+    margin-top: -30px;
+    border: 2px solid rgba(212, 160, 23, 0.1);
+    opacity: 0;
+  }
+}
+
+/* ================================================
+   Phone portrait overrides
+   ================================================ */
+
+[data-layout="phone"] .handpan-topbar {
+  min-height: var(--ssli-topbar-h-phone);
+  padding: 1px 6px;
+  gap: var(--ssli-gap-xs);
+}
+
+[data-layout="phone"] .handpan-topbar-label {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone"] .handpan-title {
+  font-size: var(--ssli-fs-xs);
+  margin: 0 4px;
+}
+
+[data-layout="phone"] .handpan-select {
+  padding: 1px 4px;
+  font-size: var(--ssli-fs-xs);
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+[data-layout="phone"] .handpan-oct-btn {
+  padding: 1px 4px;
+  font-size: var(--ssli-fs-xs);
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+[data-layout="phone"] .handpan-label {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone"] .handpan-side-panel {
+  width: 20px;
+  padding: 2px 1px;
+}
+
+[data-layout="phone"] .handpan-scale-info {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone"] .handpan-note-readout {
+  font-size: var(--ssli-fs-md);
+}
+
+[data-layout="phone"] .handpan-ripple {
+  animation-name: handpan-ripple-expand-phone;
+}

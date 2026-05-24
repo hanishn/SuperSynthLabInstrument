@@ -1,0 +1,936 @@
+/* SSLI Acid Line (Step Line) screen — dark theme, compact 16-step grid.
+   Design tokens per 2026-04-20_StepLine_UIUX_Redesign.md Section 5.
+   WCAG AA contrast verified against --acid-bg #0a0a14. */
+
+:root {
+  --acid-bg:             #0a0a14;
+  --acid-bg-panel:       #12121f;
+  --acid-bg-cell:        #1a1a2c;
+  --acid-bg-cell-on:     #23233e;
+  --acid-border:         #2a2a46;
+  --acid-border-strong:  #4a4a80;
+
+  --acid-text:           #ecf0ff;   /* 15.9:1 on bg */
+  --acid-text-dim:       #b7badA;   /*  8.5:1 on bg */
+  --acid-text-muted:     #7b7ea6;   /*  4.7:1 on bg — labels only */
+
+  --acid-amber:          #f5c542;
+  --acid-amber-soft:     #ffd977;
+  --acid-amber-glow:     rgba(245, 197, 66, 0.55);
+
+  --acid-cyan:           #4ccef0;
+  --acid-cyan-soft:      #86e1f3;
+  --acid-cyan-glow:      rgba(76, 206, 240, 0.55);
+
+  --acid-warn:           #ff9e3a;   /* warm orange — never red */
+
+  --acid-pitch-low:      #6d63c9;
+  --acid-pitch-high:     #f5c542;
+
+  --acid-playhead-ms:    150ms;
+  --acid-cell-radius:    5px;
+  --acid-panel-radius:   8px;
+  --acid-gate-off-alpha: 0.10;
+
+  /* Compact touch-target overrides for narrow-height layouts.
+     Smaller than the global 44px minimum because step cells fit 16-wide
+     in a 364px viewport; standard hit area would exceed available height.
+     Still >= 22px so a fingertip can reliably hit them. */
+  --acid-touch-compact:    28px;
+  --acid-touch-dot:        18px;
+  --acid-silhouette-h:     14px;
+  --acid-pitchbar-h-land:  20px;
+  --acid-step-mini-h-land: 16px;
+  --acid-step-header-h:    18px;
+}
+
+#ssli-screen-acid {
+  height: 100%;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--acid-bg) 0%, #0e0e1a 100%);
+  color: var(--acid-text-dim);
+}
+
+.ssli-acid-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 6px 10px;
+  box-sizing: border-box;
+  gap: var(--ssli-gap-xs);
+}
+
+/* Header ---------------------------------------------------- */
+
+.ssli-acid-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding-right: 80px; /* reserve for fixed Panic button */
+}
+
+.ssli-acid-title {
+  font-size: var(--ssli-fs-xl);
+  font-weight: var(--ssli-fw-bold);
+  letter-spacing: 0.06em;
+  color: var(--acid-amber);
+  text-shadow: 0 0 8px rgba(245, 197, 66, 0.25);
+}
+
+.ssli-acid-subtitle {
+  font-size: var(--ssli-fs-sm);
+  color: var(--acid-text-muted);
+  flex: 1 0 auto;
+}
+
+.ssli-acid-transport {
+  display: flex;
+  gap: var(--ssli-gap-sm);
+}
+
+.ssli-acid-btn {
+  background: var(--acid-bg-cell);
+  border: 1px solid var(--acid-border);
+  color: var(--acid-text);
+  border-radius: var(--ssli-radius-md);
+  padding: 6px 14px;
+  font-size: var(--ssli-fs-body);
+  font-weight: var(--ssli-fw-semibold);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.ssli-acid-btn:hover {
+  background: var(--acid-bg-cell-on);
+  border-color: var(--acid-border-strong);
+}
+.ssli-acid-btn.ssli-acid-play.playing {
+  background: #2a1f12;
+  border-color: var(--acid-amber);
+  color: var(--acid-amber);
+  box-shadow: 0 0 8px var(--acid-amber-glow);
+}
+
+/* Controls bar ---------------------------------------------- */
+
+.ssli-acid-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ssli-gap-md) 14px;
+  padding: 6px 10px;
+  background: var(--acid-bg-panel);
+  border: 1px solid var(--acid-border);
+  border-radius: var(--acid-panel-radius);
+  align-items: stretch;
+}
+
+/* Group cluster: small-caps label above its cluster of fields. */
+.ssli-acid-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ssli-gap-xs);
+  padding: 2px 10px 2px 0;
+  border-right: 1px solid var(--acid-border);
+}
+.ssli-acid-group:last-child {
+  border-right: 0;
+}
+.ssli-acid-group-label {
+  font-size: var(--ssli-fs-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--acid-text-muted);
+  font-weight: var(--ssli-fw-bold);
+}
+.ssli-acid-group-body {
+  display: flex;
+  gap: var(--ssli-gap-md);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ssli-acid-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ssli-gap-xs);
+  min-width: 70px;
+}
+
+.ssli-acid-field-label {
+  font-size: var(--ssli-fs-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--acid-text-muted);
+  font-weight: var(--ssli-fw-semibold);
+}
+
+.ssli-acid-select,
+.ssli-acid-number {
+  background: var(--acid-bg);
+  border: 1px solid var(--acid-border);
+  color: var(--acid-text);
+  border-radius: var(--ssli-radius-md);
+  padding: 4px 6px;
+  font-size: var(--ssli-fs-body);
+  min-width: 92px;
+}
+
+.ssli-acid-number {
+  width: 68px;
+  min-width: 0;
+}
+
+.ssli-acid-range {
+  width: 100px;
+}
+
+.ssli-acid-range-label {
+  font-size: var(--ssli-fs-sm);
+  color: var(--acid-text-dim);
+  min-width: 36px;
+  display: inline-block;
+}
+
+.ssli-acid-seg {
+  display: inline-flex;
+  border: 1px solid var(--acid-border);
+  border-radius: var(--ssli-radius-md);
+  overflow: hidden;
+}
+.ssli-acid-seg-btn {
+  background: var(--acid-bg);
+  border: 0;
+  color: var(--acid-text-dim);
+  padding: 4px 12px;
+  font-size: var(--ssli-fs-body);
+  cursor: pointer;
+}
+.ssli-acid-seg-btn.active {
+  background: var(--acid-amber);
+  color: #1a1a0e;
+  font-weight: var(--ssli-fw-bold);
+}
+
+/* Pattern silhouette strip --------------------------------- */
+
+.ssli-acid-silhouette {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--ssli-gap-xs);
+  height: 22px;
+  padding: 2px 4px;
+  background: rgba(10, 10, 20, 0.6);
+  border: 1px solid var(--acid-border);
+  border-radius: var(--ssli-radius-md);
+  margin: 0 4px;
+  overflow: hidden;
+}
+.ssli-acid-silhouette-tick {
+  flex: 1 1 0;
+  min-width: 0;
+  background: linear-gradient(
+    to top,
+    var(--acid-pitch-low) 0%,
+    var(--acid-pitch-high) 100%
+  );
+  opacity: var(--ssli-opacity-inactive);
+  border-radius: 1px;
+  transition: opacity 0.15s, filter 0.15s;
+}
+.ssli-acid-silhouette-tick.off {
+  opacity: var(--ssli-opacity-subtle);
+  background: var(--acid-text-muted);
+}
+.ssli-acid-silhouette-tick.accent {
+  opacity: var(--ssli-opacity-hover);
+  filter: drop-shadow(0 0 3px var(--acid-amber-glow));
+}
+.ssli-acid-silhouette-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--acid-amber);
+  box-shadow: 0 0 6px var(--acid-amber-glow);
+  pointer-events: none;
+  transition: left var(--acid-playhead-ms) linear, opacity 0.2s;
+  opacity: 0;
+}
+.ssli-acid-silhouette-playhead.visible {
+  opacity: var(--ssli-opacity-active);
+}
+
+/* Grid ------------------------------------------------------ */
+
+.ssli-acid-grid-area {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ssli-gap-xs);
+  padding: 4px 8px 0 8px;
+  position: relative;
+}
+
+.ssli-acid-grid-wrap {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ssli-acid-grid {
+  display: grid;
+  gap: var(--ssli-gap-xs);
+  padding: 4px;
+  background: #08080f;
+  border: 1px solid var(--acid-border);
+  border-radius: var(--acid-panel-radius);
+  grid-template-columns: repeat(16, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  align-items: stretch;
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+}
+.ssli-acid-grid[data-stepcount="8"] {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+
+/* SVG slide arc overlay (absolutely positioned on top of grid) */
+.ssli-acid-slide-svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 2;
+}
+.ssli-acid-slide-path {
+  fill: none;
+  stroke: var(--acid-cyan);
+  stroke-width: 2;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px var(--acid-cyan-glow));
+  opacity: var(--ssli-opacity-hover);
+}
+
+/* Empty-phrase hint (centered ghost text) */
+.ssli-acid-empty-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  text-align: center;
+  color: var(--acid-text-muted);
+  font-size: var(--ssli-fs-body);
+  letter-spacing: 0.08em;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 3;
+}
+.ssli-acid-empty-hint.visible {
+  opacity: var(--ssli-opacity-hover);
+}
+
+/* Step cell ------------------------------------------------- */
+
+.ssli-acid-step {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 2px 2px 2px 2px;
+  background: var(--acid-bg-cell);
+  border: 1px solid var(--acid-border);
+  border-radius: var(--acid-cell-radius);
+  min-width: 0;
+  box-sizing: border-box;
+  position: relative;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    box-shadow var(--acid-playhead-ms),
+    transform 0.12s;
+}
+
+.ssli-acid-step.gate-on {
+  background: var(--acid-bg-cell-on);
+  border-color: var(--acid-border-strong);
+}
+
+/* Gate-off: very dim pitch bar, muted number */
+.ssli-acid-step:not(.gate-on) .ssli-acid-pitchbar-fill {
+  opacity: var(--acid-gate-off-alpha);
+}
+.ssli-acid-step:not(.gate-on) .ssli-acid-step-note,
+.ssli-acid-step:not(.gate-on) .ssli-acid-step-header {
+  color: var(--acid-text-muted);
+}
+
+/* Focused (keyboard-selected) cell ring */
+.ssli-acid-step.focused {
+  outline: 2px solid var(--acid-cyan);
+  outline-offset: 1px;
+}
+
+/* Accent: bar-cap glow (top border + bloom on pitch bar) */
+.ssli-acid-step.accent .ssli-acid-pitchbar {
+  box-shadow:
+    inset 0 2px 0 0 var(--acid-amber),
+    0 0 8px var(--acid-amber-glow);
+}
+.ssli-acid-step.accent::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: -1px;
+  height: 2px;
+  background: var(--acid-amber);
+  box-shadow: 0 0 6px var(--acid-amber-glow);
+  border-radius: var(--ssli-radius-sm);
+  pointer-events: none;
+}
+
+.ssli-acid-step.slide {
+  border-color: var(--acid-cyan);
+}
+
+/* Playhead: breathing glow + smooth state transition */
+.ssli-acid-step.playing {
+  background: #23233e;
+  border-color: var(--acid-amber);
+  box-shadow:
+    0 0 12px var(--acid-amber-glow),
+    inset 0 0 12px rgba(245, 197, 66, 0.12);
+  animation: acidBreathe 600ms ease-in-out infinite alternate;
+}
+
+@keyframes acidBreathe {
+  from { box-shadow: 0 0 8px rgba(245, 197, 66, 0.35),
+                      inset 0 0 6px rgba(245, 197, 66, 0.08); }
+  to   { box-shadow: 0 0 18px var(--acid-amber-glow),
+                      inset 0 0 14px rgba(245, 197, 66, 0.18); }
+}
+
+/* Tri-dot LED indicator row (Phase 2 item 1) */
+.ssli-acid-dots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--ssli-gap-xs);
+  width: 100%;
+  min-width: 0;
+}
+.ssli-acid-dot {
+  height: 8px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid var(--acid-border-strong);
+  cursor: pointer;
+  padding: 0;
+  min-width: 0;
+  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+.ssli-acid-dot:hover {
+  border-color: var(--acid-text-dim);
+}
+.ssli-acid-dot.on.dot-octave-up {
+  background: var(--acid-amber);
+  border-color: var(--acid-amber);
+  box-shadow: 0 0 4px var(--acid-amber-glow);
+}
+.ssli-acid-dot.on.dot-octave-down {
+  background: var(--acid-amber-soft);
+  border-color: var(--acid-amber-soft);
+  opacity: var(--ssli-opacity-hover);
+}
+.ssli-acid-dot.on.dot-slide {
+  background: var(--acid-cyan);
+  border-color: var(--acid-cyan);
+  box-shadow: 0 0 4px var(--acid-cyan-glow);
+}
+.ssli-acid-dot.on.dot-accent {
+  background: var(--acid-amber);
+  border-color: var(--acid-amber);
+  box-shadow: 0 0 5px var(--acid-amber-glow);
+}
+
+/* Pitch bar (vertical fill representing pitch within scale) */
+.ssli-acid-pitchbar {
+  position: relative;
+  width: 100%;
+  height: 36px;
+  background: rgba(10, 10, 20, 0.55);
+  border: 1px solid var(--acid-border);
+  border-radius: var(--ssli-radius-sm);
+  overflow: hidden;
+  min-width: 0;
+  box-sizing: border-box;
+  transition: box-shadow 0.15s;
+}
+.ssli-acid-pitchbar-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    to top,
+    var(--acid-pitch-low) 0%,
+    var(--acid-pitch-high) 100%
+  );
+  transition: height 0.15s, opacity 0.15s;
+}
+
+/* Step header (number badge — tap to toggle gate) */
+.ssli-acid-step-header {
+  background: var(--acid-bg);
+  border: 1px solid var(--acid-border);
+  border-radius: var(--ssli-radius-sm);
+  color: var(--acid-text-muted);
+  font-size: var(--ssli-fs-xs);
+  font-weight: var(--ssli-fw-bold);
+  padding: 2px 0;
+  cursor: pointer;
+  text-align: center;
+}
+.ssli-acid-step.gate-on .ssli-acid-step-header {
+  background: var(--acid-amber);
+  color: #1a1a0e;
+  border-color: var(--acid-amber);
+}
+
+/* Pitch up/down buttons — full width, large touch targets */
+.ssli-acid-step-pitch-btn {
+  background: var(--acid-bg);
+  border: 1px solid var(--acid-border);
+  color: var(--acid-text-dim);
+  border-radius: var(--ssli-radius-sm);
+  width: 100%;
+  box-sizing: border-box;
+  height: 28px;
+  min-height: 28px;
+  font-size: var(--ssli-fs-sm);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: background 0.12s, color 0.12s;
+}
+.ssli-acid-step-pitch-btn:hover {
+  background: var(--acid-bg-cell-on);
+  color: var(--acid-text);
+}
+.ssli-acid-step-pitch-btn:active {
+  background: var(--acid-amber);
+  color: #1a1a0e;
+}
+
+.ssli-acid-step-note {
+  font-size: var(--ssli-fs-sm);
+  font-weight: var(--ssli-fw-bold);
+  color: var(--acid-text);
+  text-align: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Phrase picker — category + phrase + random button -------- */
+
+.ssli-acid-phrase-row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--ssli-gap-xs);
+  min-width: 0;
+}
+
+.ssli-acid-phrase-select {
+  flex: 1 1 auto;
+  min-width: 110px;
+  max-width: 180px;
+}
+
+.ssli-acid-category-select {
+  min-width: 96px;
+  max-width: 150px;
+}
+
+.ssli-acid-random-btn {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  font-size: var(--ssli-fs-md);
+  line-height: 1;
+  background: var(--acid-bg-cell, #1a1a2e);
+  border: 1px solid var(--acid-cyan, #4ccef0);
+  color: var(--acid-cyan, #4ccef0);
+}
+.ssli-acid-random-btn:hover {
+  background: var(--acid-bg-cell-on, #223049);
+  border-color: #7ae0f8;
+  color: #7ae0f8;
+}
+.ssli-acid-random-btn:active {
+  background: #0a0a14;
+}
+
+/* Footer ---------------------------------------------------- */
+
+.ssli-acid-footer {
+  font-size: var(--ssli-fs-xs);
+  color: var(--acid-text-muted);
+  padding: 2px 4px;
+  text-align: center;
+  letter-spacing: 0.03em;
+}
+
+/* iPhone landscape / narrow-height compaction -------------- */
+@media (max-height: 450px) {
+  /* Override global phone-land touch-target minimums inside the
+     step screen only. Dense 16-step grid cannot accommodate 44px
+     per button; we ensure each still meets --acid-touch-compact. */
+  #ssli-screen-acid button,
+  #ssli-screen-acid select,
+  #ssli-screen-acid input[type="range"] {
+    min-height: var(--acid-touch-compact);
+    min-width: 0;
+  }
+  #ssli-screen-acid .ssli-acid-dot {
+    min-height: var(--acid-touch-dot);
+    min-width: var(--acid-touch-dot);
+  }
+
+  .ssli-acid-root {
+    padding: 3px 6px;
+    gap: var(--ssli-gap-xs);
+  }
+  .ssli-acid-header {
+    gap: var(--ssli-gap-md);
+    padding-right: 60px;
+  }
+  .ssli-acid-title {
+    font-size: var(--ssli-fs-body);
+  }
+  .ssli-acid-subtitle {
+    display: none;
+  }
+  .ssli-acid-btn {
+    padding: 2px 8px;
+    font-size: var(--ssli-fs-sm);
+    min-height: var(--acid-touch-compact);
+  }
+  .ssli-acid-controls {
+    gap: var(--ssli-gap-xs) 8px;
+    padding: 2px 6px;
+  }
+  .ssli-acid-group {
+    padding: 1px 6px 1px 0;
+  }
+  .ssli-acid-group-label {
+    display: none; /* hide group captions on phone-land */
+  }
+  .ssli-acid-group-body {
+    gap: var(--ssli-gap-sm);
+  }
+  .ssli-acid-field {
+    gap: 1px;
+    min-width: 0;
+  }
+  .ssli-acid-field-label {
+    font-size: var(--ssli-fs-xs);
+    letter-spacing: 0.06em;
+  }
+  .ssli-acid-select,
+  .ssli-acid-number {
+    padding: 2px 4px;
+    font-size: var(--ssli-fs-sm);
+    min-width: 70px;
+  }
+  .ssli-acid-number {
+    width: 54px;
+  }
+  .ssli-acid-range {
+    width: 72px;
+  }
+  .ssli-acid-phrase-select {
+    min-width: 82px;
+    max-width: 130px;
+    font-size: var(--ssli-fs-xs);
+  }
+  .ssli-acid-category-select {
+    min-width: 72px;
+    max-width: 110px;
+    font-size: var(--ssli-fs-xs);
+  }
+  .ssli-acid-random-btn {
+    padding: 2px 5px;
+    font-size: var(--ssli-fs-sm);
+  }
+  .ssli-acid-range-label {
+    font-size: var(--ssli-fs-xs);
+    min-width: 28px;
+  }
+  .ssli-acid-seg-btn {
+    padding: 2px 8px;
+    font-size: var(--ssli-fs-sm);
+  }
+
+  .ssli-acid-silhouette {
+    height: var(--acid-silhouette-h);
+    margin: 0 2px;
+  }
+
+  .ssli-acid-grid-area {
+    padding: 1px 4px 0 4px;
+    gap: var(--ssli-gap-xs);
+  }
+  .ssli-acid-grid {
+    gap: var(--ssli-gap-xs);
+    padding: 2px;
+  }
+  .ssli-acid-step {
+    gap: 1px;
+    padding: 1px 1px 2px 1px;
+  }
+  .ssli-acid-step-header {
+    font-size: var(--ssli-fs-xs); /* phone-land typography floor 0.65rem */
+    padding: 0;
+    min-height: var(--acid-step-header-h);
+    height: var(--acid-step-header-h);
+    line-height: var(--acid-step-header-h);
+  }
+  .ssli-acid-step-note {
+    font-size: var(--ssli-fs-xs);
+  }
+  .ssli-acid-step-pitch-btn {
+    height: 22px;
+    min-height: 22px;
+    font-size: var(--ssli-fs-xs);
+  }
+  .ssli-acid-pitchbar {
+    height: var(--acid-pitchbar-h-land);
+  }
+
+  /* Phone-land: collapse tri-dot to single priority dot */
+  .ssli-acid-dots .ssli-acid-dot {
+    display: none;
+  }
+  .ssli-acid-dots .ssli-acid-dot.priority {
+    display: block;
+  }
+
+  .ssli-acid-footer {
+    display: none;
+  }
+}
+
+/* Even tighter for iPhone SE landscape */
+@media (max-height: 450px) and (max-width: 720px) {
+  .ssli-acid-root {
+    padding: 3px 5px;
+  }
+  .ssli-acid-header {
+    padding-right: 52px;
+  }
+  .ssli-acid-controls {
+    gap: var(--ssli-gap-xs) 6px;
+    padding: 2px 4px;
+  }
+  .ssli-acid-select {
+    min-width: 58px;
+    font-size: var(--ssli-fs-xs);
+  }
+  .ssli-acid-number {
+    width: 42px;
+    font-size: var(--ssli-fs-xs);
+  }
+  .ssli-acid-range {
+    width: 56px;
+  }
+  .ssli-acid-grid-area {
+    padding: 1px 2px 0 2px;
+  }
+  .ssli-acid-grid {
+    gap: var(--ssli-gap-xs);
+    padding: 2px;
+  }
+  .ssli-acid-pitchbar {
+    height: 18px;
+  }
+  .ssli-acid-step-note {
+    font-size: var(--ssli-fs-xs);
+  }
+}
+
+/* ======= Drum-machine grid (phone-land) ======= */
+/* Outside the SE-specific query so it applies to all phone-land viewports */
+@media (max-height: 450px) {
+  /* Hide the original column-per-step layout when drum grid is active */
+  .ssli-acid-grid.ssli-acid-drum-grid {
+    display: grid;
+    /* 1 label column + N step columns */
+    grid-template-columns: 32px repeat(var(--drum-step-count, 16), minmax(0, 1fr));
+    grid-auto-rows: minmax(0, 1fr);
+    gap: var(--ssli-gap-xs);
+    padding: 2px;
+    align-items: stretch;
+  }
+  .ssli-acid-grid.ssli-acid-drum-grid[data-stepcount="8"] {
+    grid-template-columns: 32px repeat(8, minmax(0, 1fr));
+  }
+  .ssli-acid-grid.ssli-acid-drum-grid[data-stepcount="16"] {
+    grid-template-columns: 32px repeat(16, minmax(0, 1fr));
+  }
+
+  /* Corner cell (top-left, empty) */
+  .ssli-acid-drum-corner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--ssli-fs-xs);
+    color: var(--acid-text-muted);
+    font-weight: var(--ssli-fw-semibold);
+    letter-spacing: 0.06em;
+  }
+
+  /* Step number headers */
+  .ssli-acid-drum-step-hdr {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--ssli-fs-xs);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--acid-text-muted);
+    min-height: 14px;
+  }
+
+  /* Row labels (note names) */
+  .ssli-acid-drum-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--ssli-fs-xs);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--acid-text-dim);
+    background: var(--acid-bg-panel);
+    border-radius: var(--ssli-radius-sm);
+    padding: 0 2px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* Toggle cells — override global 28px min-height from acid touch-compact */
+  .ssli-acid-drum-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--acid-bg-cell);
+    border: 1px solid var(--acid-border);
+    border-radius: var(--ssli-radius-sm);
+    cursor: pointer;
+    padding: 0;
+    min-width: 0;
+    min-height: 0 !important;
+    transition: background 0.1s, border-color 0.1s, box-shadow 0.1s;
+  }
+  .ssli-acid-drum-cell:hover {
+    background: var(--acid-bg-cell-on);
+    border-color: var(--acid-border-strong);
+  }
+  .ssli-acid-drum-cell.lit {
+    background: var(--acid-amber);
+    border-color: var(--acid-amber);
+    box-shadow: 0 0 6px var(--acid-amber-glow);
+  }
+  .ssli-acid-drum-cell.lit.accent {
+    background: #ffb020;
+    border-color: #ffb020;
+    box-shadow: 0 0 10px var(--acid-amber-glow);
+  }
+  .ssli-acid-drum-cell.lit.slide {
+    border-color: var(--acid-cyan);
+    box-shadow: 0 0 6px var(--acid-amber-glow), 0 0 4px var(--acid-cyan-glow);
+  }
+  /* Playhead column highlight */
+  .ssli-acid-drum-cell.playing-col {
+    background: rgba(245, 197, 66, 0.18);
+    border-color: var(--acid-amber-soft);
+  }
+  .ssli-acid-drum-cell.lit.playing-col {
+    background: #ffe066;
+    border-color: #ffe066;
+    box-shadow: 0 0 14px var(--acid-amber-glow);
+  }
+
+  /* Control row (slide / accent per step) */
+  .ssli-acid-drum-ctrl {
+    display: flex;
+    gap: 1px;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+  }
+  .ssli-acid-drum-ctrl.playing-col {
+    /* subtle glow on control row during playhead */
+  }
+  .ssli-acid-drum-ctrl-btn {
+    flex: 1;
+    min-width: 0;
+    min-height: 14px !important;
+    background: var(--acid-bg);
+    border: 1px solid var(--acid-border);
+    border-radius: var(--ssli-radius-sm);
+    color: var(--acid-text-muted);
+    font-size: var(--ssli-fs-xs);
+    font-weight: var(--ssli-fw-bold);
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.1s, color 0.1s;
+  }
+  .ssli-acid-drum-ctrl-btn.slide-on {
+    background: var(--acid-cyan);
+    color: #0a0a14;
+    border-color: var(--acid-cyan);
+  }
+  .ssli-acid-drum-ctrl-btn.accent-on {
+    background: var(--acid-amber);
+    color: #0a0a14;
+    border-color: var(--acid-amber);
+  }
+  .ssli-acid-drum-ctrl-label {
+    font-size: var(--ssli-fs-xs);
+    color: var(--acid-text-muted);
+  }
+
+  /* Hide elements from column view that don't apply in drum grid mode */
+  .ssli-acid-grid.ssli-acid-drum-grid .ssli-acid-step {
+    display: none;
+  }
+  /* Hide slide arcs and silhouette in drum grid mode */
+  .ssli-acid-grid-wrap:has(.ssli-acid-drum-grid) .ssli-acid-slide-svg {
+    display: none;
+  }
+  /* Make the grid area fill available space */
+  .ssli-acid-grid.ssli-acid-drum-grid ~ .ssli-acid-silhouette,
+  .ssli-acid-drum-grid ~ .ssli-acid-empty-hint {
+    display: none;
+  }
+  /* Grid area should expand */
+  .ssli-acid-grid-area:has(.ssli-acid-drum-grid) {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+  /* Hide silhouette when drum grid is active */
+  .ssli-acid-grid-area:has(.ssli-acid-drum-grid) .ssli-acid-silhouette {
+    display: none;
+  }
+}

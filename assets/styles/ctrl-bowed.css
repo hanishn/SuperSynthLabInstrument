@@ -1,0 +1,560 @@
+/* Multistring surface styles — fingerboard + bow/pluck two-zone layout */
+
+.bowed-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  background: var(--ssli-bg-surface);
+}
+
+/* Top bar */
+.bowed-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ssli-gap-md);
+  padding: 3px 10px;
+  background: var(--ssli-bg-elevated);
+  flex-shrink: 0;
+  min-height: 28px;
+}
+
+.bowed-title {
+  font-size: var(--ssli-fs-sm);
+  font-weight: var(--ssli-fw-semibold);
+  color: var(--ssli-text-secondary);
+  letter-spacing: 2px;
+}
+
+.bowed-oct-btn {
+  background: var(--ssli-bg-overlay);
+  color: #aaa;
+  border: 1px solid var(--ssli-bg-input);
+  border-radius: var(--ssli-radius-md);
+  padding: 2px 8px;
+  font-size: var(--ssli-fs-sm);
+  cursor: pointer;
+  outline: none;
+  transition: background 0.15s;
+}
+
+.bowed-oct-btn:hover {
+  background: #2a2a3a;
+}
+
+.bowed-oct-btn:active {
+  background: #3a3a4e;
+}
+
+.bowed-oct-label {
+  font-size: var(--ssli-fs-sm);
+  color: var(--ssli-text-secondary);
+  min-width: 44px;
+  text-align: center;
+}
+
+.bowed-tuning-sep {
+  color: var(--ssli-text-muted, rgba(220,235,245,0.50));
+  font-size: var(--ssli-fs-sm);
+  margin: 0 2px;
+}
+
+.bowed-tuning-select {
+  background: var(--ssli-bg-overlay);
+  color: var(--ssli-text-secondary);
+  border: 1px solid var(--ssli-bg-input);
+  border-radius: var(--ssli-radius-md);
+  padding: 2px 4px;
+  font-size: var(--ssli-fs-sm);
+  cursor: pointer;
+  outline: none;
+  min-height: 28px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.bowed-tuning-select:focus {
+  border-color: #5566aa;
+}
+
+.bowed-legend {
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-text-muted, rgba(220,235,245,0.50));
+  letter-spacing: 1px;
+  margin-left: 8px;
+}
+
+/* String area */
+.bowed-string-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+  gap: var(--ssli-gap-xs);
+  position: relative;
+  touch-action: none;
+}
+
+/* Individual string lane — two-zone horizontal split */
+.bowed-string-lane {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  touch-action: none;
+}
+
+.bowed-string-lane:last-child {
+  border-bottom: none;
+}
+
+/* Color strip on the left edge */
+.bowed-color-strip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 4px;
+  height: 100%;
+  opacity: var(--ssli-opacity-inactive);
+  transition: opacity 0.2s;
+  z-index: 3;
+}
+
+.bowing .bowed-color-strip {
+  opacity: var(--ssli-opacity-active);
+}
+
+/* Note label (open string name) */
+.bowed-string-label {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--ssli-fs-body);
+  font-weight: var(--ssli-fw-bold);
+  color: var(--ssli-text-secondary);
+  z-index: 4;
+  pointer-events: none;
+  transition: color 0.15s, text-shadow 0.15s;
+}
+
+.bowed-string-label.active {
+  color: #fff;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+}
+
+/* ================================================
+   LEFT: Pitch zone (fingerboard strip) — 60%
+   ================================================ */
+
+.bowed-pitch-zone {
+  position: relative;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(180deg, #0e0e16 0%, #141420 50%, #0e0e16 100%);
+  cursor: crosshair;
+  margin-left: 30px; /* room for open-string label */
+  overflow: hidden;
+}
+
+/* Fret markers */
+.bowed-fret-marker {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  border-left: 1px dashed rgba(255, 255, 255, 0.15);
+  background: none;
+  pointer-events: none;
+  z-index: 1;
+  overflow: visible;
+}
+
+.bowed-fret-marker.bowed-fret-minor {
+  border-left: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.bowed-fret-marker.bowed-fret-octave {
+  border-left: 2px solid rgba(255, 255, 255, 0.3);
+  width: 0;
+}
+
+.bowed-fret-label {
+  position: absolute;
+  bottom: 2px;
+  left: 4px;
+  font-size: var(--ssli-fs-xs);
+  font-weight: var(--ssli-fw-medium);
+  color: var(--ssli-text-muted);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Pitch indicator (finger position dot) */
+.bowed-pitch-indicator {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: rgba(255, 220, 120, 0.9);
+  box-shadow: 0 0 8px rgba(255, 200, 80, 0.6);
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Fingered note label */
+.bowed-finger-note {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: var(--ssli-fs-xs);
+  font-weight: var(--ssli-fw-semibold);
+  color: rgba(255, 220, 120, 0.9);
+  pointer-events: none;
+  z-index: 5;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+}
+
+/* String wire in pitch zone */
+.bowed-pitch-zone .bowed-string-wire {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 3px;
+  margin-top: -1.5px;
+  background: linear-gradient(90deg,
+    rgba(200, 190, 160, 0.5) 0%,
+    rgba(240, 230, 200, 0.7) 20%,
+    rgba(240, 230, 200, 0.7) 80%,
+    rgba(200, 190, 160, 0.5) 100%
+  );
+  border-radius: 1.5px;
+  pointer-events: none;
+  z-index: 2;
+  transform-origin: center center;
+}
+
+/* Per-string color classes */
+.bowed-pitch-zone .bowed-string-wire.bowed-wire-gold {
+  background: linear-gradient(90deg,
+    rgba(218, 165, 32, 0.4) 0%,
+    rgba(255, 215, 0, 0.75) 20%,
+    rgba(255, 215, 0, 0.75) 80%,
+    rgba(218, 165, 32, 0.4) 100%
+  );
+}
+.bowed-pitch-zone .bowed-string-wire.bowed-wire-copper {
+  background: linear-gradient(90deg,
+    rgba(184, 115, 51, 0.4) 0%,
+    rgba(220, 150, 80, 0.75) 20%,
+    rgba(220, 150, 80, 0.75) 80%,
+    rgba(184, 115, 51, 0.4) 100%
+  );
+}
+.bowed-pitch-zone .bowed-string-wire.bowed-wire-silver {
+  background: linear-gradient(90deg,
+    rgba(160, 168, 180, 0.4) 0%,
+    rgba(200, 210, 220, 0.75) 20%,
+    rgba(200, 210, 220, 0.75) 80%,
+    rgba(160, 168, 180, 0.4) 100%
+  );
+}
+.bowed-pitch-zone .bowed-string-wire.bowed-wire-bronze {
+  background: linear-gradient(90deg,
+    rgba(140, 100, 50, 0.4) 0%,
+    rgba(180, 140, 70, 0.75) 20%,
+    rgba(180, 140, 70, 0.75) 80%,
+    rgba(140, 100, 50, 0.4) 100%
+  );
+}
+.bowed-pitch-zone .bowed-string-wire.bowed-wire-brass {
+  background: linear-gradient(90deg,
+    rgba(180, 150, 40, 0.4) 0%,
+    rgba(220, 190, 60, 0.75) 20%,
+    rgba(220, 190, 60, 0.75) 80%,
+    rgba(180, 150, 40, 0.4) 100%
+  );
+}
+.bowed-pitch-zone .bowed-string-wire.bowed-wire-steel {
+  background: linear-gradient(90deg,
+    rgba(130, 140, 155, 0.4) 0%,
+    rgba(170, 180, 200, 0.75) 20%,
+    rgba(170, 180, 200, 0.75) 80%,
+    rgba(130, 140, 155, 0.4) 100%
+  );
+}
+
+.bowing .bowed-pitch-zone .bowed-string-wire {
+  animation: bowed-vibrate 80ms ease-in-out infinite alternate;
+  height: 4px;
+  margin-top: -2px;
+  filter: brightness(1.4);
+}
+
+@keyframes bowed-vibrate {
+  0% {
+    transform: translateY(-2px);
+  }
+  100% {
+    transform: translateY(2px);
+  }
+}
+
+/* ================================================
+   Zone divider
+   ================================================ */
+
+.bowed-zone-divider {
+  width: 2px;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+/* ================================================
+   RIGHT: Bow/pluck zone — 40%
+   ================================================ */
+
+.bowed-bow-zone {
+  position: relative;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(180deg, #0c0c14 0%, #12121e 50%, #0c0c14 100%);
+  cursor: ns-resize;
+  overflow: hidden;
+  transition: background-color 0.15s;
+  touch-action: none;
+}
+
+.bowed-bow-label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: var(--ssli-fs-lg);
+  color: var(--ssli-text-disabled);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.bowing .bowed-bow-label {
+  color: rgba(255, 220, 150, 0.5);
+}
+
+/* Glow overlay in bow zone */
+.bowed-string-glow {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 15%;
+  height: 70%;
+  border-radius: 50%;
+  opacity: 0;
+  filter: blur(12px);
+  pointer-events: none;
+  transition: opacity 0.3s;
+  z-index: 0;
+}
+
+.bowing .bowed-string-glow {
+  animation: bowed-glow-pulse 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes bowed-glow-pulse {
+  0% {
+    opacity: var(--ssli-opacity-disabled);
+  }
+  100% {
+    opacity: var(--ssli-opacity-inactive);
+  }
+}
+
+/* String number (right side) */
+.bowed-string-num {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--ssli-fs-sm);
+  font-weight: var(--ssli-fw-semibold);
+  color: var(--ssli-text-disabled);
+  pointer-events: none;
+  z-index: 4;
+}
+
+.bowing .bowed-string-num {
+  color: var(--ssli-text-secondary);
+}
+
+/* Strum flash — brief highlight when dragging across strings */
+@keyframes bowed-strum-pulse {
+  0% {
+    box-shadow: inset 0 0 12px rgba(255, 200, 80, 0.3);
+  }
+  100% {
+    box-shadow: inset 0 0 0 rgba(255, 200, 80, 0);
+  }
+}
+
+.bowed-strum-flash {
+  background: rgba(255, 220, 120, 0.12) !important;
+  animation: bowed-strum-pulse 0.2s ease-out;
+}
+
+/* ================================================
+   Note color backgrounds (using SL.BG_CLASS)
+   ================================================ */
+
+.bowed-string-glow.bg-C   { background: radial-gradient(ellipse, rgba(255, 80, 80, 0.5), transparent 70%); }
+.bowed-string-glow.bg-Cs  { background: radial-gradient(ellipse, rgba(255, 120, 60, 0.5), transparent 70%); }
+.bowed-string-glow.bg-D   { background: radial-gradient(ellipse, rgba(255, 170, 40, 0.5), transparent 70%); }
+.bowed-string-glow.bg-Ds  { background: radial-gradient(ellipse, rgba(255, 220, 40, 0.5), transparent 70%); }
+.bowed-string-glow.bg-E   { background: radial-gradient(ellipse, rgba(180, 255, 40, 0.5), transparent 70%); }
+.bowed-string-glow.bg-F   { background: radial-gradient(ellipse, rgba(60, 220, 80, 0.5), transparent 70%); }
+.bowed-string-glow.bg-Fs  { background: radial-gradient(ellipse, rgba(40, 200, 180, 0.5), transparent 70%); }
+.bowed-string-glow.bg-G   { background: radial-gradient(ellipse, rgba(40, 160, 255, 0.5), transparent 70%); }
+.bowed-string-glow.bg-Gs  { background: radial-gradient(ellipse, rgba(80, 100, 255, 0.5), transparent 70%); }
+.bowed-string-glow.bg-A   { background: radial-gradient(ellipse, rgba(140, 60, 255, 0.5), transparent 70%); }
+.bowed-string-glow.bg-As  { background: radial-gradient(ellipse, rgba(200, 50, 220, 0.5), transparent 70%); }
+.bowed-string-glow.bg-B   { background: radial-gradient(ellipse, rgba(255, 50, 150, 0.5), transparent 70%); }
+
+/* Color strip backgrounds */
+.bowed-color-strip.bg-C   { background: #ff5050; }
+.bowed-color-strip.bg-Cs  { background: #ff783c; }
+.bowed-color-strip.bg-D   { background: #ffaa28; }
+.bowed-color-strip.bg-Ds  { background: #ffdc28; }
+.bowed-color-strip.bg-E   { background: #b4ff28; }
+.bowed-color-strip.bg-F   { background: #3cdc50; }
+.bowed-color-strip.bg-Fs  { background: #28c8b4; }
+.bowed-color-strip.bg-G   { background: #28a0ff; }
+.bowed-color-strip.bg-Gs  { background: #5064ff; }
+.bowed-color-strip.bg-A   { background: #8c3cff; }
+.bowed-color-strip.bg-As  { background: #c832dc; }
+.bowed-color-strip.bg-B   { background: #ff3296; }
+
+/* Note label dot colors */
+.bowed-string-label.dot-C   { color: #ff6060; }
+.bowed-string-label.dot-Cs  { color: #ff8848; }
+.bowed-string-label.dot-D   { color: #ffb840; }
+.bowed-string-label.dot-Ds  { color: #ffe040; }
+.bowed-string-label.dot-E   { color: #c0ff40; }
+.bowed-string-label.dot-F   { color: #50e060; }
+.bowed-string-label.dot-Fs  { color: #40d0c0; }
+.bowed-string-label.dot-G   { color: #40b0ff; }
+.bowed-string-label.dot-Gs  { color: #6878ff; }
+.bowed-string-label.dot-A   { color: #a050ff; }
+.bowed-string-label.dot-As  { color: #d840e8; }
+.bowed-string-label.dot-B   { color: #ff48a8; }
+
+.bowed-string-label.active.dot-C   { color: #ff9090; text-shadow: 0 0 10px rgba(255, 80, 80, 0.6); }
+.bowed-string-label.active.dot-Cs  { color: #ffa878; text-shadow: 0 0 10px rgba(255, 120, 60, 0.6); }
+.bowed-string-label.active.dot-D   { color: #ffd070; text-shadow: 0 0 10px rgba(255, 170, 40, 0.6); }
+.bowed-string-label.active.dot-Ds  { color: #ffe870; text-shadow: 0 0 10px rgba(255, 220, 40, 0.6); }
+.bowed-string-label.active.dot-E   { color: #d0ff70; text-shadow: 0 0 10px rgba(180, 255, 40, 0.6); }
+.bowed-string-label.active.dot-F   { color: #70f080; text-shadow: 0 0 10px rgba(60, 220, 80, 0.6); }
+.bowed-string-label.active.dot-Fs  { color: #60e0d0; text-shadow: 0 0 10px rgba(40, 200, 180, 0.6); }
+.bowed-string-label.active.dot-G   { color: #70c8ff; text-shadow: 0 0 10px rgba(40, 160, 255, 0.6); }
+.bowed-string-label.active.dot-Gs  { color: #8898ff; text-shadow: 0 0 10px rgba(80, 100, 255, 0.6); }
+.bowed-string-label.active.dot-A   { color: #b878ff; text-shadow: 0 0 10px rgba(140, 60, 255, 0.6); }
+.bowed-string-label.active.dot-As  { color: #e868f0; text-shadow: 0 0 10px rgba(200, 50, 220, 0.6); }
+.bowed-string-label.active.dot-B   { color: #ff78c0; text-shadow: 0 0 10px rgba(255, 50, 150, 0.6); }
+
+/* ================================================
+   Phone landscape overrides
+   ================================================ */
+
+[data-layout="phone-land"] .bowed-wrapper {
+  padding: 0;
+}
+
+[data-layout="phone-land"] .bowed-topbar {
+  min-height: var(--ssli-topbar-h-phone);
+  padding: 1px 6px;
+  gap: var(--ssli-gap-xs);
+}
+
+[data-layout="phone-land"] .bowed-title {
+  font-size: var(--ssli-fs-xs);
+  letter-spacing: 1px;
+}
+
+[data-layout="phone-land"] .bowed-oct-btn {
+  padding: 1px 4px;
+  font-size: var(--ssli-fs-xs);
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+[data-layout="phone-land"] .bowed-oct-label {
+  font-size: var(--ssli-fs-xs);
+  min-width: 36px;
+}
+
+[data-layout="phone-land"] .bowed-tuning-sep {
+  font-size: var(--ssli-fs-xs);
+  margin: 0 1px;
+}
+
+[data-layout="phone-land"] .bowed-tuning-select {
+  font-size: var(--ssli-fs-xs);
+  padding: 1px 2px;
+  min-height: var(--ssli-topbar-h-phone);
+}
+
+[data-layout="phone-land"] .bowed-legend {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone-land"] .bowed-string-area {
+  padding: 2px 0;
+  gap: 1px;
+}
+
+[data-layout="phone-land"] .bowed-string-label {
+  font-size: var(--ssli-fs-xs);
+  left: 6px;
+}
+
+[data-layout="phone-land"] .bowed-pitch-zone {
+  margin-left: 24px;
+}
+
+[data-layout="phone-land"] .bowed-fret-label {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone-land"] .bowed-pitch-indicator {
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  margin-top: -4px;
+}
+
+[data-layout="phone-land"] .bowed-finger-note {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone-land"] .bowed-string-num {
+  font-size: var(--ssli-fs-xs);
+  right: 3px;
+}
+
+[data-layout="phone-land"] .bowed-color-strip {
+  width: 3px;
+}
+
+[data-layout="phone-land"] .bowed-bow-label {
+  font-size: var(--ssli-fs-body);
+}

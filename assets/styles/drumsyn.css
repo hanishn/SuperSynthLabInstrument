@@ -1,0 +1,8 @@
+/* Drum Synth engine accent: Orange-Red #FF6633 */
+.drumsyn-controls { color: #FF6633; }
+.drumsyn-controls .mini-toggle.active,
+.drumsyn-controls select:focus { border-color: #FF6633; }
+.instrument-type-btn[data-type="drumsyn"].active { background: #FF6633; color: #000; }
+.instrument-type-btn[data-type="drumsyn"]:hover { border-color: #FF6633; }
+#drumsynControlsModal .vector-controls div label { color: var(--sslu-text-muted); }
+#drumsynControlsModal div[style*="font-weight:bold"] { color: #FF6633 !important; }

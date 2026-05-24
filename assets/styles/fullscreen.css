@@ -1,0 +1,209 @@
+/**
+ * fullscreen.css - Fullscreen / PWA prompt for SuperSynthLab
+ * Floating button + Add-to-Home-Screen instruction overlay
+ */
+
+/* ========================================
+   Fullscreen Toggle Button
+   ======================================== */
+
+.sslu-fullscreen-btn {
+    position: fixed;
+    bottom: 10px;
+    right: 80px;
+    padding: 0.15rem 0.3rem;
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-semibold);
+    background: linear-gradient(135deg, #06d6a0, #118ab2);
+    color: #fff;
+    border: none;
+    border-radius: var(--sslu-radius-md);
+    cursor: pointer;
+    z-index: 401;
+    touch-action: manipulation;
+    display: none; /* Hidden by default, shown by JS on mobile */
+    min-width: var(--sslu-touch-min);
+    min-height: var(--sslu-touch-min);
+}
+
+.sslu-fullscreen-btn:hover {
+    filter: brightness(1.2);
+}
+
+.sslu-fullscreen-btn:active {
+    filter: brightness(0.9);
+}
+
+/* Show on phone layouts */
+[data-layout="phone-land"] .sslu-fullscreen-btn,
+[data-layout="phone"] .sslu-fullscreen-btn {
+    display: block;
+}
+
+/* Hide when already in standalone/PWA mode */
+.sslu-standalone .sslu-fullscreen-btn {
+    display: none !important;
+}
+
+/* Phone-land: position between SCOPE and Console */
+[data-layout="phone-land"] .sslu-fullscreen-btn {
+    bottom: 2px;
+    right: 70px;
+    padding: 2px 6px;
+    font-size: var(--ssli-fs-xs);
+    min-height: 24px;
+    min-width: 24px;
+    opacity: var(--ssli-opacity-inactive);
+}
+
+/* Shift when debug panel is open */
+.debug-panel:not(.hidden) ~ .sslu-fullscreen-btn {
+    bottom: 130px;
+}
+
+/* ========================================
+   Add-to-Home-Screen Overlay
+   ======================================== */
+
+.sslu-a2hs-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 99998;
+    background: rgba(0, 0, 0, 0.92);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: #e0e0ff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    touch-action: manipulation;
+}
+
+.sslu-a2hs-overlay.visible {
+    display: flex;
+}
+
+.sslu-a2hs-card {
+    background: #1a1a2e;
+    border: 1px solid #4cc9f0;
+    border-radius: 16px;
+    padding: 24px 32px;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(76, 201, 240, 0.15);
+}
+
+.sslu-a2hs-title {
+    font-size: var(--ssli-fs-xl);
+    font-weight: var(--ssli-fw-bold);
+    color: #4cc9f0;
+    margin: 0 0 16px 0;
+    letter-spacing: 1px;
+}
+
+.sslu-a2hs-steps {
+    text-align: left;
+    margin: 0 0 20px 0;
+    padding: 0;
+    list-style: none;
+}
+
+.sslu-a2hs-steps li {
+    display: flex;
+    align-items: center;
+    gap: var(--ssli-gap-lg);
+    padding: 8px 0;
+    font-size: var(--ssli-fs-md);
+    line-height: 1.4;
+    color: #c0c0e0;
+}
+
+.sslu-a2hs-steps li .step-num {
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+    background: #4cc9f0;
+    color: #0a0a1a;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: var(--ssli-fs-md);
+}
+
+.sslu-a2hs-steps li .step-icon {
+    font-size: var(--ssli-fs-h3);
+}
+
+.sslu-a2hs-note {
+    font-size: var(--ssli-fs-sm);
+    color: #888;
+    margin: 0 0 16px 0;
+    line-height: 1.4;
+}
+
+.sslu-a2hs-close {
+    background: linear-gradient(135deg, #4cc9f0, #118ab2);
+    color: #0a0a1a;
+    border: none;
+    border-radius: var(--ssli-radius-lg);
+    padding: 10px 32px;
+    font-size: var(--ssli-fs-md);
+    font-weight: var(--ssli-fw-bold);
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.sslu-a2hs-close:active {
+    filter: brightness(0.85);
+}
+
+/* Phone-land: compact overlay */
+[data-layout="phone-land"] .sslu-a2hs-card {
+    padding: 12px 20px;
+    max-width: 600px;
+}
+
+[data-layout="phone-land"] .sslu-a2hs-title {
+    font-size: var(--ssli-fs-md);
+    margin-bottom: 8px;
+}
+
+[data-layout="phone-land"] .sslu-a2hs-steps li {
+    padding: 4px 0;
+    font-size: var(--ssli-fs-body);
+}
+
+[data-layout="phone-land"] .sslu-a2hs-steps li .step-num {
+    width: 22px;
+    height: 22px;
+    font-size: var(--ssli-fs-body);
+    flex: 0 0 22px;
+}
+
+[data-layout="phone-land"] .sslu-a2hs-note {
+    font-size: var(--ssli-fs-xs);
+    margin-bottom: 8px;
+}
+
+[data-layout="phone-land"] .sslu-a2hs-close {
+    padding: 6px 24px;
+    font-size: var(--ssli-fs-body);
+}
+
+/* ========================================
+   Standalone mode: env() safe area usage
+   ======================================== */
+
+.sslu-standalone body {
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+}

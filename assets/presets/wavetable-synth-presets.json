@@ -1,0 +1,394 @@
+{
+  "presets": [
+    {
+      "name": "Slow Morph Pad",
+      "category": "Evolving",
+      "description": "Slowly evolving pad that scans through basic shapes.",
+      "settings": {
+        "bank": "basic",
+        "scanPosition": 25,
+        "scanLfoSpeed": 0.3,
+        "scanLfoDepth": 80,
+        "detune": 0,
+        "morphSmoothing": 80
+      }
+    },
+    {
+      "name": "Spectral Drift",
+      "category": "Evolving",
+      "description": "Metallic partials drifting in and out of focus.",
+      "settings": {
+        "bank": "metallic",
+        "scanPosition": 50,
+        "scanLfoSpeed": 0.15,
+        "scanLfoDepth": 90,
+        "detune": 5,
+        "morphSmoothing": 90
+      }
+    },
+    {
+      "name": "Vocal Sweep",
+      "category": "Evolving",
+      "description": "Vowel-like formants sweeping through the table.",
+      "settings": {
+        "bank": "vocal",
+        "scanPosition": 0,
+        "scanLfoSpeed": 0.5,
+        "scanLfoDepth": 100,
+        "detune": 0,
+        "morphSmoothing": 60
+      }
+    },
+    {
+      "name": "Digital Shift",
+      "category": "Evolving",
+      "description": "PWM-like sweep with digital artifacts.",
+      "settings": {
+        "bank": "digital",
+        "scanPosition": 10,
+        "scanLfoSpeed": 0.8,
+        "scanLfoDepth": 70,
+        "detune": 3,
+        "morphSmoothing": 40
+      }
+    },
+    {
+      "name": "Crystal Evolution",
+      "category": "Evolving",
+      "description": "Bell-like tones morphing through inharmonic spectra.",
+      "settings": {
+        "bank": "metallic",
+        "scanPosition": 15,
+        "scanLfoSpeed": 0.2,
+        "scanLfoDepth": 60,
+        "detune": -7,
+        "morphSmoothing": 70
+      }
+    },
+    {
+      "name": "Warm Analog Pad",
+      "category": "Pads",
+      "description": "Rich warm pad from basic shapes with slow modulation.",
+      "settings": {
+        "bank": "basic",
+        "scanPosition": 40,
+        "scanLfoSpeed": 0.1,
+        "scanLfoDepth": 30,
+        "detune": 8,
+        "morphSmoothing": 85
+      }
+    },
+    {
+      "name": "Ethereal Choir",
+      "category": "Pads",
+      "description": "Vocal bank creating an airy choir-like texture.",
+      "settings": {
+        "bank": "vocal",
+        "scanPosition": 50,
+        "scanLfoSpeed": 0.25,
+        "scanLfoDepth": 50,
+        "detune": 12,
+        "morphSmoothing": 95
+      }
+    },
+    {
+      "name": "Glass Strings",
+      "category": "Pads",
+      "description": "Crystalline string-like pad with metallic harmonics.",
+      "settings": {
+        "bank": "metallic",
+        "scanPosition": 30,
+        "scanLfoSpeed": 0.05,
+        "scanLfoDepth": 20,
+        "detune": 6,
+        "morphSmoothing": 75
+      }
+    },
+    {
+      "name": "Frozen Texture",
+      "category": "Pads",
+      "description": "Static wavetable position for a frozen, icy pad.",
+      "settings": {
+        "bank": "digital",
+        "scanPosition": 65,
+        "scanLfoSpeed": 0,
+        "scanLfoDepth": 0,
+        "detune": 10,
+        "morphSmoothing": 50
+      }
+    },
+    {
+      "name": "Deep Space",
+      "category": "Pads",
+      "description": "Very slow scan through metallic partials for cinematic depth.",
+      "settings": {
+        "bank": "metallic",
+        "scanPosition": 70,
+        "scanLfoSpeed": 0.08,
+        "scanLfoDepth": 40,
+        "detune": -5,
+        "morphSmoothing": 98
+      }
+    },
+    {
+      "name": "Fat Sub",
+      "category": "Bass",
+      "description": "Heavy sub bass from the sine end of basic shapes.",
+      "settings": {
+        "bank": "basic",
+        "scanPosition": 5,
+        "scanLfoSpeed": 0,
+        "scanLfoDepth": 0,
+        "detune": 0,
+        "morphSmoothing": 50
+      }
+    },
+    {
+      "name": "Growl Bass",
+      "category": "Bass",
+      "description": "Aggressive bass with fast scan modulation.",
+      "settings": {
+        "bank": "basic",
+        "scanPosition": 50,
+        "scanLfoSpeed": 3.0,
+        "scanLfoDepth": 40,
+        "detune": 0,
+        "morphSmoothing": 30
+      }
+    },
+    {
+      "name": "Wobble Bass",
+      "category": "Bass",
+      "description": "Classic wobble using medium LFO on scan position.",
+      "settings": {
+        "bank": "basic",
+        "scanPosition": 60,
+        "scanLfoSpeed": 5.0,
+        "scanLfoDepth": 60,
+        "detune": 0,
+        "morphSmoothing": 20
+      }
+    },
+    {
+      "name": "Metallic Bass",
+      "category": "Bass",
+      "description": "Inharmonic bass with clanky metallic character.",
+      "settings": {
+        "bank": "metallic",
+        "scanPosition": 20,
+        "scanLfoSpeed": 0,
+        "scanLfoDepth": 0,
+        "detune": 0,
+        "morphSmoothing": 40
+      }
+    },
+    {
+      "name": "Digital Bass",
+      "category": "Bass",
+      "description": "Hard-edged digital bass from the PWM bank.",
+      "settings": {
+        "bank": "digital",
+        "scanPosition": 30,
+        "scanLfoSpeed": 0.5,
+        "scanLfoDepth": 25,
+        "detune": 0,
+        "morphSmoothing": 15
+      }
+    },
+    {
+      "name": "Screamer Lead",
+      "category": "Leads",
+      "description": "Bright, aggressive lead with fast harmonic scanning.",
+      "settings": {
+        "bank": "basic",
+        "scanPosition": 70,
+        "scanLfoSpeed": 6.0,
+        "scanLfoDepth": 30,
+        "detune": 0,
+        "morphSmoothing": 10
+      }
+    },
+    {
+      "name": "Smooth Sine Lead",
+      "category": "Leads",
+      "description": "Clean sine-based lead with gentle morph.",
+      "settings": {
+        "bank": "basic",
+        "scanPosition": 0,
+        "scanLfoSpeed": 0.5,
+        "scanLfoDepth": 15,
+        "detune": 0,
+        "morphSmoothing": 60
+      }
+    },
+    {
+      "name": "Vocal Lead",
+      "category": "Leads",
+      "description": "Expressive lead that sweeps through vowel formants.",
+      "settings": {
+        "bank": "vocal",
+        "scanPosition": 30,
+        "scanLfoSpeed": 2.0,
+        "scanLfoDepth": 50,
+        "detune": 0,
+        "morphSmoothing": 35
+      }
+    },
+    {
+      "name": "Sync Sweep Lead",
+      "category": "Leads",
+      "description": "Hard sync emulation from the digital bank.",
+      "settings": {
+        "bank": "digital",
+        "scanPosition": 75,
+        "scanLfoSpeed": 1.5,
+        "scanLfoDepth": 40,
+        "detune": 0,
+        "morphSmoothing": 25
+      }
+    },
+    {
+      "name": "Bell Lead",
+      "category": "Leads",
+      "description": "Metallic bell-like lead with inharmonic overtones.",
+      "settings": {
+        "bank": "metallic",
+        "scanPosition": 40,
+        "scanLfoSpeed": 0,
+        "scanLfoDepth": 0,
+        "detune": 0,
+        "morphSmoothing": 50
+      }
+    },
+    {
+      "name": "Bit Crusher",
+      "category": "Digital",
+      "description": "Harsh digital texture from rapid scan modulation.",
+      "settings": {
+        "bank": "digital",
+        "scanPosition": 50,
+        "scanLfoSpeed": 12.0,
+        "scanLfoDepth": 100,
+        "detune": 0,
+        "morphSmoothing": 5
+      }
+    },
+    {
+      "name": "PWM Classic",
+      "category": "Digital",
+      "description": "Classic pulse width modulation from the digital bank.",
+      "settings": {
+        "bank": "digital",
+        "scanPosition": 20,
+        "scanLfoSpeed": 1.0,
+        "scanLfoDepth": 40,
+        "detune": 0,
+        "morphSmoothing": 50
+      }
+    },
+    {
+      "name": "Glitch Texture",
+      "category": "Digital",
+      "description": "Rapid random-like scanning for glitchy textures.",
+      "settings": {
+        "bank": "digital",
+        "scanPosition": 0,
+        "scanLfoSpeed": 18.0,
+        "scanLfoDepth": 100,
+        "detune": 15,
+        "morphSmoothing": 0
+      }
+    },
+    {
+      "name": "Robot Voice",
+      "category": "Digital",
+      "description": "Vocal bank with fast scan for robotic character.",
+      "settings": {
+        "bank": "vocal",
+        "scanPosition": 50,
+        "scanLfoSpeed": 8.0,
+        "scanLfoDepth": 80,
+        "detune": 0,
+        "morphSmoothing": 10
+      }
+    },
+    {
+      "name": "Retro Computer",
+      "category": "Digital",
+      "description": "8-bit style tones from the digital bank.",
+      "settings": {
+        "bank": "digital",
+        "scanPosition": 40,
+        "scanLfoSpeed": 0,
+        "scanLfoDepth": 0,
+        "detune": 0,
+        "morphSmoothing": 0
+      }
+    },
+    {
+      "name": "Breathing Pad",
+      "category": "Organic",
+      "description": "Slow vocal morph that sounds like breathing.",
+      "settings": {
+        "bank": "vocal",
+        "scanPosition": 20,
+        "scanLfoSpeed": 0.12,
+        "scanLfoDepth": 100,
+        "detune": 4,
+        "morphSmoothing": 90
+      }
+    },
+    {
+      "name": "Wind Chimes",
+      "category": "Organic",
+      "description": "Metallic shimmer with gentle detuned partials.",
+      "settings": {
+        "bank": "metallic",
+        "scanPosition": 60,
+        "scanLfoSpeed": 0.4,
+        "scanLfoDepth": 35,
+        "detune": -12,
+        "morphSmoothing": 80
+      }
+    },
+    {
+      "name": "Whale Song",
+      "category": "Organic",
+      "description": "Deep vocal sweeps reminiscent of whale calls.",
+      "settings": {
+        "bank": "vocal",
+        "scanPosition": 80,
+        "scanLfoSpeed": 0.06,
+        "scanLfoDepth": 70,
+        "detune": -8,
+        "morphSmoothing": 95
+      }
+    },
+    {
+      "name": "Forest Ambience",
+      "category": "Organic",
+      "description": "Layered natural textures from vocal and basic morph.",
+      "settings": {
+        "bank": "vocal",
+        "scanPosition": 40,
+        "scanLfoSpeed": 0.3,
+        "scanLfoDepth": 55,
+        "detune": 15,
+        "morphSmoothing": 85
+      }
+    },
+    {
+      "name": "Singing Bowl",
+      "category": "Organic",
+      "description": "Resonant metallic tones with slow harmonic evolution.",
+      "settings": {
+        "bank": "metallic",
+        "scanPosition": 45,
+        "scanLfoSpeed": 0.1,
+        "scanLfoDepth": 25,
+        "detune": 0,
+        "morphSmoothing": 70
+      }
+    }
+  ]
+}

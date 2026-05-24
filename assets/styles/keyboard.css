@@ -1,0 +1,364 @@
+/**
+ * keyboard.css - Keyboard and Isomorphic Grid Styles for Synth Lab
+ * Traditional keyboard layout and isomorphic grid controls
+ */
+
+/* ========================================
+   Keyboard/Isomorphic Row Container
+   ======================================== */
+
+.kb-iso-row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    justify-content: center;
+    gap: var(--sslu-gap-lg);
+    margin-bottom: var(--sslu-gap-xs);
+}
+
+/* ========================================
+   Keyboard Section
+   ======================================== */
+
+.kb-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.kb-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    margin-bottom: 0.1rem;
+}
+
+.kb-controls button {
+    padding: 0.1rem 0.25rem;
+    font-size: var(--sslu-fs-px-base);
+    background: var(--sslu-purple-btn);
+    color: var(--sslu-text-primary);
+    border: none;
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+    min-width: var(--sslu-touch-min);
+    min-height: var(--sslu-touch-min);
+    touch-action: manipulation;
+}
+
+.kb-controls button:hover {
+    background: var(--sslu-cyan);
+}
+
+#octRange {
+    font-size: var(--sslu-fs-px-base);
+    color: var(--sslu-cyan);
+    min-width: 40px;
+    text-align: center;
+}
+
+/* ========================================
+   Keyboard Layout
+   ======================================== */
+
+.keyboard {
+    display: flex;
+    height: 140px;
+    justify-content: center;
+    overflow: hidden;
+    touch-action: none;
+}
+
+/* ========================================
+   Individual Keys
+   ======================================== */
+
+.key {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: 2px;
+    font-size: var(--sslu-fs-px-base);
+    font-weight: var(--sslu-fw-bold);
+    cursor: pointer;
+    user-select: none;
+    transition: all var(--sslu-transition-fast);
+    position: relative;
+    flex-shrink: 0;
+}
+
+/* White Keys — dark theme */
+.key.white {
+    width: var(--sslu-key-white-w);
+    height: var(--sslu-key-white-h);
+    background: linear-gradient(180deg, #3a3a50 0%, #2a2a3e 100%);
+    border: 1px solid #555;
+    border-radius: 0 0 var(--sslu-radius-sm) var(--sslu-radius-sm);
+    color: #ccc;
+    z-index: var(--sslu-z-keys-white);
+    margin: 0 0.5px;
+    box-shadow: var(--sslu-shadow-key);
+}
+
+/* Black Keys */
+.key.black {
+    width: var(--sslu-key-black-w);
+    height: var(--sslu-key-black-h);
+    background: linear-gradient(180deg, #404040 0%, #1a1a1a 100%);
+    border: 1px solid #000;
+    border-radius: 0 0 var(--sslu-radius-xs) var(--sslu-radius-xs);
+    color: #aaa;
+    z-index: var(--sslu-z-keys-black);
+    margin: 0 -10px;
+    font-size: var(--sslu-fs-px-base);
+    font-weight: var(--sslu-fw-bold);
+    box-shadow: var(--sslu-shadow-key-black);
+}
+
+/* Playing State — cyan glow on press with depth effect */
+.key.white.playing {
+    background: linear-gradient(180deg, #3a4a5e 0%, #2a3a4e 100%);
+    box-shadow: 0 0 8px rgba(76, 201, 240, 0.6), 0 0 16px rgba(76, 201, 240, 0.2);
+    transform: translateY(2px) rotateX(2deg);
+    transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
+}
+
+.key.black.playing {
+    background: linear-gradient(180deg, #2a2a2a 0%, #111 100%);
+    box-shadow: 0 0 6px rgba(76, 201, 240, 0.4), 0 0 12px rgba(76, 201, 240, 0.15);
+    transform: translateY(2px) rotateX(2deg);
+    transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
+}
+
+/* Key Pressed State — brightness boost + cyan glow, 100ms transition */
+.key.key-pressed {
+    filter: brightness(1.3);
+    box-shadow: 0 0 10px rgba(76, 201, 240, 0.7), 0 0 20px rgba(76, 201, 240, 0.3);
+    transition: filter 0.1s ease-out, box-shadow 0.1s ease-out;
+}
+
+.key.white.key-pressed {
+    background: linear-gradient(180deg, #4a5a6e 0%, #3a4a5e 100%);
+}
+
+.key.black.key-pressed {
+    background: linear-gradient(180deg, #3a3a4a 0%, #1a1a2a 100%);
+}
+
+/* Out-of-Scale Keys */
+.key.white.out-key {
+    background: linear-gradient(180deg, #252538 0%, #1e1e30 100%);
+}
+
+.key.black.out-key {
+    background: linear-gradient(180deg, #777 0%, #555 100%);
+}
+
+/* ========================================
+   Note Indicators on Keys
+   ======================================== */
+
+/* Color dot — decorative, secondary identifier */
+.note-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: var(--sslu-radius-pill);
+    margin-bottom: 1px;
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0;
+    font-weight: var(--ssli-fw-bold);
+    color: #fff;
+    text-shadow: 0 0 2px rgba(0,0,0,0.5);
+    line-height: 1;
+}
+
+/* Note letter label — primary identifier for colorblind accessibility */
+.key .note-letter {
+    font-size: var(--sslu-fs-px-md);
+    font-weight: var(--sslu-fw-bold);
+    color: var(--sslu-text-secondary);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    line-height: 1;
+    margin-bottom: 2px;
+    letter-spacing: 0.02em;
+}
+
+.key.black .note-letter {
+    color: #ccc;
+}
+
+.oct-stripe {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    opacity: var(--ssli-opacity-hover);
+}
+
+/* ========================================
+   Note Readout Display
+   ======================================== */
+
+.note-readout {
+    text-align: center;
+    font-size: var(--sslu-fs-px-base);
+    color: var(--sslu-cyan);
+    min-height: 1em;
+    font-weight: var(--sslu-fw-medium);
+    margin-top: 0.1rem;
+}
+
+/* ========================================
+   Isomorphic Section
+   ======================================== */
+
+.iso-section {
+    background: var(--sslu-bg-widget);
+    border-radius: var(--sslu-radius-lg);
+    padding: 0.3rem;
+    border: 1px solid var(--sslu-border-widget);
+}
+
+.iso-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    margin-bottom: 0.15rem;
+}
+
+.iso-title {
+    font-size: var(--sslu-fs-px-base);
+    color: var(--sslu-cyan);
+    font-weight: var(--sslu-fw-bold);
+}
+
+.iso-header select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    padding: 0.1rem 0.3rem;
+    font-size: var(--sslu-fs-px-base);
+    font-weight: var(--sslu-fw-medium);
+    background: var(--sslu-purple);
+    color: var(--sslu-text-primary);
+    border: none;
+    border-radius: var(--sslu-radius-md);
+    cursor: pointer;
+}
+
+.iso-header select:hover {
+    filter: brightness(1.1);
+}
+
+/* ========================================
+   Isomorphic Grid
+   ======================================== */
+
+.iso-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--ssli-gap-xs);
+}
+
+.iso-row {
+    display: flex;
+    gap: var(--ssli-gap-xs);
+}
+
+/* ========================================
+   Isomorphic Keys
+   ======================================== */
+
+.iso-key {
+    width: 22px;
+    height: 22px;
+    border-radius: var(--sslu-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--sslu-fs-px-base);
+    font-weight: var(--sslu-fw-bold);
+    cursor: pointer;
+    transition: all var(--sslu-transition-fast);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: var(--sslu-shadow-sm);
+    position: relative;
+}
+
+/* Hexagonal Layout — tessellated hexagons, no gaps
+   Hex orientation: points left/right, flat top/bottom
+   W = 44px, H = W * sqrt(3)/2 = 38px
+   Horizontal center-to-center = W * 0.75 = 33px
+   Vertical center-to-center = H / 2 = 19px
+   Odd-row offset = 33 / 2 = 16.5px */
+.iso-key.hex {
+    width: 44px;
+    height: 38px;
+    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+    border-radius: 0;
+    margin: 0 -5.5px;
+    font-size: var(--sslu-fs-px-xs);
+    border: none;
+    box-shadow: none;
+    filter: brightness(1) drop-shadow(0 0 0.5px rgba(0,0,0,0.5));
+}
+
+.iso-key.hex:hover {
+    filter: brightness(1.3) drop-shadow(0 0 1px rgba(255,255,255,0.4));
+}
+
+/* Hex container must override the iso-grid gap */
+.iso-grid.hex-grid {
+    gap: 0;
+}
+
+/* Hex rows use position:relative for z-stacking */
+.iso-row.hex-row {
+    gap: 0;
+    margin-bottom: -19px;
+    position: relative;
+}
+
+.iso-row.hex-row-odd {
+    margin-left: 16.5px;
+}
+
+.iso-row.hex-row:last-child {
+    margin-bottom: 0;
+}
+
+/* Out-of-Scale */
+.iso-key.out-key {
+    background: #666 !important;
+    color: #999;
+}
+
+/* Playing State */
+.iso-key.playing {
+    transform: scale(0.9);
+    box-shadow: none;
+    filter: brightness(0.7);
+}
+
+/* Root Note Highlight */
+.iso-key.root {
+    box-shadow: 0 0 3px 2px rgba(255, 255, 255, 0.5);
+}
+
+/* Octave Indicator Dot */
+.iso-key .oct-dot {
+    position: absolute;
+    bottom: 1px;
+    right: 1px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+}

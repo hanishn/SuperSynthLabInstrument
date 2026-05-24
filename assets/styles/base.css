@@ -1,0 +1,1215 @@
+/**
+ * base.css - Global Styles for Synth Lab
+ * Reset, layout, header, and controls
+ */
+
+/* ========================================
+   Reset
+   ======================================== */
+
+/* === iOS TOUCH CALLOUT PREVENTION — UNIVERSAL ===
+   -webkit-touch-callout is NON-INHERITED in WebKit.
+   Must be set directly on every element. The * selector
+   with !important guarantees no specificity override. */
+*, *::before, *::after {
+    -webkit-touch-callout: none !important;
+}
+
+/* Disable text selection on everything EXCEPT inputs and textareas */
+*:not(input):not(textarea):not(select) {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Global reset + touch manipulation (prevents double-tap zoom) */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+/* Range inputs need touch-action: none to allow thumb dragging */
+input[type="range"] {
+    touch-action: none;
+}
+
+/* Performance areas — suppress ALL gesture recognition */
+.perform-ctrl-wrapper,
+.perform-ctrl-wrapper *,
+#ssliKeyboard,
+#ssliKeyboard *,
+.keyboard,
+.keyboard * {
+    touch-action: none;
+}
+
+/* U-13: Focus-visible + focus fallback for accessibility */
+*:focus-visible {
+    outline: 2px solid var(--sslu-cyan, var(--ssli-accent-cyan));
+    outline-offset: 2px;
+}
+*:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* ========================================
+   Body
+   ======================================== */
+
+body {
+    font-family: var(--sslu-font-family);
+    background: var(--sslu-gradient-body);
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    display: flex;
+    color: var(--sslu-text-primary);
+    overflow: hidden;
+}
+
+/* A-13: Subtle radial vignette — only on landing page to save GPU compositing.
+   Uses will-change: transform to promote to own layer when visible. */
+body.ssl-landing-visible::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse at 50% 50%, rgba(10, 10, 26, 0.0) 0%, rgba(5, 5, 16, 0.4) 100%);
+    pointer-events: none;
+    z-index: 0;
+    will-change: transform;
+}
+
+/* When landing page is visible, allow body to scroll for it */
+body.ssl-landing-visible {
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: auto;
+    max-height: none;
+    /* Background breathing pulse — driven by --sslu-pulse from analyzer.js */
+    box-shadow: inset 0 0 80px rgba(76, 201, 240, var(--sslu-pulse, 0));
+}
+
+/* BPM pulse bar — thin line at bottom of active screen */
+.sslu-bpm-pulse-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: rgba(76, 201, 240, 0.5);
+    z-index: 9998;
+    opacity: 0;
+    pointer-events: none;
+}
+
+@keyframes sslu-bpm-pulse {
+    0% { opacity: 0.7; }
+    20% { opacity: 0.15; }
+    100% { opacity: 0; }
+}
+
+.sslu-bpm-pulse-bar.pulse {
+    animation: sslu-bpm-pulse var(--sslu-bpm-duration, 0.5s) ease-out;
+}
+
+/* ========================================
+   Container
+   ======================================== */
+
+.container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: var(--sslu-pad-panel);
+    padding-top: 2.5rem; /* Clear host exhibit viewer header overlay */
+    overflow-y: auto;
+}
+
+/* ========================================
+   Header
+   ======================================== */
+
+.header {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: var(--sslu-gap-lg);
+    margin-bottom: var(--sslu-gap-xs);
+}
+
+h1 {
+    font-size: var(--sslu-fs-h1);
+    background: var(--sslu-gradient-brand);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.version {
+    color: var(--sslu-cyan);
+    font-size: var(--sslu-fs-px-md);
+    font-weight: var(--sslu-fw-medium);
+}
+
+/* ========================================
+   Controls
+   ======================================== */
+
+.controls {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: var(--sslu-gap-sm);
+    margin-bottom: var(--sslu-gap-xs);
+    padding: 0.2rem;
+    background: var(--sslu-bg-widget);
+    border-radius: var(--sslu-radius-md);
+}
+
+.controls label {
+    display: flex;
+    align-items: center;
+    gap: 0.12rem;
+    color: var(--sslu-text-muted);
+    font-size: var(--sslu-fs-px-base);
+}
+
+.controls select,
+.controls input[type=number] {
+    padding: 0.08rem 0.15rem;
+    border-radius: var(--sslu-radius-sm);
+    background: var(--sslu-bg-input);
+    color: var(--sslu-text-primary);
+    border: 1px solid var(--sslu-border-strong);
+    font-size: var(--sslu-fs-px-base);
+}
+
+.controls input[type=number] {
+    width: 48px;
+}
+
+/* ========================================
+   Loading Status
+   ======================================== */
+
+.loading-status {
+    font-size: var(--sslu-fs-px-base);
+    color: var(--sslu-cyan);
+    margin-left: var(--sslu-gap-lg);
+}
+
+/* ========================================
+   Classic Screen - Layout Constraints
+   All sections constrained to sequencer width for cohesion
+   ======================================== */
+
+#screen-classic .controls,
+#screen-classic .kb-iso-row,
+#screen-classic .adsr-panel,
+#screen-classic .osc-mixer,
+#screen-classic .filter-inline,
+#screen-classic .noise-inline,
+#screen-classic .filter-env-inline,
+#screen-classic .seq-section,
+#screen-classic .melody-panel,
+#screen-classic .iso-section,
+#screen-classic .classic-collapse,
+#screen-classic .header,
+#screen-classic #stretchPanel,
+#screen-classic #arpPanel,
+#screen-classic .arp-inst-group,
+#screen-classic .inst-filter-group,
+#screen-classic .midi-bar,
+#screen-classic #midiBar {
+    max-width: var(--sslu-max-w-content);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Classic collapse headers - consistent styling */
+.classic-collapse-header {
+    font-size: var(--sslu-fs-px-lg) !important;
+    font-weight: var(--sslu-fw-bold);
+    color: var(--sslu-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: var(--sslu-ls-wider);
+    cursor: pointer;
+    padding: var(--sslu-space-3) var(--sslu-space-4);
+    background: var(--sslu-bg-subtle);
+    border-radius: var(--sslu-radius-md);
+    margin-bottom: var(--sslu-space-2);
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.classic-collapse-header:hover {
+    background: var(--sslu-bg-subtle-hover);
+    color: var(--sslu-text-secondary);
+}
+
+/* Classic screen consistent label styling */
+#screen-classic .controls label {
+    font-size: var(--sslu-fs-px-base);
+    font-weight: var(--sslu-fw-medium);
+    color: var(--sslu-text-label);
+}
+
+#screen-classic .controls select,
+#screen-classic .controls input[type=number] {
+    font-size: var(--sslu-fs-px-base);
+    padding: var(--sslu-pad-input);
+    background: var(--sslu-bg-input);
+    color: var(--sslu-text-secondary);
+    border: 1px solid var(--ssli-bg-input);
+    border-radius: var(--sslu-radius-sm);
+}
+
+/* Note readout - more prominent */
+#screen-classic .note-readout {
+    font-size: var(--sslu-fs-px-lg);
+    color: var(--sslu-cyan);
+    font-weight: var(--sslu-fw-bold);
+}
+
+/* Classic screen buttons - consistent sizing */
+#screen-classic .kb-controls button {
+    padding: var(--sslu-space-2) var(--sslu-space-5);
+    font-size: var(--sslu-fs-px-base);
+    font-weight: var(--sslu-fw-medium);
+    font-family: inherit;
+    background: var(--sslu-bg-button);
+    color: #ccc;
+    border: 1px solid var(--ssli-bg-input);
+    border-radius: var(--sslu-radius-sm);
+}
+
+#screen-classic .kb-controls button:hover {
+    background: var(--sslu-purple-btn);
+    color: var(--sslu-text-primary);
+    border-color: var(--sslu-purple-btn-hover);
+}
+
+/* Octave range display */
+#screen-classic #octRange {
+    font-size: var(--sslu-fs-px-md);
+    color: var(--sslu-cyan);
+    font-weight: var(--sslu-fw-medium);
+}
+
+/* Classic page collapse expanders */
+.classic-collapse{border-bottom:1px solid var(--sslu-bg-highlight);margin:0;}
+.classic-collapse-header{font-size:var(--sslu-fs-px-lg);font-weight:var(--sslu-fw-bold);color:var(--sslu-text-secondary);padding:6px 10px;cursor:pointer;background:var(--sslu-bg-panel);list-style:none;display:flex;align-items:center;gap: var(--ssli-gap-sm);user-select:none;text-transform:uppercase;letter-spacing:var(--sslu-ls-wider);}
+.classic-collapse-header::-webkit-details-marker{display:none;}
+.classic-collapse-header::before{content:"\25B6";font-size:var(--sslu-fs-px-xs);transition:transform var(--sslu-transition-normal);}
+.classic-collapse[open]>.classic-collapse-header::before{transform:rotate(90deg);}
+.classic-collapse-header:hover{color:var(--sslu-text-secondary);background:#111125;}
+
+/* ========================================
+   Quad-Fill: stretch Classic content to fill quads
+   ======================================== */
+
+.sslu-quad .container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.sslu-quad #screen-classic {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Keyboard section in Q1 should expand to fill quad */
+.sslu-quad .kb-iso-row {
+    flex: 1;
+    min-height: 0;
+    align-items: stretch;
+}
+
+.sslu-quad .kb-section {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.sslu-quad .keyboard {
+    flex: 1;
+    min-height: 100px;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+/* Keys should shrink to fit quad width and stretch to quad height */
+.sslu-quad .keyboard .key {
+    flex-shrink: 1;
+}
+
+.sslu-quad .keyboard .key.white {
+    height: 100%;
+    min-width: 18px;
+}
+
+.sslu-quad .keyboard .key.black {
+    height: 63%;
+    min-width: 12px;
+}
+
+/* Controls in Q2 should flex-fill */
+.sslu-quad .controls {
+    flex-shrink: 0;
+}
+
+/* Sequencer/analyzer in Q3 should expand */
+.sslu-quad .seq-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.sslu-quad .seq-section canvas {
+    flex: 1;
+    min-height: 80px;
+    width: 100%;
+}
+
+/* Phone: classic content fills full screen */
+[data-layout="phone"] .sslu-quad .container {
+    height: 100%;
+    padding-top: 0.4rem;
+}
+
+[data-layout="phone"] .sslu-quad .keyboard {
+    flex: 1;
+    min-height: 100px;
+}
+
+/* ========================================
+   Phone-Landscape: Classic Screen
+   Fill Q0 viewport with keyboard, hide orphaned sections
+   ======================================== */
+
+/* Hide the Generators <details> that lives outside the quad wrapper */
+[data-layout="phone-land"] #screen-classic > details.classic-collapse,
+[data-layout="phone-land"] #screen-classic > .container > details.classic-collapse {
+    display: none;
+}
+
+/* But SHOW <details> inside quads (Q3 Sequencer needs it visible) */
+[data-layout="phone-land"] #screen-classic .sslu-quad details.classic-collapse {
+    display: block;
+}
+
+/* Classic screen: override .ssl-screen defaults for phone-land */
+[data-layout="phone-land"] #screen-classic {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    max-height: 100vh;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Container fills the screen */
+[data-layout="phone-land"] #screen-classic > .container {
+    flex: 1 1 0;
+    min-height: 0;
+    height: 100%;
+    padding-top: 0;
+    padding-bottom: 0;
+    overflow: hidden;
+}
+
+/* Quad wrapper fills the container */
+[data-layout="phone-land"] #screen-classic > .container > .sslu-quad-wrapper {
+    flex: 1 1 0;
+    min-height: 0;
+    height: 100%;
+}
+
+/* Hide header bar in phone-land OUTSIDE quads (title/version) — keyboard is the focus */
+[data-layout="phone-land"] #screen-classic > .container > .header {
+    display: none;
+}
+
+/* But SHOW header inside quads (Q2 needs it visible) */
+[data-layout="phone-land"] #screen-classic .sslu-quad .header {
+    display: flex;
+    font-size: var(--ssli-fs-body);
+    padding: 4px 8px;
+    gap: var(--ssli-gap-md);
+}
+
+/* Show controls inside quads for phone-land (Q2 content) */
+[data-layout="phone-land"] #screen-classic .sslu-quad .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ssli-gap-sm);
+    padding: 6px 8px;
+    font-size: var(--ssli-fs-sm);
+}
+
+[data-layout="phone-land"] #screen-classic .sslu-quad .controls label {
+    font-size: var(--ssli-fs-sm);
+}
+
+[data-layout="phone-land"] #screen-classic .sslu-quad .controls select,
+[data-layout="phone-land"] #screen-classic .sslu-quad .controls input[type=number] {
+    font-size: var(--ssli-fs-sm);
+    padding: 2px 4px;
+    min-height: 24px;
+}
+
+/* Hide controls bar in phone-land (available on Q1) */
+[data-layout="phone-land"] #screen-classic > .container > .controls {
+    display: none;
+}
+
+/* kb-iso-row: expand to fill Q0 */
+[data-layout="phone-land"] .sslu-quad .kb-iso-row {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+/* kb-section: expand to fill kb-iso-row */
+[data-layout="phone-land"] .sslu-quad .kb-section {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Keyboard: expand to fill available height */
+[data-layout="phone-land"] .sslu-quad .keyboard {
+    flex: 1 1 0;
+    min-height: 80px;
+    height: auto;
+}
+
+/* White keys: fill the full keyboard height */
+[data-layout="phone-land"] .sslu-quad .keyboard .key.white {
+    height: 100%;
+    min-height: 0;
+}
+
+/* Black keys: proportional to white (63%) */
+[data-layout="phone-land"] .sslu-quad .keyboard .key.black {
+    height: 63%;
+    min-height: 0;
+}
+
+/* Compact the controls and readout so keyboard gets more space */
+[data-layout="phone-land"] .sslu-quad .kb-controls {
+    flex: 0 0 auto;
+    padding: 2px 0;
+}
+
+[data-layout="phone-land"] .sslu-quad .note-readout {
+    flex: 0 0 auto;
+    font-size: var(--ssli-fs-sm);
+    min-height: auto;
+    padding: 1px 0;
+}
+
+/* Compact the MIDI bar */
+[data-layout="phone-land"] .sslu-quad #midiBar {
+    flex: 0 0 auto;
+    padding: 2px 6px;
+    font-size: var(--ssli-fs-sm);
+}
+
+/* Classic Q2: sequencer section — force content to fit within quad */
+[data-layout="phone-land"] #screen-classic .sslu-quad-2 {
+    overflow: hidden;
+}
+
+/* Collapse the sequencer details and constrain height */
+[data-layout="phone-land"] #screen-classic .sslu-quad-2 > * {
+    max-height: 100%;
+    overflow: hidden;
+}
+
+/* Classic Q2: compact controls row */
+[data-layout="phone-land"] #screen-classic .sslu-quad-2 .controls {
+    padding: 2px 4px;
+    gap: var(--ssli-gap-xs);
+    margin-bottom: 0;
+}
+
+/* Classic Q2: compact ADSR panel */
+[data-layout="phone-land"] #screen-classic .sslu-quad-2 .adsr-panel {
+    padding: 2px 4px;
+    gap: 1px;
+    margin-bottom: 0;
+}
+
+/* ========================================
+   Focus Mode — Classic screen simplified
+   Hides synth controls, sequencer, etc.
+   ======================================== */
+.ssl-focus-mode .sslu-quad-2,
+.ssl-focus-mode .sslu-quad-3,
+.ssl-focus-mode details.classic-collapse {
+    display: none !important;
+}
+
+.ssl-focus-mode .sslu-quad-1 {
+    flex: 1;
+    max-height: none;
+}
+
+.ssl-focus-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    z-index: 10;
+    background: rgba(30, 30, 60, 0.8);
+    border: 1px solid rgba(120, 100, 255, 0.3);
+    border-radius: var(--ssli-radius-lg);
+    color: #aaa;
+    font-size: var(--ssli-fs-body);
+    font-family: inherit;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.ssl-focus-btn:hover {
+    background: rgba(50, 50, 90, 0.9);
+    border-color: rgba(120, 100, 255, 0.5);
+    color: #ddd;
+}
+
+.ssl-focus-btn.active {
+    background: rgba(120, 100, 255, 0.25);
+    border-color: rgba(120, 100, 255, 0.6);
+    color: #fff;
+}
+
+/* Screen title bar (Fix 22) */
+.ssl-screen-title-bar {
+    height: 20px;
+    background: var(--sslu-bg-surface, #111122);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--ssli-fs-xs);
+    font-weight: var(--ssli-fw-semibold);
+    color: var(--sslu-cyan, var(--ssli-accent-cyan));
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--sslu-border-subtle, #1a1a33);
+}
+
+/* Onboarding tooltip (Fix 20 — non-blocking floating card) */
+.ssl-onboarding-tooltip {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 15000;
+    pointer-events: auto;
+    background: rgba(10, 10, 30, 0.92);
+    border: 1px solid var(--sslu-cyan, var(--ssli-accent-cyan));
+    border-radius: 10px;
+    padding: 10px 18px;
+    display: flex;
+    align-items: center;
+    gap: var(--ssli-gap-lg);
+    box-shadow: 0 4px 20px rgba(76, 201, 240, 0.25);
+    animation: ssl-ob-fadein 0.4s ease-out;
+    max-width: 360px;
+    font-family: inherit;
+}
+@keyframes ssl-ob-fadein {
+    from { opacity: 0; transform: translateX(-50%) translateY(-12px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.ssl-onboarding-tooltip-text {
+    font-size: var(--ssli-fs-md);
+    font-weight: var(--ssli-fw-semibold);
+    color: var(--sslu-cyan, var(--ssli-accent-cyan));
+    white-space: nowrap;
+}
+.ssl-onboarding-tooltip-close {
+    background: none;
+    border: none;
+    color: var(--ssli-text-muted, #888);
+    font-size: var(--ssli-fs-h3);
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.ssl-onboarding-tooltip-close:hover {
+    color: #fff;
+}
+
+/* WAV recording indicator (Fix 19) */
+.ssl-rec-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ssli-gap-sm);
+    color: var(--sslu-warning-text, #FFAA44);
+    font-size: var(--ssli-fs-body);
+    font-weight: var(--ssli-fw-bold);
+}
+.ssl-rec-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #ff4444;
+    animation: ssl-rec-blink 1s ease-in-out infinite;
+}
+@keyframes ssl-rec-blink {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.2; }
+}
+.ssl-rec-btn {
+    padding: 4px 10px;
+    border: 1px solid #ff4444;
+    background: rgba(255,68,68,0.15);
+    color: var(--sslu-warning-text, #FFAA44);
+    border-radius: var(--ssli-radius-md);
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-semibold);
+    cursor: pointer;
+    font-family: inherit;
+}
+.ssl-rec-btn.recording {
+    background: rgba(255,68,68,0.35);
+    color: #fff;
+    border-color: #ff6666;
+}
+
+/* Glide tip overlay (Fix 27) */
+.ssl-glide-tip {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    pointer-events: none;
+    opacity: var(--ssli-opacity-active);
+    transition: opacity 0.5s ease;
+}
+.ssl-glide-tip.hiding {
+    opacity: 0;
+}
+.ssl-glide-finger {
+    font-size: 36px;
+    animation: ssl-glide-slide 2s ease-in-out infinite;
+}
+@keyframes ssl-glide-slide {
+    0% { transform: translateX(-40px); }
+    50% { transform: translateX(40px); }
+    100% { transform: translateX(-40px); }
+}
+.ssl-glide-text {
+    font-size: var(--ssli-fs-lg);
+    font-weight: var(--ssli-fw-semibold);
+    color: var(--sslu-cyan, var(--ssli-accent-cyan));
+    margin-top: 8px;
+}
+
+/* Kids exit lock overlay (Fix 26) */
+.ssl-kids-exit-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 19000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: var(--ssli-fs-xl);
+    font-weight: var(--ssli-fw-semibold);
+}
+
+/* Undo button (Fix 25) */
+.ssl-undo-btn {
+    position: fixed;
+    bottom: 8px;
+    right: 8px;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--sslu-bg-surface, #111122);
+    border: 1px solid var(--sslu-border-subtle, #1a1a33);
+    color: var(--sslu-cyan, var(--ssli-accent-cyan));
+    font-size: var(--ssli-fs-md);
+    cursor: pointer;
+    z-index: 9000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: var(--ssli-opacity-inactive);
+    transition: opacity 0.2s;
+}
+.ssl-undo-btn:hover {
+    opacity: var(--ssli-opacity-active);
+}
+.ssl-undo-btn:disabled {
+    opacity: var(--ssli-opacity-overlay);
+    cursor: default;
+}
+
+/* ========================================
+   Reset Confirmation Dialog
+   ======================================== */
+
+.ssl-reset-confirm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--sslu-bg-overlay, rgba(0, 0, 0, 0.75));
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ssl-reset-confirm-card {
+    background: var(--sslu-bg-panel, var(--ssli-bg-surface));
+    border: 1px solid var(--sslu-border-subtle, rgba(255, 255, 255, 0.08));
+    border-radius: var(--sslu-radius-lg, 12px);
+    padding: 24px 28px;
+    max-width: 380px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.ssl-reset-confirm-title {
+    font-size: var(--ssli-fs-xl);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--sslu-text-primary, #e0e0f0);
+    margin-bottom: 12px;
+}
+
+.ssl-reset-confirm-msg {
+    font-size: var(--ssli-fs-md);
+    color: var(--sslu-text-secondary, #9999bb);
+    margin-bottom: 20px;
+    line-height: 1.4;
+}
+
+.ssl-reset-confirm-buttons {
+    display: flex;
+    gap: var(--ssli-gap-lg);
+    justify-content: center;
+}
+
+.ssl-reset-confirm-cancel,
+.ssl-reset-confirm-ok {
+    padding: 8px 24px;
+    border-radius: var(--sslu-radius-md, 6px);
+    border: 1px solid var(--sslu-border-subtle, rgba(255, 255, 255, 0.08));
+    font-size: var(--ssli-fs-md);
+    font-weight: var(--ssli-fw-semibold);
+    cursor: pointer;
+    transition: filter 0.15s;
+}
+
+.ssl-reset-confirm-cancel {
+    background: var(--sslu-bg-button, var(--ssli-bg-input));
+    color: var(--sslu-text-primary, #e0e0f0);
+}
+
+.ssl-reset-confirm-cancel:hover {
+    filter: brightness(1.2);
+}
+
+.ssl-reset-confirm-ok {
+    background: linear-gradient(135deg, #e07020, #cc5500);
+    color: #fff;
+    border-color: #e07020;
+}
+
+.ssl-reset-confirm-ok:hover {
+    filter: brightness(1.2);
+}
+
+/* ========================================
+   Master Mute / Panic Button (Fix R11)
+   ======================================== */
+
+.sslu-master-mute-btn {
+    position: fixed;
+    bottom: 12px;
+    right: 12px;
+    z-index: 9999;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--sslu-border-strong, #444);
+    background: rgba(20, 20, 40, 0.85);
+    color: var(--sslu-cyan, var(--ssli-accent-cyan));
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    touch-action: manipulation;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.sslu-master-mute-btn:hover {
+    background: rgba(30, 30, 60, 0.95);
+    border-color: var(--sslu-cyan, var(--ssli-accent-cyan));
+}
+
+.sslu-master-mute-btn.muted {
+    background: rgba(60, 20, 20, 0.9);
+    border-color: #e07020;
+    color: #e07020;
+}
+
+.sslu-master-mute-btn.muted:hover {
+    background: rgba(80, 30, 20, 0.95);
+    border-color: #ff8833;
+    color: #ff8833;
+}
+
+/* A-12: Remove GPU-expensive backdrop-filter from master mute */
+.sslu-master-mute-btn {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+/* ========================================
+   U-09: Reduced Motion — prefers-reduced-motion
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    /* Disable BPM pulse animation */
+    .sslu-bpm-pulse-bar.pulse {
+        animation: none;
+    }
+
+    /* Disable key press / sidebar press animations */
+    .sidebar-btn.sidebar-pressing {
+        transform: none;
+        transition: none;
+    }
+
+    /* Disable landing page button hover scale */
+    .ssli-play-btn:hover,
+    .ssli-fullscreen-btn:hover {
+        transform: none;
+    }
+
+    /* Disable harp pluck animation */
+    @keyframes harp-pluck {
+        0%, 100% { transform: none; }
+    }
+
+    /* Disable glide tip animation */
+    .ssl-glide-finger {
+        animation: none;
+    }
+
+    /* Disable recording blink */
+    .ssl-rec-dot {
+        animation: none;
+    }
+
+    /* Disable onboarding fade-in */
+    .ssl-onboarding-tooltip {
+        animation: none;
+    }
+
+    /* Disable body breathing pulse */
+    body.ssl-landing-visible {
+        box-shadow: none;
+    }
+
+    /* Reduce all transitions to near-instant */
+    * {
+        transition-duration: 0.01s !important;
+    }
+}
+
+/* ========================================
+   iOS Safe Area + Surface Height Fix
+   Prevent bottom-row clipping on iPhone landscape
+   ======================================== */
+
+#performKeyboard {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* All surface wrappers: ensure flex shrink-to-fit within available viewport */
+.ssli-hurdygurdy-wrapper,
+.ssli-accordion-wrapper,
+.ssli-breathfinger-wrapper,
+.ssli-shrutibox-wrapper,
+.steelpan-wrapper,
+.ctrl-marimba-wrapper,
+.ctrl-harp-wrapper,
+.ssli-airsynth-wrapper,
+.ctrl-theremin-wrapper {
+    max-height: 100%;
+}
+
+/* Inner flex children of surfaces must shrink, never overflow parent */
+.ssli-hurdygurdy-body,
+.ssli-accordion-body,
+.bf-main-row,
+.ssli-shrutibox-reed-area,
+.steelpan-body-row {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* ========================================
+   Standardized Dropdown (select) Styling
+   All <select> elements in SSLI surfaces get a consistent look.
+   Height: 28px desktop, 24px phone
+   Background: var(--ssli-bg-input)
+   Color: var(--ssli-text-primary)
+   Border-radius: var(--ssli-radius-sm)
+   Font-size: var(--ssli-fs-body)
+   ======================================== */
+
+select {
+    height: var(--ssli-dropdown-h, 28px);
+    background: var(--ssli-bg-input, #21262d);
+    color: var(--ssli-text-primary, rgba(220, 235, 245, 0.95));
+    border: 1px solid var(--ssli-border-muted, rgba(76, 201, 240, 0.15));
+    border-radius: var(--ssli-radius-sm, 3px);
+    font-size: var(--ssli-fs-body, 13px);
+    font-family: inherit;
+    padding: 2px 6px;
+    cursor: pointer;
+    outline: none;
+}
+
+select:focus {
+    border-color: var(--ssli-accent-cyan, #00d4ff);
+}
+
+[data-layout="phone"] select,
+[data-layout="phone-land"] select {
+    height: var(--ssli-dropdown-h-phone, 24px);
+}
+
+/* ========================================
+   Standardized Slider (input[type="range"]) Styling
+   Track height: 6px (var(--ssli-slider-track-h))
+   Thumb size: 18px square with var(--ssli-radius-md) border-radius
+   Track background: var(--ssli-bg-input)
+   Thumb background: var(--ssli-accent-cyan)
+   ======================================== */
+
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: var(--ssli-slider-track-h, 6px);
+    background: var(--ssli-bg-input, #21262d);
+    border-radius: var(--ssli-radius-sm, 3px);
+    outline: none;
+    cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: var(--ssli-slider-thumb-size, 18px);
+    height: var(--ssli-slider-thumb-size, 18px);
+    border-radius: var(--ssli-radius-md, 6px);
+    background: var(--ssli-accent-cyan, #00d4ff);
+    cursor: pointer;
+    border: none;
+}
+
+input[type="range"]::-moz-range-track {
+    height: var(--ssli-slider-track-h, 6px);
+    background: var(--ssli-bg-input, #21262d);
+    border-radius: var(--ssli-radius-sm, 3px);
+    border: none;
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: var(--ssli-slider-thumb-size, 18px);
+    height: var(--ssli-slider-thumb-size, 18px);
+    border-radius: var(--ssli-radius-md, 6px);
+    background: var(--ssli-accent-cyan, #00d4ff);
+    cursor: pointer;
+    border: none;
+}
+
+/* ──────────────────────────────────────
+   Language Selector — Landing Screen
+   ────────────────────────────────────── */
+.ssl-lang-selector {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 3px 4px;
+    width: 100%;
+    max-width: 100%;
+    margin: 8px auto 0;
+    padding: 4px 8px;
+}
+
+.ssl-lang-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 5px;
+    background: rgba(16, 16, 32, 0.6);
+    border: 1px solid rgba(120, 120, 180, 0.15);
+    border-radius: 4px;
+    color: #aaaacc;
+    font-size: 9px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.ssl-lang-btn svg {
+    width: 18px;
+    height: 12px;
+    flex-shrink: 0;
+    border-radius: 2px;
+    box-shadow: 0 0 1px rgba(0, 0, 0, 0.4);
+}
+
+.ssl-lang-btn:hover {
+    background: rgba(30, 30, 60, 0.8);
+    border-color: rgba(120, 120, 220, 0.35);
+    color: #ccccee;
+}
+
+.ssl-lang-btn.ssl-lang-active {
+    background: rgba(76, 201, 240, 0.12);
+    border-color: rgba(76, 201, 240, 0.45);
+    color: #e0e0ff;
+    box-shadow: 0 0 8px rgba(76, 201, 240, 0.15);
+}
+
+.ssl-lang-btn.ssl-lang-active:hover {
+    background: rgba(76, 201, 240, 0.18);
+    border-color: rgba(76, 201, 240, 0.6);
+}
+
+/* ──────────────────────────────────────
+   Language Selector — iOS Responsive
+   ────────────────────────────────────── */
+
+/* 480px = widest phone portrait (iPhone Plus/Max at 428px, with margin) */
+@media (max-width: 480px) {
+    .ssl-lang-selector {
+        gap: 2px 3px;
+        padding: 2px 4px;
+        margin: 4px auto 0;
+    }
+    .ssl-lang-btn {
+        padding: 2px 3px;
+        gap: 2px;
+        font-size: 8px;
+        flex-shrink: 1;
+        min-width: 0;
+    }
+    .ssl-lang-btn svg {
+        width: 14px;
+        height: 10px;
+    }
+    /* Hide language name on narrow phones — flag only */
+    .ssl-lang-btn span {
+        display: none;
+    }
+}
+
+/* 320px = iPhone SE — tightest phone portrait */
+@media (max-width: 320px) {
+    .ssl-lang-selector {
+        gap: 1px 2px;
+        padding: 1px 2px;
+    }
+    .ssl-lang-btn {
+        padding: 1px 2px;
+    }
+    .ssl-lang-btn svg {
+        width: 12px;
+        height: 8px;
+    }
+}
+
+/* 400px = phone landscape height (iPhone landscape is 375px) */
+/* Flag-only mode: hide language name text to fit 28 buttons in fewer rows */
+@media (max-height: 400px) {
+    .ssl-lang-selector {
+        gap: 2px 3px;
+        padding: 2px 4px;
+        margin: 4px auto 0;
+    }
+    .ssl-lang-btn {
+        padding: 2px 3px;
+        gap: 0;
+    }
+    /* Hide the language name span, keep only the flag SVG */
+    .ssl-lang-btn span {
+        display: none;
+    }
+    .ssl-lang-btn svg {
+        width: 20px;
+        height: 14px;
+    }
+}
+
+/* Phone landscape: compact scrollable grid of flags */
+@media (max-height: 450px) and (orientation: landscape) {
+    .ssl-lang-selector {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 3px;
+        padding: 4px;
+        margin: 0;
+        max-height: calc(100vh - 20px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        justify-items: center;
+    }
+    .ssl-lang-btn {
+        padding: 3px 4px;
+        gap: 0;
+        width: 100%;
+        justify-content: center;
+    }
+    /* Hide the language name span, keep only the flag SVG */
+    .ssl-lang-btn span {
+        display: none;
+    }
+    .ssl-lang-btn svg {
+        width: 22px;
+        height: 15px;
+    }
+}

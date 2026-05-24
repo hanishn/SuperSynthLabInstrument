@@ -1,0 +1,814 @@
+/* =============================================================================
+   SSLI Background System
+
+   Toggle: html[data-no-backgrounds] disables ALL backgrounds.
+   Per-surface: add .no-bg to any wrapper to disable its individual background.
+
+   All SVGs are inline data URIs — no external files needed.
+   Opacity controlled by --bg-opacity (default 0.07).
+   ============================================================================= */
+
+:root {
+  /* SVG background decorations disabled (v1.6.950) — visual failure, hidden for revisit */
+  --bg-opacity: 0;
+}
+
+html[data-no-backgrounds] {
+  --bg-opacity: 0;
+}
+
+/* =============================================================================
+   SCREEN BACKGROUNDS
+
+   Design intent: Each background reinforces the screen's function.
+   Not decorative wallpaper — visual identity that says "you are HERE."
+   Non-repeating, large-scale compositions that fill dead space with purpose.
+   ============================================================================= */
+
+/* --- Play Screen ---
+   Minimal — control surfaces provide their own backgrounds.
+   Just a subtle radial stage-light glow so the screen isn't a dead void
+   when transitioning between surfaces. */
+#ssli-screen-play {
+}
+#ssli-screen-play::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background: radial-gradient(ellipse 80% 90% at 50% 60%,
+    rgba(76, 201, 240, 0.12) 0%,
+    rgba(76, 201, 240, 0.03) 50%,
+    transparent 100%);
+}
+
+/* --- Sound Screen ---
+   "Oscilloscope" — a scope display occupying the dead lower half.
+   Rounded-corner scope frame, crosshair grid, and a clean waveform
+   that reads as "this is where you choose your sound source." */
+#ssli-screen-sound {
+}
+#ssli-screen-sound::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='400' viewBox='0 0 800 400'%3E%3C!-- Scope frame --%3E%3Crect x='60' y='160' width='680' height='220' rx='12' fill='none' stroke='%234cc9f0' stroke-width='1.2' stroke-opacity='0.5'/%3E%3C!-- Grid divisions (8x4) --%3E%3Cline x1='145' y1='160' x2='145' y2='380' stroke='%234cc9f0' stroke-width='0.3' stroke-opacity='0.3'/%3E%3Cline x1='230' y1='160' x2='230' y2='380' stroke='%234cc9f0' stroke-width='0.3' stroke-opacity='0.3'/%3E%3Cline x1='315' y1='160' x2='315' y2='380' stroke='%234cc9f0' stroke-width='0.3' stroke-opacity='0.3'/%3E%3Cline x1='400' y1='160' x2='400' y2='380' stroke='%234cc9f0' stroke-width='0.5' stroke-opacity='0.5'/%3E%3Cline x1='485' y1='160' x2='485' y2='380' stroke='%234cc9f0' stroke-width='0.3' stroke-opacity='0.3'/%3E%3Cline x1='570' y1='160' x2='570' y2='380' stroke='%234cc9f0' stroke-width='0.3' stroke-opacity='0.3'/%3E%3Cline x1='655' y1='160' x2='655' y2='380' stroke='%234cc9f0' stroke-width='0.3' stroke-opacity='0.3'/%3E%3Cline x1='60' y1='215' x2='740' y2='215' stroke='%234cc9f0' stroke-width='0.3' stroke-opacity='0.3'/%3E%3Cline x1='60' y1='270' x2='740' y2='270' stroke='%234cc9f0' stroke-width='0.5' stroke-opacity='0.5'/%3E%3Cline x1='60' y1='325' x2='740' y2='325' stroke='%234cc9f0' stroke-width='0.3' stroke-opacity='0.3'/%3E%3C!-- Waveform: clean sine, ~2 cycles --%3E%3Cpath d='M80 270 Q165 180 250 270 Q335 360 420 270 Q505 180 590 270 Q635 310 680 270' fill='none' stroke='%234cc9f0' stroke-width='1.8' stroke-opacity='0.7' stroke-linecap='round'/%3E%3C!-- Corner tick marks --%3E%3Cline x1='60' y1='160' x2='72' y2='160' stroke='%234cc9f0' stroke-width='0.8' stroke-opacity='0.6'/%3E%3Cline x1='60' y1='160' x2='60' y2='172' stroke='%234cc9f0' stroke-width='0.8' stroke-opacity='0.6'/%3E%3Cline x1='740' y1='160' x2='728' y2='160' stroke='%234cc9f0' stroke-width='0.8' stroke-opacity='0.6'/%3E%3Cline x1='740' y1='160' x2='740' y2='172' stroke='%234cc9f0' stroke-width='0.8' stroke-opacity='0.6'/%3E%3Cline x1='60' y1='380' x2='72' y2='380' stroke='%234cc9f0' stroke-width='0.8' stroke-opacity='0.6'/%3E%3Cline x1='60' y1='380' x2='60' y2='368' stroke='%234cc9f0' stroke-width='0.8' stroke-opacity='0.6'/%3E%3Cline x1='740' y1='380' x2='728' y2='380' stroke='%234cc9f0' stroke-width='0.8' stroke-opacity='0.6'/%3E%3Cline x1='740' y1='380' x2='740' y2='368' stroke='%234cc9f0' stroke-width='0.8' stroke-opacity='0.6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-position: center;
+}
+
+/* --- Shape Screen ---
+   "Frequency response" — a filter rolloff curve spanning the lower area.
+   Shows LP slope, resonance peak, and axis markings. Reinforces
+   "this is where you shape the timbre with envelopes and filters." */
+#ssli-screen-shape {
+}
+#ssli-screen-shape::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='400' viewBox='0 0 800 400'%3E%3C!-- Frequency axis (bottom) --%3E%3Cline x1='60' y1='360' x2='740' y2='360' stroke='%239b72cf' stroke-width='0.6' stroke-opacity='0.5'/%3E%3C!-- Amplitude axis (left) --%3E%3Cline x1='60' y1='180' x2='60' y2='360' stroke='%239b72cf' stroke-width='0.6' stroke-opacity='0.5'/%3E%3C!-- Frequency tick marks --%3E%3Cline x1='145' y1='356' x2='145' y2='364' stroke='%239b72cf' stroke-width='0.4' stroke-opacity='0.4'/%3E%3Cline x1='230' y1='356' x2='230' y2='364' stroke='%239b72cf' stroke-width='0.4' stroke-opacity='0.4'/%3E%3Cline x1='315' y1='356' x2='315' y2='364' stroke='%239b72cf' stroke-width='0.4' stroke-opacity='0.4'/%3E%3Cline x1='400' y1='356' x2='400' y2='364' stroke='%239b72cf' stroke-width='0.4' stroke-opacity='0.4'/%3E%3Cline x1='485' y1='356' x2='485' y2='364' stroke='%239b72cf' stroke-width='0.4' stroke-opacity='0.4'/%3E%3Cline x1='570' y1='356' x2='570' y2='364' stroke='%239b72cf' stroke-width='0.4' stroke-opacity='0.4'/%3E%3Cline x1='655' y1='356' x2='655' y2='364' stroke='%239b72cf' stroke-width='0.4' stroke-opacity='0.4'/%3E%3C!-- dB grid lines --%3E%3Cline x1='60' y1='225' x2='740' y2='225' stroke='%239b72cf' stroke-width='0.2' stroke-opacity='0.25' stroke-dasharray='4 8'/%3E%3Cline x1='60' y1='270' x2='740' y2='270' stroke='%239b72cf' stroke-width='0.2' stroke-opacity='0.25' stroke-dasharray='4 8'/%3E%3Cline x1='60' y1='315' x2='740' y2='315' stroke='%239b72cf' stroke-width='0.2' stroke-opacity='0.25' stroke-dasharray='4 8'/%3E%3C!-- LP filter curve with resonance peak at cutoff --%3E%3Cpath d='M80 220 L320 220 Q360 220 380 200 Q400 180 410 200 Q420 225 440 280 Q480 340 560 350 L740 355' fill='none' stroke='%239b72cf' stroke-width='2' stroke-opacity='0.6' stroke-linecap='round'/%3E%3C!-- Filled area under curve --%3E%3Cpath d='M80 220 L320 220 Q360 220 380 200 Q400 180 410 200 Q420 225 440 280 Q480 340 560 350 L740 355 L740 360 L80 360 Z' fill='%239b72cf' fill-opacity='0.04'/%3E%3C!-- Cutoff frequency marker --%3E%3Cline x1='400' y1='180' x2='400' y2='360' stroke='%239b72cf' stroke-width='0.5' stroke-opacity='0.35' stroke-dasharray='3 5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-position: center;
+}
+
+/* --- Tweak Screen ---
+   "Precision dial" — a large analog potentiometer arc with graduated
+   tick marks, value indicators, and a needle. Says "fine control." */
+#ssli-screen-tweak {
+}
+#ssli-screen-tweak::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3C!-- Outer dial arc (270 degrees, gap at bottom) --%3E%3Cpath d='M72 320 A160 160 0 1 1 328 320' fill='none' stroke='%234cc9f0' stroke-width='1.5' stroke-opacity='0.4'/%3E%3C!-- Inner arc --%3E%3Cpath d='M105 295 A120 120 0 1 1 295 295' fill='none' stroke='%234cc9f0' stroke-width='0.5' stroke-opacity='0.25'/%3E%3C!-- Major tick marks (11 positions, 270deg range) --%3E%3Cline x1='72' y1='320' x2='82' y2='312' stroke='%234cc9f0' stroke-width='1' stroke-opacity='0.5'/%3E%3Cline x1='48' y1='250' x2='60' y2='252' stroke='%234cc9f0' stroke-width='1' stroke-opacity='0.5'/%3E%3Cline x1='52' y1='180' x2='64' y2='184' stroke='%234cc9f0' stroke-width='1' stroke-opacity='0.5'/%3E%3Cline x1='85' y1='118' x2='95' y2='126' stroke='%234cc9f0' stroke-width='1' stroke-opacity='0.5'/%3E%3Cline x1='140' y1='75' x2='146' y2='86' stroke='%234cc9f0' stroke-width='1' stroke-opacity='0.5'/%3E%3Cline x1='200' y1='60' x2='200' y2='72' stroke='%234cc9f0' stroke-width='1.2' stroke-opacity='0.6'/%3E%3Cline x1='260' y1='75' x2='254' y2='86' stroke='%234cc9f0' stroke-width='1' stroke-opacity='0.5'/%3E%3Cline x1='315' y1='118' x2='305' y2='126' stroke='%234cc9f0' stroke-width='1' stroke-opacity='0.5'/%3E%3Cline x1='348' y1='180' x2='336' y2='184' stroke='%234cc9f0' stroke-width='1' stroke-opacity='0.5'/%3E%3Cline x1='352' y1='250' x2='340' y2='252' stroke='%234cc9f0' stroke-width='1' stroke-opacity='0.5'/%3E%3Cline x1='328' y1='320' x2='318' y2='312' stroke='%234cc9f0' stroke-width='1' stroke-opacity='0.5'/%3E%3C!-- Center pivot --%3E%3Ccircle cx='200' cy='210' r='4' fill='none' stroke='%234cc9f0' stroke-width='0.8' stroke-opacity='0.4'/%3E%3Ccircle cx='200' cy='210' r='1.5' fill='%234cc9f0' fill-opacity='0.4'/%3E%3C!-- Needle pointing to ~7 o'clock (moderate value) --%3E%3Cline x1='200' y1='210' x2='120' y2='160' stroke='%234cc9f0' stroke-width='1' stroke-opacity='0.35'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: auto 100%;
+  background-position: center;
+}
+
+/* --- Effects Screen ---
+   "Pedalboard" — horizontal signal chain with inline processor boxes.
+   Input jack on left, chain of effect blocks, output on right.
+   Not abstract nodes — recognizable as an audio effects chain. */
+#ssli-screen-effects {
+}
+#ssli-screen-effects::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='400' viewBox='0 0 800 400'%3E%3C!-- Signal path baseline --%3E%3Cline x1='30' y1='340' x2='770' y2='340' stroke='%23e8a44c' stroke-width='1' stroke-opacity='0.3'/%3E%3C!-- Input jack --%3E%3Ccircle cx='50' cy='340' r='10' fill='none' stroke='%23e8a44c' stroke-width='1' stroke-opacity='0.5'/%3E%3Ccircle cx='50' cy='340' r='4' fill='none' stroke='%23e8a44c' stroke-width='0.8' stroke-opacity='0.4'/%3E%3C!-- Effect block 1 --%3E%3Crect x='120' y='318' width='80' height='44' rx='4' fill='none' stroke='%23e8a44c' stroke-width='0.8' stroke-opacity='0.35'/%3E%3Ccircle cx='160' cy='330' r='8' fill='none' stroke='%23e8a44c' stroke-width='0.5' stroke-opacity='0.25'/%3E%3C!-- Effect block 2 --%3E%3Crect x='260' y='318' width='80' height='44' rx='4' fill='none' stroke='%23e8a44c' stroke-width='0.8' stroke-opacity='0.35'/%3E%3Ccircle cx='300' cy='330' r='8' fill='none' stroke='%23e8a44c' stroke-width='0.5' stroke-opacity='0.25'/%3E%3C!-- Effect block 3 --%3E%3Crect x='400' y='318' width='80' height='44' rx='4' fill='none' stroke='%23e8a44c' stroke-width='0.8' stroke-opacity='0.35'/%3E%3Ccircle cx='440' cy='330' r='8' fill='none' stroke='%23e8a44c' stroke-width='0.5' stroke-opacity='0.25'/%3E%3C!-- Effect block 4 --%3E%3Crect x='540' y='318' width='80' height='44' rx='4' fill='none' stroke='%23e8a44c' stroke-width='0.8' stroke-opacity='0.35'/%3E%3Ccircle cx='580' cy='330' r='8' fill='none' stroke='%23e8a44c' stroke-width='0.5' stroke-opacity='0.25'/%3E%3C!-- Output jack --%3E%3Ccircle cx='750' cy='340' r='10' fill='none' stroke='%23e8a44c' stroke-width='1' stroke-opacity='0.5'/%3E%3Ccircle cx='750' cy='340' r='4' fill='none' stroke='%23e8a44c' stroke-width='0.8' stroke-opacity='0.4'/%3E%3C!-- Cable connectors between blocks --%3E%3Cpath d='M60 340 L120 340' stroke='%23e8a44c' stroke-width='1.5' stroke-opacity='0.25'/%3E%3Cpath d='M200 340 Q230 325 260 340' stroke='%23e8a44c' stroke-width='1.5' stroke-opacity='0.25'/%3E%3Cpath d='M340 340 Q370 325 400 340' stroke='%23e8a44c' stroke-width='1.5' stroke-opacity='0.25'/%3E%3Cpath d='M480 340 Q510 325 540 340' stroke='%23e8a44c' stroke-width='1.5' stroke-opacity='0.25'/%3E%3Cpath d='M620 340 L740 340' stroke='%23e8a44c' stroke-width='1.5' stroke-opacity='0.25'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-position: center bottom;
+}
+
+/* --- Steps Screen ---
+   "Piano roll" — vertical note lanes with bar/beat grid lines.
+   Reinforces the musical time structure of the step sequencer
+   without duplicating the actual step grid above it. */
+#ssli-screen-acid {
+}
+#ssli-screen-acid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='400' viewBox='0 0 640 400'%3E%3C!-- 16 vertical beat lanes --%3E%3Cline x1='40' y1='0' x2='40' y2='400' stroke='%23e8c87a' stroke-width='0.8' stroke-opacity='0.3'/%3E%3Cline x1='80' y1='0' x2='80' y2='400' stroke='%23e8c87a' stroke-width='0.3' stroke-opacity='0.15'/%3E%3Cline x1='120' y1='0' x2='120' y2='400' stroke='%23e8c87a' stroke-width='0.3' stroke-opacity='0.15'/%3E%3Cline x1='160' y1='0' x2='160' y2='400' stroke='%23e8c87a' stroke-width='0.3' stroke-opacity='0.15'/%3E%3Cline x1='200' y1='0' x2='200' y2='400' stroke='%23e8c87a' stroke-width='0.8' stroke-opacity='0.3'/%3E%3Cline x1='240' y1='0' x2='240' y2='400' stroke='%23e8c87a' stroke-width='0.3' stroke-opacity='0.15'/%3E%3Cline x1='280' y1='0' x2='280' y2='400' stroke='%23e8c87a' stroke-width='0.3' stroke-opacity='0.15'/%3E%3Cline x1='320' y1='0' x2='320' y2='400' stroke='%23e8c87a' stroke-width='0.3' stroke-opacity='0.15'/%3E%3Cline x1='360' y1='0' x2='360' y2='400' stroke='%23e8c87a' stroke-width='0.8' stroke-opacity='0.3'/%3E%3Cline x1='400' y1='0' x2='400' y2='400' stroke='%23e8c87a' stroke-width='0.3' stroke-opacity='0.15'/%3E%3Cline x1='440' y1='0' x2='440' y2='400' stroke='%23e8c87a' stroke-width='0.3' stroke-opacity='0.15'/%3E%3Cline x1='480' y1='0' x2='480' y2='400' stroke='%23e8c87a' stroke-width='0.3' stroke-opacity='0.15'/%3E%3Cline x1='520' y1='0' x2='520' y2='400' stroke='%23e8c87a' stroke-width='0.8' stroke-opacity='0.3'/%3E%3Cline x1='560' y1='0' x2='560' y2='400' stroke='%23e8c87a' stroke-width='0.3' stroke-opacity='0.15'/%3E%3Cline x1='600' y1='0' x2='600' y2='400' stroke='%23e8c87a' stroke-width='0.3' stroke-opacity='0.15'/%3E%3C!-- Horizontal note rows (chromatic, black keys slightly brighter) --%3E%3Cline x1='0' y1='100' x2='640' y2='100' stroke='%23e8c87a' stroke-width='0.3' stroke-opacity='0.12'/%3E%3Cline x1='0' y1='133' x2='640' y2='133' stroke='%23e8c87a' stroke-width='0.3' stroke-opacity='0.12'/%3E%3Cline x1='0' y1='166' x2='640' y2='166' stroke='%23e8c87a' stroke-width='0.3' stroke-opacity='0.12'/%3E%3Cline x1='0' y1='200' x2='640' y2='200' stroke='%23e8c87a' stroke-width='0.5' stroke-opacity='0.2'/%3E%3Cline x1='0' y1='233' x2='640' y2='233' stroke='%23e8c87a' stroke-width='0.3' stroke-opacity='0.12'/%3E%3Cline x1='0' y1='266' x2='640' y2='266' stroke='%23e8c87a' stroke-width='0.3' stroke-opacity='0.12'/%3E%3Cline x1='0' y1='300' x2='640' y2='300' stroke='%23e8c87a' stroke-width='0.5' stroke-opacity='0.2'/%3E%3C!-- Ghost notes suggesting a pattern --%3E%3Crect x='42' y='198' width='36' height='4' rx='1' fill='%23e8c87a' fill-opacity='0.12'/%3E%3Crect x='202' y='131' width='36' height='4' rx='1' fill='%23e8c87a' fill-opacity='0.12'/%3E%3Crect x='282' y='198' width='76' height='4' rx='1' fill='%23e8c87a' fill-opacity='0.1'/%3E%3Crect x='362' y='264' width='36' height='4' rx='1' fill='%23e8c87a' fill-opacity='0.12'/%3E%3Crect x='522' y='164' width='36' height='4' rx='1' fill='%23e8c87a' fill-opacity='0.12'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-position: center;
+}
+
+/* --- MIDI Screen ---
+   "Note stream" — piano keyboard outline along the bottom edge with
+   rising note-on events (vertical bars). Universal MIDI visualization,
+   not a DIN-5 connector nobody uses anymore. */
+#ssli-screen-midi {
+}
+#ssli-screen-midi::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='400' viewBox='0 0 800 400'%3E%3C!-- Piano keyboard outline along bottom (2 octaves) --%3E%3Crect x='100' y='340' width='40' height='55' rx='1' fill='none' stroke='%234cc9f0' stroke-width='0.6' stroke-opacity='0.35'/%3E%3Crect x='140' y='340' width='40' height='55' rx='1' fill='none' stroke='%234cc9f0' stroke-width='0.6' stroke-opacity='0.35'/%3E%3Crect x='180' y='340' width='40' height='55' rx='1' fill='none' stroke='%234cc9f0' stroke-width='0.6' stroke-opacity='0.35'/%3E%3Crect x='220' y='340' width='40' height='55' rx='1' fill='none' stroke='%234cc9f0' stroke-width='0.6' stroke-opacity='0.35'/%3E%3Crect x='260' y='340' width='40' height='55' rx='1' fill='none' stroke='%234cc9f0' stroke-width='0.6' stroke-opacity='0.35'/%3E%3Crect x='300' y='340' width='40' height='55' rx='1' fill='none' stroke='%234cc9f0' stroke-width='0.6' stroke-opacity='0.35'/%3E%3Crect x='340' y='340' width='40' height='55' rx='1' fill='none' stroke='%234cc9f0' stroke-width='0.6' stroke-opacity='0.35'/%3E%3Crect x='380' y='340' width='40' height='55' rx='1' fill='none' stroke='%234cc9f0' stroke-width='0.6' stroke-opacity='0.35'/%3E%3Crect x='420' y='340' width='40' height='55' rx='1' fill='none' stroke='%234cc9f0' stroke-width='0.6' stroke-opacity='0.35'/%3E%3Crect x='460' y='340' width='40' height='55' rx='1' fill='none' stroke='%234cc9f0' stroke-width='0.6' stroke-opacity='0.35'/%3E%3Crect x='500' y='340' width='40' height='55' rx='1' fill='none' stroke='%234cc9f0' stroke-width='0.6' stroke-opacity='0.35'/%3E%3Crect x='540' y='340' width='40' height='55' rx='1' fill='none' stroke='%234cc9f0' stroke-width='0.6' stroke-opacity='0.35'/%3E%3Crect x='580' y='340' width='40' height='55' rx='1' fill='none' stroke='%234cc9f0' stroke-width='0.6' stroke-opacity='0.35'/%3E%3Crect x='620' y='340' width='40' height='55' rx='1' fill='none' stroke='%234cc9f0' stroke-width='0.6' stroke-opacity='0.35'/%3E%3C!-- Black keys --%3E%3Crect x='128' y='340' width='24' height='34' rx='1' fill='%23101020' fill-opacity='0.5' stroke='%234cc9f0' stroke-width='0.5' stroke-opacity='0.3'/%3E%3Crect x='168' y='340' width='24' height='34' rx='1' fill='%23101020' fill-opacity='0.5' stroke='%234cc9f0' stroke-width='0.5' stroke-opacity='0.3'/%3E%3Crect x='248' y='340' width='24' height='34' rx='1' fill='%23101020' fill-opacity='0.5' stroke='%234cc9f0' stroke-width='0.5' stroke-opacity='0.3'/%3E%3Crect x='288' y='340' width='24' height='34' rx='1' fill='%23101020' fill-opacity='0.5' stroke='%234cc9f0' stroke-width='0.5' stroke-opacity='0.3'/%3E%3Crect x='328' y='340' width='24' height='34' rx='1' fill='%23101020' fill-opacity='0.5' stroke='%234cc9f0' stroke-width='0.5' stroke-opacity='0.3'/%3E%3Crect x='408' y='340' width='24' height='34' rx='1' fill='%23101020' fill-opacity='0.5' stroke='%234cc9f0' stroke-width='0.5' stroke-opacity='0.3'/%3E%3Crect x='448' y='340' width='24' height='34' rx='1' fill='%23101020' fill-opacity='0.5' stroke='%234cc9f0' stroke-width='0.5' stroke-opacity='0.3'/%3E%3Crect x='528' y='340' width='24' height='34' rx='1' fill='%23101020' fill-opacity='0.5' stroke='%234cc9f0' stroke-width='0.5' stroke-opacity='0.3'/%3E%3Crect x='568' y='340' width='24' height='34' rx='1' fill='%23101020' fill-opacity='0.5' stroke='%234cc9f0' stroke-width='0.5' stroke-opacity='0.3'/%3E%3Crect x='608' y='340' width='24' height='34' rx='1' fill='%23101020' fill-opacity='0.5' stroke='%234cc9f0' stroke-width='0.5' stroke-opacity='0.3'/%3E%3C!-- Rising note-on events (vertical bars from keys into space) --%3E%3Crect x='148' y='230' width='6' height='110' rx='2' fill='%234cc9f0' fill-opacity='0.1'/%3E%3Crect x='228' y='180' width='6' height='160' rx='2' fill='%234cc9f0' fill-opacity='0.08'/%3E%3Crect x='308' y='260' width='6' height='80' rx='2' fill='%234cc9f0' fill-opacity='0.1'/%3E%3Crect x='388' y='200' width='6' height='140' rx='2' fill='%234cc9f0' fill-opacity='0.09'/%3E%3Crect x='468' y='240' width='6' height='100' rx='2' fill='%234cc9f0' fill-opacity='0.1'/%3E%3Crect x='548' y='280' width='6' height='60' rx='2' fill='%234cc9f0' fill-opacity='0.08'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-position: center;
+}
+
+/* =============================================================================
+   CONTROL SURFACE BACKGROUNDS
+   ============================================================================= */
+
+
+/* 1. Piano — subtle key outlines, hammer mechanism lines */
+
+.piano-wrapper {
+  position: relative;
+}
+.piano-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='120'%3E%3Crect x='0' y='0' width='20' height='120' fill='none' stroke='%234cc9f0' stroke-opacity='0.70' stroke-width='0.5'/%3E%3Crect x='20' y='0' width='20' height='120' fill='none' stroke='%234cc9f0' stroke-opacity='0.70' stroke-width='0.5'/%3E%3Crect x='40' y='0' width='20' height='120' fill='none' stroke='%234cc9f0' stroke-opacity='0.70' stroke-width='0.5'/%3E%3Crect x='60' y='0' width='20' height='120' fill='none' stroke='%234cc9f0' stroke-opacity='0.70' stroke-width='0.5'/%3E%3Crect x='80' y='0' width='20' height='120' fill='none' stroke='%234cc9f0' stroke-opacity='0.70' stroke-width='0.5'/%3E%3Crect x='100' y='0' width='20' height='120' fill='none' stroke='%234cc9f0' stroke-opacity='0.70' stroke-width='0.5'/%3E%3Crect x='120' y='0' width='20' height='120' fill='none' stroke='%234cc9f0' stroke-opacity='0.70' stroke-width='0.5'/%3E%3Crect x='140' y='0' width='20' height='120' fill='none' stroke='%234cc9f0' stroke-opacity='0.70' stroke-width='0.5'/%3E%3Crect x='12' y='0' width='14' height='68' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.4'/%3E%3Crect x='32' y='0' width='14' height='68' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.4'/%3E%3Crect x='72' y='0' width='14' height='68' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.4'/%3E%3Crect x='92' y='0' width='14' height='68' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.4'/%3E%3Crect x='112' y='0' width='14' height='68' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.4'/%3E%3Cline x1='0' y1='95' x2='160' y2='95' stroke='%234cc9f0' stroke-opacity='0.40' stroke-width='0.3'/%3E%3Cline x1='0' y1='105' x2='160' y2='105' stroke='%234cc9f0' stroke-opacity='0.30' stroke-width='0.3'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 160px 120px;
+}
+
+
+/* 2. Chord Pads — harmonic wave interference, overlapping sine curves */
+
+.chordpads-wrapper {
+  position: relative;
+}
+.chordpads-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cpath d='M0,90 Q45,60 90,90 Q135,120 180,90' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.5'/%3E%3Cpath d='M0,90 Q45,45 90,90 Q135,135 180,90' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.4'/%3E%3Cpath d='M0,90 Q45,75 90,90 Q135,105 180,90' fill='none' stroke='%23e8c87a' stroke-opacity='0.40' stroke-width='0.4'/%3E%3Cpath d='M0,45 Q45,15 90,45 Q135,75 180,45' fill='none' stroke='%234cc9f0' stroke-opacity='0.40' stroke-width='0.4'/%3E%3Cpath d='M0,135 Q45,105 90,135 Q135,165 180,135' fill='none' stroke='%234cc9f0' stroke-opacity='0.40' stroke-width='0.4'/%3E%3Cline x1='90' y1='0' x2='90' y2='180' stroke='%234cc9f0' stroke-opacity='0.30' stroke-width='0.3'/%3E%3Cline x1='0' y1='90' x2='180' y2='90' stroke='%234cc9f0' stroke-opacity='0.30' stroke-width='0.3'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 180px;
+}
+
+
+/* 3. Guitar Fretboard — fret lines with string vibration curves */
+
+.ctrl-fretboard {
+  position: relative;
+}
+.ctrl-fretboard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='120'%3E%3Cline x1='0' y1='10' x2='150' y2='10' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.3'/%3E%3Cline x1='0' y1='30' x2='150' y2='30' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.35'/%3E%3Cline x1='0' y1='50' x2='150' y2='50' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.4'/%3E%3Cline x1='0' y1='70' x2='150' y2='70' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.5'/%3E%3Cline x1='0' y1='90' x2='150' y2='90' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.6'/%3E%3Cline x1='0' y1='110' x2='150' y2='110' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.7'/%3E%3Cline x1='30' y1='0' x2='30' y2='120' stroke='%23e8c87a' stroke-opacity='0.50' stroke-width='0.8'/%3E%3Cline x1='65' y1='0' x2='65' y2='120' stroke='%23e8c87a' stroke-opacity='0.50' stroke-width='0.8'/%3E%3Cline x1='95' y1='0' x2='95' y2='120' stroke='%23e8c87a' stroke-opacity='0.50' stroke-width='0.8'/%3E%3Cline x1='120' y1='0' x2='120' y2='120' stroke='%23e8c87a' stroke-opacity='0.50' stroke-width='0.8'/%3E%3Ccircle cx='80' cy='60' r='2' fill='%234cc9f0' fill-opacity='0.40'/%3E%3Cpath d='M30,50 Q47,46 65,50' fill='none' stroke='%234cc9f0' stroke-opacity='0.40' stroke-width='0.3'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 150px 120px;
+}
+
+
+/* 4. Bass — thick string vibrations, low-frequency waves */
+
+.bass-wrapper {
+  position: relative;
+}
+.bass-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='100'%3E%3Cpath d='M0,25 Q50,15 100,25 Q150,35 200,25' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.8'/%3E%3Cpath d='M0,50 Q50,35 100,50 Q150,65 200,50' fill='none' stroke='%234cc9f0' stroke-opacity='0.70' stroke-width='1.0'/%3E%3Cpath d='M0,75 Q50,58 100,75 Q150,92 200,75' fill='none' stroke='%234cc9f0' stroke-opacity='0.70' stroke-width='1.2'/%3E%3Cpath d='M0,50 Q100,20 200,50' fill='none' stroke='%23e8c87a' stroke-opacity='0.30' stroke-width='0.4'/%3E%3Cpath d='M0,50 Q100,80 200,50' fill='none' stroke='%23e8c87a' stroke-opacity='0.30' stroke-width='0.4'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 100px;
+}
+
+
+/* 5. Drum Pads — concentric impact circles, percussion hits */
+
+.drum-grid {
+  position: relative;
+}
+.drum-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Ccircle cx='40' cy='40' r='8' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.5'/%3E%3Ccircle cx='40' cy='40' r='16' fill='none' stroke='%234cc9f0' stroke-opacity='0.40' stroke-width='0.4'/%3E%3Ccircle cx='40' cy='40' r='24' fill='none' stroke='%234cc9f0' stroke-opacity='0.30' stroke-width='0.3'/%3E%3Ccircle cx='120' cy='40' r='6' fill='none' stroke='%23e8c87a' stroke-opacity='0.50' stroke-width='0.5'/%3E%3Ccircle cx='120' cy='40' r='14' fill='none' stroke='%23e8c87a' stroke-opacity='0.30' stroke-width='0.3'/%3E%3Ccircle cx='40' cy='120' r='10' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.5'/%3E%3Ccircle cx='40' cy='120' r='20' fill='none' stroke='%234cc9f0' stroke-opacity='0.30' stroke-width='0.3'/%3E%3Ccircle cx='120' cy='120' r='7' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.5'/%3E%3Ccircle cx='120' cy='120' r='15' fill='none' stroke='%234cc9f0' stroke-opacity='0.40' stroke-width='0.3'/%3E%3Ccircle cx='120' cy='120' r='23' fill='none' stroke='%234cc9f0' stroke-opacity='0.20' stroke-width='0.3'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 160px 160px;
+}
+
+
+/* 6. Glow Keys (Loom) — light beam rays, prismatic refraction */
+
+.ssli-loom-wrapper {
+  position: relative;
+}
+.ssli-loom-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='140'%3E%3Cline x1='90' y1='0' x2='0' y2='140' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.4'/%3E%3Cline x1='90' y1='0' x2='30' y2='140' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.4'/%3E%3Cline x1='90' y1='0' x2='60' y2='140' stroke='%2366d9ff' stroke-opacity='0.50' stroke-width='0.3'/%3E%3Cline x1='90' y1='0' x2='90' y2='140' stroke='%23e8c87a' stroke-opacity='0.50' stroke-width='0.3'/%3E%3Cline x1='90' y1='0' x2='120' y2='140' stroke='%2366d9ff' stroke-opacity='0.50' stroke-width='0.3'/%3E%3Cline x1='90' y1='0' x2='150' y2='140' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.4'/%3E%3Cline x1='90' y1='0' x2='180' y2='140' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.4'/%3E%3Cellipse cx='90' cy='6' rx='3' ry='3' fill='%234cc9f0' fill-opacity='0.60'/%3E%3Cpath d='M30,100 Q90,85 150,100' fill='none' stroke='%234cc9f0' stroke-opacity='0.30' stroke-width='0.3'/%3E%3Cpath d='M20,120 Q90,102 160,120' fill='none' stroke='%234cc9f0' stroke-opacity='0.30' stroke-width='0.3'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 140px;
+}
+
+
+/* 7. Harp — vertical string lines with graceful curves */
+
+.harp-wrapper {
+  position: relative;
+}
+.harp-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='160'%3E%3Cpath d='M10,0 Q8,80 10,160' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.3'/%3E%3Cpath d='M22,0 Q19,80 22,160' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.35'/%3E%3Cpath d='M34,0 Q30,80 34,160' fill='none' stroke='%234cc9f0' stroke-opacity='0.70' stroke-width='0.35'/%3E%3Cpath d='M46,0 Q41,80 46,160' fill='none' stroke='%23e8c87a' stroke-opacity='0.50' stroke-width='0.4'/%3E%3Cpath d='M58,0 Q52,80 58,160' fill='none' stroke='%234cc9f0' stroke-opacity='0.70' stroke-width='0.4'/%3E%3Cpath d='M70,0 Q63,80 70,160' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.45'/%3E%3Cpath d='M82,0 Q74,80 82,160' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.45'/%3E%3Cpath d='M94,0 Q85,80 94,160' fill='none' stroke='%234cc9f0' stroke-opacity='0.70' stroke-width='0.5'/%3E%3Cpath d='M106,0 Q96,80 106,160' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.5'/%3E%3Cpath d='M118,0 Q107,80 118,160' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.55'/%3E%3Cpath d='M130,0 Q118,80 130,160' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.6'/%3E%3Cpath d='M0,10 Q70,6 140,10' fill='none' stroke='%234cc9f0' stroke-opacity='0.30' stroke-width='0.3'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 140px 160px;
+}
+
+
+/* 8. Marimba — horizontal bar resonance, mallet circles */
+
+.marimba-wrapper {
+  position: relative;
+}
+.marimba-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='120'%3E%3Crect x='5' y='8' width='30' height='10' rx='2' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.5'/%3E%3Crect x='40' y='8' width='28' height='10' rx='2' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.5'/%3E%3Crect x='73' y='8' width='26' height='10' rx='2' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.5'/%3E%3Crect x='104' y='8' width='24' height='10' rx='2' fill='none' stroke='%23e8c87a' stroke-opacity='0.50' stroke-width='0.5'/%3E%3Crect x='133' y='8' width='22' height='10' rx='2' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.5'/%3E%3Crect x='5' y='38' width='32' height='10' rx='2' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.5'/%3E%3Crect x='42' y='38' width='30' height='10' rx='2' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.5'/%3E%3Crect x='77' y='38' width='28' height='10' rx='2' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.5'/%3E%3Crect x='110' y='38' width='26' height='10' rx='2' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.5'/%3E%3Crect x='141' y='38' width='24' height='10' rx='2' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.5'/%3E%3Ccircle cx='20' cy='70' r='4' fill='none' stroke='%234cc9f0' stroke-opacity='0.40' stroke-width='0.4'/%3E%3Cline x1='20' y1='74' x2='20' y2='100' stroke='%234cc9f0' stroke-opacity='0.40' stroke-width='0.3'/%3E%3Ccircle cx='86' cy='72' r='4' fill='none' stroke='%234cc9f0' stroke-opacity='0.40' stroke-width='0.4'/%3E%3Cline x1='86' y1='76' x2='86' y2='102' stroke='%234cc9f0' stroke-opacity='0.40' stroke-width='0.3'/%3E%3Ccircle cx='150' cy='68' r='3.5' fill='none' stroke='%234cc9f0' stroke-opacity='0.40' stroke-width='0.4'/%3E%3Cline x1='150' y1='71.5' x2='150' y2='98' stroke='%234cc9f0' stroke-opacity='0.40' stroke-width='0.3'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 120px;
+}
+
+
+/* 9. Isomorphic 4th Grid — hexagonal/isometric tessellation */
+
+.iso-grid-wrapper {
+  position: relative;
+}
+.iso-grid-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='162'%3E%3Cpolygon points='70,5 105,25 105,65 70,85 35,65 35,25' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.5'/%3E%3Cpolygon points='70,85 105,105 105,145 70,165 35,145 35,105' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.5'/%3E%3Cpolygon points='0,45 35,25 35,65 0,85 -35,65 -35,25' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.4'/%3E%3Cpolygon points='140,45 175,25 175,65 140,85 105,65 105,25' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.4'/%3E%3Cpolygon points='0,125 35,105 35,145 0,165 -35,145 -35,105' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.4'/%3E%3Cpolygon points='140,125 175,105 175,145 140,165 105,145 105,105' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.4'/%3E%3Ccircle cx='70' cy='45' r='1.5' fill='%234cc9f0' fill-opacity='0.50'/%3E%3Ccircle cx='70' cy='125' r='1.5' fill='%234cc9f0' fill-opacity='0.50'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 140px 162px;
+}
+
+
+/* 10. Isomorphic 5th Grid — pentagon/circle of fifths geometry */
+
+.iso5-wrapper {
+  position: relative;
+}
+.iso5-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Ccircle cx='80' cy='80' r='50' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.4'/%3E%3Ccircle cx='80' cy='80' r='35' fill='none' stroke='%234cc9f0' stroke-opacity='0.40' stroke-width='0.3'/%3E%3Cpolygon points='80,30 127,64 109,118 51,118 33,64' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.5'/%3E%3Cpolygon points='80,45 114,70 101,105 59,105 46,70' fill='none' stroke='%23e8c87a' stroke-opacity='0.40' stroke-width='0.4'/%3E%3Cline x1='80' y1='30' x2='80' y2='118' stroke='%234cc9f0' stroke-opacity='0.30' stroke-width='0.3'/%3E%3Cline x1='33' y1='64' x2='127' y2='64' stroke='%234cc9f0' stroke-opacity='0.30' stroke-width='0.3'/%3E%3Ccircle cx='80' cy='30' r='2' fill='%234cc9f0' fill-opacity='0.50'/%3E%3Ccircle cx='127' cy='64' r='2' fill='%234cc9f0' fill-opacity='0.50'/%3E%3Ccircle cx='109' cy='118' r='2' fill='%234cc9f0' fill-opacity='0.50'/%3E%3Ccircle cx='51' cy='118' r='2' fill='%234cc9f0' fill-opacity='0.50'/%3E%3Ccircle cx='33' cy='64' r='2' fill='%234cc9f0' fill-opacity='0.50'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 160px 160px;
+}
+
+
+/* 11. Hex Grid — honeycomb tessellation */
+
+.hex-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+.hex-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='97'%3E%3Cpath d='M28,0 L56,0 L70,24.25 L56,48.5 L28,48.5 L14,24.25 Z' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.5'/%3E%3Cpath d='M84,48.5 L112,48.5 L126,72.75 L112,97 L84,97 L70,72.75 Z' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.5'/%3E%3Cpath d='M-28,48.5 L0,48.5 L14,72.75 L0,97 L-28,97 L-42,72.75 Z' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.5'/%3E%3Cpath d='M84,0 L112,0 L126,24.25 L112,48.5 L84,48.5 L70,24.25 Z' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.4'/%3E%3Cpath d='M28,48.5 L56,48.5 L70,72.75 L56,97 L28,97 L14,72.75 Z' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.4'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 112px 97px;
+}
+
+
+/* 12. Ribbon Controller — flowing horizontal ribbon waves */
+
+.ribbon-wrapper {
+  position: relative;
+}
+.ribbon-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='80'%3E%3Cpath d='M0,20 C30,10 50,30 80,20 C110,10 130,30 160,20 C180,14 190,18 200,20' fill='none' stroke='%234cc9f0' stroke-opacity='0.70' stroke-width='0.5'/%3E%3Cpath d='M0,35 C40,25 60,45 100,35 C140,25 160,45 200,35' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.6'/%3E%3Cpath d='M0,50 C50,40 70,60 120,50 C170,40 185,55 200,50' fill='none' stroke='%23e8c87a' stroke-opacity='0.40' stroke-width='0.4'/%3E%3Cpath d='M0,62 C35,55 65,70 100,62 C135,55 165,70 200,62' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.4'/%3E%3Cline x1='0' y1='40' x2='200' y2='40' stroke='%234cc9f0' stroke-opacity='0.30' stroke-width='0.3' stroke-dasharray='4,8'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 80px;
+}
+
+
+/* 13. XY Pad — crosshair grid, coordinate lines */
+
+.xypad-wrapper {
+  position: relative;
+}
+.xypad-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cline x1='40' y1='0' x2='40' y2='160' stroke='%234cc9f0' stroke-opacity='0.40' stroke-width='0.3'/%3E%3Cline x1='80' y1='0' x2='80' y2='160' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.4'/%3E%3Cline x1='120' y1='0' x2='120' y2='160' stroke='%234cc9f0' stroke-opacity='0.40' stroke-width='0.3'/%3E%3Cline x1='0' y1='40' x2='160' y2='40' stroke='%234cc9f0' stroke-opacity='0.40' stroke-width='0.3'/%3E%3Cline x1='0' y1='80' x2='160' y2='80' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.4'/%3E%3Cline x1='0' y1='120' x2='160' y2='120' stroke='%234cc9f0' stroke-opacity='0.40' stroke-width='0.3'/%3E%3Ccircle cx='80' cy='80' r='3' fill='none' stroke='%23e8c87a' stroke-opacity='0.60' stroke-width='0.5'/%3E%3Cline x1='74' y1='80' x2='86' y2='80' stroke='%23e8c87a' stroke-opacity='0.60' stroke-width='0.4'/%3E%3Cline x1='80' y1='74' x2='80' y2='86' stroke='%23e8c87a' stroke-opacity='0.60' stroke-width='0.4'/%3E%3Ccircle cx='80' cy='80' r='20' fill='none' stroke='%234cc9f0' stroke-opacity='0.30' stroke-width='0.3'/%3E%3Ccircle cx='80' cy='80' r='45' fill='none' stroke='%234cc9f0' stroke-opacity='0.20' stroke-width='0.3'/%3E%3Cline x1='0' y1='0' x2='160' y2='160' stroke='%234cc9f0' stroke-opacity='0.20' stroke-width='0.3' stroke-dasharray='3,6'/%3E%3Cline x1='160' y1='0' x2='0' y2='160' stroke='%234cc9f0' stroke-opacity='0.20' stroke-width='0.3' stroke-dasharray='3,6'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 160px 160px;
+}
+
+
+/* 14. Breath Pad — airflow curves, breath pressure waves */
+
+.breathpad-wrapper {
+  position: relative;
+}
+.breathpad-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='120'%3E%3Cpath d='M0,60 C20,40 40,50 60,45 C80,40 100,55 120,50 C140,45 160,35 180,40' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.5'/%3E%3Cpath d='M0,70 C30,55 50,65 80,58 C110,52 140,62 180,55' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.4'/%3E%3Cpath d='M0,80 C25,70 55,78 90,72 C125,66 155,74 180,68' fill='none' stroke='%234cc9f0' stroke-opacity='0.40' stroke-width='0.4'/%3E%3Cpath d='M0,50 C60,30 120,50 180,30' fill='none' stroke='%23e8c87a' stroke-opacity='0.30' stroke-width='0.3'/%3E%3Ccircle cx='30' cy='55' r='8' fill='none' stroke='%234cc9f0' stroke-opacity='0.30' stroke-width='0.3'/%3E%3Ccircle cx='90' cy='50' r='12' fill='none' stroke='%234cc9f0' stroke-opacity='0.20' stroke-width='0.3'/%3E%3Ccircle cx='150' cy='45' r='10' fill='none' stroke='%234cc9f0' stroke-opacity='0.30' stroke-width='0.3'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 120px;
+}
+
+
+/* 15. Breath Pad Ensemble — layered breath streams, ensemble harmonics */
+
+.breathpadens-wrapper {
+  position: relative;
+}
+.breathpadens-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='140'%3E%3Cpath d='M0,25 C40,15 80,30 120,20 C160,10 180,22 200,18' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.4'/%3E%3Cpath d='M0,45 C50,35 90,48 130,40 C170,32 190,42 200,38' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.45'/%3E%3Cpath d='M0,65 C35,55 75,68 115,60 C155,52 185,62 200,58' fill='none' stroke='%234cc9f0' stroke-opacity='0.70' stroke-width='0.5'/%3E%3Cpath d='M0,85 C45,75 85,88 125,80 C165,72 190,82 200,78' fill='none' stroke='%23e8c87a' stroke-opacity='0.40' stroke-width='0.4'/%3E%3Cpath d='M0,105 C55,95 95,108 135,100 C175,92 195,102 200,98' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.45'/%3E%3Cpath d='M0,122 C40,115 80,125 120,118 C160,112 185,120 200,116' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.4'/%3E%3Ccircle cx='60' cy='55' r='15' fill='none' stroke='%234cc9f0' stroke-opacity='0.20' stroke-width='0.3'/%3E%3Ccircle cx='140' cy='85' r='18' fill='none' stroke='%234cc9f0' stroke-opacity='0.20' stroke-width='0.3'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 140px;
+}
+
+
+/* 16. Theremin/Air Synth — electromagnetic field lines, antenna radiation */
+
+.theremin-wrapper {
+  position: relative;
+}
+.theremin-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cline x1='90' y1='180' x2='90' y2='80' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.6'/%3E%3Ccircle cx='90' cy='75' r='4' fill='%234cc9f0' fill-opacity='0.50'/%3E%3Cpath d='M90,70 Q60,50 50,20' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.4'/%3E%3Cpath d='M90,70 Q120,50 130,20' fill='none' stroke='%234cc9f0' stroke-opacity='0.60' stroke-width='0.4'/%3E%3Cpath d='M90,70 Q50,60 20,50' fill='none' stroke='%234cc9f0' stroke-opacity='0.40' stroke-width='0.3'/%3E%3Cpath d='M90,70 Q130,60 160,50' fill='none' stroke='%234cc9f0' stroke-opacity='0.40' stroke-width='0.3'/%3E%3Cellipse cx='90' cy='65' rx='25' ry='12' fill='none' stroke='%234cc9f0' stroke-opacity='0.50' stroke-width='0.4'/%3E%3Cellipse cx='90' cy='55' rx='45' ry='22' fill='none' stroke='%234cc9f0' stroke-opacity='0.40' stroke-width='0.35'/%3E%3Cellipse cx='90' cy='45' rx='65' ry='32' fill='none' stroke='%234cc9f0' stroke-opacity='0.30' stroke-width='0.3'/%3E%3Cellipse cx='90' cy='35' rx='80' ry='40' fill='none' stroke='%23e8c87a' stroke-opacity='0.30' stroke-width='0.3'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 180px;
+}
+
+
+/* ---------------------------------------------------------------------------
+   1. Chromatic Grid — 12-tone color wheel segments, chromatic scale steps
+   --------------------------------------------------------------------------- */
+
+.chromaticgrid-wrapper {
+  position: relative;
+}
+.chromaticgrid-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cdefs%3E%3Cstyle%3Eline,circle,path%7Bfill:none%7D%3C/style%3E%3C/defs%3E%3C!-- 12-segment radial lines from center --%3E%3Cg stroke='%234cc9f0' stroke-width='0.5' opacity='0.07'%3E%3Cline x1='80' y1='80' x2='80' y2='10'/%3E%3Cline x1='80' y1='80' x2='115' y2='15'/%3E%3Cline x1='80' y1='80' x2='145' y2='42'/%3E%3Cline x1='80' y1='80' x2='150' y2='80'/%3E%3Cline x1='80' y1='80' x2='145' y2='118'/%3E%3Cline x1='80' y1='80' x2='115' y2='145'/%3E%3Cline x1='80' y1='80' x2='80' y2='150'/%3E%3Cline x1='80' y1='80' x2='45' y2='145'/%3E%3Cline x1='80' y1='80' x2='15' y2='118'/%3E%3Cline x1='80' y1='80' x2='10' y2='80'/%3E%3Cline x1='80' y1='80' x2='15' y2='42'/%3E%3Cline x1='80' y1='80' x2='45' y2='15'/%3E%3C/g%3E%3C!-- concentric rings --%3E%3Ccircle cx='80' cy='80' r='25' stroke='%234cc9f0' stroke-width='0.4' opacity='0.05' fill='none'/%3E%3Ccircle cx='80' cy='80' r='50' stroke='%234cc9f0' stroke-width='0.4' opacity='0.05' fill='none'/%3E%3Ccircle cx='80' cy='80' r='70' stroke='%234cc9f0' stroke-width='0.3' opacity='0.04' fill='none'/%3E%3C!-- chromatic step ticks on outer ring --%3E%3Cg stroke='%23e8c87a' stroke-width='0.6' opacity='0.06'%3E%3Cline x1='80' y1='12' x2='80' y2='18'/%3E%3Cline x1='114' y1='17' x2='111' y2='23'/%3E%3Cline x1='143' y1='44' x2='138' y2='48'/%3E%3Cline x1='148' y1='80' x2='142' y2='80'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 160px 160px;
+}
+
+
+/* ---------------------------------------------------------------------------
+   2. Vowel Pad — Formant curves, IPA vowel trapezoid shape
+   --------------------------------------------------------------------------- */
+
+.vowelpad-wrapper {
+  position: relative;
+}
+.vowelpad-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='150' viewBox='0 0 180 150'%3E%3C!-- IPA vowel trapezoid outline --%3E%3Cpath d='M40,25 L140,20 L155,125 L70,130 Z' stroke='%234cc9f0' stroke-width='0.5' opacity='0.06' fill='none'/%3E%3C!-- formant frequency curves --%3E%3Cpath d='M20,50 Q50,30 80,50 T140,50 T180,50' stroke='%234cc9f0' stroke-width='0.4' opacity='0.05' fill='none'/%3E%3Cpath d='M20,75 Q60,55 90,75 T150,75' stroke='%234cc9f0' stroke-width='0.4' opacity='0.05' fill='none'/%3E%3Cpath d='M20,100 Q70,80 100,100 T160,100' stroke='%234cc9f0' stroke-width='0.3' opacity='0.04' fill='none'/%3E%3C!-- vowel position dots --%3E%3Cg fill='%23e8c87a' opacity='0.06'%3E%3Ccircle cx='50' cy='30' r='2'/%3E%3Ccircle cx='130' cy='25' r='2'/%3E%3Ccircle cx='90' cy='75' r='2'/%3E%3Ccircle cx='145' cy='120' r='2'/%3E%3Ccircle cx='75' cy='125' r='2'/%3E%3C/g%3E%3C!-- throat cross-section hint --%3E%3Cpath d='M10,60 Q15,40 10,20' stroke='%234cc9f0' stroke-width='0.4' opacity='0.04' fill='none'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 150px;
+}
+
+
+/* ---------------------------------------------------------------------------
+   3. Shruti Box — Indian geometric motifs, rangoli-inspired patterns
+   --------------------------------------------------------------------------- */
+
+.shrutibox-wrapper {
+  position: relative;
+}
+.shrutibox-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3C!-- rangoli diamond lattice --%3E%3Cg stroke='%234cc9f0' stroke-width='0.5' opacity='0.06' fill='none'%3E%3Cpath d='M75,10 L140,75 L75,140 L10,75 Z'/%3E%3Cpath d='M75,30 L120,75 L75,120 L30,75 Z'/%3E%3Cpath d='M75,50 L100,75 L75,100 L50,75 Z'/%3E%3C/g%3E%3C!-- cross lines through center --%3E%3Cg stroke='%234cc9f0' stroke-width='0.3' opacity='0.05' fill='none'%3E%3Cline x1='75' y1='10' x2='75' y2='140'/%3E%3Cline x1='10' y1='75' x2='140' y2='75'/%3E%3C/g%3E%3C!-- corner flower dots (rangoli) --%3E%3Cg fill='%23e8c87a' opacity='0.06'%3E%3Ccircle cx='75' cy='10' r='2'/%3E%3Ccircle cx='140' cy='75' r='2'/%3E%3Ccircle cx='75' cy='140' r='2'/%3E%3Ccircle cx='10' cy='75' r='2'/%3E%3Ccircle cx='75' cy='75' r='2.5'/%3E%3C/g%3E%3C!-- resonance string lines --%3E%3Cg stroke='%234cc9f0' stroke-width='0.3' opacity='0.04'%3E%3Cline x1='42' y1='10' x2='42' y2='140'/%3E%3Cline x1='108' y1='10' x2='108' y2='140'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 150px 150px;
+}
+
+
+/* ---------------------------------------------------------------------------
+   4. Tanpura — String vibration harmonics, instrument neck outline
+   --------------------------------------------------------------------------- */
+
+.tanpura-wrapper {
+  position: relative;
+}
+.tanpura-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='180' viewBox='0 0 120 180'%3E%3C!-- four drone strings --%3E%3Cg stroke='%234cc9f0' stroke-width='0.5' opacity='0.06'%3E%3Cline x1='35' y1='0' x2='35' y2='180'/%3E%3Cline x1='50' y1='0' x2='50' y2='180'/%3E%3Cline x1='65' y1='0' x2='65' y2='180'/%3E%3Cline x1='80' y1='0' x2='80' y2='180'/%3E%3C/g%3E%3C!-- harmonic vibration curves on strings --%3E%3Cpath d='M35,30 Q42,60 35,90 Q28,120 35,150' stroke='%234cc9f0' stroke-width='0.3' opacity='0.05' fill='none'/%3E%3Cpath d='M65,20 Q72,50 65,80 Q58,110 65,140' stroke='%234cc9f0' stroke-width='0.3' opacity='0.05' fill='none'/%3E%3C!-- bridge element at bottom --%3E%3Cpath d='M25,165 Q57,155 90,165' stroke='%23e8c87a' stroke-width='0.6' opacity='0.06' fill='none'/%3E%3C!-- harmonic node dots --%3E%3Cg fill='%234cc9f0' opacity='0.05'%3E%3Ccircle cx='50' cy='45' r='1.5'/%3E%3Ccircle cx='50' cy='90' r='1.5'/%3E%3Ccircle cx='50' cy='135' r='1.5'/%3E%3Ccircle cx='80' cy='60' r='1.5'/%3E%3Ccircle cx='80' cy='120' r='1.5'/%3E%3C/g%3E%3C!-- gourd outline hint --%3E%3Cpath d='M20,170 Q10,180 20,180 Q60,185 95,180 Q105,180 95,170' stroke='%234cc9f0' stroke-width='0.3' opacity='0.04' fill='none'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 120px 180px;
+}
+
+
+/* ---------------------------------------------------------------------------
+   5. Tabla — Circular drum heads, bol calligraphy-inspired strokes
+   --------------------------------------------------------------------------- */
+
+.ssli-tabla-wrapper {
+  position: relative;
+}
+.ssli-tabla-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='160' viewBox='0 0 180 160'%3E%3C!-- dayan (right drum) --%3E%3Ccircle cx='65' cy='75' r='40' stroke='%234cc9f0' stroke-width='0.5' opacity='0.06' fill='none'/%3E%3Ccircle cx='65' cy='75' r='28' stroke='%234cc9f0' stroke-width='0.4' opacity='0.05' fill='none'/%3E%3C!-- syahi (black center spot) --%3E%3Ccircle cx='65' cy='75' r='14' stroke='%234cc9f0' stroke-width='0.5' opacity='0.06' fill='none'/%3E%3Ccircle cx='65' cy='75' r='5' fill='%234cc9f0' opacity='0.04'/%3E%3C!-- bayan (left drum, larger) --%3E%3Ccircle cx='135' cy='85' r='35' stroke='%234cc9f0' stroke-width='0.5' opacity='0.05' fill='none'/%3E%3Ccircle cx='135' cy='85' r='22' stroke='%234cc9f0' stroke-width='0.4' opacity='0.04' fill='none'/%3E%3Ccircle cx='135' cy='85' r='10' fill='%234cc9f0' opacity='0.03'/%3E%3C!-- bol stroke gestures --%3E%3Cg stroke='%23e8c87a' stroke-width='0.6' opacity='0.06' fill='none' stroke-linecap='round'%3E%3Cpath d='M20,20 Q28,15 32,22 Q35,28 30,30'/%3E%3Cpath d='M150,18 Q155,12 160,18 L158,28'/%3E%3C/g%3E%3C!-- radial tension lines --%3E%3Cg stroke='%234cc9f0' stroke-width='0.25' opacity='0.04'%3E%3Cline x1='65' y1='35' x2='65' y2='25'/%3E%3Cline x1='95' y1='50' x2='102' y2='42'/%3E%3Cline x1='105' y1='75' x2='115' y2='75'/%3E%3Cline x1='35' y1='50' x2='28' y2='42'/%3E%3Cline x1='25' y1='75' x2='15' y2='75'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 160px;
+}
+
+
+/* ---------------------------------------------------------------------------
+   6. Wind — Finger holes, air column resonance
+   --------------------------------------------------------------------------- */
+
+.wind-wrapper {
+  position: relative;
+}
+.wind-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='200' viewBox='0 0 120 200'%3E%3C!-- instrument tube outline --%3E%3Cg stroke='%234cc9f0' stroke-width='0.4' opacity='0.05' fill='none'%3E%3Cline x1='45' y1='0' x2='42' y2='200'/%3E%3Cline x1='75' y1='0' x2='78' y2='200'/%3E%3C/g%3E%3C!-- finger holes --%3E%3Cg stroke='%234cc9f0' stroke-width='0.5' opacity='0.07' fill='none'%3E%3Ccircle cx='60' cy='30' r='6'/%3E%3Ccircle cx='60' cy='58' r='6'/%3E%3Ccircle cx='60' cy='86' r='6'/%3E%3Ccircle cx='60' cy='114' r='5.5'/%3E%3Ccircle cx='60' cy='140' r='5.5'/%3E%3Ccircle cx='60' cy='165' r='5'/%3E%3C/g%3E%3C!-- air column resonance waves --%3E%3Cg stroke='%234cc9f0' stroke-width='0.3' opacity='0.04' fill='none'%3E%3Cpath d='M85,40 Q95,50 85,60 Q75,70 85,80'/%3E%3Cpath d='M92,40 Q105,55 92,70 Q79,85 92,100'/%3E%3C/g%3E%3C!-- bell flare at bottom --%3E%3Cpath d='M42,185 Q40,195 32,200 M78,185 Q80,195 88,200' stroke='%23e8c87a' stroke-width='0.5' opacity='0.05' fill='none'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 120px 200px;
+}
+
+
+/* ---------------------------------------------------------------------------
+   7. Hurdy-Gurdy — Crank wheel, drone strings, medieval mechanical elements
+   --------------------------------------------------------------------------- */
+
+.hurdygurdy-wrapper {
+  position: relative;
+}
+.hurdygurdy-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='160' viewBox='0 0 180 160'%3E%3C!-- crank wheel --%3E%3Ccircle cx='150' cy='80' r='28' stroke='%234cc9f0' stroke-width='0.5' opacity='0.07' fill='none'/%3E%3Ccircle cx='150' cy='80' r='18' stroke='%234cc9f0' stroke-width='0.4' opacity='0.05' fill='none'/%3E%3Ccircle cx='150' cy='80' r='3' fill='%234cc9f0' opacity='0.06'/%3E%3C!-- crank spokes --%3E%3Cg stroke='%234cc9f0' stroke-width='0.4' opacity='0.05'%3E%3Cline x1='150' y1='52' x2='150' y2='108'/%3E%3Cline x1='122' y1='80' x2='178' y2='80'/%3E%3Cline x1='130' y1='60' x2='170' y2='100'/%3E%3Cline x1='170' y1='60' x2='130' y2='100'/%3E%3C/g%3E%3C!-- drone strings running horizontally --%3E%3Cg stroke='%234cc9f0' stroke-width='0.4' opacity='0.06'%3E%3Cline x1='0' y1='65' x2='122' y2='65'/%3E%3Cline x1='0' y1='80' x2='122' y2='80'/%3E%3Cline x1='0' y1='95' x2='122' y2='95'/%3E%3C/g%3E%3C!-- key tangent slots (medieval keys) --%3E%3Cg stroke='%23e8c87a' stroke-width='0.5' opacity='0.06' fill='none'%3E%3Crect x='20' y='60' width='8' height='10' rx='1'/%3E%3Crect x='38' y='60' width='8' height='10' rx='1'/%3E%3Crect x='56' y='60' width='8' height='10' rx='1'/%3E%3Crect x='74' y='60' width='8' height='10' rx='1'/%3E%3Crect x='92' y='60' width='8' height='10' rx='1'/%3E%3C/g%3E%3C!-- gear teeth hint --%3E%3Cg stroke='%234cc9f0' stroke-width='0.3' opacity='0.04'%3E%3Cline x1='150' y1='49' x2='150' y2='46'/%3E%3Cline x1='164' y1='53' x2='166' y2='50'/%3E%3Cline x1='175' y1='65' x2='178' y2='64'/%3E%3Cline x1='178' y1='80' x2='181' y2='80'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 160px;
+}
+
+
+/* ---------------------------------------------------------------------------
+   8. Didgeridoo — Aboriginal dot-painting circles, drone overtone spirals
+   --------------------------------------------------------------------------- */
+
+.didgeridoo-wrapper {
+  position: relative;
+}
+.didgeridoo-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3C!-- concentric dot circles (dot-painting style) --%3E%3Cg fill='%234cc9f0' opacity='0.06'%3E%3Ccircle cx='80' cy='80' r='1.5'/%3E%3C!-- ring 1 — 8 dots --%3E%3Ccircle cx='80' cy='65' r='1.2'/%3E%3Ccircle cx='91' cy='69' r='1.2'/%3E%3Ccircle cx='95' cy='80' r='1.2'/%3E%3Ccircle cx='91' cy='91' r='1.2'/%3E%3Ccircle cx='80' cy='95' r='1.2'/%3E%3Ccircle cx='69' cy='91' r='1.2'/%3E%3Ccircle cx='65' cy='80' r='1.2'/%3E%3Ccircle cx='69' cy='69' r='1.2'/%3E%3C/g%3E%3C!-- ring 2 — larger spacing --%3E%3Cg fill='%234cc9f0' opacity='0.05'%3E%3Ccircle cx='80' cy='50' r='1'/%3E%3Ccircle cx='101' cy='59' r='1'/%3E%3Ccircle cx='110' cy='80' r='1'/%3E%3Ccircle cx='101' cy='101' r='1'/%3E%3Ccircle cx='80' cy='110' r='1'/%3E%3Ccircle cx='59' cy='101' r='1'/%3E%3Ccircle cx='50' cy='80' r='1'/%3E%3Ccircle cx='59' cy='59' r='1'/%3E%3C/g%3E%3C!-- outer ring dots --%3E%3Cg fill='%23e8c87a' opacity='0.05'%3E%3Ccircle cx='80' cy='35' r='0.9'/%3E%3Ccircle cx='112' cy='48' r='0.9'/%3E%3Ccircle cx='125' cy='80' r='0.9'/%3E%3Ccircle cx='112' cy='112' r='0.9'/%3E%3Ccircle cx='80' cy='125' r='0.9'/%3E%3Ccircle cx='48' cy='112' r='0.9'/%3E%3Ccircle cx='35' cy='80' r='0.9'/%3E%3Ccircle cx='48' cy='48' r='0.9'/%3E%3C/g%3E%3C!-- spiral overtone hint --%3E%3Cpath d='M80,80 Q90,70 95,80 Q100,95 85,100 Q65,105 60,85 Q55,60 80,55 Q110,50 118,80' stroke='%234cc9f0' stroke-width='0.3' opacity='0.04' fill='none'/%3E%3C!-- corner dot clusters for tiling --%3E%3Cg fill='%234cc9f0' opacity='0.04'%3E%3Ccircle cx='10' cy='10' r='1'/%3E%3Ccircle cx='18' cy='10' r='0.8'/%3E%3Ccircle cx='10' cy='18' r='0.8'/%3E%3Ccircle cx='150' cy='150' r='1'/%3E%3Ccircle cx='142' cy='150' r='0.8'/%3E%3Ccircle cx='150' cy='142' r='0.8'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 160px 160px;
+}
+
+
+/* ---------------------------------------------------------------------------
+   9. Steel Pan — Concentric ring zones, hammered-metal dimples
+   --------------------------------------------------------------------------- */
+
+.steelpan-wrapper {
+  position: relative;
+}
+.steelpan-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3C!-- outer pan rim --%3E%3Ccircle cx='90' cy='90' r='80' stroke='%234cc9f0' stroke-width='0.5' opacity='0.06' fill='none'/%3E%3C!-- concentric zone rings --%3E%3Ccircle cx='90' cy='90' r='60' stroke='%234cc9f0' stroke-width='0.4' opacity='0.05' fill='none'/%3E%3Ccircle cx='90' cy='90' r='38' stroke='%234cc9f0' stroke-width='0.4' opacity='0.05' fill='none'/%3E%3Ccircle cx='90' cy='90' r='18' stroke='%234cc9f0' stroke-width='0.4' opacity='0.06' fill='none'/%3E%3C!-- radial division lines (note sections) --%3E%3Cg stroke='%234cc9f0' stroke-width='0.3' opacity='0.05'%3E%3Cline x1='90' y1='10' x2='90' y2='30'/%3E%3Cline x1='90' y1='150' x2='90' y2='170'/%3E%3Cline x1='10' y1='90' x2='30' y2='90'/%3E%3Cline x1='150' y1='90' x2='170' y2='90'/%3E%3Cline x1='33' y1='33' x2='47' y2='47'/%3E%3Cline x1='147' y1='33' x2='133' y2='47'/%3E%3Cline x1='33' y1='147' x2='47' y2='133'/%3E%3Cline x1='147' y1='147' x2='133' y2='133'/%3E%3C/g%3E%3C!-- hammered dimple marks --%3E%3Cg fill='%23e8c87a' opacity='0.05'%3E%3Ccircle cx='90' cy='55' r='1.5'/%3E%3Ccircle cx='65' cy='70' r='1.3'/%3E%3Ccircle cx='115' cy='70' r='1.3'/%3E%3Ccircle cx='75' cy='108' r='1.3'/%3E%3Ccircle cx='105' cy='108' r='1.3'/%3E%3Ccircle cx='90' cy='125' r='1.5'/%3E%3Ccircle cx='55' cy='90' r='1.3'/%3E%3Ccircle cx='125' cy='90' r='1.3'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 180px;
+}
+
+
+/* ---------------------------------------------------------------------------
+   10. Accordion — Bellows folds, button grid, reed elements
+   --------------------------------------------------------------------------- */
+
+.accordion-wrapper {
+  position: relative;
+}
+.accordion-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='140' viewBox='0 0 160 140'%3E%3C!-- bellows fold zigzag lines --%3E%3Cg stroke='%234cc9f0' stroke-width='0.5' opacity='0.06' fill='none'%3E%3Cpath d='M0,20 L20,10 L40,20 L60,10 L80,20 L100,10 L120,20 L140,10 L160,20'/%3E%3Cpath d='M0,50 L20,40 L40,50 L60,40 L80,50 L100,40 L120,50 L140,40 L160,50'/%3E%3Cpath d='M0,80 L20,70 L40,80 L60,70 L80,80 L100,70 L120,80 L140,70 L160,80'/%3E%3Cpath d='M0,110 L20,100 L40,110 L60,100 L80,110 L100,100 L120,110 L140,100 L160,110'/%3E%3C/g%3E%3C!-- vertical fold connections --%3E%3Cg stroke='%234cc9f0' stroke-width='0.3' opacity='0.04'%3E%3Cline x1='20' y1='10' x2='20' y2='100'/%3E%3Cline x1='60' y1='10' x2='60' y2='100'/%3E%3Cline x1='100' y1='10' x2='100' y2='100'/%3E%3Cline x1='140' y1='10' x2='140' y2='100'/%3E%3C/g%3E%3C!-- button grid hints --%3E%3Cg stroke='%23e8c87a' stroke-width='0.5' opacity='0.06' fill='none'%3E%3Ccircle cx='30' cy='125' r='4'/%3E%3Ccircle cx='50' cy='125' r='4'/%3E%3Ccircle cx='70' cy='125' r='4'/%3E%3Ccircle cx='90' cy='125' r='4'/%3E%3Ccircle cx='110' cy='125' r='4'/%3E%3Ccircle cx='130' cy='125' r='4'/%3E%3C/g%3E%3C!-- reed tongue shape --%3E%3Crect x='65' y='2' width='30' height='4' rx='2' stroke='%234cc9f0' stroke-width='0.3' opacity='0.04' fill='none'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 160px 140px;
+}
+
+
+/* ---------------------------------------------------------------------------
+   11. Handpan — Ding center circle, tone field petals radiating outward
+   --------------------------------------------------------------------------- */
+
+.handpan-wrapper,
+.handpan-surface {
+  position: relative;
+}
+.handpan-wrapper::before,
+.handpan-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3C!-- ding (center dome) --%3E%3Ccircle cx='90' cy='90' r='18' stroke='%234cc9f0' stroke-width='0.6' opacity='0.07' fill='none'/%3E%3Ccircle cx='90' cy='90' r='8' stroke='%234cc9f0' stroke-width='0.4' opacity='0.05' fill='none'/%3E%3Ccircle cx='90' cy='90' r='3' fill='%23e8c87a' opacity='0.05'/%3E%3C!-- tone field petals (8 elliptical dimples radiating outward) --%3E%3Cg stroke='%234cc9f0' stroke-width='0.5' opacity='0.06' fill='none'%3E%3Cellipse cx='90' cy='45' rx='10' ry='16'/%3E%3Cellipse cx='122' cy='54' rx='10' ry='16' transform='rotate(45 122 54)'/%3E%3Cellipse cx='135' cy='90' rx='10' ry='16' transform='rotate(90 135 90)'/%3E%3Cellipse cx='122' cy='126' rx='10' ry='16' transform='rotate(-45 122 126)'/%3E%3Cellipse cx='90' cy='135' rx='10' ry='16'/%3E%3Cellipse cx='58' cy='126' rx='10' ry='16' transform='rotate(45 58 126)'/%3E%3Cellipse cx='45' cy='90' rx='10' ry='16' transform='rotate(90 45 90)'/%3E%3Cellipse cx='58' cy='54' rx='10' ry='16' transform='rotate(-45 58 54)'/%3E%3C/g%3E%3C!-- outer rim --%3E%3Ccircle cx='90' cy='90' r='82' stroke='%234cc9f0' stroke-width='0.3' opacity='0.04' fill='none'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 180px;
+}
+
+
+/* ---------------------------------------------------------------------------
+   12. Kaoss / Gesture Trail — Gesture trail curves, XY crosshair, waveforms
+   --------------------------------------------------------------------------- */
+
+.kaoss-wrapper {
+  position: relative;
+}
+.kaoss-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3C!-- XY crosshair --%3E%3Cg stroke='%234cc9f0' stroke-width='0.4' opacity='0.05' stroke-dasharray='4 6'%3E%3Cline x1='80' y1='0' x2='80' y2='160'/%3E%3Cline x1='0' y1='80' x2='160' y2='80'/%3E%3C/g%3E%3C!-- grid subdivisions --%3E%3Cg stroke='%234cc9f0' stroke-width='0.2' opacity='0.03'%3E%3Cline x1='40' y1='0' x2='40' y2='160'/%3E%3Cline x1='120' y1='0' x2='120' y2='160'/%3E%3Cline x1='0' y1='40' x2='160' y2='40'/%3E%3Cline x1='0' y1='120' x2='160' y2='120'/%3E%3C/g%3E%3C!-- gesture trail curve --%3E%3Cpath d='M25,130 Q40,50 80,80 Q120,110 100,40 Q90,20 135,30' stroke='%234cc9f0' stroke-width='0.6' opacity='0.07' fill='none' stroke-linecap='round'/%3E%3C!-- trail dots --%3E%3Cg fill='%23e8c87a' opacity='0.06'%3E%3Ccircle cx='25' cy='130' r='2'/%3E%3Ccircle cx='55' cy='72' r='1.5'/%3E%3Ccircle cx='80' cy='80' r='1.5'/%3E%3Ccircle cx='100' cy='40' r='1.5'/%3E%3Ccircle cx='135' cy='30' r='2'/%3E%3C/g%3E%3C!-- recording waveform snippet --%3E%3Cpath d='M10,150 L18,145 L22,155 L28,142 L34,152 L40,148 L46,150' stroke='%234cc9f0' stroke-width='0.4' opacity='0.05' fill='none'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 160px 160px;
+}
+
+
+/* ---------------------------------------------------------------------------
+   13. Tonnetz Grid — Triangular/hexagonal lattice, circle-of-fifths geometry
+   --------------------------------------------------------------------------- */
+
+.tonnetz-wrapper {
+  position: relative;
+}
+.tonnetz-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='168' height='146' viewBox='0 0 168 146'%3E%3C!-- hexagonal/triangular lattice --%3E%3Cg stroke='%234cc9f0' stroke-width='0.4' opacity='0.06' fill='none'%3E%3C!-- row 1 triangles --%3E%3Cpath d='M0,0 L28,0 L14,24 Z'/%3E%3Cpath d='M28,0 L56,0 L42,24 Z'/%3E%3Cpath d='M56,0 L84,0 L70,24 Z'/%3E%3Cpath d='M84,0 L112,0 L98,24 Z'/%3E%3Cpath d='M112,0 L140,0 L126,24 Z'/%3E%3Cpath d='M140,0 L168,0 L154,24 Z'/%3E%3C!-- row 1 inverted --%3E%3Cpath d='M14,24 L42,24 L28,0 Z'/%3E%3Cpath d='M42,24 L70,24 L56,0 Z'/%3E%3Cpath d='M70,24 L98,24 L84,0 Z'/%3E%3Cpath d='M98,24 L126,24 L112,0 Z'/%3E%3Cpath d='M126,24 L154,24 L140,0 Z'/%3E%3C!-- row 2 --%3E%3Cpath d='M0,48 L28,48 L14,24 Z'/%3E%3Cpath d='M28,48 L56,48 L42,24 Z'/%3E%3Cpath d='M56,48 L84,48 L70,24 Z'/%3E%3Cpath d='M84,48 L112,48 L98,24 Z'/%3E%3Cpath d='M112,48 L140,48 L126,24 Z'/%3E%3Cpath d='M140,48 L168,48 L154,24 Z'/%3E%3C!-- row 2 inverted --%3E%3Cpath d='M14,24 L42,24 L28,48 Z'/%3E%3Cpath d='M42,24 L70,24 L56,48 Z'/%3E%3Cpath d='M70,24 L98,24 L84,48 Z'/%3E%3Cpath d='M98,24 L126,24 L112,48 Z'/%3E%3Cpath d='M126,24 L154,24 L140,48 Z'/%3E%3C!-- rows 3-6 continue the lattice --%3E%3Cpath d='M0,48 L28,48 L14,72 Z'/%3E%3Cpath d='M28,48 L56,48 L42,72 Z'/%3E%3Cpath d='M56,48 L84,48 L70,72 Z'/%3E%3Cpath d='M84,48 L112,48 L98,72 Z'/%3E%3Cpath d='M112,48 L140,48 L126,72 Z'/%3E%3Cpath d='M140,48 L168,48 L154,72 Z'/%3E%3Cpath d='M0,96 L28,96 L14,72 Z'/%3E%3Cpath d='M28,96 L56,96 L42,72 Z'/%3E%3Cpath d='M56,96 L84,96 L70,72 Z'/%3E%3Cpath d='M84,96 L112,96 L98,72 Z'/%3E%3Cpath d='M112,96 L140,96 L126,72 Z'/%3E%3Cpath d='M140,96 L168,96 L154,72 Z'/%3E%3C/g%3E%3C!-- circle-of-fifths node hints --%3E%3Cg fill='%23e8c87a' opacity='0.05'%3E%3Ccircle cx='14' cy='24' r='2'/%3E%3Ccircle cx='70' cy='24' r='2'/%3E%3Ccircle cx='126' cy='24' r='2'/%3E%3Ccircle cx='42' cy='72' r='2'/%3E%3Ccircle cx='98' cy='72' r='2'/%3E%3Ccircle cx='154' cy='72' r='2'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 168px 146px;
+}
+
+
+/* ---------------------------------------------------------------------------
+   14. Organ Drawbars — Organ pipe outlines, gothic arches, harmonic series
+   --------------------------------------------------------------------------- */
+
+.ssli-organ-wrapper {
+  position: relative;
+}
+.ssli-organ-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3C!-- organ pipe outlines (graduated heights = harmonic series) --%3E%3Cg stroke='%234cc9f0' stroke-width='0.5' opacity='0.06' fill='none'%3E%3C!-- 8 pipes, tallest in center --%3E%3Crect x='15' y='90' width='10' height='80' rx='1'/%3E%3Crect x='32' y='65' width='12' height='105' rx='1'/%3E%3Crect x='51' y='40' width='13' height='130' rx='1'/%3E%3Crect x='72' y='20' width='14' height='150' rx='1'/%3E%3Crect x='94' y='20' width='14' height='150' rx='1'/%3E%3Crect x='116' y='40' width='13' height='130' rx='1'/%3E%3Crect x='136' y='65' width='12' height='105' rx='1'/%3E%3Crect x='155' y='90' width='10' height='80' rx='1'/%3E%3C/g%3E%3C!-- gothic arch tops on tallest pipes --%3E%3Cg stroke='%23e8c87a' stroke-width='0.4' opacity='0.06' fill='none'%3E%3Cpath d='M72,20 Q79,8 86,20'/%3E%3Cpath d='M94,20 Q101,8 108,20'/%3E%3Cpath d='M51,40 Q57.5,30 64,40'/%3E%3Cpath d='M116,40 Q122.5,30 129,40'/%3E%3C/g%3E%3C!-- pipe mouth slots --%3E%3Cg stroke='%234cc9f0' stroke-width='0.3' opacity='0.04'%3E%3Cline x1='17' y1='155' x2='23' y2='155'/%3E%3Cline x1='35' y1='155' x2='41' y2='155'/%3E%3Cline x1='54' y1='155' x2='61' y2='155'/%3E%3Cline x1='76' y1='155' x2='83' y2='155'/%3E%3Cline x1='98' y1='155' x2='105' y2='155'/%3E%3Cline x1='119' y1='155' x2='126' y2='155'/%3E%3Cline x1='139' y1='155' x2='145' y2='155'/%3E%3Cline x1='157' y1='155' x2='163' y2='155'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 180px;
+}
+
+
+/* ---------------------------------------------------------------------------
+   15. Multistring — Bow hair lines, rosin dust particles, vibration nodes
+   --------------------------------------------------------------------------- */
+
+.bowed-wrapper {
+  position: relative;
+}
+.bowed-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3C!-- bow hair lines (diagonal, parallel) --%3E%3Cg stroke='%234cc9f0' stroke-width='0.4' opacity='0.06'%3E%3Cline x1='0' y1='30' x2='160' y2='10'/%3E%3Cline x1='0' y1='34' x2='160' y2='14'/%3E%3Cline x1='0' y1='38' x2='160' y2='18'/%3E%3Cline x1='0' y1='42' x2='160' y2='22'/%3E%3C/g%3E%3C!-- vibrating string with standing wave --%3E%3Cpath d='M10,90 Q50,70 80,90 Q110,110 150,90' stroke='%234cc9f0' stroke-width='0.5' opacity='0.07' fill='none'/%3E%3C!-- harmonic overtone --%3E%3Cpath d='M10,90 Q30,82 50,90 Q70,98 90,90 Q110,82 130,90 Q150,98 160,90' stroke='%234cc9f0' stroke-width='0.3' opacity='0.04' fill='none'/%3E%3C!-- vibration nodes --%3E%3Cg fill='%23e8c87a' opacity='0.06'%3E%3Ccircle cx='10' cy='90' r='2'/%3E%3Ccircle cx='80' cy='90' r='1.5'/%3E%3Ccircle cx='150' cy='90' r='2'/%3E%3C/g%3E%3C!-- rosin dust particles --%3E%3Cg fill='%234cc9f0' opacity='0.04'%3E%3Ccircle cx='25' cy='55' r='0.6'/%3E%3Ccircle cx='48' cy='48' r='0.5'/%3E%3Ccircle cx='72' cy='52' r='0.7'/%3E%3Ccircle cx='95' cy='46' r='0.5'/%3E%3Ccircle cx='110' cy='50' r='0.6'/%3E%3Ccircle cx='135' cy='44' r='0.5'/%3E%3Ccircle cx='35' cy='120' r='0.6'/%3E%3Ccircle cx='60' cy='128' r='0.5'/%3E%3Ccircle cx='88' cy='122' r='0.7'/%3E%3Ccircle cx='115' cy='130' r='0.5'/%3E%3Ccircle cx='140' cy='125' r='0.6'/%3E%3C/g%3E%3C!-- f-hole hint --%3E%3Cpath d='M20,130 Q22,140 18,150 M24,130 Q22,140 26,150' stroke='%234cc9f0' stroke-width='0.3' opacity='0.04' fill='none'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 160px 160px;
+}
+
+
+/* ---------------------------------------------------------------------------
+   16. MPE / Wave Keys — Wave ridges, pressure contour lines, topographic feel
+   --------------------------------------------------------------------------- */
+
+.mpe-wrapper {
+  position: relative;
+}
+.mpe-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='140' viewBox='0 0 200 140'%3E%3C!-- wave ridge keywave lines --%3E%3Cg stroke='%234cc9f0' stroke-width='0.5' opacity='0.06' fill='none'%3E%3Cpath d='M0,20 Q25,14 50,20 Q75,26 100,20 Q125,14 150,20 Q175,26 200,20'/%3E%3Cpath d='M0,45 Q25,39 50,45 Q75,51 100,45 Q125,39 150,45 Q175,51 200,45'/%3E%3Cpath d='M0,70 Q25,64 50,70 Q75,76 100,70 Q125,64 150,70 Q175,76 200,70'/%3E%3Cpath d='M0,95 Q25,89 50,95 Q75,101 100,95 Q125,89 150,95 Q175,101 200,95'/%3E%3Cpath d='M0,120 Q25,114 50,120 Q75,126 100,120 Q125,114 150,120 Q175,126 200,120'/%3E%3C/g%3E%3C!-- pressure contour ellipses (topographic) --%3E%3Cg stroke='%23e8c87a' stroke-width='0.4' opacity='0.05' fill='none'%3E%3Cellipse cx='60' cy='58' rx='18' ry='8'/%3E%3Cellipse cx='60' cy='58' rx='10' ry='4'/%3E%3Cellipse cx='150' cy='82' rx='16' ry='7'/%3E%3Cellipse cx='150' cy='82' rx='8' ry='3'/%3E%3C/g%3E%3C!-- aftertouch pressure dots --%3E%3Cg fill='%234cc9f0' opacity='0.04'%3E%3Ccircle cx='60' cy='58' r='1.5'/%3E%3Ccircle cx='150' cy='82' r='1.5'/%3E%3C/g%3E%3C!-- slide dimension arrows (subtle) --%3E%3Cg stroke='%234cc9f0' stroke-width='0.3' opacity='0.04'%3E%3Cline x1='5' y1='5' x2='5' y2='135'/%3E%3Cline x1='5' y1='5' x2='8' y2='10'/%3E%3Cline x1='5' y1='5' x2='2' y2='10'/%3E%3Cline x1='5' y1='135' x2='8' y2='130'/%3E%3Cline x1='5' y1='135' x2='2' y2='130'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 140px;
+}
+
+/* =============================================================================
+   SVG Background Decorations — DISABLED (v1.6.950)
+   Visual failure — hidden via CSS for future revisit. Do not delete code above.
+   This blanket rule hides all surface wrapper background-image SVGs whose opacity
+   is baked into the data URI and not controlled by --bg-opacity.
+   ============================================================================= */
+.piano-wrapper,
+.chordpads-wrapper,
+.ctrl-fretboard,
+.bass-wrapper,
+.drum-grid,
+.ssli-loom-wrapper,
+.harp-wrapper,
+.marimba-wrapper,
+.iso-grid-wrapper,
+.iso5-wrapper,
+.hex-wrapper,
+.ribbon-wrapper,
+.xypad-wrapper,
+.breathpad-wrapper,
+.breathpadens-wrapper,
+.theremin-wrapper,
+.chromaticgrid-wrapper,
+.vowelpad-wrapper,
+.shrutibox-wrapper,
+.tanpura-wrapper,
+.ssli-tabla-wrapper,
+.wind-wrapper,
+.hurdygurdy-wrapper,
+.didgeridoo-wrapper,
+.steelpan-wrapper,
+.accordion-wrapper,
+.handpan-surface,
+.kaoss-wrapper,
+.tonnetz-wrapper,
+.ssli-organ-wrapper,
+.bowed-wrapper,
+.mpe-wrapper {
+  background-image: none !important;
+}

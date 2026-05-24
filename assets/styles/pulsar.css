@@ -1,0 +1,8 @@
+/* Pulsar engine accent: Electric Blue #3388FF */
+.pulsar-controls { color: #3388FF; }
+.pulsar-controls .mini-toggle.active,
+.pulsar-controls select:focus { border-color: #3388FF; }
+.instrument-type-btn[data-type="pulsar"].active { background: #3388FF; color: #000; }
+.instrument-type-btn[data-type="pulsar"]:hover { border-color: #3388FF; }
+#pulsarControlsModal .vector-controls div label { color: var(--sslu-text-muted); }
+#pulsarControlsModal div[style*="font-weight:bold"] { color: #3388FF !important; }

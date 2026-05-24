@@ -1,0 +1,176 @@
+/**
+ * granular.css - Granular Synthesis Controls Styles
+ * Grain size, density, scatter, window shape, freeze mode
+ */
+
+/* ========================================
+   Granular Controls Container (Modal)
+   ======================================== */
+
+.granular-controls-modal {
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--sslu-radius-lg);
+    margin-bottom: 0.5rem;
+}
+
+.granular-title-modal {
+    font-size: var(--ssli-fs-body);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--sslu-synth-granular);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ========================================
+   Source Waveform Selector
+   ======================================== */
+
+.granular-source-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.granular-source-row label {
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+    min-width: 50px;
+}
+
+.granular-source-row select {
+    padding: 2px 6px;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-input);
+    color: #e0e0e0;
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+}
+
+/* ========================================
+   Window Shape Selector
+   ======================================== */
+
+.granular-window-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.granular-window-row label {
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+    min-width: 50px;
+}
+
+.granular-window-row select {
+    padding: 2px 6px;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-input);
+    color: #e0e0e0;
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+}
+
+/* ========================================
+   Parameter Sliders
+   ======================================== */
+
+.granular-param-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.granular-param-row label {
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+    min-width: 80px;
+}
+
+.granular-param-row input[type="range"] {
+    flex: 1;
+    min-width: 80px;
+    max-width: 200px;
+    cursor: pointer;
+}
+
+.granular-param-row .granular-param-val {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-synth-granular);
+    min-width: 40px;
+    text-align: right;
+}
+
+/* ========================================
+   Freeze Toggle
+   ======================================== */
+
+.granular-freeze-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.granular-freeze-btn {
+    padding: 3px 12px;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-input);
+    color: #b0b0b0;
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.granular-freeze-btn:hover {
+    background: #2a2a4e;
+    color: #e0e0e0;
+}
+
+.granular-freeze-btn.active {
+    background: #4a2a6e;
+    color: var(--sslu-synth-granular);
+    border-color: var(--sslu-synth-granular);
+}
+
+/* ========================================
+   Position Slider
+   ======================================== */
+
+.granular-position-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.granular-position-row label {
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+    min-width: 80px;
+}
+
+.granular-position-row input[type="range"] {
+    flex: 1;
+    min-width: 100px;
+    max-width: 200px;
+    cursor: pointer;
+}
+
+.granular-position-row .granular-position-val {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-synth-granular);
+    min-width: 30px;
+    text-align: right;
+}

@@ -1,0 +1,401 @@
+/**
+ * feedback.css - Feedback System & About Panel Styles
+ */
+
+/* ========================================
+   Context Menu
+   ======================================== */
+
+.ssl-context-menu {
+    position: fixed;
+    z-index: 100000;
+    background: var(--sslu-bg-raised);
+    border: 1px solid var(--sslu-cyan);
+    border-radius: var(--sslu-radius-lg);
+    padding: var(--sslu-space-2) 0;
+    min-width: 220px;
+    box-shadow: var(--sslu-shadow-md);
+    font-size: var(--sslu-fs-body-sm);
+    display: none;
+}
+
+.ssl-context-menu-item {
+    padding: 6px 14px;
+    color: #ccc;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.ssl-context-menu-item:hover {
+    background: var(--sslu-cyan);
+    color: #111;
+}
+
+/* ========================================
+   Feedback Modal
+   ======================================== */
+
+.ssl-feedback-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--sslu-bg-overlay);
+    z-index: 100001;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.ssl-feedback-overlay.visible {
+    display: flex;
+}
+
+.ssl-feedback-modal {
+    background: var(--sslu-bg-input);
+    border: 1px solid var(--sslu-cyan);
+    border-radius: var(--sslu-radius-2xl);
+    padding: var(--sslu-space-10);
+    width: 380px;
+    max-width: 90vw;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(76, 201, 240, 0.15);
+}
+
+.ssl-feedback-title {
+    font-size: var(--sslu-fs-h2);
+    color: var(--sslu-cyan);
+    margin-bottom: 12px;
+    font-weight: var(--ssli-fw-bold);
+    text-align: center;
+}
+
+.ssl-feedback-element-id {
+    font-size: var(--ssli-fs-sm);
+    color: #888;
+    background: var(--sslu-bg-button);
+    padding: var(--sslu-pad-input);
+    border-radius: var(--sslu-radius-md);
+    margin-bottom: 12px;
+    font-family: var(--sslu-font-mono);
+    text-align: center;
+}
+
+.ssl-feedback-label {
+    font-size: var(--ssli-fs-sm);
+    color: #aaa;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.ssl-feedback-rating {
+    display: flex;
+    gap: var(--ssli-gap-sm);
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+
+.ssl-feedback-rating-btn {
+    padding: var(--sslu-pad-btn);
+    font-size: var(--sslu-fs-tiny);
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-md);
+    background: var(--sslu-bg-button);
+    color: #ccc;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.ssl-feedback-rating-btn:hover {
+    border-color: #4cc9f0;
+    color: #fff;
+}
+
+.ssl-feedback-rating-btn.selected {
+    background: var(--sslu-cyan);
+    color: #111;
+    border-color: var(--sslu-cyan);
+    font-weight: var(--sslu-fw-bold);
+}
+
+.ssl-feedback-textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 8px;
+    border-radius: var(--sslu-radius-lg);
+    border: 1px solid var(--sslu-border-strong);
+    background: var(--sslu-bg-button);
+    color: var(--sslu-text-primary);
+    font-size: var(--sslu-fs-small);
+    font-family: var(--sslu-font-family);
+    resize: vertical;
+    margin-bottom: 14px;
+}
+
+.ssl-feedback-textarea:focus {
+    outline: none;
+    border-color: var(--sslu-cyan);
+}
+
+.ssl-feedback-submit {
+    width: 100%;
+    padding: 8px;
+    border: none;
+    border-radius: var(--sslu-radius-lg);
+    background: var(--sslu-gradient-brand);
+    color: var(--sslu-text-primary);
+    font-size: var(--sslu-fs-body-sm);
+    font-weight: var(--sslu-fw-bold);
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.ssl-feedback-submit:hover {
+    opacity: var(--ssli-opacity-hover);
+}
+
+.ssl-feedback-submit:disabled {
+    opacity: var(--sslu-opacity-disabled);
+    cursor: not-allowed;
+}
+
+.ssl-feedback-success {
+    text-align: center;
+    color: var(--sslu-cyan);
+    font-size: var(--sslu-fs-body-sm);
+    margin-top: 8px;
+    display: none;
+}
+
+/* ========================================
+   About Button
+   ======================================== */
+
+.ssl-about-btn {
+    padding: 2px 8px;
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-bold);
+    background: transparent;
+    border: 1px solid #555;
+    border-radius: var(--sslu-radius-md);
+    color: var(--sslu-cyan);
+    cursor: pointer;
+    transition: border-color var(--sslu-transition-normal), background var(--sslu-transition-normal);
+    margin-left: 4px;
+}
+
+.ssl-about-btn:hover {
+    border-color: #4cc9f0;
+    background: rgba(76, 201, 240, 0.1);
+}
+
+/* ========================================
+   Prominent About Button (title bar)
+   ======================================== */
+
+.ssl-about-prominent {
+    background: transparent;
+    border: 1px solid var(--sslu-indigo);
+    color: #aab;
+    padding: 4px 12px;
+    border-radius: var(--sslu-radius-md);
+    font-size: var(--ssli-fs-body);
+    font-family: inherit;
+    cursor: pointer;
+    margin-left: 8px;
+    transition: background 0.15s, color 0.15s;
+}
+
+.ssl-about-prominent:hover {
+    background: #1a1a30;
+    color: #e0e0ff;
+}
+
+/* ========================================
+   About Modal
+   ======================================== */
+
+.ssl-about-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--sslu-bg-overlay);
+    z-index: 100002;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.ssl-about-overlay.visible {
+    display: flex;
+}
+
+.ssl-about-modal {
+    background: var(--sslu-bg-input);
+    border: 1px solid var(--sslu-cyan);
+    border-radius: var(--sslu-radius-2xl);
+    padding: 24px;
+    width: 420px;
+    max-width: 90vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(76, 201, 240, 0.15);
+}
+
+.ssl-about-header {
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.ssl-about-header h2 {
+    font-size: var(--ssli-fs-lg);
+    background: var(--sslu-gradient-brand);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 4px;
+}
+
+.ssl-about-separator {
+    border: none;
+    border-top: 2px solid var(--sslu-cyan);
+    margin: 4px 0;
+    opacity: var(--ssli-opacity-inactive);
+}
+
+.ssl-about-section-title {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-cyan);
+    font-weight: var(--sslu-fw-bold);
+    margin: 14px 0 6px 0;
+    letter-spacing: var(--sslu-ls-wider);
+    text-align: center;
+}
+
+.ssl-about-section-sep {
+    border: none;
+    border-top: 1px solid var(--sslu-border-strong);
+    margin: 2px 0;
+}
+
+.ssl-about-info {
+    font-size: var(--ssli-fs-sm);
+    color: #ccc;
+    text-align: center;
+    margin-bottom: 4px;
+}
+
+.ssl-about-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 8px 0;
+}
+
+.ssl-about-features li {
+    font-size: var(--ssli-fs-sm);
+    color: #bbb;
+    padding: 2px 0 2px 12px;
+    position: relative;
+}
+
+.ssl-about-features li::before {
+    content: "\2022";
+    position: absolute;
+    left: 0;
+    color: var(--sslu-cyan);
+}
+
+.ssl-about-btn-action {
+    display: inline-block;
+    padding: 6px 14px;
+    font-size: var(--ssli-fs-sm);
+    border: 1px solid var(--sslu-cyan);
+    border-radius: var(--sslu-radius-md);
+    background: transparent;
+    color: var(--sslu-cyan);
+    cursor: pointer;
+    transition: background 0.15s;
+    margin: 4px 4px;
+}
+
+.ssl-about-btn-action:hover {
+    background: rgba(76, 201, 240, 0.15);
+}
+
+.ssl-about-feedback-count {
+    font-size: var(--ssli-fs-sm);
+    color: #888;
+    margin-left: 6px;
+}
+
+.ssl-about-contact {
+    font-size: var(--ssli-fs-sm);
+    color: #888;
+    text-align: center;
+    margin-top: 10px;
+}
+
+.ssl-about-close {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: #888;
+    font-size: var(--ssli-fs-lg);
+    cursor: pointer;
+}
+
+.ssl-about-close:hover {
+    color: #fff;
+}
+
+.ssl-about-modal-inner {
+    position: relative;
+}
+
+/* ========================================
+   Donate Sub-Panel
+   ======================================== */
+
+.ssl-donate-panel {
+    background: var(--sslu-bg-button);
+    border: 1px solid var(--sslu-text-faint);
+    border-radius: var(--sslu-radius-xl);
+    padding: 14px;
+    margin-top: 8px;
+    display: none;
+}
+
+.ssl-donate-panel.visible {
+    display: block;
+}
+
+.ssl-donate-panel p {
+    font-size: var(--ssli-fs-sm);
+    color: #ccc;
+    margin-bottom: 6px;
+    line-height: 1.5;
+}
+
+.ssl-donate-panel ul {
+    list-style: none;
+    padding: 0;
+}
+
+.ssl-donate-panel ul li {
+    font-size: var(--ssli-fs-sm);
+    color: #bbb;
+    padding: 2px 0 2px 12px;
+    position: relative;
+}
+
+.ssl-donate-panel ul li::before {
+    content: "\2022";
+    position: absolute;
+    left: 0;
+    color: var(--sslu-cyan);
+}

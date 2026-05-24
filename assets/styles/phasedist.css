@@ -1,0 +1,304 @@
+/**
+ * phasedist.css - Phase Distortion Synthesis Controls Styles
+ * PD type selection, amount, window shape, resonance, PD envelope
+ * Accent color: electric green var(--sslu-synth-phasedist)
+ */
+
+/* ========================================
+   Phase Distortion Controls Container (Modal)
+   ======================================== */
+
+.phasedist-controls-modal {
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--sslu-radius-lg);
+    margin-bottom: 0.5rem;
+}
+
+.phasedist-title-modal {
+    font-size: var(--ssli-fs-body);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--sslu-synth-phasedist);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ========================================
+   PD Type Selection Row
+   ======================================== */
+
+.phasedist-type-row {
+    display: flex;
+    gap: 0.3rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.phasedist-type-row .type-label {
+    font-size: var(--ssli-fs-sm);
+    color: #888;
+    margin-right: 0.3rem;
+}
+
+.phasedist-type-btn {
+    padding: 3px 10px;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-input);
+    color: #b0b0b0;
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    min-width: 28px;
+    text-align: center;
+}
+
+.phasedist-type-btn:hover {
+    background: #1a2e1a;
+    color: #e0e0e0;
+    border-color: var(--sslu-synth-phasedist);
+}
+
+.phasedist-type-btn:active {
+    background: #2a3e2a;
+}
+
+.phasedist-type-btn.active {
+    background: var(--sslu-synth-phasedist);
+    color: #111;
+    border-color: #66FFAA;
+    box-shadow: 0 0 6px rgba(68, 255, 136, 0.4);
+}
+
+/* ========================================
+   PD Amount Slider
+   ======================================== */
+
+.phasedist-amount-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.phasedist-amount-row label {
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+    min-width: 80px;
+    text-align: right;
+}
+
+.phasedist-amount-row input[type="range"] {
+    flex: 1;
+    max-width: 200px;
+    height: 4px;
+    cursor: pointer;
+    accent-color: var(--sslu-synth-phasedist);
+}
+
+.phasedist-amount-row .amount-value {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-synth-phasedist);
+    min-width: 36px;
+    text-align: left;
+}
+
+/* ========================================
+   Window Shape Selection
+   ======================================== */
+
+.phasedist-window-row {
+    display: flex;
+    gap: 0.3rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.phasedist-window-row .window-label {
+    font-size: var(--ssli-fs-sm);
+    color: #888;
+    margin-right: 0.3rem;
+}
+
+.phasedist-window-btn {
+    padding: 2px 8px;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-input);
+    color: #b0b0b0;
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.phasedist-window-btn:hover {
+    background: #1a2e1a;
+    color: #e0e0e0;
+}
+
+.phasedist-window-btn.active {
+    background: rgba(68, 255, 136, 0.3);
+    color: #66FFAA;
+    border-color: var(--sslu-synth-phasedist);
+}
+
+/* ========================================
+   Resonant Frequency Ratio
+   ======================================== */
+
+.phasedist-resonant-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.phasedist-resonant-row label {
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+    min-width: 80px;
+    text-align: right;
+}
+
+.phasedist-resonant-row input[type="range"] {
+    flex: 1;
+    max-width: 200px;
+    height: 4px;
+    cursor: pointer;
+    accent-color: var(--sslu-synth-phasedist);
+}
+
+.phasedist-resonant-row .resonant-value {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-synth-phasedist);
+    min-width: 36px;
+    text-align: left;
+}
+
+/* ========================================
+   PD Envelope Section
+   ======================================== */
+
+.phasedist-env-section {
+    padding: 0.4rem;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: var(--sslu-radius-md);
+    border: 1px solid var(--sslu-border-medium);
+    margin-bottom: 0.5rem;
+}
+
+.phasedist-env-title {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--sslu-synth-phasedist);
+    margin-bottom: 0.3rem;
+}
+
+.phasedist-env-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.phasedist-env-row label {
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+    min-width: 60px;
+    text-align: right;
+}
+
+.phasedist-env-row input[type="range"] {
+    flex: 1;
+    max-width: 160px;
+    height: 4px;
+    cursor: pointer;
+    accent-color: var(--sslu-synth-phasedist);
+}
+
+.phasedist-env-row .env-value {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-synth-phasedist);
+    min-width: 36px;
+    text-align: left;
+}
+
+/* ========================================
+   Parameter Sliders (generic)
+   ======================================== */
+
+.phasedist-param-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.phasedist-param-row label {
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+    min-width: 80px;
+    text-align: right;
+}
+
+.phasedist-param-row input[type="range"] {
+    flex: 1;
+    min-width: 80px;
+    max-width: 200px;
+    height: 4px;
+    cursor: pointer;
+    accent-color: var(--sslu-synth-phasedist);
+}
+
+.phasedist-param-row .phasedist-param-val {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-synth-phasedist);
+    min-width: 40px;
+    text-align: right;
+}
+
+/* ========================================
+   Section Dividers
+   ======================================== */
+
+.phasedist-divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--sslu-synth-phasedist)40, transparent);
+    margin: 0.4rem 0;
+}
+
+/* ========================================
+   Accent Overrides for Phase Distortion Engine
+   ======================================== */
+
+.phasedist-controls-modal input[type="checkbox"] {
+    accent-color: var(--sslu-synth-phasedist);
+}
+
+.phasedist-controls-modal select {
+    padding: 2px 6px;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-input);
+    color: #e0e0e0;
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+}
+
+.phasedist-controls-modal select:focus {
+    border-color: var(--sslu-synth-phasedist);
+    outline: none;
+}
+
+/* ========================================
+   Instrument Type Button Accent
+   ======================================== */
+
+.instrument-type-btn[data-type="phasedist"].active {
+    background: #1a3e1a;
+    color: var(--sslu-synth-phasedist);
+    border-color: var(--sslu-synth-phasedist);
+}

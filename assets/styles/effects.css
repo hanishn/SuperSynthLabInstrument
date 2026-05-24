@@ -1,0 +1,431 @@
+/**
+ * effects.css - Effects Tab Styles for Synth Lab
+ * Chain reordering, effect panels, and parameter controls
+ */
+
+/* ========================================
+   Effects Section Container
+   ======================================== */
+
+.effects-section-modal {
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--sslu-radius-lg);
+    margin-bottom: 0.75rem;
+}
+
+.effects-chain-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.effects-chain-title {
+    font-size: var(--ssli-fs-md);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--sslu-cyan);
+}
+
+.effects-chain-hint {
+    font-size: var(--ssli-fs-sm);
+    color: #888;
+    font-style: italic;
+}
+
+/* ========================================
+   Effect Chain Container (Reorderable)
+   ======================================== */
+
+.effects-chain-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.4rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--sslu-radius-md);
+    min-height: 36px;
+}
+
+.effect-chain-item {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.4rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--sslu-radius-md);
+    cursor: grab;
+    user-select: none;
+    transition: all 0.15s;
+}
+
+.effect-chain-item:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.effect-chain-item.dragging {
+    opacity: var(--ssli-opacity-inactive);
+    transform: scale(0.95);
+}
+
+.effect-chain-item.enabled {
+    background: rgba(247, 37, 133, 0.2);
+    border-color: rgba(247, 37, 133, 0.4);
+}
+
+.effect-chain-item.enabled .effect-chain-name {
+    color: var(--sslu-rose);
+}
+
+.effect-chain-icon {
+    font-size: var(--ssli-fs-md);
+}
+
+.effect-chain-name {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-semibold);
+    color: #ccc;
+    min-width: 55px;
+}
+
+.effect-chain-enable {
+    display: flex;
+    align-items: center;
+}
+
+.effect-chain-enable input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+}
+
+.effect-chain-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--sslu-radius-sm);
+    color: #888;
+    font-size: var(--ssli-fs-sm);
+    padding: 0.15rem 0.3rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    line-height: 1;
+}
+
+.effect-chain-btn:hover {
+    background: rgba(114, 9, 183, 0.3);
+    border-color: rgba(114, 9, 183, 0.5);
+    color: #fff;
+}
+
+.effect-chain-btn:active {
+    background: rgba(114, 9, 183, 0.5);
+}
+
+/* ========================================
+   Effects Parameters Section
+   ======================================== */
+
+.effects-params-section {
+    padding: 0.5rem 0;
+}
+
+.effects-params-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* ========================================
+   Individual Effect Panel
+   ======================================== */
+
+.effect-panel {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--sslu-radius-lg);
+    padding: 0.4rem;
+    opacity: var(--ssli-opacity-inactive);
+    transition: all 0.2s;
+    width: 180px;
+    min-width: 180px;
+    max-width: 180px;
+    box-sizing: border-box;
+}
+
+.effect-panel.enabled {
+    opacity: var(--ssli-opacity-active);
+    border-color: rgba(247, 37, 133, 0.3);
+    background: rgba(247, 37, 133, 0.05);
+}
+
+.effect-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-bottom: 0.4rem;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.effect-panel-icon {
+    font-size: var(--ssli-fs-lg);
+}
+
+.effect-panel-title {
+    font-size: var(--ssli-fs-body);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--sslu-cyan);
+}
+
+.effect-panel.enabled .effect-panel-title {
+    color: var(--sslu-rose);
+}
+
+/* ========================================
+   Effect Parameter Controls
+   ======================================== */
+
+.effect-panel-params {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.effect-param-row {
+    display: grid;
+    grid-template-columns: 55px 1fr 45px;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.effect-param-label {
+    font-size: var(--ssli-fs-sm);
+    color: #aaa;
+    text-align: right;
+}
+
+.effect-param-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: var(--ssli-slider-track-h, 6px);
+    background: var(--ssli-bg-input, #21262d);
+    border-radius: var(--ssli-radius-sm, 3px);
+    cursor: pointer;
+}
+
+.effect-param-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: var(--ssli-slider-thumb-size, 18px);
+    height: var(--ssli-slider-thumb-size, 18px);
+    background: var(--ssli-accent-cyan, #00d4ff);
+    border-radius: var(--ssli-radius-md, 6px);
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s;
+}
+
+.effect-param-slider::-webkit-slider-thumb:hover {
+    background: var(--sslu-rose);
+}
+
+.effect-param-slider::-moz-range-thumb {
+    width: var(--ssli-slider-thumb-size, 18px);
+    height: var(--ssli-slider-thumb-size, 18px);
+    background: var(--ssli-accent-cyan, #00d4ff);
+    border-radius: var(--ssli-radius-md, 6px);
+    cursor: pointer;
+    border: none;
+}
+
+.effect-param-slider::-moz-range-thumb:hover {
+    background: var(--sslu-rose);
+}
+
+.effect-param-value {
+    font-size: var(--ssli-fs-sm);
+    color: #ccc;
+    text-align: left;
+    font-family: var(--sslu-font-mono);
+}
+
+.effect-param-select {
+    padding: 0.2rem 0.3rem;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-button);
+    color: #fff;
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+}
+
+.effect-param-select:focus {
+    outline: none;
+    border-color: var(--sslu-purple);
+}
+
+/* ========================================
+   Effects Tab Content
+   ======================================== */
+
+#effectsTabContent {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+}
+
+/* Hide disabled effect panels */
+.effect-panel.hidden {
+    display: none;
+}
+
+#effectsTabContent::-webkit-scrollbar {
+    width: 6px;
+}
+
+#effectsTabContent::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--sslu-radius-sm);
+}
+
+#effectsTabContent::-webkit-scrollbar-thumb {
+    background: rgba(247, 37, 133, 0.3);
+    border-radius: var(--sslu-radius-sm);
+}
+
+#effectsTabContent::-webkit-scrollbar-thumb:hover {
+    background: rgba(247, 37, 133, 0.5);
+}
+
+/* ========================================
+   Tab Content Visibility
+   ======================================== */
+
+.effects-tab-content {
+    display: block;
+}
+
+.effects-tab-content.hidden {
+    display: none;
+}
+
+/* ========================================
+   Master Effects Mix Control
+   ======================================== */
+
+.effects-master-section {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    background: rgba(76, 201, 240, 0.1);
+    border: 1px solid rgba(76, 201, 240, 0.3);
+    border-radius: var(--sslu-radius-lg);
+}
+
+.effects-master-label {
+    font-size: var(--ssli-fs-body);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--sslu-cyan);
+    white-space: nowrap;
+}
+
+.effects-master-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 8px;
+    background: linear-gradient(to right, #333 0%, #7209b7 100%);
+    border-radius: var(--sslu-radius-md);
+    cursor: pointer;
+}
+
+.effects-master-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--sslu-cyan);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 4px rgba(76, 201, 240, 0.5);
+}
+
+.effects-master-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: var(--sslu-cyan);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+.effects-master-value {
+    font-size: var(--ssli-fs-body);
+    font-weight: var(--ssli-fw-semibold);
+    color: var(--sslu-cyan);
+    min-width: 45px;
+    text-align: right;
+    font-family: var(--sslu-font-mono);
+}
+
+/* ========================================
+   Effect Instrument Tabs
+   ======================================== */
+
+.effects-inst-tabs {
+    display: flex;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+    padding: 0.25rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--sslu-radius-md);
+}
+
+.effects-inst-tab {
+    flex: 1;
+    padding: 0.3rem 0.5rem;
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-semibold);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--sslu-radius-sm);
+    color: #888;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.effects-inst-tab:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ccc;
+}
+
+.effects-inst-tab.active {
+    background: linear-gradient(135deg, rgba(76, 201, 240, 0.3), rgba(114, 9, 183, 0.3));
+    border-color: var(--sslu-cyan);
+    color: #fff;
+}
+
+/* Per-instrument color coding */
+.effects-inst-tab.active[data-target="0"] {
+    background: linear-gradient(135deg, rgba(76,201,240,0.3), rgba(76,201,240,0.1));
+    border-color: var(--sslu-cyan);
+}
+.effects-inst-tab.active[data-target="1"] {
+    background: linear-gradient(135deg, rgba(45,212,191,0.3), rgba(45,212,191,0.1));
+    border-color: #2dd4bf;
+}
+.effects-inst-tab.active[data-target="2"] {
+    background: linear-gradient(135deg, rgba(245,158,11,0.3), rgba(245,158,11,0.1));
+    border-color: #f59e0b;
+}
+.effects-inst-tab.active[data-target="3"] {
+    background: linear-gradient(135deg, rgba(167,139,250,0.3), rgba(167,139,250,0.1));
+    border-color: #a78bfa;
+}
+.effects-master-tab.active {
+    background: linear-gradient(135deg, rgba(247,37,133,0.3), rgba(247,37,133,0.1));
+    border-color: var(--sslu-rose);
+}

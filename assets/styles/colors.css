@@ -1,0 +1,147 @@
+/**
+ * colors.css - Color Definitions for Synth Lab
+ * Note dot colors, background colors, and octave indicators
+ */
+
+/* ========================================
+   Note Dot Colors (.dot-*)
+   Color coding for individual note indicators
+   ======================================== */
+
+.dot-C {
+    background: var(--ssli-note-C);
+}
+
+.dot-Cs {
+    background: var(--ssli-note-Cs);
+}
+
+.dot-D {
+    background: var(--ssli-note-D);
+}
+
+.dot-Ds {
+    background: var(--ssli-note-Ds);
+}
+
+.dot-E {
+    background: var(--ssli-note-E);
+}
+
+.dot-F {
+    background: var(--ssli-note-F);
+}
+
+.dot-Fs {
+    background: var(--ssli-note-Fs);
+}
+
+.dot-G {
+    background: var(--ssli-note-G);
+}
+
+.dot-Gs {
+    background: var(--ssli-note-Gs);
+}
+
+.dot-A {
+    background: var(--ssli-note-A);
+}
+
+.dot-As {
+    background: var(--ssli-note-As);
+}
+
+.dot-B {
+    background: var(--ssli-note-B);
+}
+
+/* ========================================
+   Background Colors (.bg-*)
+   Full key/cell backgrounds with appropriate text colors
+   ======================================== */
+
+.bg-C {
+    background: var(--ssli-note-C);
+    color: #fff;
+}
+
+.bg-Cs {
+    background: var(--ssli-note-Cs);
+    color: #000;
+}
+
+.bg-D {
+    background: var(--ssli-note-D);
+    color: #000;
+}
+
+.bg-Ds {
+    background: var(--ssli-note-Ds);
+    color: #000;
+}
+
+.bg-E {
+    background: var(--ssli-note-E);
+    color: #000;
+}
+
+.bg-F {
+    background: var(--ssli-note-F);
+    color: #000;
+}
+
+.bg-Fs {
+    background: var(--ssli-note-Fs);
+    color: #fff;
+}
+
+.bg-G {
+    background: var(--ssli-note-G);
+    color: #fff;
+}
+
+.bg-Gs {
+    background: var(--ssli-note-Gs);
+    color: #fff;
+}
+
+.bg-A {
+    background: var(--ssli-note-A);
+    color: #fff;
+}
+
+.bg-As {
+    background: var(--ssli-note-As);
+    color: #fff;
+}
+
+.bg-B {
+    background: var(--ssli-note-B);
+    color: #fff;
+}
+
+/* ========================================
+   Octave Indicators (.oct-*)
+   Bottom border colors to indicate octave range
+   ======================================== */
+
+.oct-2 {
+    border-bottom: 2px solid var(--sslu-adsr-attack);
+}
+
+.oct-3 {
+    border-bottom: 2px solid var(--sslu-adsr-decay);
+}
+
+.oct-4 {
+    border-bottom: 2px solid var(--sslu-adsr-sustain);
+}
+
+.oct-5 {
+    border-bottom: 2px solid var(--sslu-adsr-release);
+}
+
+.oct-6 {
+    border-bottom: 2px solid var(--sslu-purple-light);
+}

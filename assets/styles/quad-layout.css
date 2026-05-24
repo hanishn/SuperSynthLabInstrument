@@ -1,0 +1,502 @@
+/* ================================================================
+   Super Synth Lab Universe - Quad Layout System
+   Cross-platform responsive layout: 2x2 grid on desktop,
+   single-pane with dot toggle on phone.
+   ================================================================ */
+
+/* Responsive tokens now in design-tokens.css */
+
+/* ---- Viewport fix for iOS Safari ---- */
+html, body {
+    -webkit-text-size-adjust: 100%;
+}
+
+/* ---- Quad Wrapper (the 2x2 grid container) ---- */
+.sslu-quad-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: var(--sslu-space-1);
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--sslu-bg-recessed);
+}
+
+/* ---- Individual Quad ---- */
+.sslu-quad {
+    overflow: hidden;
+    min-height: 0;
+    min-width: 0;
+    position: relative;
+    background: var(--sslu-bg-raised);
+    border: var(--sslu-border-w-thin) solid var(--sslu-cyan-ghost);
+    border-radius: var(--sslu-radius-md);
+    display: flex;
+    flex-direction: column;
+}
+
+.sslu-quad > * {
+    flex: 1;
+    min-height: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.sslu-quad-0 { grid-column: 1; grid-row: 1; } /* TL */
+.sslu-quad-1 { grid-column: 2; grid-row: 1; } /* TR */
+.sslu-quad-2 { grid-column: 1; grid-row: 2; } /* BL */
+.sslu-quad-3 { grid-column: 2; grid-row: 2; } /* BR */
+
+/* ---- Phone portrait: single pane ---- */
+[data-layout="phone"] .sslu-quad-wrapper {
+    display: block;
+    height: 100%;
+}
+
+[data-layout="phone"] .sslu-quad {
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+    padding-bottom: calc(56px + var(--sslu-safe-bottom));
+}
+
+/* ---- Phone landscape: single pane (same as portrait) ---- */
+[data-layout="phone-land"] .sslu-quad-wrapper {
+    display: block;
+    height: 100%;
+    flex: 1 1 0;
+    min-height: 0;
+}
+
+[data-layout="phone-land"] .sslu-quad {
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+    padding: 0 48px 32px 48px !important;
+}
+
+/* ---- Tablet portrait: 2x2 but with more vertical space ---- */
+[data-layout="tablet"] .sslu-quad-wrapper {
+    gap: var(--sslu-space-3);
+}
+
+/* ---- Dot Toggle (phone quad switcher) ---- */
+.sslu-dot-toggle {
+    position: fixed;
+    bottom: calc(var(--sslu-space-6) + var(--sslu-safe-bottom));
+    right: var(--sslu-space-6);
+    display: none;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sslu-space-2);
+    z-index: var(--sslu-z-dot-toggle);
+    padding: var(--sslu-space-3);
+    background: var(--sslu-bg-frosted);
+    border-radius: var(--sslu-radius-2xl);
+    backdrop-filter: var(--sslu-backdrop-blur);
+    -webkit-backdrop-filter: var(--sslu-backdrop-blur);
+    border: var(--sslu-border-w-thin) solid var(--sslu-cyan-subtle);
+    touch-action: manipulation;
+}
+
+[data-layout="phone"] .sslu-dot-toggle,
+[data-layout="phone-land"] .sslu-dot-toggle {
+    display: grid;
+}
+
+.sslu-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: var(--sslu-radius-md);
+    border: var(--sslu-border-w-medium) solid var(--sslu-cyan-muted);
+    background: var(--sslu-cyan-ghost);
+    cursor: pointer;
+    padding: 0;
+    transition: background var(--sslu-transition-normal), border-color var(--sslu-transition-normal);
+    touch-action: manipulation;
+}
+
+.sslu-dot:hover {
+    background: rgba(76, 201, 240, 0.2);
+    border-color: var(--sslu-cyan-dim);
+}
+
+.sslu-dot.active {
+    background: rgba(76, 201, 240, 0.45);
+    border-color: var(--sslu-cyan);
+    box-shadow: var(--sslu-shadow-glow-cyan);
+}
+
+/* ---- Row-mode dot toggle (phone-landscape) ---- */
+.sslu-dot-toggle.sslu-dot-toggle-rows {
+    grid-template-columns: 1fr;
+    gap: var(--sslu-space-3);
+}
+
+.sslu-dot-row {
+    width: 36px;
+    height: 12px;
+    border-radius: var(--sslu-radius-sm);
+}
+
+/* ---- Safe Area Padding ---- */
+[data-layout="phone"] .ssl-screens,
+[data-layout="phone-land"] .ssl-screens {
+    padding-top: var(--sslu-safe-top);
+    padding-left: var(--sslu-safe-left);
+    padding-right: var(--sslu-safe-right);
+}
+
+/* ---- Global scrollbar hide ---- */
+*::-webkit-scrollbar {
+    display: none;
+}
+* {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+/* ---- CRITICAL: NO SCROLLING on phone layouts ---- */
+/* Every quad must fit without overflow. Split content across quads instead. */
+[data-layout="phone-land"] .sslu-quad,
+[data-layout="phone"] .sslu-quad {
+    overflow: hidden !important;
+}
+[data-layout="phone-land"] .sslu-quad *,
+[data-layout="phone"] .sslu-quad * {
+    overflow-y: hidden !important;
+}
+
+/* ---- Quad internal scroll helpers ---- */
+.sslu-quad-scroll-y {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+.sslu-quad-scroll-x {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ---- Phone-land: vertical dot toggle on LEFT side, below SSLU button ---- */
+[data-layout="phone-land"] .sslu-dot-toggle {
+    bottom: auto;
+    right: auto;
+    left: calc(var(--sslu-space-2) + var(--sslu-safe-left));
+    top: calc(40px + var(--sslu-safe-top));
+    transform: none;
+    grid-template-columns: 1fr;
+    grid-auto-rows: auto;
+    padding: 0;
+    gap: var(--ssli-gap-xs);
+    border-radius: 0;
+    background: none;
+    border: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    opacity: var(--ssli-opacity-active);
+    pointer-events: auto;
+}
+
+[data-layout="phone-land"] .sslu-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    font-size: var(--ssli-fs-sm);
+    font-weight: 800;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    border: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+/* Candy colors for each dot position */
+[data-layout="phone-land"] .sslu-dot:nth-child(1) { background: linear-gradient(135deg, #ff6b6b, #ee5a24); box-shadow: 0 2px 8px rgba(238,90,36,0.4); }
+[data-layout="phone-land"] .sslu-dot:nth-child(2) { background: linear-gradient(135deg, #feca57, #ff9f43); box-shadow: 0 2px 8px rgba(255,159,67,0.4); }
+[data-layout="phone-land"] .sslu-dot:nth-child(3) { background: linear-gradient(135deg, #48dbfb, #0abde3); box-shadow: 0 2px 8px rgba(10,189,227,0.4); }
+[data-layout="phone-land"] .sslu-dot:nth-child(4) { background: linear-gradient(135deg, #a29bfe, #6c5ce7); box-shadow: 0 2px 8px rgba(108,92,231,0.4); }
+[data-layout="phone-land"] .sslu-dot:nth-child(5) { background: linear-gradient(135deg, #55efc4, #00b894); box-shadow: 0 2px 8px rgba(0,184,148,0.4); }
+
+[data-layout="phone-land"] .sslu-dot:active {
+    transform: scale(0.9);
+    filter: brightness(0.85);
+}
+
+[data-layout="phone-land"] .sslu-dot.active {
+    transform: scale(1.1);
+    filter: brightness(1.15);
+    box-shadow: 0 0 12px rgba(255,255,255,0.4), 0 2px 10px rgba(0,0,0,0.3);
+    border: 2px solid rgba(255,255,255,0.6);
+}
+
+/* ---- Phone portrait: same left-side vertical layout ---- */
+[data-layout="phone"] .sslu-dot-toggle {
+    bottom: auto;
+    right: auto;
+    left: calc(var(--sslu-space-2) + var(--sslu-safe-left));
+    top: calc(40px + var(--sslu-safe-top));
+    transform: none;
+    grid-template-columns: 1fr;
+    padding: 0;
+    gap: var(--ssli-gap-xs);
+    background: none;
+    border: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    opacity: var(--ssli-opacity-active);
+}
+
+[data-layout="phone"] .sslu-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    font-size: var(--ssli-fs-sm);
+    font-weight: 800;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    border: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+[data-layout="phone"] .sslu-dot:nth-child(1) { background: linear-gradient(135deg, #ff6b6b, #ee5a24); box-shadow: 0 2px 8px rgba(238,90,36,0.4); }
+[data-layout="phone"] .sslu-dot:nth-child(2) { background: linear-gradient(135deg, #feca57, #ff9f43); box-shadow: 0 2px 8px rgba(255,159,67,0.4); }
+[data-layout="phone"] .sslu-dot:nth-child(3) { background: linear-gradient(135deg, #48dbfb, #0abde3); box-shadow: 0 2px 8px rgba(10,189,227,0.4); }
+[data-layout="phone"] .sslu-dot:nth-child(4) { background: linear-gradient(135deg, #a29bfe, #6c5ce7); box-shadow: 0 2px 8px rgba(108,92,231,0.4); }
+[data-layout="phone"] .sslu-dot:nth-child(5) { background: linear-gradient(135deg, #55efc4, #00b894); box-shadow: 0 2px 8px rgba(0,184,148,0.4); }
+[data-layout="phone"] .sslu-dot.active {
+    transform: scale(1.1);
+    filter: brightness(1.15);
+    box-shadow: 0 0 12px rgba(255,255,255,0.4), 0 2px 10px rgba(0,0,0,0.3);
+    border: 2px solid rgba(255,255,255,0.6);
+}
+
+/* ---- Phone-land: shrink SCOPE button ---- */
+[data-layout="phone-land"] .analyzer-toggle,
+[data-layout="phone"] .analyzer-toggle {
+    bottom: var(--sslu-space-2);
+    left: var(--sslu-space-2);
+    padding: 2px 6px;
+    font-size: var(--ssli-fs-xs);
+    min-height: 24px;
+    min-width: 24px;
+    opacity: var(--ssli-opacity-inactive);
+}
+
+/* ---- Phone touch target minimums ---- */
+[data-layout="phone"] button,
+[data-layout="phone"] select,
+[data-layout="phone"] input[type="range"],
+[data-layout="phone-land"] button,
+[data-layout="phone-land"] select,
+[data-layout="phone-land"] input[type="range"] {
+    min-height: var(--sslu-touch-min);
+    min-width: var(--sslu-touch-min);
+}
+
+/* ---- Phone tiers: hide persistent sidebar, use hamburger overlay ---- */
+[data-layout="phone"] .ssl-sidebar:not(.fullscreen),
+[data-layout="phone-land"] .ssl-sidebar:not(.fullscreen) {
+    display: none !important;
+}
+
+[data-layout="phone"] .ssl-sidebar.fullscreen,
+[data-layout="phone-land"] .ssl-sidebar.fullscreen {
+    display: flex;
+    position: absolute !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    justify-content: flex-start !important;
+    padding-top: 8px !important;
+    min-height: 100dvh !important;
+    min-height: 100vh !important;
+    height: auto !important;
+}
+
+/* Remove bottom-bar sidebar at small widths (phone uses hamburger now) */
+@media (max-width: 600px) {
+    .ssl-sidebar:not(.fullscreen) {
+        display: none !important;
+    }
+    .ssl-screens {
+        margin-left: 0 !important;
+        margin-bottom: 0 !important;
+    }
+}
+
+/* ---- Floating SSLU hamburger button (matches candy dot style) ---- */
+.sslu-hamburger-btn {
+    display: none;
+    position: fixed;
+    top: calc(var(--sslu-space-2) + var(--sslu-safe-top));
+    left: calc(var(--sslu-space-2) + var(--sslu-safe-left));
+    z-index: 9000;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    padding: 0;
+    font-size: var(--ssli-fs-xs);
+    font-weight: 800;
+    font-family: inherit;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    background: linear-gradient(135deg, #fd79a8, #e84393);
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(232,67,147,0.5);
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    line-height: 1;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 0;
+}
+
+.sslu-hamburger-btn:active {
+    transform: scale(0.9);
+    filter: brightness(0.85);
+}
+
+[data-layout="phone-land"] .sslu-hamburger-btn,
+[data-layout="phone"] .sslu-hamburger-btn {
+    display: flex;
+}
+
+/* ---- Portrait Rotation Overlay (phone only) ---- */
+.sslu-rotate-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 99999;
+    background: var(--sslu-bg-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Subtle animated gradient background */
+.sslu-rotate-overlay::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -50%;
+    width: 200%;
+    height: 100%;
+    background: linear-gradient(
+        135deg,
+        rgba(76, 201, 240, 0.03) 0%,
+        rgba(114, 9, 183, 0.05) 30%,
+        rgba(76, 201, 240, 0.03) 60%,
+        rgba(114, 9, 183, 0.05) 100%
+    );
+    background-size: 200% 200%;
+    animation: sslu-rotate-bg-drift 8s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+
+@keyframes sslu-rotate-bg-drift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.sslu-rotate-overlay-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sslu-space-6);
+    padding: var(--sslu-space-8);
+    text-align: center;
+    position: relative;
+    z-index: 1;
+}
+
+.sslu-rotate-icon {
+    opacity: var(--ssli-opacity-hover);
+    animation: sslu-rotate-nudge 2.5s ease-in-out infinite;
+    font-size: 48px;
+}
+
+@keyframes sslu-rotate-nudge {
+    0%   { transform: rotate(0deg) scale(1); }
+    15%  { transform: rotate(-25deg) scale(1.05); }
+    50%  { transform: rotate(90deg) scale(1.1); }
+    75%  { transform: rotate(85deg) scale(1.05); }
+    100% { transform: rotate(0deg) scale(1); }
+}
+
+.sslu-rotate-msg {
+    font-size: var(--ssli-fs-h3);
+    font-weight: var(--sslu-fw-bold);
+    color: var(--sslu-cyan);
+    letter-spacing: var(--sslu-ls-wide);
+}
+
+.sslu-rotate-sub {
+    font-size: var(--ssli-fs-md);
+    color: var(--sslu-text-body);
+    max-width: 260px;
+    line-height: 1.5;
+}
+
+/* "Continue in portrait" — proper full-width button */
+.sslu-rotate-continue {
+    display: block;
+    width: 100%;
+    min-height: 48px;
+    padding: var(--sslu-space-4) var(--sslu-space-8);
+    margin-top: var(--sslu-space-8);
+    font-size: var(--ssli-fs-lg);
+    font-weight: var(--sslu-fw-bold);
+    font-family: var(--sslu-font-family);
+    color: var(--sslu-text-primary);
+    text-align: center;
+    text-decoration: none;
+    background: var(--sslu-gradient-brand);
+    border: var(--sslu-border-w-medium) solid var(--sslu-cyan-muted);
+    border-radius: var(--sslu-radius-xl);
+    cursor: pointer;
+    touch-action: manipulation;
+    line-height: 1.4;
+    box-sizing: border-box;
+    opacity: var(--ssli-opacity-active);
+}
+
+.sslu-rotate-continue:active {
+    filter: brightness(0.85);
+    transform: scale(0.97);
+}
+
+.sslu-quad-header {
+    font-size: var(--sslu-fs-small);
+    text-transform: uppercase;
+    letter-spacing: var(--sslu-ls-wide);
+    color: var(--sslu-cyan-dim);
+    padding: var(--sslu-space-2) var(--sslu-space-4) var(--sslu-space-1);
+    flex: 0 0 auto;
+    user-select: none;
+}
+
+/* ---- Safe-area padding for fixed bottom-bar elements ---- */
+[data-layout="phone"] .analyzer-toggle,
+[data-layout="phone-land"] .analyzer-toggle,
+[data-layout="phone"] .sslu-fullscreen-btn,
+[data-layout="phone-land"] .sslu-fullscreen-btn {
+    bottom: calc(var(--sslu-space-2) + var(--sslu-safe-bottom));
+}

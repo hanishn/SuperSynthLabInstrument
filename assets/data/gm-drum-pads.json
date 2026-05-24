@@ -1,0 +1,18 @@
+[
+  { "midi": 36, "name": "Kick" },
+  { "midi": 38, "name": "Snare" },
+  { "midi": 42, "name": "HH Cl" },
+  { "midi": 46, "name": "HH Op" },
+  { "midi": 45, "name": "Tom L" },
+  { "midi": 48, "name": "Tom M" },
+  { "midi": 50, "name": "Tom H" },
+  { "midi": 49, "name": "Crash" },
+  { "midi": 51, "name": "Ride" },
+  { "midi": 39, "name": "Clap" },
+  { "midi": 56, "name": "Cowbell" },
+  { "midi": 37, "name": "Rimshot" },
+  { "midi": 54, "name": "Tamb" },
+  { "midi": 75, "name": "Claves" },
+  { "midi": 60, "name": "Bongo H" },
+  { "midi": 61, "name": "Bongo L" }
+]

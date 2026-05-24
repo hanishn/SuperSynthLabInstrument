@@ -1,0 +1,97 @@
+/**
+ * physical.css - Physical Modelling Synthesis Controls Styles
+ * Model selector, parameter sliders, material chooser
+ */
+
+/* ========================================
+   Physical Controls Container (Modal)
+   ======================================== */
+
+.physical-controls-modal {
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--sslu-radius-lg);
+    margin-bottom: 0.5rem;
+}
+
+/* ========================================
+   Model Selector Row
+   ======================================== */
+
+.physical-model-row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.physical-model-row label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+}
+
+.physical-model-row select {
+    padding: 2px 4px;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-input);
+    color: var(--sslu-text-secondary);
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+}
+
+.physical-model-row input[type="range"] {
+    width: 80px;
+}
+
+.physical-model-row span {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-synth-physical);
+    min-width: 20px;
+}
+
+/* ========================================
+   Parameter Groups
+   ======================================== */
+
+.physical-param-group {
+    margin-top: 0.3rem;
+}
+
+.physical-param-row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 0.3rem;
+    flex-wrap: wrap;
+}
+
+.physical-param-row label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+}
+
+.physical-param-row input[type="range"] {
+    width: 80px;
+}
+
+.physical-param-row span {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-synth-physical);
+    min-width: 20px;
+}
+
+.physical-param-row select {
+    padding: 2px 4px;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-input);
+    color: var(--sslu-text-secondary);
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+}

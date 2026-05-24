@@ -1,0 +1,62 @@
+{
+  "categories": [
+    "Clean / Natural",
+    "Ambient / Atmospheric",
+    "Vintage / Warm",
+    "Aggressive / Distorted",
+    "Rhythmic / Movement",
+    "Creative / Experimental",
+    "Performance / Live"
+  ],
+  "library": {
+    "Clean / Natural": [
+      { "id": "dry", "label": "Dry", "effects": [] },
+      { "id": "gentle-warmth", "label": "Gentle Warmth", "effects": [{ "name": "tape", "params": { "drive": 20, "warmth": 50 } }] },
+      { "id": "studio-polish", "label": "Studio Polish", "effects": [{ "name": "compressor", "params": { "threshold": -22, "ratio": 5 } }, { "name": "eq", "params": { "lowGain": 0, "midGain": 0, "highGain": 0 } }] },
+      { "id": "clean-shimmer", "label": "Clean Shimmer", "effects": [{ "name": "chorus", "params": { "rate": 0.5, "depth": 15, "mix": 10 } }, { "name": "reverb", "params": { "algorithm": "room", "size": 20, "decay": 0.8, "mix": 8 } }] }
+    ],
+    "Ambient / Atmospheric": [
+      { "id": "deep-space", "label": "Deep Space", "effects": [{ "name": "reverb", "params": { "algorithm": "hall", "size": 70, "decay": 3, "mix": 40 } }, { "name": "delay", "params": { "time": 500, "feedback": 30, "mix": 20 } }] },
+      { "id": "cathedral", "label": "Cathedral", "effects": [{ "name": "reverb", "params": { "algorithm": "hall", "size": 90, "decay": 6, "damping": 40, "mix": 70 } }] },
+      { "id": "ethereal-pad", "label": "Ethereal Pad", "effects": [{ "name": "chorus", "params": { "depth": 60, "rate": 0.3, "mix": 40 } }, { "name": "reverb", "params": { "size": 70, "decay": 5, "mix": 50 } }, { "name": "delay", "params": { "time": 750, "feedback": 30, "mix": 20 } }] },
+      { "id": "frozen", "label": "Frozen", "effects": [{ "name": "reverb", "params": { "algorithm": "shimmer", "size": 80, "decay": 2.5, "shimmerAmount": 30, "mix": 30 } }, { "name": "delay", "params": { "time": 1000, "feedback": 15, "mix": 12 } }] },
+      { "id": "underwater", "label": "Underwater", "effects": [{ "name": "filter", "params": { "frequency": 800, "resonance": 5, "lfoRate": 0.2, "lfoDepth": 40, "mix": 80 } }, { "name": "reverb", "params": { "size": 60, "decay": 3, "mix": 40 } }] },
+      { "id": "misty", "label": "Misty", "effects": [{ "name": "gatedReverb", "params": { "size": 50, "decay": 2, "mix": 40 } }, { "name": "chorus", "params": { "rate": 0.4, "depth": 40, "mix": 30 } }, { "name": "widener", "params": { "width": 80, "mix": 50 } }] }
+    ],
+    "Vintage / Warm": [
+      { "id": "warm-tape", "label": "Warm Tape", "effects": [{ "name": "tape", "params": { "drive": 15, "warmth": 45, "bump": 40 } }, { "name": "softClip", "params": { "threshold": -3, "mix": 15 } }] },
+      { "id": "vinyl", "label": "Vinyl", "effects": [{ "name": "lofi", "params": { "flutter": 40, "noise": 20, "filterFreq": 4000, "mix": 50 } }, { "name": "tape", "params": { "drive": 20, "warmth": 40 } }] },
+      { "id": "70s-epiano", "label": "70s Electric Piano", "effects": [{ "name": "chorus", "params": { "algorithm": "dimension", "rate": 0.8, "depth": 40, "mix": 40 } }, { "name": "tremolo", "params": { "rate": 4, "depth": 30, "mix": 30 } }] },
+      { "id": "cassette-deck", "label": "Cassette Deck", "effects": [{ "name": "tape", "params": { "drive": 15, "warmth": 40 } }, { "name": "lofi", "params": { "flutter": 20, "noise": 8, "filterFreq": 5000, "mix": 25 } }, { "name": "eq", "params": { "highGain": -3 } }] },
+      { "id": "retro-synth", "label": "Retro Synth", "effects": [{ "name": "chorus", "params": { "algorithm": "juno", "rate": 0.6, "depth": 50, "mix": 50 } }, { "name": "dimension", "params": { "mode": 2, "spread": 60, "mix": 40 } }] }
+    ],
+    "Aggressive / Distorted": [
+      { "id": "crunch", "label": "Crunch", "effects": [{ "name": "distortion", "params": { "drive": 50, "type": "tube", "mix": 60 } }, { "name": "compressor", "params": { "threshold": -10, "ratio": 4 } }] },
+      { "id": "fuzz-box", "label": "Fuzz Box", "effects": [{ "name": "distortion", "params": { "drive": 80, "type": "fuzz", "mix": 70 } }, { "name": "eq", "params": { "lowGain": 3, "highGain": -2 } }] },
+      { "id": "bitcrushed", "label": "Bitcrushed", "effects": [{ "name": "bitcrush", "params": { "bits": 8, "downsample": 4, "mix": 60 } }] },
+      { "id": "industrial", "label": "Industrial", "effects": [{ "name": "distortion", "params": { "drive": 70, "type": "hard", "mix": 50 } }, { "name": "gate", "params": { "threshold": -30 } }, { "name": "delay", "params": { "time": 250, "feedback": 60, "mix": 30 } }] },
+      { "id": "acid-squelch", "label": "Acid Squelch", "effects": [{ "name": "distortion", "params": { "drive": 60, "type": "soft", "mix": 50 } }, { "name": "filter", "params": { "frequency": 1200, "resonance": 15, "lfoRate": 3, "lfoDepth": 60, "mix": 80 } }] }
+    ],
+    "Rhythmic / Movement": [
+      { "id": "tremolo-pulse", "label": "Tremolo Pulse", "effects": [{ "name": "tremolo", "params": { "rate": 6, "depth": 70, "shape": "square", "mix": 70 } }] },
+      { "id": "auto-pan", "label": "Auto-Pan", "effects": [{ "name": "tremolo", "params": { "rate": 2, "depth": 80, "shape": "sine", "mix": 60 } }, { "name": "widener", "params": { "width": 90, "mix": 50 } }] },
+      { "id": "sidechain-pump", "label": "Sidechain Pump", "effects": [{ "name": "pump", "params": { "rate": 4, "depth": 70, "attack": 5, "release": 200, "mix": 60 } }] },
+      { "id": "gated-verb", "label": "Gated Verb", "effects": [{ "name": "gatedReverb", "params": { "size": 60, "decay": 1.5, "threshold": -20, "release": 100, "mix": 50 } }] },
+      { "id": "choppy-delay", "label": "Choppy Delay", "effects": [{ "name": "delay", "params": { "algorithm": "pingpong", "time": 375, "feedback": 30, "mix": 40 } }] }
+    ],
+    "Creative / Experimental": [
+      { "id": "ring-modulated", "label": "Ring Modulated", "effects": [{ "name": "ringMod", "params": { "frequency": 200, "mix": 40 } }, { "name": "reverb", "params": { "size": 40, "decay": 2, "mix": 25 } }] },
+      { "id": "pitch-shift-up", "label": "Pitch Shift Up", "effects": [{ "name": "pitchShift", "params": { "semitones": 12, "mix": 30 } }, { "name": "reverb", "params": { "size": 50, "mix": 20 } }] },
+      { "id": "detuned", "label": "Detuned", "effects": [{ "name": "chorus", "params": { "rate": 0.2, "depth": 15, "mix": 25 } }, { "name": "chorus", "params": { "rate": 0.7, "depth": 8, "mix": 12 } }, { "name": "gate", "params": { "threshold": -45 } }] },
+      { "id": "vocoded", "label": "Vocoded", "effects": [{ "name": "vocoder", "params": { "bands": 16, "resonance": 20, "mix": 60 } }] },
+      { "id": "glitch", "label": "Glitch", "effects": [{ "name": "bitcrush", "params": { "bits": 6, "downsample": 8, "mix": 40 } }, { "name": "delay", "params": { "algorithm": "pingpong", "time": 125, "feedback": 60, "mix": 30 } }, { "name": "gate", "params": { "threshold": -20 } }] }
+    ],
+    "Performance / Live": [
+      { "id": "stage-keys", "label": "Stage Keys", "effects": [{ "name": "compressor", "params": { "threshold": -8, "ratio": 3 } }, { "name": "reverb", "params": { "algorithm": "plate", "size": 40, "decay": 1.5, "mix": 20 } }, { "name": "eq", "params": { "lowGain": 1, "midGain": 1, "highGain": 2 } }] },
+      { "id": "lead-solo", "label": "Lead Solo", "effects": [{ "name": "distortion", "params": { "drive": 30, "type": "tube", "mix": 30 } }, { "name": "delay", "params": { "time": 375, "feedback": 25, "mix": 20 } }, { "name": "reverb", "params": { "size": 30, "mix": 15 } }] },
+      { "id": "big-pad", "label": "Big Pad", "effects": [{ "name": "chorus", "params": { "rate": 0.3, "depth": 50, "mix": 40 } }, { "name": "reverb", "params": { "algorithm": "hall", "size": 70, "decay": 4, "mix": 45 } }, { "name": "widener", "params": { "width": 80, "mix": 40 } }] },
+      { "id": "thick-bass", "label": "Thick Bass", "effects": [{ "name": "compressor", "params": { "threshold": -6, "ratio": 6 } }, { "name": "distortion", "params": { "drive": 20, "type": "tube", "mix": 20 } }, { "name": "eq", "params": { "lowGain": 4, "midGain": -1, "highGain": -2 } }] },
+      { "id": "pluck", "label": "Pluck", "effects": [{ "name": "compressor", "params": { "threshold": -8, "ratio": 4 } }, { "name": "delay", "params": { "time": 250, "feedback": 20, "mix": 15 } }, { "name": "reverb", "params": { "algorithm": "room", "size": 25, "decay": 1, "mix": 15 } }] }
+    ]
+  }
+}

@@ -1,0 +1,604 @@
+{
+  "presets": [
+    {
+      "name": "Frozen Pad",
+      "category": "Textures",
+      "description": "Frozen granular texture with no movement.",
+      "settings": {
+        "sourceWaveform": "saw",
+        "grainSize": 80,
+        "density": 15,
+        "pitchScatter": 0,
+        "positionScatter": 5,
+        "windowShape": "hann",
+        "freeze": true,
+        "position": 50
+      }
+    },
+    {
+      "name": "Cloud",
+      "category": "Textures",
+      "description": "Soft grain cloud with gentle scatter.",
+      "settings": {
+        "sourceWaveform": "sine",
+        "grainSize": 60,
+        "density": 20,
+        "pitchScatter": 1,
+        "positionScatter": 30,
+        "windowShape": "hann",
+        "freeze": false,
+        "position": 50
+      }
+    },
+    {
+      "name": "Rain",
+      "category": "Textures",
+      "description": "Short, dense grains like rain drops.",
+      "settings": {
+        "sourceWaveform": "noise",
+        "grainSize": 5,
+        "density": 40,
+        "pitchScatter": 4,
+        "positionScatter": 80,
+        "windowShape": "triangle",
+        "freeze": false,
+        "position": 50
+      }
+    },
+    {
+      "name": "Wind",
+      "category": "Textures",
+      "description": "Breathy wind texture from noise grains.",
+      "settings": {
+        "sourceWaveform": "noise",
+        "grainSize": 70,
+        "density": 12,
+        "pitchScatter": 2,
+        "positionScatter": 60,
+        "windowShape": "hann",
+        "freeze": false,
+        "position": 40
+      }
+    },
+    {
+      "name": "Shimmer",
+      "category": "Textures",
+      "description": "Shimmering high-pitched grain texture.",
+      "settings": {
+        "sourceWaveform": "triangle",
+        "grainSize": 30,
+        "density": 25,
+        "pitchScatter": 6,
+        "positionScatter": 40,
+        "windowShape": "hann",
+        "freeze": false,
+        "position": 70
+      }
+    },
+    {
+      "name": "Dust",
+      "category": "Textures",
+      "description": "Sparse dusty crackle from tiny grains.",
+      "settings": {
+        "sourceWaveform": "noise",
+        "grainSize": 4,
+        "density": 12,
+        "pitchScatter": 3,
+        "positionScatter": 100,
+        "windowShape": "rectangle",
+        "freeze": false,
+        "position": 50
+      }
+    },
+    {
+      "name": "Fog",
+      "category": "Textures",
+      "description": "Dense foggy texture with large overlapping grains.",
+      "settings": {
+        "sourceWaveform": "sine",
+        "grainSize": 95,
+        "density": 30,
+        "pitchScatter": 0,
+        "positionScatter": 10,
+        "windowShape": "hann",
+        "freeze": false,
+        "position": 50
+      }
+    },
+    {
+      "name": "Static",
+      "category": "Textures",
+      "description": "Harsh static texture from rectangular noise grains.",
+      "settings": {
+        "sourceWaveform": "noise",
+        "grainSize": 3,
+        "density": 50,
+        "pitchScatter": 8,
+        "positionScatter": 100,
+        "windowShape": "rectangle",
+        "freeze": false,
+        "position": 50
+      }
+    },
+    {
+      "name": "Stutter",
+      "category": "Rhythmic",
+      "description": "Rhythmic stuttering grain effect.",
+      "settings": {
+        "sourceWaveform": "saw",
+        "grainSize": 15,
+        "density": 8,
+        "pitchScatter": 0,
+        "positionScatter": 5,
+        "windowShape": "rectangle",
+        "freeze": true,
+        "position": 30
+      }
+    },
+    {
+      "name": "Glitch Beat",
+      "category": "Rhythmic",
+      "description": "Glitchy rhythmic grain bursts.",
+      "settings": {
+        "sourceWaveform": "square",
+        "grainSize": 8,
+        "density": 12,
+        "pitchScatter": 3,
+        "positionScatter": 50,
+        "windowShape": "rectangle",
+        "freeze": false,
+        "position": 25
+      }
+    },
+    {
+      "name": "Rhythmic Grain",
+      "category": "Rhythmic",
+      "description": "Steady grain pulse with tonal source.",
+      "settings": {
+        "sourceWaveform": "saw",
+        "grainSize": 20,
+        "density": 6,
+        "pitchScatter": 0,
+        "positionScatter": 10,
+        "windowShape": "triangle",
+        "freeze": false,
+        "position": 50
+      }
+    },
+    {
+      "name": "Pulse Cloud",
+      "category": "Rhythmic",
+      "description": "Pulsing cloud of grains with mild scatter.",
+      "settings": {
+        "sourceWaveform": "square",
+        "grainSize": 25,
+        "density": 10,
+        "pitchScatter": 1,
+        "positionScatter": 20,
+        "windowShape": "hann",
+        "freeze": false,
+        "position": 50
+      }
+    },
+    {
+      "name": "Scatter",
+      "category": "Rhythmic",
+      "description": "Scattered grains across the buffer.",
+      "settings": {
+        "sourceWaveform": "saw",
+        "grainSize": 10,
+        "density": 15,
+        "pitchScatter": 2,
+        "positionScatter": 80,
+        "windowShape": "triangle",
+        "freeze": false,
+        "position": 50
+      }
+    },
+    {
+      "name": "Morse",
+      "category": "Rhythmic",
+      "description": "Short dot-like grains at sparse density.",
+      "settings": {
+        "sourceWaveform": "sine",
+        "grainSize": 5,
+        "density": 4,
+        "pitchScatter": 0,
+        "positionScatter": 5,
+        "windowShape": "hann",
+        "freeze": true,
+        "position": 50
+      }
+    },
+    {
+      "name": "Harmonizer",
+      "category": "Pitch Effects",
+      "description": "Mild pitch scatter creates harmonizer effect.",
+      "settings": {
+        "sourceWaveform": "saw",
+        "grainSize": 50,
+        "density": 20,
+        "pitchScatter": 5,
+        "positionScatter": 10,
+        "windowShape": "hann",
+        "freeze": false,
+        "position": 50
+      }
+    },
+    {
+      "name": "Octave Cloud",
+      "category": "Pitch Effects",
+      "description": "Wide pitch scatter creating octave clouds.",
+      "settings": {
+        "sourceWaveform": "saw",
+        "grainSize": 40,
+        "density": 15,
+        "pitchScatter": 12,
+        "positionScatter": 20,
+        "windowShape": "hann",
+        "freeze": false,
+        "position": 50
+      }
+    },
+    {
+      "name": "Pitch Drift",
+      "category": "Pitch Effects",
+      "description": "Slight pitch instability for analog feel.",
+      "settings": {
+        "sourceWaveform": "triangle",
+        "grainSize": 60,
+        "density": 10,
+        "pitchScatter": 2,
+        "positionScatter": 15,
+        "windowShape": "hann",
+        "freeze": false,
+        "position": 50
+      }
+    },
+    {
+      "name": "Chaos",
+      "category": "Pitch Effects",
+      "description": "Maximum pitch and position chaos.",
+      "settings": {
+        "sourceWaveform": "saw",
+        "grainSize": 20,
+        "density": 30,
+        "pitchScatter": 12,
+        "positionScatter": 100,
+        "windowShape": "triangle",
+        "freeze": false,
+        "position": 50
+      }
+    },
+    {
+      "name": "Sparkle",
+      "category": "Pitch Effects",
+      "description": "High-pitched sparkle grains.",
+      "settings": {
+        "sourceWaveform": "sine",
+        "grainSize": 10,
+        "density": 25,
+        "pitchScatter": 8,
+        "positionScatter": 50,
+        "windowShape": "hann",
+        "freeze": false,
+        "position": 80
+      }
+    },
+    {
+      "name": "Deep Rumble",
+      "category": "Pitch Effects",
+      "description": "Low rumbling texture from large, slow grains.",
+      "settings": {
+        "sourceWaveform": "saw",
+        "grainSize": 100,
+        "density": 12,
+        "pitchScatter": 3,
+        "positionScatter": 30,
+        "windowShape": "hann",
+        "freeze": false,
+        "position": 20
+      }
+    },
+    {
+      "name": "Time Stretch",
+      "category": "Time Effects",
+      "description": "Large grains for time-stretching effect.",
+      "settings": {
+        "sourceWaveform": "saw",
+        "grainSize": 100,
+        "density": 15,
+        "pitchScatter": 0,
+        "positionScatter": 5,
+        "windowShape": "hann",
+        "freeze": false,
+        "position": 50
+      }
+    },
+    {
+      "name": "Freeze Frame",
+      "category": "Time Effects",
+      "description": "Frozen position with dense overlapping grains.",
+      "settings": {
+        "sourceWaveform": "saw",
+        "grainSize": 70,
+        "density": 20,
+        "pitchScatter": 0,
+        "positionScatter": 2,
+        "windowShape": "hann",
+        "freeze": true,
+        "position": 50
+      }
+    },
+    {
+      "name": "Reverse",
+      "category": "Time Effects",
+      "description": "Reversed-sounding grains from end of buffer.",
+      "settings": {
+        "sourceWaveform": "saw",
+        "grainSize": 40,
+        "density": 12,
+        "pitchScatter": 0,
+        "positionScatter": 15,
+        "windowShape": "triangle",
+        "freeze": false,
+        "position": 90
+      }
+    },
+    {
+      "name": "Slow Motion",
+      "category": "Time Effects",
+      "description": "Very large grains for slow-motion feel.",
+      "settings": {
+        "sourceWaveform": "triangle",
+        "grainSize": 100,
+        "density": 8,
+        "pitchScatter": 0,
+        "positionScatter": 5,
+        "windowShape": "hann",
+        "freeze": false,
+        "position": 50
+      }
+    },
+    {
+      "name": "Fast Forward",
+      "category": "Time Effects",
+      "description": "Tiny rapid grains for fast-forward texture.",
+      "settings": {
+        "sourceWaveform": "saw",
+        "grainSize": 3,
+        "density": 50,
+        "pitchScatter": 1,
+        "positionScatter": 70,
+        "windowShape": "rectangle",
+        "freeze": false,
+        "position": 50
+      }
+    },
+    {
+      "name": "Loop Point",
+      "category": "Time Effects",
+      "description": "Tight loop at a fixed buffer position.",
+      "settings": {
+        "sourceWaveform": "saw",
+        "grainSize": 30,
+        "density": 15,
+        "pitchScatter": 0,
+        "positionScatter": 0,
+        "windowShape": "hann",
+        "freeze": true,
+        "position": 25
+      }
+    },
+    {
+      "name": "Ambient Bed",
+      "category": "Ambient",
+      "description": "Smooth ambient bed from overlapping sine grains.",
+      "settings": {
+        "sourceWaveform": "sine",
+        "grainSize": 90,
+        "density": 20,
+        "pitchScatter": 1,
+        "positionScatter": 20,
+        "windowShape": "hann",
+        "freeze": false,
+        "position": 50
+      }
+    },
+    {
+      "name": "Cathedral",
+      "category": "Ambient",
+      "description": "Reverberant cathedral-like wash.",
+      "settings": {
+        "sourceWaveform": "triangle",
+        "grainSize": 85,
+        "density": 25,
+        "pitchScatter": 2,
+        "positionScatter": 40,
+        "windowShape": "hann",
+        "freeze": false,
+        "position": 60
+      }
+    },
+    {
+      "name": "Forest",
+      "category": "Ambient",
+      "description": "Natural forest ambience from noise and sine grains.",
+      "settings": {
+        "sourceWaveform": "noise",
+        "grainSize": 40,
+        "density": 10,
+        "pitchScatter": 4,
+        "positionScatter": 70,
+        "windowShape": "hann",
+        "freeze": false,
+        "position": 50
+      }
+    },
+    {
+      "name": "Ocean",
+      "category": "Ambient",
+      "description": "Rolling ocean waves from filtered noise.",
+      "settings": {
+        "sourceWaveform": "noise",
+        "grainSize": 80,
+        "density": 8,
+        "pitchScatter": 1,
+        "positionScatter": 50,
+        "windowShape": "hann",
+        "freeze": false,
+        "position": 50
+      }
+    },
+    {
+      "name": "Space",
+      "category": "Ambient",
+      "description": "Deep space ambience with scattered tones.",
+      "settings": {
+        "sourceWaveform": "sine",
+        "grainSize": 70,
+        "density": 6,
+        "pitchScatter": 8,
+        "positionScatter": 60,
+        "windowShape": "hann",
+        "freeze": false,
+        "position": 50
+      }
+    },
+    {
+      "name": "Dream",
+      "category": "Ambient",
+      "description": "Dreamy texture with gentle pitch movement.",
+      "settings": {
+        "sourceWaveform": "triangle",
+        "grainSize": 75,
+        "density": 15,
+        "pitchScatter": 3,
+        "positionScatter": 25,
+        "windowShape": "hann",
+        "freeze": false,
+        "position": 60
+      }
+    },
+    {
+      "name": "Vocal Chop",
+      "category": "Creative",
+      "description": "Short choppy grains for vocal-chop effect.",
+      "settings": {
+        "sourceWaveform": "saw",
+        "grainSize": 12,
+        "density": 10,
+        "pitchScatter": 2,
+        "positionScatter": 40,
+        "windowShape": "rectangle",
+        "freeze": false,
+        "position": 50
+      }
+    },
+    {
+      "name": "Metal Scrape",
+      "category": "Creative",
+      "description": "Harsh metallic scraping texture.",
+      "settings": {
+        "sourceWaveform": "square",
+        "grainSize": 6,
+        "density": 35,
+        "pitchScatter": 10,
+        "positionScatter": 60,
+        "windowShape": "rectangle",
+        "freeze": false,
+        "position": 30
+      }
+    },
+    {
+      "name": "Glass Break",
+      "category": "Creative",
+      "description": "Shattering glass-like burst of tiny grains.",
+      "settings": {
+        "sourceWaveform": "noise",
+        "grainSize": 4,
+        "density": 45,
+        "pitchScatter": 12,
+        "positionScatter": 90,
+        "windowShape": "triangle",
+        "freeze": false,
+        "position": 50
+      }
+    },
+    {
+      "name": "Paper Tear",
+      "category": "Creative",
+      "description": "Tearing paper texture from noise grains.",
+      "settings": {
+        "sourceWaveform": "noise",
+        "grainSize": 15,
+        "density": 20,
+        "pitchScatter": 5,
+        "positionScatter": 70,
+        "windowShape": "triangle",
+        "freeze": false,
+        "position": 40
+      }
+    },
+    {
+      "name": "Insect Swarm",
+      "category": "Creative",
+      "description": "Buzzing insect swarm from dense high grains.",
+      "settings": {
+        "sourceWaveform": "square",
+        "grainSize": 3,
+        "density": 50,
+        "pitchScatter": 6,
+        "positionScatter": 80,
+        "windowShape": "hann",
+        "freeze": false,
+        "position": 60
+      }
+    },
+    {
+      "name": "Helicopter",
+      "category": "Creative",
+      "description": "Chopper blade rhythm from pulsing grains.",
+      "settings": {
+        "sourceWaveform": "noise",
+        "grainSize": 30,
+        "density": 12,
+        "pitchScatter": 0,
+        "positionScatter": 10,
+        "windowShape": "rectangle",
+        "freeze": false,
+        "position": 50
+      }
+    },
+    {
+      "name": "Siren",
+      "category": "Creative",
+      "description": "Sweeping siren from pitch-scattered sine grains.",
+      "settings": {
+        "sourceWaveform": "sine",
+        "grainSize": 50,
+        "density": 15,
+        "pitchScatter": 10,
+        "positionScatter": 30,
+        "windowShape": "hann",
+        "freeze": false,
+        "position": 50
+      }
+    },
+    {
+      "name": "Glitch Art",
+      "category": "Creative",
+      "description": "Digital glitch art with maximum chaos.",
+      "settings": {
+        "sourceWaveform": "square",
+        "grainSize": 2,
+        "density": 50,
+        "pitchScatter": 12,
+        "positionScatter": 100,
+        "windowShape": "rectangle",
+        "freeze": false,
+        "position": 50
+      }
+    }
+  ]
+}

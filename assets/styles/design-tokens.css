@@ -1,0 +1,600 @@
+/* ================================================================
+   SSLU Design Tokens — Single Source of Truth
+   Super Synth Lab Universe v1.1
+   ================================================================
+   Every visual value in the app traces back to a token here.
+   Screen CSS files should reference var(--sslu-*) instead of
+   hardcoded hex colors, pixel sizes, or font stacks.
+   ================================================================ */
+
+:root {
+
+    /* ============================================================
+       COLOR — Background Tiers (darkest to lightest)
+       ============================================================ */
+    --sslu-bg-void:         #060610;   /* deepest bg (Calm screen) */
+    --sslu-bg-base:         #0a0a12;   /* main app / screen bg */
+    --sslu-bg-recessed:     #0a0a1a;   /* recessed areas, modals behind */
+    --sslu-bg-surface:      #0d0d1a;   /* sidebar, palette bg */
+    --sslu-bg-panel:        #0e0e1a;   /* panels, design engine/filter */
+    --sslu-bg-raised:       #111122;   /* top bars, channel strips, cards */
+    --sslu-bg-input:        #1a1a2e;   /* input fields, selects, controls */
+    --sslu-bg-button:       #2a2a4a;   /* default button bg */
+    --sslu-bg-button-hover: #3a3a6a;   /* button hover state */
+    --sslu-bg-highlight:    #222244;   /* hovered rows, subtle highlights */
+    --sslu-bg-overlay:      rgba(0, 0, 0, 0.75);  /* modal overlays */
+    --sslu-bg-frosted:      rgba(10, 10, 26, 0.85); /* glass panels */
+    --sslu-bg-subtle:       rgba(255, 255, 255, 0.03); /* barely-there bg */
+    --sslu-bg-subtle-hover: rgba(255, 255, 255, 0.06); /* subtle bg hover */
+    --sslu-bg-widget:       rgba(255, 255, 255, 0.05); /* iso section, controls bar */
+    --sslu-bg-widget-hover: rgba(255, 255, 255, 0.08); /* widget hover */
+    --sslu-bg-inset:        rgba(0, 0, 0, 0.2);     /* inset wells, list bg */
+    --sslu-bg-canvas:       #0a0a14;   /* scope / waveform canvas bg */
+
+    /* ============================================================
+       COLOR — Primary Accent (Cyan)
+       ============================================================ */
+    --sslu-cyan:            #4cc9f0;
+    --sslu-cyan-dim:        rgba(76, 201, 240, 0.6);
+    --sslu-cyan-muted:      rgba(76, 201, 240, 0.4);
+    --sslu-cyan-subtle:     rgba(76, 201, 240, 0.25);
+    --sslu-cyan-ghost:      rgba(76, 201, 240, 0.08);
+
+    /* ============================================================
+       COLOR — Secondary Accent (Purple)
+       ============================================================ */
+    --sslu-purple:          #7209b7;
+    --sslu-purple-light:    #9d65c9;
+    --sslu-purple-btn:      #3a0ca3;
+    --sslu-purple-btn-hover:#5a2cd3;
+
+    /* ============================================================
+       COLOR — Tertiary / Rose-Pink
+       ============================================================ */
+    --sslu-rose:            #f72585;
+    --sslu-rose-dim:        rgba(247, 37, 133, 0.4);
+    --sslu-rose-subtle:     rgba(247, 37, 133, 0.2);
+    --sslu-rose-ghost:      rgba(247, 37, 133, 0.05);
+
+    /* ============================================================
+       COLOR — Sidebar Accent (Indigo)
+       ============================================================ */
+    --sslu-indigo:          #7c6fff;
+    --sslu-indigo-dim:      rgba(120, 100, 255, 0.4);
+    --sslu-indigo-ghost:    rgba(120, 100, 255, 0.12);
+
+    /* ============================================================
+       COLOR — Functional / Status
+       ============================================================ */
+    --sslu-success:         #3ddc84;   /* playing state, positive */
+    --sslu-success-dark:    #1a4a1a;   /* hold/active bg */
+    --sslu-success-border:  #3a8a3a;
+    --sslu-warning:         #f0a030;   /* caution, playing-pause */
+    --sslu-warning-text:    #FFAA44;   /* amber text (no red text rule) */
+    --sslu-danger-bg:       #3a1a1a;   /* destructive button bg */
+    --sslu-danger-border:   #633;
+    --sslu-danger-text:     #ff6666;   /* warm amber-orange for danger */
+    --sslu-info:            #4361ee;   /* save/load accent, informational */
+    --sslu-info-dim:        rgba(67, 97, 238, 0.3);
+    --sslu-info-ghost:      rgba(67, 97, 238, 0.1);
+
+    /* ============================================================
+       COLOR — Instrument Channel Colors
+       ============================================================ */
+    --sslu-inst-0:          #4cc9f0;   /* Bass — cyan */
+    --sslu-inst-1:          #2dd4bf;   /* Lead — teal */
+    --sslu-inst-2:          #f59e0b;   /* Pad  — amber */
+    --sslu-inst-3:          #a78bfa;   /* Sampler — lavender */
+    --sslu-inst-master:     #f72585;   /* Master — rose */
+
+    /* ============================================================
+       COLOR — Synth Engine Accent Colors
+       Each synthesis type gets a unique accent for its panel.
+       ============================================================ */
+    --sslu-synth-osc:       #4cc9f0;   /* Standard Oscillator */
+    --sslu-synth-fm:        #e0a0ff;   /* FM Synthesis */
+    --sslu-synth-additive:  #80d0ff;   /* Additive */
+    --sslu-synth-granular:  #d0a0ff;   /* Granular */
+    --sslu-synth-wavetable: #6644FF;   /* Wavetable */
+    --sslu-synth-chip:      #33FF33;   /* Chip / 8-bit */
+    --sslu-synth-formant:   #FF7744;   /* Formant */
+    --sslu-synth-phasedist: #44FF88;   /* Phase Distortion */
+    --sslu-synth-vocoder:   #ff9060;   /* Vocoder */
+    --sslu-synth-wavefold:  #FF44AA;   /* Wavefolder */
+    --sslu-synth-modal:     #CC8844;   /* Modal Resonator */
+    --sslu-synth-physical:  #88CCAA;   /* Physical Modeling */
+    --sslu-synth-noise:     #b5179e;   /* Noise */
+    --sslu-synth-filter-env:#f72585;   /* Filter Envelope */
+    --sslu-synth-lfo:       #00d4aa;   /* LFO */
+
+    /* ============================================================
+       COLOR — ADSR Fader Colors
+       ============================================================ */
+    --sslu-adsr-attack:     #ff6b6b;
+    --sslu-adsr-attack-dark:#c92a2a;
+    --sslu-adsr-decay:      #ffd93d;
+    --sslu-adsr-decay-dark: #f59f00;
+    --sslu-adsr-sustain:    #6bcb77;
+    --sslu-adsr-sustain-dark:#2f9e44;
+    --sslu-adsr-release:    #4d96ff;
+    --sslu-adsr-release-dark:#1971c2;
+
+    /* ============================================================
+       COLOR — Transport
+       ============================================================ */
+    --sslu-transport-play:        #2d9f3a;
+    --sslu-transport-play-hover:  #3abb4a;
+    --sslu-transport-play-active: #f0a030;
+    --sslu-transport-stop:        #c0392b;
+    --sslu-transport-stop-hover:  #e74c3c;
+
+    /* ============================================================
+       COLOR — Navigation Group Accents
+       Used on the start screen for per-group tinting.
+       ============================================================ */
+    --sslu-nav-play:        rgba(76, 201, 240, 1);   /* cyan */
+    --sslu-nav-explore:     rgba(138, 80, 255, 1);   /* purple */
+    --sslu-nav-sound:       rgba(0, 210, 180, 1);    /* teal */
+    --sslu-nav-compose:     rgba(247, 37, 133, 1);   /* rose */
+    --sslu-nav-train:       rgba(100, 100, 240, 1);  /* indigo */
+    --sslu-nav-discover:    rgba(255, 200, 60, 1);   /* gold */
+    --sslu-nav-tools:       rgba(255, 180, 50, 1);   /* amber */
+
+    /* ============================================================
+       COLOR — Text
+       ============================================================ */
+    --sslu-text-primary:    #ffffff;
+    --sslu-text-secondary:  #ccddee;
+    --sslu-text-body:       #c0c0dd;
+    --sslu-text-label:      #9999bb;
+    --sslu-text-muted:      #8888aa;
+    --sslu-text-dim:        #667;
+    --sslu-text-faint:      #555;
+    --sslu-text-placeholder:#555;
+    --sslu-text-accent:     var(--sslu-cyan);
+
+    /* ============================================================
+       COLOR — Borders
+       ============================================================ */
+    --sslu-border-subtle:   #1a1a2e;
+    --sslu-border-default:  #2a2a4a;
+    --sslu-border-medium:   #333355;
+    --sslu-border-strong:   #444466;
+    --sslu-border-hover:    #666;
+    --sslu-border-accent:   var(--sslu-cyan);
+    --sslu-border-faint:    rgba(255, 255, 255, 0.08);
+    --sslu-border-faint-hover: rgba(255, 255, 255, 0.2);
+    --sslu-border-widget:   rgba(76, 201, 240, 0.2);
+    --sslu-border-widget-strong: rgba(76, 201, 240, 0.4);
+
+    /* ============================================================
+       COLOR — Gradients
+       ============================================================ */
+    --sslu-gradient-body:   linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    --sslu-gradient-brand:  linear-gradient(90deg, #4cc9f0, #7209b7);
+    --sslu-gradient-brand-wide: linear-gradient(90deg, #4cc9f0, #7209b7, #f72585, #4cc9f0);
+    --sslu-gradient-btn-primary: linear-gradient(135deg, #4361ee, #3a0ca3);
+    --sslu-gradient-btn-save: linear-gradient(135deg, #06d6a0, #118ab2);
+    --sslu-gradient-btn-import: linear-gradient(135deg, #f77f00, #e36414);
+    --sslu-gradient-btn-export: linear-gradient(135deg, #7209b7, #560bad);
+    --sslu-gradient-start-bg: linear-gradient(135deg, #0a0a1a 0%, #14142e 25%, #1a0a2e 50%, #0a1a2e 75%, #0a0a1a 100%);
+
+    /* ============================================================
+       TYPOGRAPHY — Font Family
+       ============================================================ */
+    --sslu-font-family:     system-ui, -apple-system, sans-serif;
+    --sslu-font-mono:       monospace;
+
+    /* ============================================================
+       TYPOGRAPHY — Font Sizes (unified scale)
+       Named semantically. Every font-size in the app maps to one.
+       ============================================================ */
+    --sslu-fs-h1:           1.15rem;   /* main title */
+    --sslu-fs-h2:           0.85rem;   /* panel h3, section titles */
+    --sslu-fs-h3:           0.8rem;    /* sub-section titles */
+    --sslu-fs-h4:           0.75rem;   /* modal section titles */
+    --sslu-fs-body:         0.7rem;    /* standard labels, controls */
+    --sslu-fs-body-sm:      0.65rem;   /* smaller labels, hints */
+    --sslu-fs-small:        0.65rem;   /* badges, fine print */
+    --sslu-fs-tiny:         0.625rem;  /* compact mode labels (min 10px) */
+    --sslu-fs-micro:        0.625rem;  /* action buttons, save/load (min 10px) */
+    --sslu-fs-nano:         0.625rem;  /* status messages (min 10px) */
+    --sslu-fs-icon:         18px;      /* sidebar icon default */
+    --sslu-fs-icon-lg:      32px;      /* start screen icons */
+    --sslu-fs-icon-hero:    42px;      /* hero star */
+
+    /* Pixel-based sizes (for elements that mix with px layouts) */
+    --sslu-fs-px-xs:        10px;
+    --sslu-fs-px-sm:        10px;
+    --sslu-fs-px-base:      11px;
+    --sslu-fs-px-md:        12px;
+    --sslu-fs-px-lg:        13px;
+    --sslu-fs-px-xl:        14px;
+    --sslu-fs-px-2xl:       22px;
+
+    /* ============================================================
+       TYPOGRAPHY — Font Weights
+       ============================================================ */
+    --sslu-fw-normal:       400;
+    --sslu-fw-medium:       600;
+    --sslu-fw-bold:         700;
+    --sslu-fw-heavy:        800;
+    --sslu-fw-black:        900;
+
+    /* ============================================================
+       TYPOGRAPHY — Letter Spacing
+       ============================================================ */
+    --sslu-ls-tight:        0.03em;
+    --sslu-ls-normal:       0.05em;
+    --sslu-ls-wide:         0.08em;
+    --sslu-ls-wider:        1px;
+    --sslu-ls-widest:       1.5px;
+    --sslu-ls-hero:         3px;
+    --sslu-ls-mega:         5px;
+    --sslu-ls-ultra:        10px;
+
+    /* ============================================================
+       SPACING — Scale (4px base)
+       ============================================================ */
+    --sslu-space-0:         0;
+    --sslu-space-1:         2px;
+    --sslu-space-2:         4px;
+    --sslu-space-3:         6px;
+    --sslu-space-4:         8px;
+    --sslu-space-5:         10px;
+    --sslu-space-6:         12px;
+    --sslu-space-8:         16px;
+    --sslu-space-10:        20px;
+    --sslu-space-12:        24px;
+    --sslu-space-16:        32px;
+
+    /* Rem spacing for fluid layouts */
+    --sslu-gap-xs:          0.15rem;
+    --sslu-gap-sm:          0.25rem;
+    --sslu-gap-md:          0.4rem;
+    --sslu-gap-lg:          0.5rem;
+    --sslu-gap-xl:          0.6rem;
+    --sslu-gap-2xl:         0.8rem;
+    --sslu-gap-3xl:         1rem;
+    --sslu-gap-4xl:         1.2rem;
+
+    /* Padding shorthands */
+    --sslu-pad-panel:       0.4rem;
+    --sslu-pad-section:     0.5rem;
+    --sslu-pad-bar:         0.3rem 0.6rem;
+    --sslu-pad-btn:         2px 8px;
+    --sslu-pad-btn-lg:      0.3rem 0.5rem;
+    --sslu-pad-input:       2px 6px;
+
+    /* ============================================================
+       BORDERS — Radius
+       ============================================================ */
+    --sslu-radius-xs:       2px;
+    --sslu-radius-sm:       3px;
+    --sslu-radius-md:       4px;
+    --sslu-radius-lg:       6px;
+    --sslu-radius-xl:       8px;
+    --sslu-radius-2xl:      10px;
+    --sslu-radius-3xl:      14px;
+    --sslu-radius-pill:     50%;
+    --sslu-radius-round:    9999px;
+
+    /* ============================================================
+       BORDERS — Width
+       ============================================================ */
+    --sslu-border-w-thin:   1px;
+    --sslu-border-w-medium: 1.5px;
+    --sslu-border-w-thick:  2px;
+    --sslu-border-w-heavy:  3px;
+
+    /* ============================================================
+       SHADOWS
+       ============================================================ */
+    --sslu-shadow-sm:       0 2px 3px rgba(0, 0, 0, 0.2);
+    --sslu-shadow-md:       0 4px 12px rgba(0, 0, 0, 0.3);
+    --sslu-shadow-lg:       0 8px 32px rgba(0, 0, 0, 0.5);
+    --sslu-shadow-glow-cyan: 0 0 6px rgba(76, 201, 240, 0.3);
+    --sslu-shadow-glow-rose: 0 0 8px rgba(247, 37, 133, 0.4);
+    --sslu-shadow-glow-info: 0 8px 32px rgba(67, 97, 238, 0.3);
+    --sslu-shadow-glow-success: 0 0 10px rgba(102, 255, 102, 0.6);
+    --sslu-shadow-key:      0 2px 3px rgba(0, 0, 0, 0.2);
+    --sslu-shadow-key-black:0 2px 3px rgba(0, 0, 0, 0.4);
+    --sslu-shadow-none:     none;
+
+    /* ============================================================
+       TRANSITIONS
+       ============================================================ */
+    --sslu-transition-fast:   0.05s;
+    --sslu-transition-normal: 0.15s;
+    --sslu-transition-slow:   0.2s;
+    --sslu-transition-slower:  0.3s;
+    --sslu-transition-ease:   ease;
+    --sslu-transition-ease-out: ease-out;
+
+    /* Composite transitions */
+    --sslu-tr-bg:           background var(--sslu-transition-normal);
+    --sslu-tr-color:        color var(--sslu-transition-normal);
+    --sslu-tr-border:       border-color var(--sslu-transition-normal);
+    --sslu-tr-all:          all var(--sslu-transition-normal);
+    --sslu-tr-transform:    transform var(--sslu-transition-normal) var(--sslu-transition-ease);
+
+    /* ============================================================
+       Z-INDEX — Layering
+       ============================================================ */
+    --sslu-z-base:          1;
+    --sslu-z-keys-white:    1;
+    --sslu-z-keys-black:    2;
+    --sslu-z-sidebar:       100;
+    --sslu-z-overlay:       350;
+    --sslu-z-analyzer:      401;
+    --sslu-z-dot-toggle:    9999;
+    --sslu-z-sidebar-fs:    10000;
+
+    /* ============================================================
+       SIZING — Interactive Controls
+       (carried over from quad-layout.css, extended)
+       ============================================================ */
+    --sslu-knob-size:       72px;
+    --sslu-key-width:       48px;
+    --sslu-fader-height:    200px;
+    --sslu-pad-size:        100px;
+    --sslu-nav-height:      0px;
+
+    /* Touch target minimums */
+    --sslu-touch-min:       44px;
+
+    /* Keyboard dimensions */
+    --sslu-key-white-w:     32px;
+    --sslu-key-white-h:     140px;
+    --sslu-key-black-w:     22px;
+    --sslu-key-black-h:     88px;
+
+    /* Mini keyboard dimensions */
+    --sslu-mini-key-white-w: 36px;
+    --sslu-mini-key-black-w: 24px;
+    --sslu-mini-key-h:       60px;
+
+    /* Fader dimensions */
+    --sslu-fader-w:          12px;
+    --sslu-fader-h:          70px;
+    --sslu-fader-track-w:    6px;
+    --sslu-fader-thumb-w:    14px;
+    --sslu-fader-thumb-h:    8px;
+
+    /* Content max-widths */
+    --sslu-max-w-content:   960px;
+    --sslu-max-w-start:     1100px;
+
+    /* Safe area insets */
+    --sslu-safe-bottom:     env(safe-area-inset-bottom, 0px);
+    --sslu-safe-top:        env(safe-area-inset-top, 0px);
+    --sslu-safe-left:       env(safe-area-inset-left, 0px);
+    --sslu-safe-right:      env(safe-area-inset-right, 0px);
+
+    /* ============================================================
+       SIZING — Slider Thumb (effects, design)
+       ============================================================ */
+    --sslu-slider-track-h:  6px;
+    --sslu-slider-thumb-w:  12px;
+    --sslu-slider-thumb-h:  12px;
+    --sslu-slider-track-bg: #333;
+    --sslu-slider-thumb-bg: var(--sslu-purple);
+
+    /* Master slider */
+    --sslu-slider-master-track-h: 8px;
+    --sslu-slider-master-thumb:   16px;
+
+    /* ============================================================
+       BACKDROP FILTER
+       ============================================================ */
+    --sslu-backdrop-blur:   blur(8px);
+
+    /* ============================================================
+       OPACITY
+       ============================================================ */
+    --sslu-opacity-disabled: 0.4;
+    --sslu-opacity-muted:    0.6;
+    --sslu-opacity-subtab:   0.85;
+
+    /* ============================================================
+       SSLI DESIGN SYSTEM TOKENS
+       New --ssli-* prefix tokens aligned with design-system.json.
+       Existing --sslu-* tokens are preserved for backward compat.
+       ============================================================ */
+
+    /* --- SSLI Background Surfaces --- */
+    --ssli-bg-surface:      #0e1117;
+    --ssli-bg-elevated:     #161b22;
+    --ssli-bg-overlay:      #1c2128;
+    --ssli-bg-input:        #21262d;
+
+    /* --- SSLI Text --- */
+    --ssli-text-primary:    rgba(220, 235, 245, 0.95);
+    --ssli-text-secondary:  rgba(220, 235, 245, 0.70);
+    --ssli-text-muted:      rgba(220, 235, 245, 0.50);
+    --ssli-text-disabled:   rgba(220, 235, 245, 0.35);
+
+    /* --- SSLI Accent Colors --- */
+    --ssli-accent-cyan:     #00d4ff;
+    --ssli-accent-purple:   #a855f7;
+    --ssli-accent-rose:     #f43f5e;
+    --ssli-accent-amber:    #f59e0b;
+    --ssli-accent-green:    #22c55e;
+    --ssli-accent-orange:   #f97316;
+
+    /* --- SSLI Note Colors (chromatic) --- */
+    --ssli-note-C:          #ff3344;
+    --ssli-note-Cs:         #ff6622;
+    --ssli-note-D:          #ff9900;
+    --ssli-note-Ds:         #ddbb00;
+    --ssli-note-E:          #aadd00;
+    --ssli-note-F:          #44cc44;
+    --ssli-note-Fs:         #00bbaa;
+    --ssli-note-G:          #0099dd;
+    --ssli-note-Gs:         #3366ff;
+    --ssli-note-A:          #6644ff;
+    --ssli-note-As:         #9933dd;
+    --ssli-note-B:          #cc33aa;
+
+    /* --- SSLI Surface Themes --- */
+    --ssli-theme-warm-accent:   #d4a040;
+    --ssli-theme-warm-bg:       #1a1610;
+    --ssli-theme-cool-accent:   #4488cc;
+    --ssli-theme-cool-bg:       #101418;
+    --ssli-theme-neutral-accent:#888888;
+    --ssli-theme-neutral-bg:    #141414;
+
+    /* --- SSLI Spacing --- */
+    --ssli-space-xxs:       2px;
+    --ssli-space-xs:        4px;
+    --ssli-space-sm:        6px;
+    --ssli-space-md:        8px;
+    --ssli-space-lg:        12px;
+    --ssli-space-xl:        16px;
+    --ssli-space-xxl:       24px;
+
+    /* --- SSLI Gap (px-based) --- */
+    --ssli-gap-xs:          4px;
+    --ssli-gap-sm:          6px;
+    --ssli-gap-md:          8px;
+    --ssli-gap-lg:          12px;
+
+    /* --- SSLI Touch Targets --- */
+    --ssli-touch-min:       44px;
+    --ssli-touch-comfortable: 48px;
+    --ssli-touch-large:     56px;
+    --ssli-touch-phone-min: 36px;
+
+    /* --- SSLI Border Radius --- */
+    --ssli-radius-sm:       3px;
+    --ssli-radius-md:       6px;
+    --ssli-radius-lg:       8px;
+    --ssli-radius-round:    50%;
+
+    /* --- SSLI Opacity --- */
+    --ssli-opacity-active:  1.0;
+    --ssli-opacity-hover:   0.85;
+    --ssli-opacity-inactive:0.60;
+    --ssli-opacity-disabled:0.40;
+    --ssli-opacity-overlay: 0.20;
+    --ssli-opacity-subtle:  0.12;
+
+    /* --- SSLI Layout --- */
+    --ssli-topbar-h:        36px;
+    --ssli-topbar-h-phone:  32px;
+    --ssli-header-padding:  6px 8px;
+    --ssli-button-gap:      4px;
+    --ssli-section-gap:     8px;
+    --ssli-safe-area-bottom:env(safe-area-inset-bottom, 0px);
+
+    /* --- SSLI Controls --- */
+    --ssli-slider-track-h:  6px;
+    --ssli-slider-thumb-size: 18px;
+    --ssli-dropdown-h:      28px;
+    --ssli-dropdown-h-phone:24px;
+
+    /* --- SSLI Typography Scale (px) --- */
+    --ssli-fs-xs:           10px;
+    --ssli-fs-sm:           11px;
+    --ssli-fs-body:         13px;
+    --ssli-fs-md:           14px;
+    --ssli-fs-lg:           16px;
+    --ssli-fs-xl:           18px;
+    --ssli-fs-h3:           20px;
+    --ssli-fs-h2:           24px;
+    --ssli-fs-h1:           28px;
+
+    /* --- SSLI Typography Weights --- */
+    --ssli-fw-normal:       400;
+    --ssli-fw-medium:       500;
+    --ssli-fw-semibold:     600;
+    --ssli-fw-bold:         700;
+
+    /* --- SSLI Human Factors --- */
+    --ssli-finger-spacing:  50px;
+    --ssli-ios-landscape-h: 375px;
+    --ssli-ios-portrait-h:  710px;
+}
+
+/* ================================================================
+   RESPONSIVE OVERRIDES — Phone Portrait
+   ================================================================ */
+[data-layout="phone"] {
+    --sslu-knob-size:       56px;
+    --sslu-key-width:       36px;
+    --sslu-fader-height:    150px;
+    --sslu-pad-size:        80px;
+    --sslu-nav-height:      56px;
+    --sslu-key-white-w:     28px;
+    --sslu-key-black-w:     18px;
+    --sslu-mini-key-white-w: 28px;
+    --sslu-mini-key-black-w: 18px;
+}
+
+/* ================================================================
+   RESPONSIVE OVERRIDES — Phone Landscape
+   ================================================================ */
+[data-layout="phone-land"] {
+    --sslu-knob-size:       52px;
+    --sslu-key-width:       44px;
+    --sslu-fader-height:    120px;
+    --sslu-pad-size:        72px;
+    --sslu-nav-height:      44px;
+}
+
+/* ================================================================
+   RESPONSIVE OVERRIDES — Tablet
+   ================================================================ */
+[data-layout="tablet"] {
+    --sslu-knob-size:       64px;
+    --sslu-key-width:       44px;
+    --sslu-fader-height:    180px;
+    --sslu-pad-size:        90px;
+}
+
+/* ================================================================
+   HIGH CONTRAST MODE
+   ================================================================ */
+.ssl-high-contrast {
+    --sslu-text-primary:    #ffffff;
+    --sslu-text-secondary:  #ffffff;
+    --sslu-text-label:      #ffffff;
+    --sslu-bg-base:         #000000;
+    --sslu-bg-surface:      #000000;
+    --sslu-bg-raised:       #000000;
+    --sslu-cyan:            #ffff00;
+    --sslu-border-default:  #ffffff;
+    --sslu-border-medium:   #ffffff;
+}
+
+/* ================================================================
+   PREFERS-CONTRAST: MORE — OS-level high contrast
+   ================================================================ */
+@media (prefers-contrast: more) {
+    :root {
+        --sslu-bg-base:         #000;
+        --sslu-text-primary:    #fff;
+        --sslu-border-default:  rgba(255, 255, 255, 0.4);
+    }
+}
+
+/* ================================================================
+   DESKTOP MINIMUM FONT SIZE — ensure readability on all labels
+   ================================================================ */
+@media (min-width: 769px) {
+    label,
+    button,
+    select,
+    .sidebar-label,
+    .effects-row-name,
+    .effects-row-param-label,
+    .effects-cat-header,
+    .harmony-chord-btn,
+    .rhythm-grid-row-controls .row-name,
+    .calm-palette-category-label,
+    .sslu-quad-header,
+    .slot-numeral,
+    .slot-name {
+        font-size: max(var(--sslu-fs-px-md), 12px);
+    }
+}

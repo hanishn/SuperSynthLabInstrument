@@ -1,0 +1,454 @@
+{
+  "presets": [
+    {
+      "name": "Vowel A",
+      "category": "Vowels",
+      "description": "Open 'ah' vowel with classic formant structure.",
+      "settings": {
+        "vowel": "A",
+        "vowelTarget": "E",
+        "morphX": 0,
+        "formantShift": 0,
+        "breathiness": 8,
+        "glottalPulseWidth": 60,
+        "vowelSequenceEnabled": false,
+        "vowelSequenceRate": 2.0
+      }
+    },
+    {
+      "name": "Vowel E",
+      "category": "Vowels",
+      "description": "Mid-front 'eh' vowel with bright formants.",
+      "settings": {
+        "vowel": "E",
+        "vowelTarget": "I",
+        "morphX": 0,
+        "formantShift": 0,
+        "breathiness": 8,
+        "glottalPulseWidth": 60,
+        "vowelSequenceEnabled": false,
+        "vowelSequenceRate": 2.0
+      }
+    },
+    {
+      "name": "Vowel I",
+      "category": "Vowels",
+      "description": "High-front 'ee' vowel with narrow F1 and wide F2.",
+      "settings": {
+        "vowel": "I",
+        "vowelTarget": "O",
+        "morphX": 0,
+        "formantShift": 0,
+        "breathiness": 5,
+        "glottalPulseWidth": 60,
+        "vowelSequenceEnabled": false,
+        "vowelSequenceRate": 2.0
+      }
+    },
+    {
+      "name": "Vowel O",
+      "category": "Vowels",
+      "description": "Mid-back rounded 'oh' vowel.",
+      "settings": {
+        "vowel": "O",
+        "vowelTarget": "U",
+        "morphX": 0,
+        "formantShift": 0,
+        "breathiness": 8,
+        "glottalPulseWidth": 60,
+        "vowelSequenceEnabled": false,
+        "vowelSequenceRate": 2.0
+      }
+    },
+    {
+      "name": "Vowel U",
+      "category": "Vowels",
+      "description": "High-back rounded 'oo' vowel with low formants.",
+      "settings": {
+        "vowel": "U",
+        "vowelTarget": "A",
+        "morphX": 0,
+        "formantShift": 0,
+        "breathiness": 5,
+        "glottalPulseWidth": 60,
+        "vowelSequenceEnabled": false,
+        "vowelSequenceRate": 2.0
+      }
+    },
+    {
+      "name": "Soprano Choir",
+      "category": "Choir",
+      "description": "High female vocal formants with light breathiness.",
+      "settings": {
+        "vowel": "A",
+        "vowelTarget": "O",
+        "morphX": 25,
+        "formantShift": 3,
+        "breathiness": 12,
+        "glottalPulseWidth": 55,
+        "vowelSequenceEnabled": false,
+        "vowelSequenceRate": 2.0
+      }
+    },
+    {
+      "name": "Alto Choir",
+      "category": "Choir",
+      "description": "Warm alto vocal with moderate formant placement.",
+      "settings": {
+        "vowel": "O",
+        "vowelTarget": "A",
+        "morphX": 30,
+        "formantShift": 1,
+        "breathiness": 10,
+        "glottalPulseWidth": 58,
+        "vowelSequenceEnabled": false,
+        "vowelSequenceRate": 2.0
+      }
+    },
+    {
+      "name": "Tenor Choir",
+      "category": "Choir",
+      "description": "Rich tenor vocal with balanced formant character.",
+      "settings": {
+        "vowel": "A",
+        "vowelTarget": "E",
+        "morphX": 15,
+        "formantShift": 0,
+        "breathiness": 8,
+        "glottalPulseWidth": 60,
+        "vowelSequenceEnabled": false,
+        "vowelSequenceRate": 2.0
+      }
+    },
+    {
+      "name": "Bass Choir",
+      "category": "Choir",
+      "description": "Deep bass vocal with lowered formants.",
+      "settings": {
+        "vowel": "O",
+        "vowelTarget": "U",
+        "morphX": 40,
+        "formantShift": -3,
+        "breathiness": 8,
+        "glottalPulseWidth": 65,
+        "vowelSequenceEnabled": false,
+        "vowelSequenceRate": 2.0
+      }
+    },
+    {
+      "name": "Mixed Choir",
+      "category": "Choir",
+      "description": "Slowly cycling vowels for evolving choral texture.",
+      "settings": {
+        "vowel": "A",
+        "vowelTarget": "E",
+        "morphX": 50,
+        "formantShift": 0,
+        "breathiness": 12,
+        "glottalPulseWidth": 58,
+        "vowelSequenceEnabled": true,
+        "vowelSequenceRate": 0.8
+      }
+    },
+    {
+      "name": "Robot Voice",
+      "category": "Character",
+      "description": "Mechanical robotic vocal with tight pulse and no breathiness.",
+      "settings": {
+        "vowel": "E",
+        "vowelTarget": "I",
+        "morphX": 50,
+        "formantShift": 0,
+        "breathiness": 0,
+        "glottalPulseWidth": 45,
+        "vowelSequenceEnabled": false,
+        "vowelSequenceRate": 2.0
+      }
+    },
+    {
+      "name": "Whisper",
+      "category": "Character",
+      "description": "Breathy whispered vocal with mostly noise excitation.",
+      "settings": {
+        "vowel": "A",
+        "vowelTarget": "E",
+        "morphX": 20,
+        "formantShift": 1,
+        "breathiness": 65,
+        "glottalPulseWidth": 55,
+        "vowelSequenceEnabled": false,
+        "vowelSequenceRate": 2.0
+      }
+    },
+    {
+      "name": "Child Voice",
+      "category": "Character",
+      "description": "Small child vocal with shifted-up formants.",
+      "settings": {
+        "vowel": "I",
+        "vowelTarget": "E",
+        "morphX": 30,
+        "formantShift": 5,
+        "breathiness": 12,
+        "glottalPulseWidth": 55,
+        "vowelSequenceEnabled": false,
+        "vowelSequenceRate": 2.0
+      }
+    },
+    {
+      "name": "Giant Voice",
+      "category": "Character",
+      "description": "Massive deep voice with greatly lowered formants.",
+      "settings": {
+        "vowel": "O",
+        "vowelTarget": "U",
+        "morphX": 30,
+        "formantShift": -6,
+        "breathiness": 5,
+        "glottalPulseWidth": 70,
+        "vowelSequenceEnabled": false,
+        "vowelSequenceRate": 2.0
+      }
+    },
+    {
+      "name": "Nasal Voice",
+      "category": "Character",
+      "description": "Honky nasal vocal with narrow pulse width.",
+      "settings": {
+        "vowel": "E",
+        "vowelTarget": "A",
+        "morphX": 60,
+        "formantShift": 2,
+        "breathiness": 3,
+        "glottalPulseWidth": 45,
+        "vowelSequenceEnabled": false,
+        "vowelSequenceRate": 2.0
+      }
+    },
+    {
+      "name": "Vowel Pad",
+      "category": "Pads",
+      "description": "Lush sustained vowel pad morphing A to O.",
+      "settings": {
+        "vowel": "A",
+        "vowelTarget": "O",
+        "morphX": 40,
+        "formantShift": 0,
+        "breathiness": 15,
+        "glottalPulseWidth": 60,
+        "vowelSequenceEnabled": false,
+        "vowelSequenceRate": 2.0
+      }
+    },
+    {
+      "name": "Choir Pad",
+      "category": "Pads",
+      "description": "Ethereal choir pad with slow vowel cycling.",
+      "settings": {
+        "vowel": "A",
+        "vowelTarget": "E",
+        "morphX": 50,
+        "formantShift": 1,
+        "breathiness": 15,
+        "glottalPulseWidth": 58,
+        "vowelSequenceEnabled": true,
+        "vowelSequenceRate": 0.5
+      }
+    },
+    {
+      "name": "Breathy Pad",
+      "category": "Pads",
+      "description": "Airy breathy pad with heavy noise excitation.",
+      "settings": {
+        "vowel": "U",
+        "vowelTarget": "O",
+        "morphX": 60,
+        "formantShift": -1,
+        "breathiness": 50,
+        "glottalPulseWidth": 58,
+        "vowelSequenceEnabled": false,
+        "vowelSequenceRate": 2.0
+      }
+    },
+    {
+      "name": "Evolving Vowel",
+      "category": "Pads",
+      "description": "Continuously cycling through all vowels at medium rate.",
+      "settings": {
+        "vowel": "A",
+        "vowelTarget": "E",
+        "morphX": 0,
+        "formantShift": 0,
+        "breathiness": 10,
+        "glottalPulseWidth": 58,
+        "vowelSequenceEnabled": true,
+        "vowelSequenceRate": 1.5
+      }
+    },
+    {
+      "name": "Formant Bass",
+      "category": "Bass",
+      "description": "Deep formant bass with closed pulse and low formants.",
+      "settings": {
+        "vowel": "O",
+        "vowelTarget": "U",
+        "morphX": 50,
+        "formantShift": -4,
+        "breathiness": 3,
+        "glottalPulseWidth": 70,
+        "vowelSequenceEnabled": false,
+        "vowelSequenceRate": 2.0
+      }
+    },
+    {
+      "name": "Talking Bass",
+      "category": "Bass",
+      "description": "Bass that cycles through vowels for a talking effect.",
+      "settings": {
+        "vowel": "A",
+        "vowelTarget": "E",
+        "morphX": 0,
+        "formantShift": -3,
+        "breathiness": 5,
+        "glottalPulseWidth": 62,
+        "vowelSequenceEnabled": true,
+        "vowelSequenceRate": 4.0
+      }
+    },
+    {
+      "name": "Growl Bass",
+      "category": "Bass",
+      "description": "Aggressive growling bass with wide pulse and tight formants.",
+      "settings": {
+        "vowel": "A",
+        "vowelTarget": "E",
+        "morphX": 70,
+        "formantShift": -5,
+        "breathiness": 5,
+        "glottalPulseWidth": 75,
+        "vowelSequenceEnabled": false,
+        "vowelSequenceRate": 2.0
+      }
+    },
+    {
+      "name": "Alien Voice",
+      "category": "Creative",
+      "description": "Otherworldly alien vocal with extreme formant shift.",
+      "settings": {
+        "vowel": "I",
+        "vowelTarget": "U",
+        "morphX": 45,
+        "formantShift": 7,
+        "breathiness": 8,
+        "glottalPulseWidth": 50,
+        "vowelSequenceEnabled": true,
+        "vowelSequenceRate": 3.0
+      }
+    },
+    {
+      "name": "Underwater Vocal",
+      "category": "Creative",
+      "description": "Muffled underwater voice with lowered formants and breath.",
+      "settings": {
+        "vowel": "U",
+        "vowelTarget": "O",
+        "morphX": 70,
+        "formantShift": -5,
+        "breathiness": 25,
+        "glottalPulseWidth": 65,
+        "vowelSequenceEnabled": false,
+        "vowelSequenceRate": 2.0
+      }
+    },
+    {
+      "name": "Radio Vocal",
+      "category": "Creative",
+      "description": "Thin, mid-heavy vocal like through a radio speaker.",
+      "settings": {
+        "vowel": "E",
+        "vowelTarget": "A",
+        "morphX": 30,
+        "formantShift": 4,
+        "breathiness": 3,
+        "glottalPulseWidth": 45,
+        "vowelSequenceEnabled": false,
+        "vowelSequenceRate": 2.0
+      }
+    },
+    {
+      "name": "Morphing Vowels",
+      "category": "Creative",
+      "description": "Rapid vowel cycling for rhythmic vocal texture.",
+      "settings": {
+        "vowel": "A",
+        "vowelTarget": "E",
+        "morphX": 0,
+        "formantShift": 0,
+        "breathiness": 8,
+        "glottalPulseWidth": 55,
+        "vowelSequenceEnabled": true,
+        "vowelSequenceRate": 6.0
+      }
+    },
+    {
+      "name": "Vocal Drone",
+      "category": "Creative",
+      "description": "Static, meditative vocal drone on a deep O vowel.",
+      "settings": {
+        "vowel": "O",
+        "vowelTarget": "A",
+        "morphX": 10,
+        "formantShift": -2,
+        "breathiness": 10,
+        "glottalPulseWidth": 62,
+        "vowelSequenceEnabled": false,
+        "vowelSequenceRate": 2.0
+      }
+    },
+    {
+      "name": "Glitch Formant",
+      "category": "Creative",
+      "description": "Fast-switching formants with extreme parameters.",
+      "settings": {
+        "vowel": "I",
+        "vowelTarget": "A",
+        "morphX": 90,
+        "formantShift": 5,
+        "breathiness": 18,
+        "glottalPulseWidth": 40,
+        "vowelSequenceEnabled": true,
+        "vowelSequenceRate": 10.0
+      }
+    },
+    {
+      "name": "Warm Throat",
+      "category": "Creative",
+      "description": "Natural warm throat tone with moderate breathiness.",
+      "settings": {
+        "vowel": "A",
+        "vowelTarget": "O",
+        "morphX": 55,
+        "formantShift": 0,
+        "breathiness": 12,
+        "glottalPulseWidth": 58,
+        "vowelSequenceEnabled": false,
+        "vowelSequenceRate": 2.0
+      }
+    },
+    {
+      "name": "Spectral Choir",
+      "category": "Creative",
+      "description": "Shimmering choir with high formant shift and slow cycle.",
+      "settings": {
+        "vowel": "A",
+        "vowelTarget": "E",
+        "morphX": 50,
+        "formantShift": 4,
+        "breathiness": 15,
+        "glottalPulseWidth": 52,
+        "vowelSequenceEnabled": true,
+        "vowelSequenceRate": 0.3
+      }
+    }
+  ]
+}

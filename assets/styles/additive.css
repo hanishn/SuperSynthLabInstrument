@@ -1,0 +1,233 @@
+/**
+ * additive.css - Additive Synthesis Controls Styles
+ * Partial sliders, quick-set buttons, drawbar mode
+ */
+
+/* ========================================
+   Additive Controls Container (Modal)
+   ======================================== */
+
+.additive-controls-modal {
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--sslu-radius-lg);
+    margin-bottom: 0.5rem;
+}
+
+.additive-title-modal {
+    font-size: var(--ssli-fs-body);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--sslu-synth-additive);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ========================================
+   Quick-Set Buttons Row
+   ======================================== */
+
+.additive-quickset-row {
+    display: flex;
+    gap: 0.3rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.additive-quickset-row .quickset-label {
+    font-size: var(--ssli-fs-sm);
+    color: #888;
+    margin-right: 0.3rem;
+}
+
+.additive-quickset-btn {
+    padding: 2px 8px;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-input);
+    color: #b0b0b0;
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.additive-quickset-btn:hover {
+    background: #2a2a4e;
+    color: var(--sslu-text-secondary);
+}
+
+.additive-quickset-btn:active {
+    background: #3a3a5e;
+}
+
+/* ========================================
+   Drawbar Mode Toggle
+   ======================================== */
+
+.additive-mode-row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.additive-mode-row label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+    cursor: pointer;
+}
+
+/* ========================================
+   Partial Sliders Section
+   ======================================== */
+
+.additive-partials-section {
+    margin-bottom: 0.5rem;
+}
+
+.additive-partials-label {
+    font-size: var(--ssli-fs-sm);
+    color: #888;
+    margin-bottom: 0.3rem;
+}
+
+.additive-partials-container {
+    display: flex;
+    gap: var(--ssli-gap-xs);
+    align-items: flex-end;
+    height: 120px;
+    padding: 4px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--sslu-radius-md);
+    border: 1px solid var(--sslu-border-medium);
+}
+
+.additive-partial-strip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    height: 100%;
+    min-width: 18px;
+}
+
+.additive-partial-strip input[type="range"] {
+    writing-mode: bt-lr;
+    -webkit-appearance: slider-vertical;
+    appearance: slider-vertical;
+    width: 14px;
+    flex: 1;
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
+}
+
+.additive-partial-num {
+    font-size: var(--ssli-fs-sm);
+    color: var(--ssli-text-muted, rgba(220,235,245,0.50));
+    margin-top: 2px;
+    user-select: none;
+}
+
+/* ========================================
+   Drawbar Sliders Section
+   ======================================== */
+
+.additive-drawbar-section {
+    margin-bottom: 0.5rem;
+}
+
+.additive-drawbar-label {
+    font-size: var(--ssli-fs-sm);
+    color: #888;
+    margin-bottom: 0.3rem;
+}
+
+.additive-drawbar-container {
+    display: flex;
+    gap: var(--ssli-gap-xs);
+    align-items: flex-end;
+    height: 130px;
+    padding: 6px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--sslu-radius-md);
+    border: 1px solid var(--sslu-border-medium);
+}
+
+.additive-drawbar-strip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    height: 100%;
+    min-width: 24px;
+}
+
+.additive-drawbar-strip input[type="range"] {
+    writing-mode: bt-lr;
+    -webkit-appearance: slider-vertical;
+    appearance: slider-vertical;
+    width: 18px;
+    flex: 1;
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
+}
+
+.additive-drawbar-footage {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-synth-additive);
+    margin-top: 2px;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.additive-drawbar-val {
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+    margin-top: 1px;
+    user-select: none;
+}
+
+/* ========================================
+   Partial Ratio/Phase Controls
+   ======================================== */
+
+.additive-detail-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.3rem;
+    flex-wrap: wrap;
+}
+
+.additive-detail-row label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+}
+
+.additive-detail-row select {
+    padding: 1px 3px;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-input);
+    color: var(--sslu-text-secondary);
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+}
+
+.additive-detail-row input[type="range"] {
+    width: 60px;
+}
+
+.additive-detail-row span {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-synth-additive);
+    min-width: 20px;
+}

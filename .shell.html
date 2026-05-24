@@ -1,0 +1,346 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="mobile-web-app-capable" content="yes"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self';"><meta http-equiv="X-Frame-Options" content="DENY"><title>Super Synth Lab - Instrument</title><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='20' fill='%230a0a1a'/%3E%3Ctext x='90' y='105' text-anchor='middle' font-family='system-ui' font-size='48' font-weight='bold' fill='%234cc9f0'%3ESSLI%3C/text%3E%3C/svg%3E"></head><body>
+<!-- V-17: Loading screen (inline CSS, renders immediately before JS loads) -->
+<div id="ssliLoadingScreen" style="position:fixed;top:0;left:0;right:0;bottom:0;background:#0a0a1a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:50000;"><div data-i18n="app.loading_title" style="font-size:1.4rem;font-weight:bold;color:#4cc9f0;margin-bottom:12px;font-family:system-ui,sans-serif;">Super Synth Lab - Instrument</div><div style="width:120px;height:3px;background:#1a1a2e;border-radius:2px;overflow:hidden;"><div id="ssliLoadBar" style="width:0%;height:100%;background:linear-gradient(90deg,#4cc9f0,#7209b7);border-radius:2px;transition:width 0.3s;"></div></div><div id="loadingStatus" data-i18n="app.loading_status" style="font-size:0.6rem;color:#666;margin-top:8px;font-family:system-ui,sans-serif;">Loading instruments...</div></div>
+<script>(function(){var bar=document.getElementById('ssliLoadBar');var steps=[10,25,40,55,70,85];var idx=0;var iv=setInterval(function(){if(idx<steps.length){bar.style.width=steps[idx]+'%';idx++;}else{clearInterval(iv);}},400);window._ssliLoadBar=bar;window._ssliLoadInterval=iv;})();</script>
+
+<!-- Rotation gate overlay for phone portrait -->
+<div id="ssli-rotate-overlay" class="sslu-rotate-overlay" style="display:none;"><div class="sslu-rotate-overlay-inner"><svg class="sslu-rotate-icon" width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="#4cc9f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="6" width="24" height="44" rx="3" ry="3"/><path d="M46 20 L54 28 L46 36"/><path d="M54 28 L40 28 Q34 28 34 34 L34 50 Q34 56 40 56 L56 56 Q62 56 62 50 L62 34" stroke-dasharray="4 3"/></svg><div class="sslu-rotate-msg" data-i18n="rotate.title">Turn sideways to play</div><div class="sslu-rotate-sub" data-i18n="rotate.message">Super Synth Lab - Instrument sounds best in landscape -- more room for keys and controls!</div><button class="sslu-rotate-continue" data-i18n="rotate.continue" onclick="document.getElementById('ssli-rotate-overlay').style.display='none';" type="button">Continue in portrait</button></div></div>
+
+<!-- About overlay -->
+<div id="ssliAboutOverlay" class="ssl-about-overlay" style="display:none;" role="dialog" aria-modal="true" aria-label="About Super Synth Lab - Instrument">
+<div class="ssl-about-panel">
+<button class="ssl-about-close" onclick="document.getElementById('ssliAboutOverlay').style.display='none';" aria-label="Close">&times;</button>
+<h2 class="ssl-about-title" data-i18n="dialog.about.title">Super Synth Lab - Instrument</h2>
+<p id="ssliAboutVersion" class="ssl-about-version">Version: Super Synth Lab - Instrument v1.10.1136</p>
+<div class="ssl-about-body">
+<p data-i18n="dialog.about.description">Super Synth Lab - Instrument is a focused synthesizer with 17+ synth engines, effects chain, and MIDI support. Play, shape your sound, and perform -- all from 5 streamlined screens.</p>
+<details class="ssl-about-details"><summary data-i18n="dialog.about.features_header">What can Super Synth Lab - Instrument do?</summary>
+<ul>
+<li data-i18n="dialog.about.features_1">Play with piano keyboard, isomorphic grids, pads, guitar fretboard, and more</li>
+<li data-i18n="dialog.about.features_2">Choose from 17+ synthesis engines: Subtractive, FM, Physical Modelling, Granular, Additive, and more</li>
+<li data-i18n="dialog.about.features_3">Shape your sound with ADSR envelopes and filters</li>
+<li data-i18n="dialog.about.features_4">Apply 21+ effects: reverb, delay, chorus, distortion, and more</li>
+<li data-i18n="dialog.about.features_5">Connect MIDI keyboards and controllers</li>
+</ul>
+</details>
+<details class="ssl-about-details"><summary data-i18n="dialog.about.privacy_header">Privacy</summary>
+<p data-i18n="dialog.about.privacy_text">Super Synth Lab - Instrument runs entirely in your browser. No data is collected, no audio is recorded or transmitted, no accounts required. All settings are stored locally on your device.</p>
+</details>
+<details class="ssl-about-details"><summary data-i18n="dialog.about.feedback_header">Feedback</summary>
+<p data-i18n="dialog.about.feedback_text">Questions, bug reports, or feature requests? Send feedback to:</p>
+<canvas id="ssliEmailCanvas" width="280" height="20" style="display:block;margin:6px 0;"></canvas>
+<script>(function(){var c=document.getElementById('ssliEmailCanvas');if(!c)return;var x=c.getContext('2d');x.font='13px monospace';x.fillStyle='#4cc9f0';x.fillText('h a n i s h n',0,14);x.fillStyle='#f77f00';x.fillText('  @  ',91,14);x.fillStyle='#4cc9f0';x.fillText('g m a i l',134,14);})();</script>
+<p style="color:#888;font-size:0.7rem;">Subject: SSLI v1.2</p>
+</details>
+<details class="ssl-about-details"><summary data-i18n="dialog.about.legal_header">Legal</summary>
+<p data-i18n="dialog.about.legal_text">Created by Nathan Hanish, 2026. All rights reserved. This software is provided as-is for personal and educational use.</p>
+</details>
+</div>
+</div>
+</div>
+
+<!-- Reset confirmation overlay -->
+<div id="ssliResetConfirmOverlay" class="ssl-about-overlay" style="display:none;" role="dialog" aria-modal="true" aria-label="Reset Confirmation">
+<div class="ssl-about-panel ssli-reset-panel">
+<h2 class="ssl-about-title ssli-reset-title" data-i18n="dialog.reset.title">Reset All Settings?</h2>
+<p class="ssli-reset-message" data-i18n="dialog.reset.message">This will clear all saved presets, MIDI mappings, and settings. This cannot be undone.</p>
+<div class="ssli-reset-actions">
+<button class="ssli-reset-cancel-btn" data-i18n="ui.button.cancel" onclick="document.getElementById('ssliResetConfirmOverlay').style.display='none';">Cancel</button>
+<button class="ssli-reset-confirm-btn" onclick="try{if(window.SynthLab&&SynthLab.audio&&SynthLab.audio.stopAllSustained)SynthLab.audio.stopAllSustained();if(window.SynthLab&&SynthLab.midi&&SynthLab.midi.panic)SynthLab.midi.panic();if(window.SynthLab&&SynthLab.controllers&&SynthLab.controllers.chordpads&&SynthLab.controllers.chordpads.clearStrumTimeouts)SynthLab.controllers.chordpads.clearStrumTimeouts();}catch(e){}try{localStorage.clear();}catch(e){}location.reload();" data-i18n="ui.button.reset_confirm">Reset All</button>
+</div>
+</div>
+</div>
+
+<!-- Landing page (fullscreen sidebar) -->
+<div id="ssli-landing" class="ssli-landing" role="main" aria-label="SSLI Landing Page">
+<div class="ssli-landing-inner">
+<div class="ssli-landing-content">
+<div class="ssli-landing-brand">
+<div class="ssli-landing-title" data-i18n="app.title">Super Synth Lab - Instrument</div>
+<div class="ssli-landing-edition" data-i18n="app.edition">Public Build</div>
+<div class="ssli-landing-subtitle" data-i18n="app.tagline">Every Sound. One Instrument.</div>
+<div class="ssli-landing-credit">Created by Nathan Hanish 2026</div>
+<div class="ssli-landing-version">v1.10.1136</div>
+</div>
+<svg class="ssl-waveform-divider" viewBox="0 0 400 30" preserveAspectRatio="none" style="width:80%;max-width:500px;height:30px;margin:12px auto;display:block;opacity:0.3;"><path d="M0,15 Q25,5 50,15 T100,15 T150,15 T200,15 T250,15 T300,15 T350,15 T400,15" fill="none" stroke="url(#ssliWaveGrad)" stroke-width="1.5"/><defs><linearGradient id="ssliWaveGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#4cc9f0"/><stop offset="50%" stop-color="#7209b7"/><stop offset="100%" stop-color="#f72585"/></linearGradient></defs></svg>
+<div class="ssli-landing-actions">
+<button class="ssli-play-btn" id="ssliPlayBtn" type="button" aria-label="Play Music"><span class="ssli-play-icon">&#127929;</span> <span data-i18n="ui.button.play_music">Play Music</span></button>
+<button class="ssli-fullscreen-btn" id="ssliFullscreenBtn" type="button" aria-label="Go Fullscreen">&#x26F6; <span data-i18n="ui.button.go_fullscreen">Go Fullscreen</span></button>
+<button class="ssli-about-link" type="button" aria-label="About Super Synth Lab - Instrument" onclick="var o=document.getElementById('ssliAboutOverlay');if(o){o.style.display='flex';}" data-i18n="ui.button.about">About</button>
+<button class="ssli-about-link" type="button" aria-label="Reset All" onclick="var d=document.getElementById('ssliResetConfirmOverlay');if(d){d.style.display='flex';}" data-i18n="ui.button.reset_all">Reset All</button>
+</div>
+</div>
+<div class="ssl-lang-selector" id="sslLangSelector" role="group" aria-label="Language selector">
+<button class="ssl-lang-btn ssl-lang-active" data-lang="en" aria-label="English" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="16" fill="#fff"/><rect y="0" width="24" height="1.23" fill="#B22234"/><rect y="2.46" width="24" height="1.23" fill="#B22234"/><rect y="4.92" width="24" height="1.23" fill="#B22234"/><rect y="7.38" width="24" height="1.23" fill="#B22234"/><rect y="9.85" width="24" height="1.23" fill="#B22234"/><rect y="12.31" width="24" height="1.23" fill="#B22234"/><rect y="14.77" width="24" height="1.23" fill="#B22234"/><rect width="9.6" height="8.62" fill="#3C3B6E"/></svg><span>English</span></button>
+<button class="ssl-lang-btn" data-lang="es" aria-label="Espanol" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="4" fill="#AA151B"/><rect y="4" width="24" height="8" fill="#F1BF00"/><rect y="12" width="24" height="4" fill="#AA151B"/></svg><span>Espa&#241;ol</span></button>
+<button class="ssl-lang-btn" data-lang="fr" aria-label="Francais" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="8" height="16" fill="#002395"/><rect x="8" width="8" height="16" fill="#fff"/><rect x="16" width="8" height="16" fill="#ED2939"/></svg><span>Fran&#231;ais</span></button>
+<button class="ssl-lang-btn" data-lang="it" aria-label="Italiano" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="8" height="16" fill="#009246"/><rect x="8" width="8" height="16" fill="#fff"/><rect x="16" width="8" height="16" fill="#CE2B37"/></svg><span>Italiano</span></button>
+<button class="ssl-lang-btn" data-lang="de" aria-label="Deutsch" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="5.33" fill="#000"/><rect y="5.33" width="24" height="5.34" fill="#DD0000"/><rect y="10.67" width="24" height="5.33" fill="#FFCC00"/></svg><span>Deutsch</span></button>
+<button class="ssl-lang-btn" data-lang="pt" aria-label="Portugues" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="16" fill="#009B3A"/><polygon points="12,2 22,8 12,14 2,8" fill="#FEDF00"/><circle cx="12" cy="8" r="2.8" fill="#002776"/></svg><span>Portugu&#234;s</span></button>
+<button class="ssl-lang-btn" data-lang="nl" aria-label="Nederlands" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="5.33" fill="#AE1C28"/><rect y="5.33" width="24" height="5.34" fill="#fff"/><rect y="10.67" width="24" height="5.33" fill="#21468B"/></svg><span>Nederlands</span></button>
+<button class="ssl-lang-btn" data-lang="ru" aria-label="Russian" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="5.33" fill="#fff"/><rect y="5.33" width="24" height="5.34" fill="#0039A6"/><rect y="10.67" width="24" height="5.33" fill="#D52B1E"/></svg><span>&#1056;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081;</span></button>
+<button class="ssl-lang-btn" data-lang="ko" aria-label="Korean" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="16" fill="#fff"/><circle cx="12" cy="8" r="4" fill="#CD2E3A"/><path d="M12,8 A4,4 0 0,1 12,8 Q12,12 8.5,10 A4,4 0 0,0 12,8" fill="#0047A0"/><path d="M12,4 Q15.5,6 12,8 Q8.5,6 12,4" fill="#CD2E3A"/><path d="M12,8 Q15.5,10 12,12 Q8.5,10 12,8" fill="#0047A0"/></svg><span>&#54620;&#44397;&#50612;</span></button>
+<button class="ssl-lang-btn" data-lang="ja" aria-label="Japanese" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="16" fill="#fff"/><circle cx="12" cy="8" r="4" fill="#BC002D"/></svg><span>&#26085;&#26412;&#35486;</span></button>
+<button class="ssl-lang-btn" data-lang="zh-CN" aria-label="Chinese" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="16" fill="#DE2910"/><polygon points="4,2.5 4.6,4.3 6.5,4.3 5,5.4 5.5,7.2 4,6 2.5,7.2 3,5.4 1.5,4.3 3.4,4.3" fill="#FFDE00"/></svg><span>&#20013;&#25991;</span></button>
+<button class="ssl-lang-btn" data-lang="th" aria-label="Thai" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="2.67" fill="#A51931"/><rect y="2.67" width="24" height="2.67" fill="#fff"/><rect y="5.33" width="24" height="5.34" fill="#2D2A4A"/><rect y="10.67" width="24" height="2.67" fill="#fff"/><rect y="13.33" width="24" height="2.67" fill="#A51931"/></svg><span>&#3652;&#3607;&#3618;</span></button>
+<button class="ssl-lang-btn" data-lang="ar" aria-label="Arabic" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="16" fill="#006C35"/></svg><span>&#1575;&#1604;&#1593;&#1585;&#1576;&#1610;&#1577;</span></button>
+<button class="ssl-lang-btn" data-lang="hi" aria-label="Hindi" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="5.33" fill="#FF9933"/><rect y="5.33" width="24" height="5.34" fill="#fff"/><rect y="10.67" width="24" height="5.33" fill="#138808"/><circle cx="12" cy="8" r="1.8" fill="none" stroke="#000080" stroke-width="0.5"/></svg><span>&#2361;&#2367;&#2344;&#2381;&#2342;&#2368;</span></button>
+<button class="ssl-lang-btn" data-lang="pl" aria-label="Polski" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="8" fill="#fff"/><rect y="8" width="24" height="8" fill="#DC143C"/></svg><span>Polski</span></button>
+<button class="ssl-lang-btn" data-lang="sv" aria-label="Svenska" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="16" fill="#006AA7"/><rect y="6" width="24" height="4" fill="#FECC00"/><rect x="7" width="4" height="16" fill="#FECC00"/></svg><span>Svenska</span></button>
+<button class="ssl-lang-btn" data-lang="no" aria-label="Norsk" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="16" fill="#EF2B2D"/><rect y="6" width="24" height="4" fill="#fff"/><rect x="7" width="4" height="16" fill="#fff"/><rect y="7" width="24" height="2" fill="#002868"/><rect x="8" width="2" height="16" fill="#002868"/></svg><span>Norsk</span></button>
+<button class="ssl-lang-btn" data-lang="da" aria-label="Dansk" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="16" fill="#C60C30"/><rect y="6" width="24" height="4" fill="#fff"/><rect x="7" width="4" height="16" fill="#fff"/></svg><span>Dansk</span></button>
+<button class="ssl-lang-btn" data-lang="fi" aria-label="Suomi" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="16" fill="#fff"/><rect y="6" width="24" height="4" fill="#003580"/><rect x="7" width="4" height="16" fill="#003580"/></svg><span>Suomi</span></button>
+<button class="ssl-lang-btn" data-lang="cs" aria-label="Cestina" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="8" fill="#fff"/><rect y="8" width="24" height="8" fill="#D7141A"/><polygon points="0,0 10,8 0,16" fill="#11457E"/></svg><span>&#269;e&#353;tina</span></button>
+<button class="ssl-lang-btn" data-lang="hu" aria-label="Magyar" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="5.33" fill="#CE2939"/><rect y="5.33" width="24" height="5.34" fill="#fff"/><rect y="10.67" width="24" height="5.33" fill="#477050"/></svg><span>Magyar</span></button>
+<button class="ssl-lang-btn" data-lang="ro" aria-label="Romana" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="8" height="16" fill="#002B7F"/><rect x="8" width="8" height="16" fill="#FCD116"/><rect x="16" width="8" height="16" fill="#CE1126"/></svg><span>Rom&#226;n&#259;</span></button>
+<button class="ssl-lang-btn" data-lang="el" aria-label="Greek" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="16" fill="#0D5EAF"/><rect y="1.78" width="24" height="1.78" fill="#fff"/><rect y="5.33" width="24" height="1.78" fill="#fff"/><rect y="8.89" width="24" height="1.78" fill="#fff"/><rect y="12.44" width="24" height="1.78" fill="#fff"/><rect width="8.89" height="8.89" fill="#0D5EAF"/><rect x="3.56" y="0" width="1.78" height="8.89" fill="#fff"/><rect x="0" y="3.56" width="8.89" height="1.78" fill="#fff"/></svg><span>&#917;&#955;&#955;&#951;&#957;&#953;&#954;&#940;</span></button>
+<button class="ssl-lang-btn" data-lang="tr" aria-label="Turkce" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="16" fill="#E30A17"/><circle cx="10" cy="8" r="4" fill="#fff"/><circle cx="11.2" cy="8" r="3.2" fill="#E30A17"/><polygon points="14,8 14.8,6.5 13.2,7.5 15,7.5 13.2,6.5" fill="#fff"/></svg><span>T&#252;rk&#231;e</span></button>
+<button class="ssl-lang-btn" data-lang="uk" aria-label="Ukrainian" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="8" fill="#005BBB"/><rect y="8" width="24" height="8" fill="#FFD500"/></svg><span>&#1059;&#1082;&#1088;&#1072;&#1111;&#1085;&#1089;&#1100;&#1082;&#1072;</span></button>
+<button class="ssl-lang-btn" data-lang="id" aria-label="Indonesia" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="8" fill="#FF0000"/><rect y="8" width="24" height="8" fill="#fff"/></svg><span>Indonesia</span></button>
+<button class="ssl-lang-btn" data-lang="vi" aria-label="Tieng Viet" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="16" fill="#DA251D"/><polygon points="12,3 13.5,7.5 18,7.5 14.3,10 15.7,14.5 12,11.5 8.3,14.5 9.7,10 6,7.5 10.5,7.5" fill="#FFFF00"/></svg><span>Ti&#7871;ng Vi&#7879;t</span></button>
+<button class="ssl-lang-btn" data-lang="he" aria-label="Hebrew" type="button"><svg width="24" height="16" viewBox="0 0 24 16"><rect width="24" height="16" fill="#fff"/><rect y="1.5" width="24" height="2" fill="#0038B8"/><rect y="12.5" width="24" height="2" fill="#0038B8"/><polygon points="12,4 14.5,9 9.5,9" fill="none" stroke="#0038B8" stroke-width="0.8"/><polygon points="12,11 9.5,6 14.5,6" fill="none" stroke="#0038B8" stroke-width="0.8"/></svg><span>&#1506;&#1489;&#1512;&#1497;&#1514;</span></button>
+</div>
+</div>
+</div>
+
+<!-- Add to Home Screen / Fullscreen overlay -->
+<div id="ssliA2hsOverlay" class="ssli-a2hs-overlay" role="dialog" aria-modal="true" aria-label="Add to Home Screen instructions">
+<div class="ssli-a2hs-panel">
+<h3 class="ssli-a2hs-title" data-i18n="dialog.a2hs.title">Go Fullscreen on iOS</h3>
+<p class="ssli-a2hs-desc" data-i18n="dialog.a2hs.description">Add Super Synth Lab - Instrument to your home screen for a fullscreen experience with no browser bars:</p>
+<ol class="ssli-a2hs-steps">
+<li><span class="ssli-a2hs-step-num">1</span><span>Tap the <span class="ssli-a2hs-share-icon">&#x1F4E4;</span> <strong data-i18n="dialog.a2hs.share_button">Share</strong> button in Safari</span></li>
+<li><span class="ssli-a2hs-step-num">2</span><span>Scroll down and tap <strong data-i18n="dialog.a2hs.add_to_home">Add to Home Screen</strong></span></li>
+<li><span class="ssli-a2hs-step-num">3</span><span>Tap <strong data-i18n="dialog.a2hs.add_button">Add</strong> in the top-right corner</span></li>
+<li><span class="ssli-a2hs-step-num">4</span><span>Open <strong data-i18n="dialog.a2hs.app_name">Super Synth Lab - Instrument</strong> from your home screen</span></li>
+</ol>
+<p class="ssli-a2hs-note">This runs Super Synth Lab - Instrument as a fullscreen app with no browser bars. Works on iPhone, iPad, and Android.</p>
+<button class="ssli-a2hs-close" id="ssliA2hsClose" type="button">Got it</button>
+</div>
+</div>
+
+<script>(function(){
+var fsBtn = document.getElementById('ssliFullscreenBtn');
+var overlay = document.getElementById('ssliA2hsOverlay');
+var closeBtn = document.getElementById('ssliA2hsClose');
+if (!fsBtn || !overlay || !closeBtn) { return; }
+var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches;
+if (isStandalone) {
+    document.documentElement.classList.add('ssli-standalone');
+    fsBtn.style.display = 'none';
+    return;
+}
+fsBtn.addEventListener('click', function() {
+    var docEl = document.documentElement;
+    var requestFn = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+    if (requestFn) {
+        try { requestFn.call(docEl); document.documentElement.classList.add('ssli-standalone'); return; } catch(e) {}
+    }
+    overlay.style.display = 'flex';
+});
+closeBtn.addEventListener('click', function() { overlay.style.display = 'none'; });
+overlay.addEventListener('click', function(e) { if (e.target === overlay) { overlay.style.display = 'none'; } });
+})();</script>
+
+<!-- Main app container (hidden until Play Music is clicked) -->
+<div id="ssli-app" class="ssli-app" style="display:none;">
+<!-- Left navigation strip -->
+<nav id="ssli-nav" class="ssli-nav" role="navigation" aria-label="Screen navigation">
+<button class="ssli-nav-btn active" data-screen="play" type="button" aria-label="Play">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3" y="14" width="2.5" height="8" rx="0.5"/><rect x="6.5" y="11" width="2.5" height="11" rx="0.5"/><rect x="10" y="14" width="2.5" height="8" rx="0.5"/><rect x="13.5" y="11" width="2.5" height="11" rx="0.5"/><rect x="17" y="14" width="2.5" height="8" rx="0.5"/><rect x="3" y="4" width="16.5" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+<span class="ssli-nav-label" data-i18n="ui.screen.play">Play</span>
+</button>
+<button class="ssli-nav-btn" data-screen="sound" type="button" aria-label="Sound">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3" y="4" width="3" height="16" rx="1"/><rect x="10.5" y="8" width="3" height="12" rx="1"/><rect x="18" y="2" width="3" height="18" rx="1"/></svg>
+<span class="ssli-nav-label" data-i18n="ui.screen.sound">Sound</span>
+</button>
+<button class="ssli-nav-btn" data-screen="shape" type="button" aria-label="Shape">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="2,20 6,4 10,12 14,8 22,20"/></svg>
+<span class="ssli-nav-label" data-i18n="ui.screen.shape">Shape</span>
+</button>
+<button class="ssli-nav-btn" data-screen="tweak" type="button" aria-label="Tweak">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="6" r="2"/><line x1="7" y1="8" x2="7" y2="20"/><line x1="7" y1="4" x2="7" y2="2"/><circle cx="17" cy="14" r="2"/><line x1="17" y1="16" x2="17" y2="22"/><line x1="17" y1="12" x2="17" y2="2"/></svg>
+<span class="ssli-nav-label" data-i18n="ui.screen.tweak">Tweak</span>
+</button>
+<button class="ssli-nav-btn" data-screen="effects" type="button" aria-label="Effects">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="12" r="3"/><line x1="9" y1="12" x2="15" y2="12"/></svg>
+<span class="ssli-nav-label" data-i18n="ui.screen.effects">Effects</span>
+</button>
+<button class="ssli-nav-btn" data-screen="acid" type="button" aria-label="Step Line">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="3" height="10" rx="0.5"/><rect x="7.5" y="4" width="3" height="16" rx="0.5"/><rect x="12" y="9" width="3" height="6" rx="0.5"/><rect x="16.5" y="6" width="3" height="12" rx="0.5"/><path d="M3 20 Q8 17 12 20 T21 19" stroke="#f5c542" fill="none" stroke-width="1.2"/></svg>
+<span class="ssli-nav-label" data-i18n="ui.screen.steps">Steps</span>
+</button>
+<button class="ssli-nav-btn" data-screen="midi" type="button" aria-label="MIDI">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="8" cy="16" r="2" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="16" r="2" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="10" r="2" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="16" r="1.2"/><rect x="4" y="4" width="16" height="16" rx="8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+<span class="ssli-nav-label" data-i18n="ui.screen.midi">MIDI</span>
+</button>
+</nav>
+
+<!-- Screen containers -->
+<div id="ssli-screens" class="ssli-screens">
+<div id="ssli-screen-play" class="ssli-screen active" role="region" aria-label="Play Screen">
+<!-- Built by ssli-screen-play.js -->
+</div>
+<div id="ssli-screen-sound" class="ssli-screen" style="display:none;" role="region" aria-label="Sound Screen">
+<!-- Built by ssli-screen-sound.js -->
+</div>
+<div id="ssli-screen-shape" class="ssli-screen" style="display:none;" role="region" aria-label="Shape Screen">
+<!-- Built by Recruit 2 -->
+</div>
+<div id="ssli-screen-tweak" class="ssli-screen" style="display:none;" role="region" aria-label="Tweak Screen">
+<!-- Built by ssli-screen-tweak.js -->
+</div>
+<div id="ssli-screen-effects" class="ssli-screen" style="display:none;" role="region" aria-label="Effects Screen">
+<!-- Built by Recruit 2 -->
+</div>
+<div id="ssli-screen-acid" class="ssli-screen" style="display:none;" role="region" aria-label="Step Line Screen">
+<!-- Built by ssli-screen-acid.js -->
+</div>
+<div id="ssli-screen-midi" class="ssli-screen" style="display:none;" role="region" aria-label="MIDI Screen">
+<!-- Built by Recruit 2 -->
+</div>
+</div>
+</div>
+
+<!-- Debug touch button (iOS has no backtick key) -->
+<button id="ssl-debug-btn" style="position:fixed;top:30px;right:4px;z-index:99999;opacity:0.3;font-size:10px;padding:2px 6px;background:#333;color:#fff;border:1px solid #555;border-radius:3px;-webkit-tap-highlight-color:transparent;" type="button">DBG</button>
+
+<!-- Debug panel (toggled with backtick/tilda key or DBG button) -->
+<div id="ssl-debug-panel" class="debug-panel hidden" style="z-index:99998;">
+<div class="debug-header">
+<span class="debug-title">Debug Console</span>
+<div class="debug-controls">
+<button class="debug-btn" id="ssl-debug-clear" type="button">Clear</button>
+<button class="debug-btn" id="ssl-debug-close" type="button">Close</button>
+</div>
+</div>
+<div id="ssl-pressure-debug" style="padding:0.3rem 0.4rem;color:#4cc9f0;font-family:monospace;font-size:14px;border-bottom:1px solid #333;white-space:pre-wrap;word-break:break-all;max-height:6rem;overflow-y:auto;">Pressure: waiting for input...</div>
+<div class="debug-output" id="ssl-debug-output"></div>
+</div>
+<button class="debug-toggle" id="ssl-debug-toggle" type="button" style="display:none;">Debug</button>
+<script>
+(function() {
+  var BACKTICK_KEY_CODE = 192;
+  var panel = document.getElementById('ssl-debug-panel');
+  var toggle = document.getElementById('ssl-debug-toggle');
+  var closeBtn = document.getElementById('ssl-debug-close');
+  var clearBtn = document.getElementById('ssl-debug-clear');
+  var output = document.getElementById('ssl-debug-output');
+  var pressureDbg = document.getElementById('ssl-pressure-debug');
+  var debugVisible = false;
+  var debugEnabled = false;
+
+  function showPanel() {
+    debugVisible = true;
+    panel.classList.remove('hidden');
+    toggle.style.display = 'block';
+    _initPressureListeners();
+  }
+
+  function hidePanel() {
+    debugVisible = false;
+    panel.classList.add('hidden');
+  }
+
+  function togglePanel() {
+    if (debugVisible) {
+      hidePanel();
+    } else {
+      showPanel();
+    }
+  }
+
+  document.addEventListener('keydown', function(e) {
+    var isBacktick = (e.keyCode === BACKTICK_KEY_CODE || e.code === 'Backquote');
+    if (isBacktick) {
+      e.preventDefault();
+      debugEnabled = true;
+      toggle.style.display = 'block';
+      togglePanel();
+    }
+  });
+
+  var dbgBtn = document.getElementById('ssl-debug-btn');
+  if (dbgBtn) {
+    dbgBtn.addEventListener('click', function() {
+      debugEnabled = true;
+      togglePanel();
+    });
+  }
+
+  if (toggle) {
+    toggle.addEventListener('click', function() { togglePanel(); });
+  }
+  if (closeBtn) {
+    closeBtn.addEventListener('click', function() { hidePanel(); });
+  }
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function() {
+      if (output) { output.innerHTML = ''; }
+    });
+  }
+
+  var _pressureListenersActive = false;
+  function _initPressureListeners() {
+    if (_pressureListenersActive) { return; }
+    _pressureListenersActive = true;
+
+    var _ptrDownCount = 0;
+    document.addEventListener('pointerdown', function(e) {
+      _ptrDownCount++;
+      var SL = window.SynthLab;
+      var diag = SL ? SL._pressureDiag : null;
+      if (diag) {
+        diag.lastPointerPressure = (typeof e.pressure === 'number') ? e.pressure : -1;
+      }
+      var ptrW = (typeof e.width === 'number') ? e.width.toFixed(1) : 'N/A';
+      var ptrH = (typeof e.height === 'number') ? e.height.toFixed(1) : 'N/A';
+      if (pressureDbg) {
+        pressureDbg.textContent = 'PTR#' + _ptrDownCount + ' type=' + (e.pointerType || 'none') +
+          ' pressure=' + ((typeof e.pressure === 'number') ? e.pressure.toFixed(4) : 'N/A') +
+          ' w=' + ptrW + ' h=' + ptrH +
+          ' | src=' + (diag ? diag.lastPath : '?') +
+          ' norm=' + (diag ? (typeof diag.lastPressure === 'number' ? diag.lastPressure.toFixed(3) : diag.lastPressure) : '?') +
+          (diag && diag.forceAppearsConstant ? ' [CONST-FORCE]' : '') +
+          ' | tVel=' + (SL && SL._touchSettings ? (SL._touchSettings.enabled ? 'ON' : 'OFF') : '?') +
+          ' sens=' + (diag ? diag.touchSensitivity : '?') +
+          ' rRange=[' + (diag ? diag.radiusMin : '?') + ',' + (diag ? diag.radiusMax : '?') + ']';
+      }
+    }, true);
+
+    document.addEventListener('touchstart', function(e) {
+      var SL = window.SynthLab;
+      var diag = SL ? SL._pressureDiag : null;
+      var t = (e.changedTouches && e.changedTouches.length > 0) ? e.changedTouches[0] : null;
+      var forceVal = t ? t.force : -1;
+      var radiusX = t ? t.radiusX : -1;
+      var radiusY = t ? t.radiusY : -1;
+      if (diag) {
+        diag.lastTouchForce = forceVal;
+      }
+      if (pressureDbg) {
+        var existing = pressureDbg.textContent;
+        pressureDbg.textContent = existing + ' | TOUCH: force=' +
+          ((typeof forceVal === 'number') ? forceVal.toFixed(4) : 'N/A') +
+          ' rX=' + ((typeof radiusX === 'number') ? radiusX.toFixed(1) : 'N/A') +
+          ' rY=' + ((typeof radiusY === 'number') ? radiusY.toFixed(1) : 'N/A');
+      }
+    }, { capture: true, passive: true });
+  }
+})();
+</script>
+
+<!-- Brickwall limiter notice (hidden, for accessibility/legal) -->
+<div id="ssli-limiter-notice" data-i18n="notice.limiter" style="display:none;" aria-hidden="true">Audio output is protected by a brickwall limiter to prevent hearing damage.</div>
+
+<!-- Focus-steal fix for host exhibit viewer -->
+<script>(function(){var _fc=false;document.addEventListener('mousedown',function(e){var t=e.target;_fc=!!(t&&/^(SELECT|INPUT|TEXTAREA|BUTTON|OPTION|LABEL)$/.test(t.tagName));if(_fc){Promise.resolve().then(function(){_fc=false;});}},true);document.addEventListener('DOMContentLoaded',function(){if(!document.body)return;var _of=HTMLElement.prototype.focus;document.body.focus=function(){if(_fc)return;return _of.call(this);};});})();</script>
+
+<!-- Aria valuetext updater -->
+<script>(function(){function updateValueText(el){var label=el.getAttribute('aria-label')||'';var val=el.value;var min=parseFloat(el.min)||0;var max=parseFloat(el.max)||100;var pct=Math.round(((parseFloat(val)-min)/(max-min))*100);el.setAttribute('aria-valuetext',label+' '+val+' ('+pct+' percent)');}document.addEventListener('input',function(e){if(e.target&&e.target.type==='range'){updateValueText(e.target);}},true);})();</script>
+
+<script src="assets/localization.js"></script>
+<script>const ASSETS_BASE='assets/';const CSS_FILES=[];const JS_FILES=[];async function loadAll(){for(const f of CSS_FILES){const l=document.createElement('link');l.rel='stylesheet';l.href=ASSETS_BASE+f;document.head.appendChild(l);}for(const f of JS_FILES){await new Promise((r,j)=>{const s=document.createElement('script');s.src=ASSETS_BASE+f;s.onload=r;s.onerror=j;document.body.appendChild(s);});}};loadAll();</script>
+<!-- E-03: Service Worker registration for offline support -->
+<script>(function(){if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(e){console.warn('SW registration failed:',e);});}})();</script>
+</body></html>

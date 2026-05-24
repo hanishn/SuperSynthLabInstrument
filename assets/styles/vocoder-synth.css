@@ -1,0 +1,166 @@
+/**
+ * vocoder-synth.css - Vocoder Synthesis Controls Styles
+ * Carrier waveform, vowel selector, morph, band count, formant shift, filter Q
+ */
+
+/* ========================================
+   Vocoder Controls Container (Modal)
+   ======================================== */
+
+.vocoder-synth-controls-modal {
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--sslu-radius-lg);
+    margin-bottom: 0.5rem;
+}
+
+.vocoder-synth-title-modal {
+    font-size: var(--ssli-fs-body);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--sslu-synth-vocoder);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ========================================
+   Carrier Waveform Selector
+   ======================================== */
+
+.vocoder-synth-carrier-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.vocoder-synth-carrier-row label {
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+    min-width: 80px;
+}
+
+.vocoder-synth-carrier-row select {
+    padding: 2px 6px;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-input);
+    color: #e0e0e0;
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+}
+
+/* ========================================
+   Vowel Selector
+   ======================================== */
+
+.vocoder-synth-vowel-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.vocoder-synth-vowel-row label {
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+    min-width: 80px;
+}
+
+.vocoder-synth-vowel-btn {
+    padding: 3px 10px;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-input);
+    color: #b0b0b0;
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    min-width: 28px;
+    text-align: center;
+}
+
+.vocoder-synth-vowel-btn:hover {
+    background: #2a2a4e;
+    color: #e0e0e0;
+}
+
+.vocoder-synth-vowel-btn.active {
+    background: #6e3a1a;
+    color: var(--sslu-synth-vocoder);
+    border-color: var(--sslu-synth-vocoder);
+}
+
+/* ========================================
+   Band Count Selector
+   ======================================== */
+
+.vocoder-synth-band-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.vocoder-synth-band-row label {
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+    min-width: 80px;
+}
+
+.vocoder-synth-band-btn {
+    padding: 3px 8px;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-input);
+    color: #b0b0b0;
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.vocoder-synth-band-btn:hover {
+    background: #2a2a4e;
+    color: #e0e0e0;
+}
+
+.vocoder-synth-band-btn.active {
+    background: #6e3a1a;
+    color: var(--sslu-synth-vocoder);
+    border-color: var(--sslu-synth-vocoder);
+}
+
+/* ========================================
+   Parameter Sliders
+   ======================================== */
+
+.vocoder-synth-param-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.vocoder-synth-param-row label {
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+    min-width: 80px;
+}
+
+.vocoder-synth-param-row input[type="range"] {
+    flex: 1;
+    min-width: 80px;
+    max-width: 200px;
+    cursor: pointer;
+}
+
+.vocoder-synth-param-row .vocoder-synth-param-val {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-synth-vocoder);
+    min-width: 40px;
+    text-align: right;
+}

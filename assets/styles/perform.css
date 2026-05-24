@@ -1,0 +1,1228 @@
+/**
+ * perform.css - PERFORM screen styles for SuperSynthLab
+ * Keyboard-focused performance view with minimal UI
+ */
+
+/* ========================================
+   Preset Name Display (header)
+   ======================================== */
+
+.perform-preset-name-display {
+    font-size: var(--sslu-fs-px-md, 12px);
+    font-weight: var(--ssli-fw-semibold);
+    color: var(--sslu-cyan, var(--ssli-accent-cyan));
+    background: rgba(76, 201, 240, 0.08);
+    border: 1px solid rgba(76, 201, 240, 0.2);
+    border-radius: var(--sslu-radius-sm, 4px);
+    padding: 2px 8px;
+    margin-left: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+    letter-spacing: 0.3px;
+}
+
+/* ========================================
+   Inline Octave Controls (overlaid on controller)
+   ======================================== */
+
+.perform-inline-oct {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--ssli-gap-xs);
+    z-index: 100;
+    background: rgba(10, 10, 26, 0.85);
+    border-radius: var(--sslu-radius-md, 6px);
+    padding: 2px 6px;
+    border: 1px solid rgba(76, 201, 240, 0.2);
+    flex-shrink: 0;
+    width: 100%;
+    box-sizing: border-box;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.perform-inline-oct::-webkit-scrollbar { display: none; }
+
+.perform-inline-oct-btn {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    border: 1px solid rgba(76, 201, 240, 0.3);
+    border-radius: var(--sslu-radius-sm, 4px);
+    background: rgba(76, 201, 240, 0.1);
+    color: var(--sslu-cyan, var(--ssli-accent-cyan));
+    font-size: var(--ssli-fs-body);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+    padding: 0;
+}
+
+.perform-inline-oct-btn:active {
+    background: rgba(76, 201, 240, 0.3);
+}
+
+.perform-sustain-btn {
+    margin-left: 8px;
+    font-size: var(--ssli-fs-xs);
+    font-weight: var(--ssli-fw-bold);
+    letter-spacing: 1px;
+}
+
+.perform-sustain-btn.active {
+    background: rgba(76, 201, 240, 0.5);
+    box-shadow: 0 0 8px rgba(76, 201, 240, 0.6);
+    border-color: rgba(76, 201, 240, 0.7);
+}
+
+.ssli-match-btn {
+    width: auto;
+    min-width: 0;
+    padding: 2px 10px;
+    margin-left: 4px;
+    font-size: var(--ssli-fs-xs);
+    font-weight: var(--ssli-fw-bold);
+    letter-spacing: 0.5px;
+    background: rgba(232, 200, 122, 0.22);
+    border-color: rgba(232, 200, 122, 0.6);
+    color: var(--ssli-accent-amber);
+    box-shadow: 0 0 4px rgba(232, 200, 122, 0.2);
+}
+.ssli-match-btn:hover {
+    background: rgba(232, 200, 122, 0.25);
+}
+.ssli-match-btn:active {
+    background: rgba(232, 200, 122, 0.4);
+}
+.ssli-match-flash {
+    background: rgba(232, 200, 122, 0.5) !important;
+    box-shadow: 0 0 10px rgba(232, 200, 122, 0.6);
+    transition: background 0.1s ease, box-shadow 0.1s ease;
+}
+
+.perform-inline-oct-label {
+    font-size: var(--ssli-fs-xs);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--sslu-cyan, var(--ssli-accent-cyan));
+    padding: 0 4px;
+    white-space: nowrap;
+}
+
+/* ========================================
+   iPhone Landscape (phone-land) fit:
+   the Root/Key/Octave/Sustain/Transpose bar must never wrap
+   on iPhone 14 (844x390) or SE (667x375). iOS Safari renders
+   system fonts slightly wider than headless Chromium, which
+   previously caused the bar to wrap off-screen.
+   ======================================== */
+html[data-layout="phone-land"] .perform-inline-oct {
+    flex-wrap: nowrap;
+    gap: 1px;
+    padding: 2px 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+html[data-layout="phone-land"] .perform-inline-oct::-webkit-scrollbar {
+    display: none;
+}
+html[data-layout="phone-land"] .perform-inline-oct-btn {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
+    font-size: var(--ssli-fs-sm);
+    flex-shrink: 0;
+}
+html[data-layout="phone-land"] .ssli-match-btn {
+    padding: 0 5px;
+    font-size: var(--ssli-fs-xs);
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin-left: 2px;
+    width: auto;
+    flex-shrink: 0;
+}
+html[data-layout="phone-land"] .perform-sustain-btn {
+    margin-left: 4px;
+    font-size: var(--ssli-fs-xs);
+    letter-spacing: 0.5px;
+    width: auto;
+    min-width: 0;
+    padding: 0 5px;
+    font-size: 0; /* hide original text, show abbreviated via ::before */
+}
+html[data-layout="phone-land"] .perform-sustain-btn::before {
+    content: "SUS";
+    font-size: var(--ssli-fs-xs);
+    letter-spacing: 0.5px;
+}
+html[data-layout="phone-land"] .perform-inline-oct-label {
+    font-size: var(--ssli-fs-xs);
+    padding: 0 2px;
+    flex-shrink: 0;
+}
+html[data-layout="phone-land"] .ssli-inline-voicing-select {
+    font-size: var(--ssli-fs-xs);
+    padding: 1px 2px;
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: 56px;
+    width: 56px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    height: 24px;
+    min-height: 24px;
+    line-height: 20px;
+    margin-right: 2px;
+}
+html[data-layout="phone-land"] .ssli-inline-category-select {
+    font-size: var(--ssli-fs-xs);
+    padding: 1px 2px;
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: 64px;
+    width: 64px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    height: 24px;
+    min-height: 24px;
+    line-height: 20px;
+    margin-right: 2px;
+}
+html[data-layout="phone-land"] .ssli-inline-surface-select {
+    font-size: var(--ssli-fs-xs);
+    padding: 1px 2px;
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: 96px;
+    width: 96px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    height: 24px;
+    min-height: 24px;
+    line-height: 20px;
+}
+/* Abbreviate the transpose label on phone-land so "Transpose: +12 st"
+   cannot push the bar past the container width. */
+html[data-layout="phone-land"] .ssli-transpose-label {
+    max-width: 84px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Keyboard CONTAINER: flex column so octave bar sits above controller */
+#performKeyboard {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* Controller wrapper fills remaining space below octave bar, keys go HORIZONTAL */
+.perform-ctrl-wrapper {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ========================================
+   Screen Container
+   ======================================== */
+
+#screen-perform {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    background: var(--sslu-bg-base);
+}
+
+/* ========================================
+   Top Bar
+   ======================================== */
+
+.perform-top-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--sslu-gap-xl);
+    padding: var(--sslu-pad-bar);
+    background: var(--sslu-bg-raised);
+    border-bottom: var(--sslu-border-w-thin) solid var(--sslu-border-default);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    min-height: 32px;
+}
+
+.perform-top-bar label {
+    display: flex;
+    align-items: center;
+    gap: var(--sslu-gap-sm);
+    font-size: var(--sslu-fs-body);
+    color: var(--sslu-text-label);
+    white-space: nowrap;
+}
+
+.perform-select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    padding: var(--sslu-space-3) var(--sslu-space-5);
+    font-size: var(--sslu-fs-h3);
+    background: var(--sslu-bg-input);
+    color: var(--sslu-text-secondary);
+    border: var(--sslu-border-w-thin) solid var(--sslu-border-medium);
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+    max-width: 180px;
+    min-height: 32px;
+}
+
+.perform-select:hover {
+    border-color: var(--sslu-cyan);
+}
+
+.perform-select-sm {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    padding: var(--sslu-pad-input);
+    font-size: var(--sslu-fs-body-sm);
+    background: var(--sslu-bg-input);
+    color: var(--sslu-text-secondary);
+    border: var(--sslu-border-w-thin) solid var(--sslu-border-medium);
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+}
+
+.perform-btn {
+    padding: var(--sslu-pad-btn);
+    font-size: var(--sslu-fs-body);
+    background: var(--sslu-purple-btn);
+    color: var(--sslu-text-primary);
+    border: none;
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+}
+
+.perform-btn:hover {
+    background: var(--sslu-cyan);
+    color: #000;
+}
+
+.perform-note-readout {
+    font-size: var(--sslu-fs-tiny);
+    color: var(--sslu-cyan);
+    font-weight: var(--sslu-fw-bold);
+    min-width: 80px;
+    text-align: center;
+    margin-left: auto;
+}
+
+#performVolume {
+    width: 70px;
+    height: 14px;
+    cursor: pointer;
+}
+
+/* ========================================
+   Main Layout
+   ======================================== */
+
+.perform-main {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* ========================================
+   Keyboard Area
+   ======================================== */
+
+.perform-keyboard-area {
+    flex: 1;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    padding: var(--sslu-gap-sm);
+    min-width: 0;
+}
+
+.perform-keyboard {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    width: 100%;
+    position: relative;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* ========================================
+   Performance Keys
+   ======================================== */
+
+.perf-key {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: var(--sslu-space-4);
+    font-size: var(--ssli-fs-xs);
+    font-weight: var(--sslu-fw-bold);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    transition: background var(--sslu-transition-fast), box-shadow var(--sslu-transition-fast);
+    position: relative;
+    flex-shrink: 0;
+}
+
+/* White Keys - Large */
+.perf-key.perf-white {
+    width: 60px;
+    background: linear-gradient(180deg, #f5f5f0 0%, #ddd8d0 100%);
+    border: 1px solid #777;
+    border-radius: 0 0 5px 5px;
+    color: #333;
+    z-index: var(--sslu-z-keys-white);
+    margin: 0 1px;
+    box-shadow: var(--sslu-shadow-sm);
+}
+
+/* Black Keys - Proportional */
+.perf-key.perf-black {
+    width: 38px;
+    height: 55%;
+    background: linear-gradient(180deg, #3a3a3a 0%, #141414 100%);
+    border: 1px solid #000;
+    border-radius: 0 0 3px 3px;
+    color: #999;
+    z-index: var(--sslu-z-keys-black);
+    margin: 0 -18px;
+    font-size: var(--ssli-fs-xs);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5), inset 0 -1px 2px rgba(0,0,0,0.3);
+}
+
+/* Playing/Active State */
+.perf-key.perf-white.perf-active {
+    background: linear-gradient(180deg, var(--sslu-success) 0%, #28a060 100%);
+    box-shadow: var(--sslu-shadow-glow-success);
+    color: #000;
+}
+
+.perf-key.perf-black.perf-active {
+    background: linear-gradient(180deg, #2ac070 0%, #1a8048 100%);
+    box-shadow: 0 0 10px rgba(42, 192, 112, 0.4);
+    color: #000;
+}
+
+/* Key label at bottom */
+.perf-key-label {
+    font-size: var(--sslu-fs-small);
+    opacity: var(--sslu-opacity-muted);
+    pointer-events: none;
+}
+
+/* Computer key binding label */
+.perf-key-binding {
+    font-size: var(--sslu-fs-tiny);
+    opacity: var(--ssli-opacity-inactive);
+    margin-top: var(--sslu-space-1);
+    pointer-events: none;
+    color: var(--sslu-cyan);
+}
+
+/* ========================================
+   Chromatic Pitch-Class Colors (Piano)
+   Each pitch class gets a subtle color tint on white keys
+   and a colored strip on black keys
+   ======================================== */
+
+/* White key tints — subtle gradient overlay */
+.perf-key.perf-white.pc-0  { background: linear-gradient(180deg, #ffe0e0 0%, #e0c8c0 100%); } /* C  - red */
+.perf-key.perf-white.pc-2  { background: linear-gradient(180deg, #ffe8d0 0%, #e0d0c0 100%); } /* D  - orange */
+.perf-key.perf-white.pc-4  { background: linear-gradient(180deg, #fff8d0 0%, #e0dcc0 100%); } /* E  - yellow */
+.perf-key.perf-white.pc-5  { background: linear-gradient(180deg, #e8ffd8 0%, #c8e0c0 100%); } /* F  - green */
+.perf-key.perf-white.pc-7  { background: linear-gradient(180deg, #d8f0ff 0%, #c0d8e0 100%); } /* G  - cyan */
+.perf-key.perf-white.pc-9  { background: linear-gradient(180deg, #e0e0ff 0%, #c8c8e0 100%); } /* A  - blue */
+.perf-key.perf-white.pc-11 { background: linear-gradient(180deg, #f0d8ff 0%, #d8c8e0 100%); } /* B  - purple */
+
+/* Black key color accents — colored gradient */
+.perf-key.perf-black.pc-1  { background: linear-gradient(180deg, #5a2020 0%, #2a0a0a 100%); } /* C# - dark red */
+.perf-key.perf-black.pc-3  { background: linear-gradient(180deg, #5a4020 0%, #2a1a0a 100%); } /* D# - dark orange */
+.perf-key.perf-black.pc-6  { background: linear-gradient(180deg, #205a30 0%, #0a2a10 100%); } /* F# - dark green */
+.perf-key.perf-black.pc-8  { background: linear-gradient(180deg, #204050 0%, #0a1a2a 100%); } /* G# - dark teal */
+.perf-key.perf-black.pc-10 { background: linear-gradient(180deg, #3a2050 0%, #1a0a2a 100%); } /* A# - dark purple */
+
+/* Active states preserve color identity */
+.perf-key.perf-white.pc-0.perf-active  { background: linear-gradient(180deg, #ff6666 0%, #cc3030 100%); }
+.perf-key.perf-white.pc-2.perf-active  { background: linear-gradient(180deg, #ffaa44 0%, #cc7720 100%); }
+.perf-key.perf-white.pc-4.perf-active  { background: linear-gradient(180deg, #ffdd44 0%, #ccaa20 100%); }
+.perf-key.perf-white.pc-5.perf-active  { background: linear-gradient(180deg, #66dd66 0%, #30aa30 100%); }
+.perf-key.perf-white.pc-7.perf-active  { background: linear-gradient(180deg, #44bbff 0%, #2088cc 100%); }
+.perf-key.perf-white.pc-9.perf-active  { background: linear-gradient(180deg, #6666ff 0%, #3030cc 100%); }
+.perf-key.perf-white.pc-11.perf-active { background: linear-gradient(180deg, #bb66ff 0%, #8830cc 100%); }
+
+.perf-key.perf-black.pc-1.perf-active  { background: linear-gradient(180deg, #cc4444 0%, #882020 100%); }
+.perf-key.perf-black.pc-3.perf-active  { background: linear-gradient(180deg, #cc8833 0%, #885518 100%); }
+.perf-key.perf-black.pc-6.perf-active  { background: linear-gradient(180deg, #44bb55 0%, #208830 100%); }
+.perf-key.perf-black.pc-8.perf-active  { background: linear-gradient(180deg, #3399cc 0%, #186688 100%); }
+.perf-key.perf-black.pc-10.perf-active { background: linear-gradient(180deg, #9944cc 0%, #662088 100%); }
+
+/* ========================================
+   Chromatic Pitch-Class Colors (Iso Grid)
+   Each cell gets a distinct background hue
+   ======================================== */
+
+.perf-iso-key.pc-0  { background: #3a1a1a; border-color: #884444; } /* C  - red */
+.perf-iso-key.pc-1  { background: #3a2218; border-color: #885533; } /* C# */
+.perf-iso-key.pc-2  { background: #3a2a14; border-color: #886622; } /* D  - orange */
+.perf-iso-key.pc-3  { background: #3a3214; border-color: #887722; } /* D# */
+.perf-iso-key.pc-4  { background: #343a14; border-color: #778822; } /* E  - yellow */
+.perf-iso-key.pc-5  { background: #1a3a1a; border-color: #448844; } /* F  - green */
+.perf-iso-key.pc-6  { background: #143a2a; border-color: #228866; } /* F# */
+.perf-iso-key.pc-7  { background: #143a3a; border-color: #228888; } /* G  - cyan */
+.perf-iso-key.pc-8  { background: #142a3a; border-color: #226688; } /* G# */
+.perf-iso-key.pc-9  { background: #1a1a3a; border-color: #444488; } /* A  - blue */
+.perf-iso-key.pc-10 { background: #2a1a3a; border-color: #664488; } /* A# */
+.perf-iso-key.pc-11 { background: #3a1a3a; border-color: #884488; } /* B  - purple */
+
+/* Iso hover — brighten */
+.perf-iso-key.pc-0:hover  { background: #4a2a2a; }
+.perf-iso-key.pc-1:hover  { background: #4a3228; }
+.perf-iso-key.pc-2:hover  { background: #4a3a24; }
+.perf-iso-key.pc-3:hover  { background: #4a4224; }
+.perf-iso-key.pc-4:hover  { background: #444a24; }
+.perf-iso-key.pc-5:hover  { background: #2a4a2a; }
+.perf-iso-key.pc-6:hover  { background: #244a3a; }
+.perf-iso-key.pc-7:hover  { background: #244a4a; }
+.perf-iso-key.pc-8:hover  { background: #243a4a; }
+.perf-iso-key.pc-9:hover  { background: var(--ssli-bg-input); }
+.perf-iso-key.pc-10:hover { background: #3a2a4a; }
+.perf-iso-key.pc-11:hover { background: #4a2a4a; }
+
+/* Iso playing — bright saturated */
+.perf-iso-key.pc-0.playing  { background: #882222; border-color: #ff4444; }
+.perf-iso-key.pc-1.playing  { background: #884422; border-color: #ff8844; }
+.perf-iso-key.pc-2.playing  { background: #886622; border-color: #ffaa44; }
+.perf-iso-key.pc-3.playing  { background: #888822; border-color: #ffdd44; }
+.perf-iso-key.pc-4.playing  { background: #668822; border-color: #bbff44; }
+.perf-iso-key.pc-5.playing  { background: #228822; border-color: #44ff44; }
+.perf-iso-key.pc-6.playing  { background: #228866; border-color: #44ffaa; }
+.perf-iso-key.pc-7.playing  { background: #228888; border-color: #44ffff; }
+.perf-iso-key.pc-8.playing  { background: #226688; border-color: #44aaff; }
+.perf-iso-key.pc-9.playing  { background: #222288; border-color: #4444ff; }
+.perf-iso-key.pc-10.playing { background: #662288; border-color: #aa44ff; }
+.perf-iso-key.pc-11.playing { background: #882288; border-color: #ff44ff; }
+
+/* Iso root override — brighter version of its pitch class */
+.perf-iso-key.root { background: #5a2222; border-color: #cc5555; }
+.perf-iso-key.root:hover { background: #6a3232; }
+
+/* Drum pad colors — each pad gets a unique accent */
+.perf-drum-pad:nth-child(1)  { border-color: var(--sslu-rose); } /* Kick */
+.perf-drum-pad:nth-child(2)  { border-color: var(--sslu-purple); } /* Snare */
+.perf-drum-pad:nth-child(3)  { border-color: var(--sslu-cyan); } /* HiHat */
+.perf-drum-pad:nth-child(4)  { border-color: #06d6a0; } /* Clap */
+.perf-drum-pad:nth-child(5)  { border-color: #fca311; } /* Rim */
+.perf-drum-pad:nth-child(6)  { border-color: #e76f51; } /* Tom L */
+.perf-drum-pad:nth-child(7)  { border-color: #a8dadc; } /* Tom M */
+.perf-drum-pad:nth-child(8)  { border-color: #d4a5a5; } /* Tom H */
+.perf-drum-pad:nth-child(9)  { border-color: var(--sslu-adsr-attack); } /* Cymbal */
+.perf-drum-pad:nth-child(10) { border-color: #48bfe3; } /* Ride */
+.perf-drum-pad:nth-child(11) { border-color: #98c379; } /* Shaker */
+.perf-drum-pad:nth-child(12) { border-color: #c678dd; } /* Tamb */
+.perf-drum-pad:nth-child(13) { border-color: #e5c07b; } /* Conga */
+.perf-drum-pad:nth-child(14) { border-color: #56b6c2; } /* Bongo */
+.perf-drum-pad:nth-child(15) { border-color: #be5046; } /* Cowbell */
+.perf-drum-pad:nth-child(16) { border-color: #abb2bf; } /* Click */
+
+/* ========================================
+   Side Panel
+   ======================================== */
+
+.perform-side {
+    width: 210px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sslu-gap-lg);
+    padding: var(--sslu-pad-panel);
+    background: var(--sslu-bg-panel);
+    border-left: var(--sslu-border-w-thin) solid var(--sslu-border-default);
+    height: 100%;
+    min-height: 0;
+    justify-content: center;
+}
+
+.perform-analyzer {
+    width: 100%;
+    border-radius: var(--sslu-radius-md);
+    background: var(--sslu-bg-canvas);
+    border: var(--sslu-border-w-thin) solid var(--sslu-border-default);
+}
+
+.perform-arp-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--sslu-gap-md);
+    padding: var(--sslu-gap-sm);
+    background: var(--sslu-bg-raised);
+    border-radius: var(--sslu-radius-md);
+    border: var(--sslu-border-w-thin) solid var(--sslu-border-default);
+}
+
+.perform-arp-toggle label {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: var(--sslu-fs-body);
+    color: var(--sslu-text-label);
+    cursor: pointer;
+}
+
+#performArpToggle:checked + span,
+.perform-arp-toggle label:has(input:checked) {
+    color: var(--sslu-success);
+}
+
+/* ========================================
+   Responsive: Fewer octaves on small screens
+   ======================================== */
+
+@media (max-width: 1200px) {
+    .perf-key.perf-white {
+        width: 48px;
+    }
+    .perf-key.perf-black {
+        width: 30px;
+        margin: 0 -14px;
+    }
+    .perform-side {
+        width: 170px;
+    }
+}
+
+@media (max-width: 800px) {
+    .perf-key.perf-white {
+        width: 36px;
+    }
+    .perf-key.perf-black {
+        width: 24px;
+        margin: 0 -11px;
+    }
+    .perform-side {
+        width: 140px;
+    }
+    .perform-top-bar {
+        gap: var(--sslu-gap-sm);
+        padding: 0.2rem 0.3rem;
+    }
+}
+
+/* ========================================
+   Quad-Fill: stretch content to fill quads
+   ======================================== */
+
+/* Screen container adapts to quad cell */
+.sslu-quad #screen-perform {
+    height: 100%;
+}
+
+/* Keyboard area fills its quad */
+.sslu-quad .perform-keyboard-area {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Keyboard stretches to fill available space */
+.sslu-quad .perform-keyboard {
+    flex: 1;
+    min-height: 120px;
+}
+
+/* White keys fill full keyboard height */
+.sslu-quad .perf-key.perf-white {
+    height: 100%;
+}
+
+/* Iso grid fills its quad */
+.sslu-quad .perf-iso-grid {
+    flex: 1;
+    justify-content: center;
+    height: 100%;
+}
+
+/* Drum pads fill their quad */
+.sslu-quad .perf-pad-grid {
+    flex: 1;
+    align-content: center;
+    height: 100%;
+}
+
+/* Side panel scrolls within quad */
+.sslu-quad .perform-side {
+    height: 100%;
+    overflow-y: auto;
+}
+
+/* Phone: keyboard fills the entire quad */
+[data-layout="phone"] .sslu-quad .perform-keyboard-area {
+    height: 100%;
+    padding: 0;
+}
+
+[data-layout="phone"] .sslu-quad .perform-keyboard {
+    flex: 1;
+    min-height: 100px;
+}
+
+[data-layout="phone"] .sslu-quad .perf-key.perf-white {
+    height: 100%;
+}
+
+[data-layout="phone"] .sslu-quad .perf-iso-key {
+    min-width: var(--sslu-touch-min);
+    min-height: var(--sslu-touch-min);
+}
+
+/* ========================================
+   Compact Controls (side panel)
+   ======================================== */
+
+.perform-compact-section {
+    margin: var(--sslu-space-3) 0;
+    padding: var(--sslu-space-2) var(--sslu-space-3);
+    background: rgba(20,20,40,0.5);
+    border-radius: var(--sslu-radius-md);
+}
+.perform-compact-title {
+    font-size: var(--sslu-fs-px-base);
+    color: var(--sslu-text-label);
+    text-transform: uppercase;
+    letter-spacing: var(--sslu-ls-wider);
+    margin-bottom: var(--sslu-space-1);
+}
+.perform-compact-row {
+    display: flex;
+    align-items: center;
+    gap: var(--sslu-space-2);
+    margin: var(--sslu-space-1) 0;
+}
+.perform-compact-lbl {
+    font-size: var(--sslu-fs-px-base);
+    color: var(--sslu-text-label);
+    min-width: 58px;
+    text-align: right;
+    flex-shrink: 0;
+}
+.perform-compact-slider {
+    flex: 1;
+    height: var(--ssli-slider-track-h, 6px);
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--ssli-bg-input, #21262d);
+    border-radius: var(--ssli-radius-sm, 3px);
+    outline: none;
+}
+.perform-compact-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: var(--ssli-slider-thumb-size, 18px);
+    height: var(--ssli-slider-thumb-size, 18px);
+    background: var(--ssli-accent-cyan, #00d4ff);
+    border-radius: var(--ssli-radius-md, 6px);
+    cursor: pointer;
+    border: none;
+}
+.perform-compact-slider::-moz-range-thumb {
+    width: var(--ssli-slider-thumb-size, 18px);
+    height: var(--ssli-slider-thumb-size, 18px);
+    background: var(--ssli-accent-cyan, #00d4ff);
+    border-radius: var(--ssli-radius-md, 6px);
+    cursor: pointer;
+    border: none;
+}
+.perform-fx-toggle {
+    background: var(--sslu-bg-input);
+    border: var(--sslu-border-w-thin) solid var(--sslu-border-strong);
+    color: var(--sslu-text-label);
+    font-size: var(--sslu-fs-px-base);
+    padding: 3px 6px;
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+    margin: 0 2px;
+}
+.perform-fx-toggle.active {
+    background: var(--sslu-success-dark);
+    color: #4cff4c;
+    border-color: #4c4;
+}
+
+/* ========================================
+   Isomorphic Grid
+   ======================================== */
+
+.perf-iso-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sslu-space-1);
+    padding: var(--sslu-space-5);
+    flex: 1;
+    min-width: 0;
+}
+.perf-iso-row {
+    display: flex;
+    gap: var(--sslu-space-1);
+}
+.perf-iso-key {
+    width: 44px;
+    height: 38px;
+    border: var(--sslu-border-w-thin) solid var(--sslu-border-medium);
+    border-radius: var(--sslu-radius-md);
+    background: var(--sslu-bg-input);
+    color: var(--sslu-text-label);
+    font-size: var(--ssli-fs-xs);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: none;
+    transition: background var(--sslu-transition-fast);
+}
+.perf-iso-key:hover {
+    background: var(--sslu-bg-button);
+}
+.perf-iso-key.root {
+    background: #2a1a4e;
+    border-color: var(--sslu-indigo);
+}
+.perf-iso-key.root:hover {
+    background: #3a2a5e;
+}
+.perf-iso-key.playing {
+    background: #3a5a3a;
+    border-color: #6f6;
+}
+
+/* Iso glow trail on note play */
+.perf-iso-key.iso-glow {
+    box-shadow: inset 0 0 20px rgba(76, 201, 240, 0.7), 0 0 12px rgba(76, 201, 240, 0.4);
+    filter: brightness(2.2);
+    transform: scale(0.92);
+    transition: transform 0.08s ease, filter 0.08s ease, box-shadow 0.08s ease;
+}
+
+/* Hex tessellation — absolute positioned, proper geometry */
+.perf-hex-grid {
+    margin: 0 auto;
+    padding-top: var(--sslu-space-5);
+    position: relative;
+    box-sizing: border-box;
+}
+
+.perf-iso-key.hex {
+    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+    border: none;
+    border-radius: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--ssli-fs-xs);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: background var(--sslu-transition-fast);
+}
+
+/* ========================================
+   Drum Pads
+   ======================================== */
+
+.perf-pad-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: var(--ssli-gap-xs);
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: hidden;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+.perf-drum-pad {
+    border: var(--sslu-border-w-thick) solid var(--sslu-border-medium);
+    border-radius: var(--sslu-radius-xl);
+    background: var(--sslu-bg-input);
+    color: var(--sslu-text-label);
+    font-size: var(--sslu-fs-px-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    transition: background var(--sslu-transition-fast);
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+}
+.perf-drum-pad:hover {
+    background: var(--sslu-bg-button);
+}
+.perf-drum-pad.playing {
+    background: #5a3a3a;
+    border-color: var(--sslu-danger-text);
+}
+
+/* ========================================
+   Responsive: Iso/Pads
+   ======================================== */
+
+@media (max-width: 800px) {
+    .perf-iso-key {
+        width: 34px;
+        height: 30px;
+        font-size: var(--ssli-fs-xs);
+    }
+    .perf-pad-grid {
+        width: 100%;
+        gap: var(--sslu-space-3);
+    }
+}
+
+/* ========================================
+   Phone Landscape (844x390) — Perform/Piano
+   Single-pane mode. Maximize keyboard height,
+   compact controls, minimize dead space.
+   ======================================== */
+
+/* --- Q0: Keyboard Quad — fill available height --- */
+[data-layout="phone-land"] .sslu-quad .perform-keyboard-area {
+    flex: 1 1 0;
+    min-height: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+[data-layout="phone-land"] .sslu-quad .perform-keyboard {
+    flex: 1 1 0;
+    min-height: 0;
+    height: 100%;
+    align-items: stretch;
+    position: relative;
+}
+
+/* White keys: fill the full quad height */
+[data-layout="phone-land"] .sslu-quad .perf-key.perf-white {
+    height: 100%;
+    min-height: 0;
+    width: 32px;
+}
+
+/* Black keys: proportional to white (55%) */
+[data-layout="phone-land"] .sslu-quad .perf-key.perf-black {
+    height: 55%;
+    width: 22px;
+    margin: 0 -10px;
+}
+
+/* Key labels: compact */
+[data-layout="phone-land"] .sslu-quad .perf-key-label {
+    font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone-land"] .sslu-quad .perf-key-binding {
+    font-size: var(--ssli-fs-xs);
+}
+
+/* --- Q1: Controls Quad — fill height, spread controls evenly --- */
+[data-layout="phone-land"] .sslu-quad .perform-top-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: var(--sslu-space-2) var(--sslu-space-3);
+    padding-bottom: 0;
+    padding-right: 8px;
+    min-height: 0;
+    flex-wrap: nowrap;
+    overflow-y: auto;
+    height: 100%;
+    display: flex;
+    justify-content: space-evenly;
+}
+
+[data-layout="phone-land"] .sslu-quad .perform-top-bar label {
+    font-size: var(--ssli-fs-sm);
+    gap: var(--sslu-space-2);
+    min-height: 28px;
+}
+
+[data-layout="phone-land"] .sslu-quad .perform-select {
+    font-size: var(--ssli-fs-sm);
+    padding: var(--sslu-space-2) var(--sslu-space-3);
+    min-height: 30px;
+    max-width: 100%;
+    width: 100%;
+    margin-right: 4px;
+}
+
+[data-layout="phone-land"] .sslu-quad .perform-btn {
+    font-size: var(--ssli-fs-sm);
+    padding: var(--sslu-space-2) var(--sslu-space-3);
+    min-height: 30px;
+    min-width: 30px;
+    margin-right: 4px;
+}
+
+[data-layout="phone-land"] .sslu-quad .perform-note-readout {
+    font-size: var(--sslu-fs-tiny);
+    min-width: 50px;
+}
+
+[data-layout="phone-land"] .sslu-quad #performVolume {
+    width: 100%;
+    height: 18px;
+}
+
+/* --- Q2: Scope/Side Quad — fill height, spread controls --- */
+[data-layout="phone-land"] .sslu-quad .perform-side {
+    width: 100%;
+    height: 100%;
+    padding: var(--sslu-space-2) var(--sslu-space-3);
+    padding-bottom: 0;
+    gap: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+}
+
+[data-layout="phone-land"] .sslu-quad .perform-analyzer {
+    max-height: 80px;
+    flex-shrink: 0;
+}
+
+[data-layout="phone-land"] .sslu-quad .perform-arp-toggle {
+    padding: var(--sslu-space-1) var(--sslu-space-2);
+    gap: var(--sslu-space-2);
+}
+
+[data-layout="phone-land"] .sslu-quad .perform-arp-toggle label {
+    font-size: var(--ssli-fs-sm);
+}
+
+/* Compact sections in side panel: spread and fill */
+[data-layout="phone-land"] .sslu-quad .perform-compact-section {
+    margin: 0;
+    padding: var(--sslu-space-2) var(--sslu-space-3);
+    flex: 0 0 auto;
+}
+
+[data-layout="phone-land"] .sslu-quad .perform-compact-title {
+    font-size: var(--ssli-fs-sm);
+    margin-bottom: var(--sslu-space-1);
+}
+
+[data-layout="phone-land"] .sslu-quad .perform-compact-lbl {
+    font-size: var(--ssli-fs-sm);
+    min-width: 50px;
+}
+
+[data-layout="phone-land"] .sslu-quad .perform-compact-slider {
+    height: 14px;
+}
+
+[data-layout="phone-land"] .sslu-quad .perform-compact-slider::-webkit-slider-thumb {
+    width: 14px;
+    height: 20px;
+}
+
+[data-layout="phone-land"] .sslu-quad .perform-compact-row {
+    margin: var(--sslu-space-2) 0;
+    gap: var(--sslu-space-3);
+}
+
+[data-layout="phone-land"] .sslu-quad .perform-fx-toggle {
+    font-size: var(--ssli-fs-sm);
+    padding: 4px 10px;
+    min-height: 28px;
+}
+
+/* --- Split side panels: each quad gets its own subset of controls --- */
+[data-layout="phone-land"] .sslu-quad .perform-side-split {
+    width: 100%;
+    height: 100%;
+    padding: var(--sslu-space-3) var(--sslu-space-4);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    gap: var(--sslu-space-2);
+    overflow: hidden;
+}
+
+/* Compact sections inside split panels: stretch to fill */
+[data-layout="phone-land"] .sslu-quad .perform-side-split .perform-compact-section {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin: 0;
+    padding: var(--sslu-space-2) var(--sslu-space-3);
+}
+
+[data-layout="phone-land"] .sslu-quad .perform-side-split .perform-compact-slider {
+    height: 18px;
+}
+
+[data-layout="phone-land"] .sslu-quad .perform-side-split .perform-compact-row {
+    margin: var(--sslu-space-3) 0;
+}
+
+/* --- Piano keys: boost brightness and label contrast for phone-land --- */
+[data-layout="phone-land"] .sslu-quad .perf-key.perf-white {
+    background: linear-gradient(180deg, #ffffff 0%, #e8e4dc 100%);
+    border-color: #999;
+}
+
+[data-layout="phone-land"] .sslu-quad .perf-key.perf-black {
+    background: linear-gradient(180deg, #505050 0%, #282828 100%);
+    border-color: #222;
+}
+
+/* Black key labels: high contrast */
+[data-layout="phone-land"] .sslu-quad .perf-key.perf-black .perf-key-label {
+    color: #ddd;
+    opacity: var(--ssli-opacity-hover);
+}
+
+/* White key labels: high contrast */
+[data-layout="phone-land"] .sslu-quad .perf-key.perf-white .perf-key-label {
+    color: #222;
+    opacity: var(--ssli-opacity-hover);
+}
+
+/* Chromatic white keys — brighter tints for phone-land */
+[data-layout="phone-land"] .sslu-quad .perf-key.perf-white.pc-0  { background: linear-gradient(180deg, #ffe8e8 0%, #ecd0c8 100%); }
+[data-layout="phone-land"] .sslu-quad .perf-key.perf-white.pc-2  { background: linear-gradient(180deg, #fff0d8 0%, #ecdac8 100%); }
+[data-layout="phone-land"] .sslu-quad .perf-key.perf-white.pc-4  { background: linear-gradient(180deg, #fffce0 0%, #ece6c8 100%); }
+[data-layout="phone-land"] .sslu-quad .perf-key.perf-white.pc-5  { background: linear-gradient(180deg, #f0ffe0 0%, #d0ecc8 100%); }
+[data-layout="phone-land"] .sslu-quad .perf-key.perf-white.pc-7  { background: linear-gradient(180deg, #e0f4ff 0%, #c8e0ec 100%); }
+[data-layout="phone-land"] .sslu-quad .perf-key.perf-white.pc-9  { background: linear-gradient(180deg, #e8e8ff 0%, #d0d0ec 100%); }
+[data-layout="phone-land"] .sslu-quad .perf-key.perf-white.pc-11 { background: linear-gradient(180deg, #f4e0ff 0%, #e0d0ec 100%); }
+
+/* Chromatic black keys — significantly brighter for phone-land */
+[data-layout="phone-land"] .sslu-quad .perf-key.perf-black.pc-1  { background: linear-gradient(180deg, #7a3838 0%, #4a1818 100%); }
+[data-layout="phone-land"] .sslu-quad .perf-key.perf-black.pc-3  { background: linear-gradient(180deg, #7a5838 0%, #4a3018 100%); }
+[data-layout="phone-land"] .sslu-quad .perf-key.perf-black.pc-6  { background: linear-gradient(180deg, #387a48 0%, #184a20 100%); }
+[data-layout="phone-land"] .sslu-quad .perf-key.perf-black.pc-8  { background: linear-gradient(180deg, #386070 0%, #183848 100%); }
+[data-layout="phone-land"] .sslu-quad .perf-key.perf-black.pc-10 { background: linear-gradient(180deg, #5a3870 0%, #321848 100%); }
+
+/* --- Rec container: compact bar at bottom --- */
+/* Hide REC container on phone-land — reclaims 50px for keyboard */
+[data-layout="phone-land"] #screen-perform .rec-container {
+    display: none !important;
+}
+
+[data-layout="phone-land"] #screen-perform .rec-sample-bar {
+    padding: var(--sslu-space-1) var(--sslu-space-3);
+    gap: var(--sslu-space-2);
+    margin: 0;
+    border-radius: 0;
+}
+
+[data-layout="phone-land"] #screen-perform .rec-btn {
+    font-size: var(--sslu-fs-small);
+    padding: var(--sslu-space-1) var(--sslu-space-3);
+    min-height: 24px;
+}
+
+[data-layout="phone-land"] #screen-perform .rec-timer {
+    font-size: var(--sslu-fs-tiny);
+    min-width: 50px;
+}
+
+[data-layout="phone-land"] #screen-perform .rec-load {
+    font-size: var(--sslu-fs-tiny);
+    padding: var(--sslu-space-1) var(--sslu-space-3);
+}
+
+/* --- Iso grid: compact for phone-land --- */
+[data-layout="phone-land"] .sslu-quad .perf-iso-key {
+    width: 30px;
+    height: 26px;
+    font-size: var(--ssli-fs-xs);
+    min-width: 30px;
+    min-height: 26px;
+}
+
+[data-layout="phone-land"] .sslu-quad .perf-iso-grid,
+[data-layout="phone-land"] .perf-iso-grid {
+    /* JS sets `grid.style.height = totalH` without accounting for padding,
+       so any non-zero vertical padding overflows the viewport. Drop padding
+       and margin on phone-land; the grid already leaves room from the
+       container. SSLI doesn't wrap in .sslu-quad so we need the no-ancestor
+       selector too. */
+    padding: 0;
+    margin: 0 auto;
+    gap: 1px;
+}
+
+[data-layout="phone-land"] .sslu-quad .perf-iso-row {
+    gap: 1px;
+}
+
+/* --- Drum pads: compact 4x4 for phone-land --- */
+[data-layout="phone-land"] .sslu-quad .perf-pad-grid,
+[data-layout="phone-land"] .perf-pad-grid {
+    max-width: 100%;
+    width: 100%;
+    gap: var(--ssli-gap-xs);
+    margin: 0 auto;
+    padding: 2px;
+    /* Use auto rows that fill available height instead of aspect-ratio squares */
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    height: 100%;
+    box-sizing: border-box;
+}
+
+[data-layout="phone-land"] .sslu-quad .perf-drum-pad,
+[data-layout="phone-land"] .perf-drum-pad {
+    font-size: var(--ssli-fs-xs);
+    aspect-ratio: auto;
+    min-height: 0;
+    min-width: 0;
+    border-radius: var(--sslu-radius-lg);
+}

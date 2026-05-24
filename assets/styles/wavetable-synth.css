@@ -1,0 +1,231 @@
+/**
+ * wavetable-synth.css - Wavetable Scanning Synthesis Controls Styles
+ * Bank selection, scan position, LFO speed/depth, detune, morph smoothing
+ * Accent color: blue-purple var(--sslu-synth-wavetable)
+ */
+
+/* ========================================
+   Wavetable Controls Container (Modal)
+   ======================================== */
+
+.wavetable-controls-modal {
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--sslu-radius-lg);
+    margin-bottom: 0.5rem;
+}
+
+.wavetable-title-modal {
+    font-size: var(--ssli-fs-body);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--sslu-synth-wavetable);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ========================================
+   Bank Selection Row
+   ======================================== */
+
+.wavetable-bank-row {
+    display: flex;
+    gap: 0.3rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.wavetable-bank-row .bank-label {
+    font-size: var(--ssli-fs-sm);
+    color: #888;
+    margin-right: 0.3rem;
+}
+
+.wavetable-bank-btn {
+    padding: 3px 10px;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-input);
+    color: #b0b0b0;
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    min-width: 28px;
+    text-align: center;
+}
+
+.wavetable-bank-btn:hover {
+    background: #2a2a4e;
+    color: #e0e0e0;
+    border-color: var(--sslu-synth-wavetable);
+}
+
+.wavetable-bank-btn:active {
+    background: #3a3a5e;
+}
+
+.wavetable-bank-btn.active {
+    background: var(--sslu-synth-wavetable);
+    color: #fff;
+    border-color: #8866FF;
+    box-shadow: 0 0 6px rgba(102, 68, 255, 0.4);
+}
+
+/* ========================================
+   Scan Position Slider
+   ======================================== */
+
+.wavetable-scan-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.wavetable-scan-row label {
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+    min-width: 80px;
+    text-align: right;
+}
+
+.wavetable-scan-row input[type="range"] {
+    flex: 1;
+    max-width: 200px;
+    height: 4px;
+    cursor: pointer;
+    accent-color: var(--sslu-synth-wavetable);
+}
+
+.wavetable-scan-row .scan-value {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-synth-wavetable);
+    min-width: 36px;
+    text-align: left;
+}
+
+/* ========================================
+   LFO Controls Section
+   ======================================== */
+
+.wavetable-lfo-section {
+    padding: 0.4rem;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: var(--sslu-radius-md);
+    border: 1px solid var(--sslu-border-medium);
+    margin-bottom: 0.5rem;
+}
+
+.wavetable-lfo-title {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--sslu-synth-wavetable);
+    margin-bottom: 0.3rem;
+}
+
+.wavetable-lfo-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.wavetable-lfo-row label {
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+    min-width: 60px;
+    text-align: right;
+}
+
+.wavetable-lfo-row input[type="range"] {
+    flex: 1;
+    max-width: 160px;
+    height: 4px;
+    cursor: pointer;
+    accent-color: var(--sslu-synth-wavetable);
+}
+
+.wavetable-lfo-row .lfo-value {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-synth-wavetable);
+    min-width: 36px;
+    text-align: left;
+}
+
+/* ========================================
+   Parameter Sliders (Detune, Morph Smoothing)
+   ======================================== */
+
+.wavetable-param-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.wavetable-param-row label {
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+    min-width: 80px;
+    text-align: right;
+}
+
+.wavetable-param-row input[type="range"] {
+    flex: 1;
+    min-width: 80px;
+    max-width: 200px;
+    height: 4px;
+    cursor: pointer;
+    accent-color: var(--sslu-synth-wavetable);
+}
+
+.wavetable-param-row .wavetable-param-val {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-synth-wavetable);
+    min-width: 40px;
+    text-align: right;
+}
+
+/* ========================================
+   Section Dividers
+   ======================================== */
+
+.wavetable-divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--sslu-synth-wavetable)40, transparent);
+    margin: 0.4rem 0;
+}
+
+/* ========================================
+   Accent Overrides for Wavetable Engine
+   ======================================== */
+
+.wavetable-controls-modal input[type="checkbox"] {
+    accent-color: var(--sslu-synth-wavetable);
+}
+
+.wavetable-controls-modal select {
+    padding: 2px 6px;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-input);
+    color: #e0e0e0;
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+}
+
+.wavetable-controls-modal select:focus {
+    border-color: var(--sslu-synth-wavetable);
+    outline: none;
+}
+
+/* ========================================
+   Instrument Type Button Accent
+   ======================================== */
+
+.instrument-type-btn[data-type="wavetable"].active {
+    background: #2a1a5e;
+    color: var(--sslu-synth-wavetable);
+    border-color: var(--sslu-synth-wavetable);
+}

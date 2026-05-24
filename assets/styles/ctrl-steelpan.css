@@ -1,0 +1,456 @@
+/* Steel Pan controller surface styles */
+
+/* ============================================================
+   Wrapper & Layout
+   ============================================================ */
+
+.steelpan-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  background: var(--ssli-bg-surface);
+}
+
+/* ============================================================
+   Top Bar
+   ============================================================ */
+
+.steelpan-topbar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  min-height: var(--ssli-topbar-h);
+  padding: 2px 4px;
+  gap: var(--ssli-gap-xs);
+  background: var(--ssli-bg-elevated);
+  border-bottom: 1px solid var(--sslu-border-default, #2a2d35);
+  box-sizing: border-box;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.steelpan-root-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ssli-gap-xs);
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 2px;
+}
+
+.steelpan-root-btn {
+  width: 100%;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--ssli-bg-input);
+  border-radius: var(--ssli-radius-md);
+  background: var(--ssli-bg-input);
+  color: var(--ssli-text-secondary);
+  font-size: var(--ssli-fs-body);
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  line-height: 36px;
+  text-align: center;
+  transition: background 0.12s ease, color 0.12s ease;
+  touch-action: none;
+  box-sizing: border-box;
+}
+
+.steelpan-root-btn:hover {
+  background: var(--sslu-bg-button-hover, #3a3d45);
+  color: var(--ssli-text-secondary);
+}
+
+.steelpan-root-active {
+  background: var(--ssli-theme-cool-accent, #4a6a8a);
+  color: var(--ssli-text-primary);
+  border-color: var(--sslu-border-accent, #5a8ab0);
+}
+
+.steelpan-scale-select {
+  height: var(--ssli-dropdown-h, 28px);
+  padding: 2px 6px;
+  border: 1px solid var(--ssli-border-muted, rgba(76, 201, 240, 0.15));
+  border-radius: var(--ssli-radius-sm, 3px);
+  background: var(--ssli-bg-input, #21262d);
+  color: var(--ssli-text-primary, rgba(220, 235, 245, 0.95));
+  font-size: var(--ssli-fs-body, 13px);
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  flex-shrink: 0;
+}
+
+.steelpan-title {
+  font-size: var(--ssli-fs-xs);
+  font-weight: var(--ssli-fw-semibold);
+  color: var(--ssli-text-muted, #778899);
+  letter-spacing: 2px;
+  white-space: nowrap;
+  flex-shrink: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.steelpan-oct-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--ssli-gap-xs);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.steelpan-oct-btn {
+  width: var(--ssli-touch-phone-min);
+  height: var(--ssli-touch-phone-min);
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--ssli-bg-input);
+  border-radius: var(--ssli-radius-sm);
+  background: var(--ssli-bg-input);
+  color: var(--ssli-text-secondary);
+  font-size: var(--ssli-fs-body);
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  line-height: 18px;
+  text-align: center;
+  transition: background 0.12s ease;
+}
+
+.steelpan-oct-btn:hover {
+  background: var(--sslu-bg-button-hover, #3a3d45);
+}
+
+.steelpan-oct-label {
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-text-secondary);
+  min-width: 10px;
+  text-align: center;
+}
+
+/* ============================================================
+   Body Row & Left Panel
+   ============================================================ */
+
+.steelpan-body-row {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.steelpan-left-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 2px;
+  box-sizing: border-box;
+  background: var(--ssli-bg-elevated);
+  border-right: 1px solid var(--sslu-border-default, #2a2d35);
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.steelpan-left-panel-header {
+  font-size: var(--ssli-fs-xs);
+  font-weight: var(--ssli-fw-semibold);
+  color: var(--ssli-text-muted, #778899);
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+/* ============================================================
+   Pan Area & Circle
+   ============================================================ */
+
+.steelpan-pan-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  padding: 2px;
+}
+
+.steelpan-pan {
+  position: relative;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #2a2d32 0%, #1c1f24 70%, #13151a 100%);
+  border: 3px solid #445566;
+  box-shadow:
+    0 0 40px rgba(0, 0, 0, 0.6),
+    inset 0 0 30px rgba(0, 0, 0, 0.3),
+    inset 0 -8px 20px rgba(68, 85, 102, 0.15);
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   Zone Buttons (shared)
+   ============================================================ */
+
+.steelpan-zone {
+  position: absolute;
+  border-radius: 50%;
+  box-sizing: border-box;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  touch-action: none;
+}
+
+/* Inner ring: warm gold/orange */
+.steelpan-zone-inner {
+  background: radial-gradient(circle at 40% 35%, #d4a020 0%, #b8860b 60%, #8b6508 100%);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(255, 200, 60, 0.25);
+}
+
+/* Middle ring: teal/green transition */
+.steelpan-zone-middle {
+  background: radial-gradient(circle at 40% 35%, #2a9a8a 0%, #1f7a6e 60%, #145a52 100%);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(80, 200, 180, 0.2);
+}
+
+/* Outer ring: cool blue/purple */
+.steelpan-zone-outer {
+  background: radial-gradient(circle at 40% 35%, #5a5aad 0%, #4a4a96 60%, #3a3a78 100%);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(140, 140, 220, 0.2);
+}
+
+/* Active flash (bright silver) */
+.steelpan-zone-active {
+  background: radial-gradient(circle at 50% 50%, #ccddee 0%, #aabbcc 50%, #8899aa 100%) !important;
+  box-shadow: 0 0 12px rgba(170, 187, 204, 0.6), inset 0 0 4px rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Root note gold border */
+.steelpan-zone-root {
+  border: 2px solid var(--ssli-accent-amber);
+  box-shadow: 0 0 8px rgba(212, 160, 23, 0.4);
+}
+
+/* Combined root + active */
+.steelpan-zone-root.steelpan-zone-active {
+  border-color: #e8c040;
+  box-shadow: 0 0 14px rgba(232, 192, 64, 0.6), inset 0 0 4px rgba(255, 255, 255, 0.3) !important;
+}
+
+/* ============================================================
+   Pitch-based color tints (golden/bronze for low, silver/bright for high)
+   Applied via data-pitch-class attribute set by JS
+   ============================================================ */
+
+.steelpan-zone-inner[data-octave-pos="low"] {
+  background: radial-gradient(circle at 40% 35%, #c89018 0%, #a87010 60%, #7a5008 100%);
+}
+.steelpan-zone-middle[data-octave-pos="low"] {
+  background: radial-gradient(circle at 40% 35%, #228878 0%, #1a6a5e 60%, #124a42 100%);
+}
+.steelpan-zone-outer[data-octave-pos="low"] {
+  background: radial-gradient(circle at 40% 35%, #4a4a96 0%, #3a3a80 60%, #2a2a64 100%);
+}
+
+.steelpan-zone-inner[data-octave-pos="high"] {
+  background: radial-gradient(circle at 40% 35%, #e8c040 0%, #d4a020 60%, #b08018 100%);
+}
+.steelpan-zone-middle[data-octave-pos="high"] {
+  background: radial-gradient(circle at 40% 35%, #38b8a4 0%, #2a9a88 60%, #1e7a6a 100%);
+}
+.steelpan-zone-outer[data-octave-pos="high"] {
+  background: radial-gradient(circle at 40% 35%, #6a6ac0 0%, #5a5aad 60%, #4a4a90 100%);
+}
+
+/* Per-pitch-class subtle border accent */
+.steelpan-zone[data-pc="0"]  { border-color: rgba(212, 160, 23, 0.5); }
+.steelpan-zone[data-pc="1"]  { border-color: rgba(180, 140, 60, 0.4); }
+.steelpan-zone[data-pc="2"]  { border-color: rgba(200, 160, 40, 0.4); }
+.steelpan-zone[data-pc="3"]  { border-color: rgba(160, 140, 80, 0.4); }
+.steelpan-zone[data-pc="4"]  { border-color: rgba(180, 180, 60, 0.4); }
+.steelpan-zone[data-pc="5"]  { border-color: rgba(100, 180, 100, 0.4); }
+.steelpan-zone[data-pc="6"]  { border-color: rgba(60, 160, 140, 0.4); }
+.steelpan-zone[data-pc="7"]  { border-color: rgba(80, 160, 200, 0.4); }
+.steelpan-zone[data-pc="8"]  { border-color: rgba(80, 120, 200, 0.4); }
+.steelpan-zone[data-pc="9"]  { border-color: rgba(100, 100, 200, 0.4); }
+.steelpan-zone[data-pc="10"] { border-color: rgba(140, 80, 180, 0.4); }
+.steelpan-zone[data-pc="11"] { border-color: rgba(180, 80, 160, 0.4); }
+
+/* ============================================================
+   Zone Labels
+   ============================================================ */
+
+.steelpan-zone-label {
+  font-size: var(--ssli-fs-xs);
+  font-weight: var(--ssli-fw-semibold);
+  color: var(--ssli-text-primary);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.steelpan-zone-inner .steelpan-zone-label {
+  font-size: var(--ssli-fs-body);
+}
+
+.steelpan-zone-outer .steelpan-zone-label {
+  font-size: var(--ssli-fs-xs);
+}
+
+/* ============================================================
+   Phone Landscape Overrides
+   ============================================================ */
+
+[data-layout="phone-land"] .steelpan-topbar {
+  height: var(--ssli-topbar-h-phone);
+  min-height: var(--ssli-topbar-h-phone);
+  max-height: var(--ssli-topbar-h-phone);
+  gap: var(--ssli-gap-xs);
+  padding: 0 2px;
+}
+
+[data-layout="phone-land"] .steelpan-root-btn {
+  width: 100%;
+  height: 36px;
+  font-size: var(--ssli-fs-sm);
+  line-height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+}
+
+[data-layout="phone-land"] .steelpan-left-panel {
+  padding: 2px 1px;
+}
+
+[data-layout="phone-land"] .steelpan-scale-select {
+  height: 16px;
+  font-size: var(--ssli-fs-xs);
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+[data-layout="phone-land"] .steelpan-title {
+  font-size: var(--ssli-fs-xs);
+  letter-spacing: 1px;
+}
+
+[data-layout="phone-land"] .steelpan-oct-btn {
+  width: 24px;
+  height: 24px;
+  font-size: var(--ssli-fs-body);
+  line-height: 22px;
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+[data-layout="phone-land"] .steelpan-oct-label {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone-land"] .steelpan-zone {
+  min-width: 30px !important;
+  min-height: 30px !important;
+}
+
+[data-layout="phone-land"] .steelpan-zone-label {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone-land"] .steelpan-zone-inner .steelpan-zone-label {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone-land"] .steelpan-zone-outer .steelpan-zone-label {
+  font-size: var(--ssli-fs-xs);
+}
+
+/* ============================================================
+   Phone Portrait Overrides
+   ============================================================ */
+
+[data-layout="phone"] .steelpan-topbar {
+  min-height: var(--ssli-topbar-h-phone);
+  gap: var(--ssli-gap-xs);
+  padding: 0 2px;
+  flex-wrap: wrap;
+}
+
+[data-layout="phone"] .steelpan-root-group {
+  display: none;
+}
+
+[data-layout="phone"] .steelpan-root-btn {
+  width: 100%;
+  height: 36px;
+  font-size: var(--ssli-fs-sm);
+  line-height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+}
+
+[data-layout="phone"] .steelpan-left-panel {
+  padding: 2px 1px;
+}
+
+[data-layout="phone"] .steelpan-scale-select {
+  height: 16px;
+  font-size: var(--ssli-fs-xs);
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+[data-layout="phone"] .steelpan-title {
+  display: none;
+}
+
+[data-layout="phone"] .steelpan-oct-btn {
+  width: var(--ssli-touch-phone-min);
+  height: var(--ssli-touch-phone-min);
+  font-size: var(--ssli-fs-xs);
+  line-height: 14px;
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+[data-layout="phone"] .steelpan-oct-label {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone"] .steelpan-zone {
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+[data-layout="phone"] .steelpan-zone-label {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone"] .steelpan-zone-inner .steelpan-zone-label {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone"] .steelpan-zone-outer .steelpan-zone-label {
+  font-size: var(--ssli-fs-xs);
+}

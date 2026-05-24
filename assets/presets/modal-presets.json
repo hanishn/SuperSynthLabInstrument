@@ -1,0 +1,425 @@
+{
+  "presets": [
+    {
+      "name": "Church Bell",
+      "category": "Bells",
+      "description": "Large church bell with deep, complex overtones.",
+      "settings": {
+        "material": "bell",
+        "damping": 12,
+        "brightness": 65,
+        "bodySize": 72,
+        "inharmonicity": 85,
+        "excitation": "mallet",
+        "malletHardness": 60
+      }
+    },
+    {
+      "name": "Tubular Chime",
+      "category": "Bells",
+      "description": "Orchestral tubular bell with clear strike.",
+      "settings": {
+        "material": "tube",
+        "damping": 14,
+        "brightness": 75,
+        "bodySize": 55,
+        "inharmonicity": 40,
+        "excitation": "mallet",
+        "malletHardness": 70
+      }
+    },
+    {
+      "name": "Handbells",
+      "category": "Bells",
+      "description": "English handbell with bright, focused ring.",
+      "settings": {
+        "material": "bell",
+        "damping": 22,
+        "brightness": 75,
+        "bodySize": 35,
+        "inharmonicity": 78,
+        "excitation": "mallet",
+        "malletHardness": 55
+      }
+    },
+    {
+      "name": "Wind Chimes",
+      "category": "Bells",
+      "description": "Delicate metallic wind chimes with long decay.",
+      "settings": {
+        "material": "bar",
+        "damping": 8,
+        "brightness": 85,
+        "bodySize": 25,
+        "inharmonicity": 90,
+        "excitation": "impulse",
+        "malletHardness": 40
+      }
+    },
+    {
+      "name": "Gamelan Gong",
+      "category": "Bells",
+      "description": "Javanese gamelan bronze gong ageng.",
+      "settings": {
+        "material": "bell",
+        "damping": 12,
+        "brightness": 65,
+        "bodySize": 75,
+        "inharmonicity": 88,
+        "excitation": "mallet",
+        "malletHardness": 45
+      }
+    },
+    {
+      "name": "Steel Drum",
+      "category": "Metallic",
+      "description": "Caribbean steel pan with warm tone.",
+      "settings": {
+        "material": "plate",
+        "damping": 28,
+        "brightness": 60,
+        "bodySize": 45,
+        "inharmonicity": 65,
+        "excitation": "mallet",
+        "malletHardness": 40
+      }
+    },
+    {
+      "name": "Kalimba",
+      "category": "Metallic",
+      "description": "African thumb piano with pure tines.",
+      "settings": {
+        "material": "bar",
+        "damping": 20,
+        "brightness": 72,
+        "bodySize": 30,
+        "inharmonicity": 75,
+        "excitation": "impulse",
+        "malletHardness": 50
+      }
+    },
+    {
+      "name": "Music Box",
+      "category": "Metallic",
+      "description": "Delicate music box mechanism.",
+      "settings": {
+        "material": "bar",
+        "damping": 15,
+        "brightness": 90,
+        "bodySize": 15,
+        "inharmonicity": 70,
+        "excitation": "impulse",
+        "malletHardness": 75
+      }
+    },
+    {
+      "name": "Glockenspiel",
+      "category": "Metallic",
+      "description": "Sparkling orchestral glockenspiel.",
+      "settings": {
+        "material": "bar",
+        "damping": 18,
+        "brightness": 85,
+        "bodySize": 28,
+        "inharmonicity": 80,
+        "excitation": "mallet",
+        "malletHardness": 70
+      }
+    },
+    {
+      "name": "Vibraphone",
+      "category": "Metallic",
+      "description": "Jazz vibraphone with motor-off sustain.",
+      "settings": {
+        "material": "bar",
+        "damping": 10,
+        "brightness": 65,
+        "bodySize": 48,
+        "inharmonicity": 72,
+        "excitation": "mallet",
+        "malletHardness": 45
+      }
+    },
+    {
+      "name": "Marimba",
+      "category": "Wood",
+      "description": "Concert marimba with warm wooden bars.",
+      "settings": {
+        "material": "bar",
+        "damping": 35,
+        "brightness": 30,
+        "bodySize": 55,
+        "inharmonicity": 85,
+        "excitation": "mallet",
+        "malletHardness": 35,
+        "highFreqRolloff": { "freqHz": 4000, "attenuation": 12 }
+      }
+    },
+    {
+      "name": "Xylophone",
+      "category": "Wood",
+      "description": "Bright xylophone with hard mallets.",
+      "settings": {
+        "material": "bar",
+        "damping": 32,
+        "brightness": 82,
+        "bodySize": 35,
+        "inharmonicity": 82,
+        "excitation": "mallet",
+        "malletHardness": 80
+      }
+    },
+    {
+      "name": "Wooden Block",
+      "category": "Wood",
+      "description": "Dry percussive temple block.",
+      "settings": {
+        "material": "bar",
+        "damping": 50,
+        "brightness": 65,
+        "bodySize": 30,
+        "inharmonicity": 60,
+        "excitation": "mallet",
+        "malletHardness": 70
+      }
+    },
+    {
+      "name": "Log Drum",
+      "category": "Wood",
+      "description": "Hollowed log slit drum with deep tone.",
+      "settings": {
+        "material": "bar",
+        "damping": 45,
+        "brightness": 35,
+        "bodySize": 75,
+        "inharmonicity": 55,
+        "excitation": "mallet",
+        "malletHardness": 40
+      }
+    },
+    {
+      "name": "Tongue Drum",
+      "category": "Wood",
+      "description": "Steel tongue drum with meditative tones.",
+      "settings": {
+        "material": "plate",
+        "damping": 18,
+        "brightness": 55,
+        "bodySize": 50,
+        "inharmonicity": 60,
+        "excitation": "mallet",
+        "malletHardness": 25
+      }
+    },
+    {
+      "name": "Wine Glass",
+      "category": "Glass",
+      "description": "Crystal wine glass struck with a finger.",
+      "settings": {
+        "material": "glass",
+        "damping": 8,
+        "brightness": 80,
+        "bodySize": 32,
+        "inharmonicity": 90,
+        "excitation": "impulse",
+        "malletHardness": 50
+      }
+    },
+    {
+      "name": "Crystal Bowl",
+      "category": "Glass",
+      "description": "Tibetan crystal singing bowl.",
+      "settings": {
+        "material": "glass",
+        "damping": 5,
+        "brightness": 70,
+        "bodySize": 55,
+        "inharmonicity": 85,
+        "excitation": "mallet",
+        "malletHardness": 20
+      }
+    },
+    {
+      "name": "Glass Marimba",
+      "category": "Glass",
+      "description": "Tuned glass bars struck with felt mallets.",
+      "settings": {
+        "material": "glass",
+        "damping": 25,
+        "brightness": 75,
+        "bodySize": 40,
+        "inharmonicity": 88,
+        "excitation": "mallet",
+        "malletHardness": 35
+      }
+    },
+    {
+      "name": "Glass Harmonica",
+      "category": "Glass",
+      "description": "Rotating glass bowls with ethereal sustain.",
+      "settings": {
+        "material": "glass",
+        "damping": 3,
+        "brightness": 65,
+        "bodySize": 45,
+        "inharmonicity": 92,
+        "excitation": "noise",
+        "malletHardness": 15
+      }
+    },
+    {
+      "name": "Timpani",
+      "category": "Membrane",
+      "description": "Orchestral kettle drum with tuned pitch.",
+      "settings": {
+        "material": "membrane",
+        "damping": 32,
+        "brightness": 40,
+        "bodySize": 70,
+        "inharmonicity": 75,
+        "excitation": "mallet",
+        "malletHardness": 45
+      }
+    },
+    {
+      "name": "Tabla",
+      "category": "Membrane",
+      "description": "Indian tabla with clear pitch center.",
+      "settings": {
+        "material": "membrane",
+        "damping": 38,
+        "brightness": 60,
+        "bodySize": 35,
+        "inharmonicity": 70,
+        "excitation": "impulse",
+        "malletHardness": 55
+      }
+    },
+    {
+      "name": "Djembe",
+      "category": "Membrane",
+      "description": "West African goblet drum, open tone.",
+      "settings": {
+        "material": "membrane",
+        "damping": 42,
+        "brightness": 55,
+        "bodySize": 50,
+        "inharmonicity": 68,
+        "excitation": "impulse",
+        "malletHardness": 50
+      }
+    },
+    {
+      "name": "Frame Drum",
+      "category": "Membrane",
+      "description": "Large bodhran-style frame drum.",
+      "settings": {
+        "material": "membrane",
+        "damping": 35,
+        "brightness": 38,
+        "bodySize": 65,
+        "inharmonicity": 72,
+        "excitation": "mallet",
+        "malletHardness": 35
+      }
+    },
+    {
+      "name": "Concert Tom",
+      "category": "Membrane",
+      "description": "Tuned concert tom-tom.",
+      "settings": {
+        "material": "membrane",
+        "damping": 45,
+        "brightness": 48,
+        "bodySize": 55,
+        "inharmonicity": 65,
+        "excitation": "mallet",
+        "malletHardness": 55
+      }
+    },
+    {
+      "name": "Alien Bell",
+      "category": "Creative",
+      "description": "Otherworldly bell from deep space.",
+      "settings": {
+        "material": "bell",
+        "damping": 5,
+        "brightness": 90,
+        "bodySize": 20,
+        "inharmonicity": 100,
+        "excitation": "noise",
+        "malletHardness": 85
+      }
+    },
+    {
+      "name": "Submerged Metal",
+      "category": "Creative",
+      "description": "Metal plate struck underwater.",
+      "settings": {
+        "material": "plate",
+        "damping": 55,
+        "brightness": 30,
+        "bodySize": 60,
+        "inharmonicity": 78,
+        "excitation": "mallet",
+        "malletHardness": 50
+      }
+    },
+    {
+      "name": "Frozen Crystal",
+      "category": "Creative",
+      "description": "Ice crystal vibrations in Arctic winds.",
+      "settings": {
+        "material": "glass",
+        "damping": 10,
+        "brightness": 95,
+        "bodySize": 18,
+        "inharmonicity": 95,
+        "excitation": "impulse",
+        "malletHardness": 90
+      }
+    },
+    {
+      "name": "Resonant Plate",
+      "category": "Creative",
+      "description": "Vibrating metal plate with complex modes.",
+      "settings": {
+        "material": "plate",
+        "damping": 15,
+        "brightness": 72,
+        "bodySize": 50,
+        "inharmonicity": 82,
+        "excitation": "noise",
+        "malletHardness": 60
+      }
+    },
+    {
+      "name": "Spectral Chime",
+      "category": "Creative",
+      "description": "Ghostly shimmering spectral resonance.",
+      "settings": {
+        "material": "tube",
+        "damping": 5,
+        "brightness": 88,
+        "bodySize": 22,
+        "inharmonicity": 50,
+        "excitation": "noise",
+        "malletHardness": 70
+      }
+    },
+    {
+      "name": "Giant Gong",
+      "category": "Creative",
+      "description": "Enormous ceremonial gong with endless sustain.",
+      "settings": {
+        "material": "bell",
+        "damping": 3,
+        "brightness": 50,
+        "bodySize": 95,
+        "inharmonicity": 92,
+        "excitation": "mallet",
+        "malletHardness": 55
+      }
+    }
+  ]
+}

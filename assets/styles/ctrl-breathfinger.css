@@ -1,0 +1,339 @@
+/* Breath + Note Buttons (Wind) surface styles */
+
+.ssli-breathfinger-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Main row: breath zone left 30%, note zone right 70% */
+.bf-main-row {
+  display: flex;
+  flex-direction: row;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- Breath Zone (left 30%) ---------- */
+
+.bf-breath-zone {
+  position: relative;
+  width: 30%;
+  flex: 0 0 30%;
+  background: linear-gradient(to top, #0a0a18, #1a1a2e);
+  border-right: 1px solid rgba(76, 201, 240, 0.2);
+  cursor: crosshair;
+  overflow: hidden;
+}
+
+.bf-breath-zone.bf-breath-active {
+  border-right-color: rgba(76, 201, 240, 0.5);
+  background: linear-gradient(to top, #0c0c22, #1e1e38);
+}
+
+.bf-breath-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0%;
+  background: linear-gradient(to top, rgba(76, 201, 240, 0.35), rgba(76, 201, 240, 0.08));
+  pointer-events: none;
+  transition: height 0.05s linear;
+}
+
+/* Centered "BREATH" label, rotated vertically */
+.bf-breath-zone-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  font-size: var(--ssli-fs-xl);
+  font-weight: var(--ssli-fw-bold);
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: rgba(76, 201, 240, 0.22);
+  pointer-events: none;
+  z-index: 1;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.bf-breath-label {
+  position: absolute;
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-text-disabled);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.bf-breath-label-top {
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.bf-breath-label-bottom {
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.bf-breath-label-left {
+  bottom: 50%;
+  left: 8px;
+}
+
+.bf-breath-label-right {
+  bottom: 50%;
+  right: 8px;
+}
+
+/* ---------- Note Zone (right 70%) ---------- */
+
+.bf-note-zone {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: rgba(10, 10, 24, 0.9);
+  overflow: hidden;
+  padding: 4px;
+}
+
+/* Topbar: octave controls + note display */
+.bf-topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--ssli-gap-sm);
+  flex: 0 0 auto;
+  width: 100%;
+  padding: 2px 4px;
+  box-sizing: border-box;
+}
+
+.bf-octave-btn {
+  flex: 0 0 auto;
+  min-width: 44px;
+  height: 32px;
+  border: 1px solid rgba(76, 201, 240, 0.3);
+  border-radius: var(--ssli-radius-md);
+  background: rgba(20, 20, 42, 0.8);
+  color: var(--ssli-text-primary);
+  font-size: var(--ssli-fs-h3);
+  font-weight: var(--ssli-fw-bold);
+  cursor: pointer;
+  touch-action: none;
+}
+
+.bf-octave-btn:active {
+  background: rgba(76, 201, 240, 0.15);
+}
+
+.bf-octave-label {
+  font-size: var(--ssli-fs-lg);
+  font-weight: var(--ssli-fw-bold);
+  color: var(--ssli-text-primary);
+  min-width: 50px;
+  text-align: center;
+}
+
+/* Note display — in topbar */
+.bf-note-display {
+  margin-left: auto;
+  font-size: var(--ssli-fs-h3);
+  font-weight: var(--ssli-fw-bold);
+  color: var(--ssli-accent-amber);
+  text-align: center;
+  min-height: 32px;
+  line-height: 32px;
+  text-shadow: 0 0 8px rgba(232, 200, 122, 0.3);
+  border: 1px solid rgba(232, 200, 122, 0.15);
+  border-radius: var(--ssli-radius-md);
+  background: rgba(232, 200, 122, 0.04);
+  padding: 0 12px;
+  min-width: 60px;
+  transition: opacity 0.15s ease;
+}
+
+/* ---------- Note Grid: 2 rows x 7 columns ---------- */
+
+.bf-note-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 4px;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  padding: 4px 0;
+  box-sizing: border-box;
+}
+
+.bf-note-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ssli-radius-md);
+  border: 2px solid rgba(76, 201, 240, 0.25);
+  background: rgba(20, 20, 42, 0.85);
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background 0.1s ease, border-color 0.1s ease, box-shadow 0.1s ease;
+  min-height: 44px;
+}
+
+.bf-note-btn:active,
+.bf-note-btn-active {
+  background: rgba(76, 201, 240, 0.2);
+  border-color: #4cc9f0;
+  box-shadow: 0 0 12px rgba(76, 201, 240, 0.4), 0 0 24px rgba(76, 201, 240, 0.15);
+}
+
+.bf-note-btn-label {
+  font-size: var(--ssli-fs-h2);
+  font-weight: var(--ssli-fw-bold);
+  color: var(--ssli-text-primary);
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.bf-note-btn-oct {
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-text-disabled);
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  margin-top: 2px;
+}
+
+/* ============================================================
+   Phone Landscape Overrides
+   ============================================================ */
+
+[data-layout="phone-land"] .bf-breath-zone-label {
+  font-size: var(--ssli-fs-md);
+  letter-spacing: 4px;
+}
+
+[data-layout="phone-land"] .bf-breath-label {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone-land"] .bf-note-zone {
+  padding: 2px;
+}
+
+[data-layout="phone-land"] .bf-topbar {
+  gap: var(--ssli-gap-xs);
+  padding: 1px 2px;
+}
+
+[data-layout="phone-land"] .bf-octave-btn {
+  min-width: 36px;
+  height: 26px;
+  font-size: var(--ssli-fs-md);
+}
+
+[data-layout="phone-land"] .bf-octave-label {
+  font-size: var(--ssli-fs-sm);
+  min-width: 36px;
+}
+
+[data-layout="phone-land"] .bf-note-display {
+  font-size: var(--ssli-fs-md);
+  min-height: 26px;
+  line-height: 26px;
+  padding: 0 8px;
+  min-width: 44px;
+}
+
+[data-layout="phone-land"] .bf-note-grid {
+  gap: 3px;
+  padding: 2px 0;
+}
+
+[data-layout="phone-land"] .bf-note-btn {
+  min-height: 36px;
+}
+
+[data-layout="phone-land"] .bf-note-btn-label {
+  font-size: var(--ssli-fs-lg);
+}
+
+[data-layout="phone-land"] .bf-note-btn-oct {
+  display: none;
+}
+
+/* ============================================================
+   Phone Portrait Overrides
+   ============================================================ */
+
+[data-layout="phone"] .bf-breath-zone-label {
+  font-size: var(--ssli-fs-body);
+  letter-spacing: 3px;
+}
+
+[data-layout="phone"] .bf-breath-label {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone"] .bf-note-zone {
+  padding: 2px;
+}
+
+[data-layout="phone"] .bf-topbar {
+  gap: var(--ssli-gap-xs);
+  padding: 1px 2px;
+}
+
+[data-layout="phone"] .bf-octave-btn {
+  min-width: 32px;
+  height: 24px;
+  font-size: var(--ssli-fs-sm);
+}
+
+[data-layout="phone"] .bf-octave-label {
+  font-size: var(--ssli-fs-xs);
+  min-width: 32px;
+}
+
+[data-layout="phone"] .bf-note-display {
+  font-size: var(--ssli-fs-sm);
+  min-height: 24px;
+  line-height: 24px;
+  padding: 0 6px;
+  min-width: 40px;
+}
+
+[data-layout="phone"] .bf-note-grid {
+  gap: 2px;
+  padding: 2px 0;
+}
+
+[data-layout="phone"] .bf-note-btn {
+  min-height: 32px;
+}
+
+[data-layout="phone"] .bf-note-btn-label {
+  font-size: var(--ssli-fs-md);
+}
+
+[data-layout="phone"] .bf-note-btn-oct {
+  display: none;
+}

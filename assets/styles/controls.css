@@ -1,0 +1,1913 @@
+/**
+ * controls.css - ADSR and Oscillator Mixer Styles for Synth Lab
+ * Faders, ADSR envelope controls, and oscillator mixing panel
+ */
+
+/* ========================================
+   Global Checkbox Styling (catch-all)
+   ======================================== */
+
+input[type="checkbox"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
+    background: var(--sslu-bg-elevated, #1a1a2e);
+    border: 2px solid var(--sslu-border-default, rgba(76, 201, 240, 0.15));
+    border-radius: var(--sslu-radius-sm, 4px);
+    cursor: pointer;
+    position: relative;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+input[type="checkbox"]:checked {
+    background: var(--sslu-accent-primary, #7c3aed);
+    border-color: var(--sslu-accent-primary, #7c3aed);
+}
+
+input[type="checkbox"]:checked::after {
+    content: "";
+    position: absolute;
+    top: calc(50% - 9px);
+    left: calc(50% - 4px);
+    width: 10px;
+    height: 14px;
+    border: solid #fff;
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
+}
+
+[data-layout="phone-land"] input[type="checkbox"] {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+}
+
+[data-layout="phone-land"] input[type="checkbox"]:checked::after {
+    top: calc(50% - 12px);
+    left: calc(50% - 5px);
+    width: 14px;
+    height: 18px;
+    border-width: 0 3.5px 3.5px 0;
+}
+
+/* ========================================
+   ADSR Panel
+   ======================================== */
+
+.adsr-panel {
+    display: none;  /* Hidden - moved to MIXER modal */
+    gap: 0.25rem;
+    padding: 0.2rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--sslu-radius-md);
+    align-items: flex-end;
+}
+
+.adsr-fader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+}
+
+/* ========================================
+   Fader Base Styles
+   ======================================== */
+
+.fader {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 70px;
+    background: transparent;
+    cursor: pointer;
+    writing-mode: vertical-lr;
+    direction: rtl;
+}
+
+.fader::-webkit-slider-runnable-track {
+    width: 6px;
+    height: 100%;
+    border-radius: var(--sslu-radius-sm);
+}
+
+.fader::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 8px;
+    border-radius: var(--sslu-radius-xs);
+    cursor: pointer;
+    margin-left: -4px;
+}
+
+.fader::-moz-range-track {
+    width: 6px;
+    height: 100%;
+    border-radius: var(--sslu-radius-sm);
+}
+
+.fader::-moz-range-thumb {
+    width: 14px;
+    height: 8px;
+    border-radius: var(--sslu-radius-xs);
+    cursor: pointer;
+    border: none;
+}
+
+/* ========================================
+   Attack Fader (.fader-a)
+   V-07: Changed from red (#ff6b6b) to orange (#ff9f43)
+   for deuteranopia safety (red/green indistinguishable)
+   ======================================== */
+
+.fader-a::-webkit-slider-runnable-track {
+    background: linear-gradient(180deg, #ff9f43, #cc7a20);
+}
+
+.fader-a::-webkit-slider-thumb {
+    background: #ff9f43;
+    border: 1px solid #fff;
+}
+
+.fader-a::-moz-range-track {
+    background: linear-gradient(180deg, #ff9f43, #cc7a20);
+}
+
+.fader-a::-moz-range-thumb {
+    background: #ff9f43;
+}
+
+/* ========================================
+   Decay Fader (.fader-d)
+   ======================================== */
+
+.fader-d::-webkit-slider-runnable-track {
+    background: linear-gradient(180deg, #ffd93d, #f59f00);
+}
+
+.fader-d::-webkit-slider-thumb {
+    background: #ffd93d;
+    border: 1px solid #fff;
+}
+
+.fader-d::-moz-range-track {
+    background: linear-gradient(180deg, #ffd93d, #f59f00);
+}
+
+.fader-d::-moz-range-thumb {
+    background: #ffd93d;
+}
+
+/* ========================================
+   Sustain Fader (.fader-s)
+   V-07: Changed from green (#6bcb77) to blue (#4d96ff)
+   for deuteranopia safety (red/green indistinguishable)
+   ======================================== */
+
+.fader-s::-webkit-slider-runnable-track {
+    background: linear-gradient(180deg, #4d96ff, #2d6fd0);
+}
+
+.fader-s::-webkit-slider-thumb {
+    background: #4d96ff;
+    border: 1px solid #fff;
+}
+
+.fader-s::-moz-range-track {
+    background: linear-gradient(180deg, #4d96ff, #2d6fd0);
+}
+
+.fader-s::-moz-range-thumb {
+    background: #4d96ff;
+}
+
+/* ========================================
+   Release Fader (.fader-r)
+   ======================================== */
+
+.fader-r::-webkit-slider-runnable-track {
+    background: linear-gradient(180deg, #4d96ff, #1971c2);
+}
+
+.fader-r::-webkit-slider-thumb {
+    background: #4d96ff;
+    border: 1px solid #fff;
+}
+
+.fader-r::-moz-range-track {
+    background: linear-gradient(180deg, #4d96ff, #1971c2);
+}
+
+.fader-r::-moz-range-thumb {
+    background: #4d96ff;
+}
+
+/* ========================================
+   Fader Value and Label
+   ======================================== */
+
+.fader-val {
+    font-size: var(--ssli-fs-sm);
+    color: #aaa;
+    min-width: 22px;
+    text-align: center;
+}
+
+.fader-lbl {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-semibold);
+}
+
+/* Colored Labels Based on Preceding Fader */
+.fader-a + .fader-val + .fader-lbl {
+    color: #ff6b6b;
+}
+
+.fader-d + .fader-val + .fader-lbl {
+    color: #ffd93d;
+}
+
+.fader-s + .fader-val + .fader-lbl {
+    color: #6bcb77;
+}
+
+.fader-r + .fader-val + .fader-lbl {
+    color: #4d96ff;
+}
+
+/* ========================================
+   Oscillator Mixer Panel
+   ======================================== */
+
+.osc-mixer {
+    display: none;  /* Hidden - use MIXER button modal instead */
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.2rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--sslu-radius-md);
+}
+
+.mixer-title {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-rose, #f72585);
+    font-weight: var(--ssli-fw-semibold);
+    text-align: center;
+}
+
+.osc-strips {
+    display: flex;
+    gap: 0.25rem;
+}
+
+/* ========================================
+   Oscillator Strip
+   ======================================== */
+
+.osc-strip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.08rem;
+    padding: 0.1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--sslu-radius-sm);
+    min-width: 32px;
+}
+
+.osc-num {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-bold);
+    color: #4cc9f0;
+}
+
+/* ========================================
+   Oscillator Controls
+   ======================================== */
+
+.osc-wave,
+.osc-oct {
+    padding: 0.04rem;
+    font-size: var(--ssli-fs-sm);
+    background: #2a2a4e;
+    color: #fff;
+    border: 1px solid #444;
+    border-radius: var(--sslu-radius-xs);
+    width: 36px;
+}
+
+.osc-detune {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 36px;
+    height: 6px;
+    background: #333;
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+}
+
+.osc-detune::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 8px;
+    height: 12px;
+    background: #7209b7;
+    border-radius: var(--sslu-radius-xs);
+    cursor: pointer;
+}
+
+.osc-detune::-moz-range-thumb {
+    width: 8px;
+    height: 12px;
+    background: #7209b7;
+    border-radius: var(--sslu-radius-xs);
+    cursor: pointer;
+    border: none;
+}
+
+.osc-detune-val,
+.osc-level-val {
+    font-size: var(--ssli-fs-sm);
+    color: #888;
+    text-align: center;
+}
+
+/* ========================================
+   Oscillator 1 Level Fader
+   ======================================== */
+
+.fader-osc1::-webkit-slider-runnable-track {
+    background: linear-gradient(180deg, #f72585, #b5179e);
+}
+
+.fader-osc1::-webkit-slider-thumb {
+    background: #f72585;
+    border: 1px solid #fff;
+}
+
+.fader-osc1::-moz-range-track {
+    background: linear-gradient(180deg, #f72585, #b5179e);
+}
+
+.fader-osc1::-moz-range-thumb {
+    background: #f72585;
+}
+
+/* ========================================
+   Oscillator 2 Level Fader
+   ======================================== */
+
+.fader-osc2::-webkit-slider-runnable-track {
+    background: linear-gradient(180deg, #7209b7, #560bad);
+}
+
+.fader-osc2::-webkit-slider-thumb {
+    background: #7209b7;
+    border: 1px solid #fff;
+}
+
+.fader-osc2::-moz-range-track {
+    background: linear-gradient(180deg, #7209b7, #560bad);
+}
+
+.fader-osc2::-moz-range-thumb {
+    background: #7209b7;
+}
+
+/* ========================================
+   Oscillator 3 Level Fader
+   ======================================== */
+
+.fader-osc3::-webkit-slider-runnable-track {
+    background: linear-gradient(180deg, #3a0ca3, #240046);
+}
+
+.fader-osc3::-webkit-slider-thumb {
+    background: #3a0ca3;
+    border: 1px solid #fff;
+}
+
+.fader-osc3::-moz-range-track {
+    background: linear-gradient(180deg, #3a0ca3, #240046);
+}
+
+.fader-osc3::-moz-range-thumb {
+    background: #3a0ca3;
+}
+
+/* ========================================
+   MIXER Button
+   ======================================== */
+
+.mixer-btn {
+    padding: 0.15rem 0.4rem;
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-semibold);
+    background: linear-gradient(135deg, #f72585, #7209b7);
+    color: #fff;
+    border: none;
+    border-radius: var(--sslu-radius-md);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.mixer-btn:hover {
+    filter: brightness(1.2);
+}
+
+.mixer-btn:active {
+    transform: scale(0.98);
+}
+
+/* ========================================
+   Clear Instrument Buttons
+   ======================================== */
+
+.clear-inst-btn,
+.clear-all-inst-btn {
+    padding: 0.12rem 0.35rem;
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-semibold);
+    color: #fff;
+    border: none;
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.clear-inst-btn {
+    background: #c0392b;
+}
+
+.clear-inst-btn:hover {
+    background: #e74c3c;
+}
+
+.clear-all-inst-btn {
+    background: #7f1d1d;
+}
+
+.clear-all-inst-btn:hover {
+    background: #991b1b;
+}
+
+.clear-inst-btn:active,
+.clear-all-inst-btn:active {
+    transform: scale(0.95);
+}
+
+/* ========================================
+   Mixer Modal
+   ======================================== */
+
+.mixer-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 300;
+}
+
+.mixer-modal.hidden {
+    display: none;
+}
+
+.mixer-modal-content {
+    background: #1a1a2e;
+    border: 2px solid #f72585;
+    border-radius: var(--sslu-radius-xl);
+    padding: 1rem;
+    min-width: 320px;
+    max-width: 90vw;
+    box-shadow: 0 8px 32px rgba(247, 37, 133, 0.3);
+}
+
+.mixer-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(247, 37, 133, 0.3);
+}
+
+.mixer-modal-title {
+    font-size: var(--ssli-fs-body);
+    font-weight: var(--ssli-fw-semibold);
+    color: var(--sslu-rose, #f72585);
+}
+
+.mixer-close {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: var(--ssli-fs-h3);
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.mixer-close:hover {
+    color: #fff;
+}
+
+/* ========================================
+   Expanded Oscillator Mixer in Modal
+   ======================================== */
+
+.osc-mixer-expanded {
+    padding: 0.5rem 0;
+}
+
+.osc-mixer-expanded .osc-strips {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
+.osc-strip-lg {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--sslu-radius-lg);
+    min-width: 90px;
+}
+
+.osc-num-lg {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-bold);
+    color: #4cc9f0;
+    text-align: center;
+    margin-bottom: 0.2rem;
+}
+
+.osc-strip-lg label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    font-size: var(--ssli-fs-sm);
+    color: #ccc;
+}
+
+.osc-strip-lg select,
+.osc-wave-lg,
+.osc-oct-lg {
+    padding: 0.15rem 0.2rem;
+    font-size: var(--ssli-fs-sm);
+    background: #2a2a4e;
+    color: #fff;
+    border: 1px solid #444;
+    border-radius: var(--sslu-radius-sm);
+    width: 100%;
+}
+
+.osc-strip-lg input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 8px;
+    background: #333;
+    border-radius: var(--sslu-radius-md);
+    cursor: pointer;
+}
+
+.osc-strip-lg input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: #7209b7;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.osc-strip-lg input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: #7209b7;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+.osc-detune-val-lg,
+.osc-level-val-lg {
+    font-size: var(--ssli-fs-sm);
+    color: #aaa;
+    text-align: center;
+}
+
+/* ========================================
+   Modal Sections Container
+   ======================================== */
+
+.mixer-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* ========================================
+   ADSR Section in Modal
+   ======================================== */
+
+.adsr-section-modal {
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--sslu-radius-lg);
+}
+
+.adsr-title-modal,
+.osc-title-modal {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-bold);
+    color: #4cc9f0;
+    margin-bottom: 0.4rem;
+    text-align: center;
+}
+
+.adsr-controls-modal {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.adsr-fader-modal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.adsr-lbl-modal {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--sslu-rose, #f72585);
+    display: flex;
+    align-items: center;
+    gap: var(--ssli-gap-xs);
+}
+
+/* Colorblind-friendly ADSR envelope shape icons (Fix 17) */
+.adsr-lbl-modal::before {
+    display: inline-block;
+    font-size: var(--ssli-fs-xs);
+    line-height: 1;
+    opacity: var(--ssli-opacity-hover);
+}
+
+.adsr-lbl-modal[data-adsr="A"]::before { content: "\25B2"; } /* ramp up triangle */
+.adsr-lbl-modal[data-adsr="D"]::before { content: "\25BD"; } /* ramp down triangle */
+.adsr-lbl-modal[data-adsr="S"]::before { content: "\2501"; } /* horizontal line */
+.adsr-lbl-modal[data-adsr="R"]::before { content: "\25BF"; } /* small ramp down */
+
+.adsr-slider-modal {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 96px;
+    height: 10px;
+    background: #444;
+    border-radius: var(--sslu-radius-md);
+    cursor: pointer;
+}
+
+.adsr-slider-modal::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: #f72585;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.adsr-slider-modal::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: #f72585;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+.adsr-val-modal {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-semibold);
+    color: #ddd;
+}
+
+/* ========================================
+   Octave Radio Buttons in Modal
+   ======================================== */
+
+.osc-oct-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.osc-oct-lbl {
+    font-size: var(--ssli-fs-sm);
+    color: #ccc;
+}
+
+.osc-oct-radio {
+    display: flex;
+    gap: 0.15rem;
+}
+
+.osc-oct-radio label {
+    display: flex;
+    align-items: center;
+    gap: 0.1rem;
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-semibold);
+    color: #ddd;
+    cursor: pointer;
+    padding: 0.1rem 0.15rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--sslu-radius-sm);
+    transition: all 0.1s;
+}
+
+.osc-oct-radio label:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.osc-oct-radio input[type="radio"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border: 2px solid #666;
+    border-radius: 50%;
+    cursor: pointer;
+    margin: 0;
+}
+
+.osc-oct-radio input[type="radio"]:checked {
+    border-color: #f72585;
+    background: #f72585;
+}
+
+/* ========================================
+   Debug Console Panel
+   ======================================== */
+
+.debug-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: #0a0a12;
+    border-top: 2px solid #f72585;
+    font-family: monospace;
+    font-size: var(--ssli-fs-sm);
+    z-index: 400;
+    display: flex;
+    flex-direction: column;
+}
+
+.debug-panel.hidden {
+    display: none;
+}
+
+.debug-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.15rem 0.3rem;
+    background: #1a1a2e;
+    border-bottom: 1px solid #333;
+}
+
+.debug-title {
+    color: var(--sslu-rose, #f72585);
+    font-weight: var(--ssli-fw-bold);
+    font-size: var(--ssli-fs-sm);
+}
+
+.debug-controls {
+    display: flex;
+    gap: 0.3rem;
+}
+
+.debug-btn {
+    padding: 0.1rem 0.2rem;
+    font-size: var(--ssli-fs-sm);
+    background: #333;
+    color: #ccc;
+    border: 1px solid #555;
+    border-radius: var(--sslu-radius-xs);
+    cursor: pointer;
+}
+
+.debug-btn:hover {
+    background: #444;
+    color: #fff;
+}
+
+.debug-output {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.2rem 0.3rem;
+    line-height: 1.4;
+}
+
+.debug-line {
+    color: #8f8;
+    padding: 0.05rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    word-wrap: break-word;
+}
+
+.debug-line.error {
+    color: #f66;
+}
+
+.debug-line.warn {
+    color: #fd0;
+}
+
+.debug-toggle {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    padding: 0.15rem 0.3rem;
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-semibold);
+    background: linear-gradient(135deg, #f72585, #7209b7);
+    color: #fff;
+    border: none;
+    border-radius: var(--sslu-radius-md);
+    cursor: pointer;
+    z-index: 401;
+    display: none; /* Hidden in production — enable via JS for debug */
+}
+
+.debug-toggle:hover {
+    filter: brightness(1.2);
+}
+
+/* Phone-land: compact and semi-transparent to reduce content clipping */
+[data-layout="phone-land"] .debug-toggle {
+    padding: 2px 6px;
+    font-size: var(--ssli-fs-xs);
+    min-height: 24px;
+    min-width: 24px;
+    opacity: var(--ssli-opacity-overlay);
+    bottom: 2px;
+    right: 10px;
+}
+
+.debug-panel:not(.hidden) ~ .debug-toggle {
+    bottom: 130px;
+}
+
+/* ========================================
+   Filter Section in Modal
+   ======================================== */
+
+.filter-section-modal {
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--sslu-radius-lg);
+    margin-top: 0.5rem;
+}
+
+.filter-header-modal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.filter-title-modal {
+    font-size: var(--ssli-fs-body);
+    font-weight: var(--ssli-fw-bold);
+    color: #4cc9f0;
+}
+
+.filter-enable-modal {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: var(--ssli-fs-sm);
+    color: #fff;
+    cursor: pointer;
+}
+
+.filter-enable-modal input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+}
+
+/* Mode + Slope combined row */
+.filter-mode-slope-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.4rem;
+    font-size: var(--ssli-fs-sm);
+    color: #eee;
+    flex-wrap: wrap;
+}
+
+.filter-row-label {
+    font-weight: var(--ssli-fw-semibold);
+    color: #fff;
+}
+
+.filter-slope-label {
+    margin-left: 0.5rem;
+}
+
+.filter-type-radios,
+.filter-slope-radios,
+.filter-freq-unit-radios {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.filter-type-radios label,
+.filter-slope-radios label,
+.filter-freq-unit-radios label {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    cursor: pointer;
+    padding: 0.12rem 0.2rem;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: var(--sslu-radius-sm);
+    transition: all 0.1s;
+    font-size: var(--ssli-fs-sm);
+    color: #fff;
+}
+
+.filter-type-radios label:hover,
+.filter-slope-radios label:hover,
+.filter-freq-unit-radios label:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.filter-type-radios input[type="radio"],
+.filter-slope-radios input[type="radio"],
+.filter-freq-unit-radios input[type="radio"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 10px;
+    height: 10px;
+    border: 2px solid #666;
+    border-radius: 50%;
+    cursor: pointer;
+    margin: 0;
+}
+
+.filter-type-radios input[type="radio"]:checked {
+    border-color: #4cc9f0;
+    background: #4cc9f0;
+}
+
+.filter-slope-radios input[type="radio"]:checked {
+    border-color: #f72585;
+    background: #f72585;
+}
+
+.filter-freq-unit-radios input[type="radio"]:checked {
+    border-color: #7209b7;
+    background: #7209b7;
+}
+
+.filter-model-row {
+    margin-bottom: 0.4rem;
+}
+
+.filter-model-row label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: var(--ssli-fs-sm);
+    color: #fff;
+}
+
+.filter-model-row select {
+    padding: 0.2rem 0.3rem;
+    font-size: var(--ssli-fs-sm);
+    background: #2a2a4e;
+    color: #fff;
+    border: 1px solid #555;
+    border-radius: var(--sslu-radius-sm);
+}
+
+.filter-freq-row,
+.filter-q-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.25rem;
+    font-size: var(--ssli-fs-sm);
+    color: #fff;
+}
+
+.filter-freq-value,
+.filter-q-value {
+    font-family: monospace;
+    font-size: var(--ssli-fs-sm);
+    color: #4cc9f0;
+    min-width: 80px;
+    text-align: right;
+    margin-left: auto;
+}
+
+.filter-freq-lg {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 12px;
+    background: linear-gradient(90deg, #240046, #4cc9f0);
+    border-radius: var(--sslu-radius-lg);
+    cursor: pointer;
+}
+
+.filter-freq-lg::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #4cc9f0;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.filter-freq-lg::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: #4cc9f0;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.filter-q-lg {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 8px;
+    background: linear-gradient(90deg, #333, #f72585);
+    border-radius: var(--sslu-radius-md);
+    cursor: pointer;
+}
+
+.filter-q-lg::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: #f72585;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.filter-q-lg::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: #f72585;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.filter-freq-lg,
+.filter-q-lg {
+    margin-top: 0.1rem;
+    margin-bottom: 0.3rem;
+}
+
+/* Key tracking row */
+.filter-keytrack-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.2rem;
+    font-size: var(--ssli-fs-sm);
+    color: #fff;
+}
+
+.filter-keytrack-value {
+    font-family: monospace;
+    font-size: var(--ssli-fs-sm);
+    color: #9d4edd;
+    min-width: 40px;
+    text-align: right;
+    margin-left: auto;
+}
+
+.filter-keytrack-lg {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    background: linear-gradient(90deg, #333, #7209b7);
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+    margin-top: 0.1rem;
+    margin-bottom: 0.3rem;
+}
+
+.filter-keytrack-lg::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: #7209b7;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.filter-keytrack-lg::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    background: #7209b7;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+/* Filter disabled state */
+.filter-section-modal.disabled {
+    opacity: var(--ssli-opacity-inactive);
+    pointer-events: none;
+}
+
+.filter-section-modal.disabled .filter-header-modal {
+    pointer-events: auto;
+}
+
+/* ========================================
+   Noise Section in Modal
+   ======================================== */
+
+.noise-section-modal {
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--sslu-radius-lg);
+    margin-top: 0.5rem;
+}
+
+.noise-header-modal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.noise-title-modal {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-bold);
+    color: #b5179e;
+}
+
+.noise-enable-modal {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: var(--ssli-fs-sm);
+    color: #ccc;
+    cursor: pointer;
+}
+
+.noise-enable-modal input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+}
+
+.noise-type-row {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-bottom: 0.3rem;
+    font-size: var(--ssli-fs-sm);
+    color: #ccc;
+}
+
+.noise-row-label {
+    font-weight: var(--ssli-fw-semibold);
+    color: #aaa;
+}
+
+.noise-type-radios {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.noise-type-radios label {
+    display: flex;
+    align-items: center;
+    gap: 0.1rem;
+    cursor: pointer;
+    padding: 0.08rem 0.15rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--sslu-radius-sm);
+    transition: all 0.1s;
+    font-size: var(--ssli-fs-sm);
+}
+
+.noise-type-radios label:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.noise-type-radios input[type="radio"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 10px;
+    height: 10px;
+    border: 2px solid #666;
+    border-radius: 50%;
+    cursor: pointer;
+    margin: 0;
+}
+
+.noise-type-radios input[type="radio"]:checked {
+    border-color: #b5179e;
+    background: #b5179e;
+}
+
+.noise-level-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.2rem;
+    font-size: var(--ssli-fs-sm);
+    color: #ccc;
+}
+
+.noise-level-value {
+    font-family: monospace;
+    font-size: var(--ssli-fs-sm);
+    color: #b5179e;
+    min-width: 40px;
+    text-align: right;
+    margin-left: auto;
+}
+
+.noise-level-lg {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 8px;
+    background: linear-gradient(90deg, #333, #b5179e);
+    border-radius: var(--sslu-radius-md);
+    cursor: pointer;
+    margin-top: 0.1rem;
+    margin-bottom: 0.3rem;
+}
+
+.noise-level-lg::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: #b5179e;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.noise-level-lg::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: #b5179e;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+/* Noise disabled state */
+.noise-section-modal.disabled {
+    opacity: var(--ssli-opacity-inactive);
+    pointer-events: none;
+}
+
+.noise-section-modal.disabled .noise-header-modal {
+    pointer-events: auto;
+}
+
+/* ========================================
+   Noise Strip in Oscillator Section
+   ======================================== */
+
+.noise-strip-lg {
+    border: 1px solid rgba(181, 23, 158, 0.3);
+    background: rgba(181, 23, 158, 0.05);
+}
+
+.noise-num-lg {
+    color: #b5179e !important;
+}
+
+.noise-enable-osc {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: var(--ssli-fs-sm);
+    color: #ccc;
+    cursor: pointer;
+}
+
+.noise-enable-osc input[type="checkbox"] {
+    width: 12px;
+    height: 12px;
+    cursor: pointer;
+}
+
+.noise-type-osc-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.noise-type-lbl {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-semibold);
+    color: #fff;
+}
+
+.noise-type-radios-osc {
+    display: flex;
+    gap: 0.15rem;
+}
+
+.noise-type-radios-osc label {
+    display: flex;
+    align-items: center;
+    gap: 0.1rem;
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-semibold);
+    color: #fff;
+    cursor: pointer;
+    padding: 0.1rem 0.15rem;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: var(--sslu-radius-sm);
+    transition: all 0.1s;
+}
+
+.noise-type-radios-osc label:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.noise-type-radios-osc input[type="radio"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 10px;
+    height: 10px;
+    border: 2px solid #666;
+    border-radius: 50%;
+    cursor: pointer;
+    margin: 0;
+}
+
+.noise-type-radios-osc input[type="radio"]:checked {
+    border-color: #b5179e;
+    background: #b5179e;
+}
+
+.noise-level-val-lg {
+    font-size: var(--ssli-fs-sm);
+    color: #e879f9;
+    text-align: center;
+    font-family: monospace;
+    font-weight: var(--ssli-fw-semibold);
+}
+
+/* Narrower noise strip */
+.noise-strip-narrow {
+    min-width: 65px !important;
+    max-width: 75px;
+}
+
+/* 2-column noise layout */
+.noise-strip-2col {
+    min-width: 110px !important;
+    max-width: 130px;
+}
+
+.noise-2col-layout {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.noise-type-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+/* Vertical noise type radios */
+.noise-type-vertical {
+    flex-direction: column !important;
+    gap: 0.12rem !important;
+}
+
+.noise-type-vertical label {
+    width: 100%;
+}
+
+/* Vertical noise level column layout */
+.noise-level-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+}
+
+.noise-level-lbl {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-semibold);
+    color: #fff;
+    margin-bottom: 0.1rem;
+}
+
+/* Vertical noise level slider - uses rotation for cross-browser support */
+.noise-level-vertical {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 104px;
+    height: 8px;
+    background: linear-gradient(90deg, #7209b7, #b5179e);
+    border-radius: var(--sslu-radius-md);
+    cursor: pointer;
+    transform: rotate(-90deg);
+    transform-origin: center center;
+    margin: 48px 0;
+}
+
+.noise-level-vertical::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: #b5179e;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.noise-level-vertical::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    background: #b5179e;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.noise-level-val-lg {
+    font-size: var(--ssli-fs-sm);
+    color: #e879f9;
+    text-align: center;
+    font-family: monospace;
+    font-weight: var(--ssli-fw-semibold);
+    margin-top: 0.1rem;
+}
+
+/* ========================================
+   Key-Tracked Cutoff Frequency Display
+   ======================================== */
+
+.filter-keytracked-freq-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: var(--ssli-fs-sm);
+    color: #fff;
+    padding: 0.25rem;
+    background: rgba(114, 9, 183, 0.1);
+    border-radius: var(--sslu-radius-md);
+    border: 1px solid rgba(114, 9, 183, 0.3);
+}
+
+.filter-keytracked-value {
+    font-family: monospace;
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-semibold);
+    color: #c77dff;
+    min-width: 80px;
+    text-align: right;
+    margin-left: auto;
+}
+
+/* ========================================
+   Filter Envelope Section in Modal
+   ======================================== */
+
+.filter-env-section-modal {
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--sslu-radius-lg);
+    margin-top: 0.5rem;
+    border: 1px solid rgba(247, 37, 133, 0.2);
+}
+
+.filter-env-header-modal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.filter-env-title-modal {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--sslu-rose, #f72585);
+}
+
+.filter-env-enable-modal {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: var(--ssli-fs-sm);
+    color: #fff;
+    cursor: pointer;
+}
+
+.filter-env-enable-modal input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+}
+
+/* Amount row */
+.filter-env-amount-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.2rem;
+}
+
+.filter-env-row-label {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-semibold);
+    color: #ccc;
+}
+
+.filter-env-amount-value {
+    font-family: monospace;
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-semibold);
+    color: var(--sslu-rose, #f72585);
+}
+
+.filter-env-amount-lg {
+    width: 100%;
+    height: 10px;
+    margin-bottom: 0.4rem;
+    -webkit-appearance: none;
+    appearance: none;
+    background: linear-gradient(90deg, #3a0ca3, #333 50%, #f72585);
+    border-radius: var(--sslu-radius-md);
+    cursor: pointer;
+}
+
+.filter-env-amount-lg::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: #f72585;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.filter-env-amount-lg::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: #f72585;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+/* Filter envelope ADSR container - uses standard .adsr-controls-modal inside */
+.filter-env-adsr-container {
+    margin-top: 0.3rem;
+    transition: opacity 0.2s;
+}
+
+.filter-env-adsr-container.linked {
+    opacity: var(--ssli-opacity-disabled);
+    pointer-events: none;
+}
+
+/* Link to Amp checkbox row */
+.filter-env-link-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    margin-top: 0.4rem;
+    padding-top: 0.3rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.filter-env-link-label {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: var(--ssli-fs-sm);
+    color: #ccc;
+    cursor: pointer;
+}
+
+.filter-env-link-label input[type="checkbox"] {
+    width: 12px;
+    height: 12px;
+    cursor: pointer;
+}
+
+.filter-env-link-label:hover {
+    color: #fff;
+}
+
+/* Filter envelope disabled state */
+.filter-env-section-modal.disabled {
+    opacity: var(--ssli-opacity-inactive);
+    pointer-events: none;
+}
+
+.filter-env-section-modal.disabled .filter-env-header-modal {
+    pointer-events: auto;
+}
+
+/* ========================================
+   Modal Tabs
+   ======================================== */
+
+.modal-tabs {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.modal-tab {
+    padding: 0.3rem 0.6rem;
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-semibold);
+    background: rgba(255, 255, 255, 0.08);
+    color: #888;
+    border: none;
+    border-radius: 4px 4px 0 0;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.modal-tab:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #aaa;
+}
+
+.modal-tab.active {
+    background: linear-gradient(135deg, #f72585, #7209b7);
+    color: #fff;
+}
+
+/* Tab Content Visibility */
+.mixer-tab-content,
+.filter-tab-content {
+    display: block;
+}
+
+.mixer-tab-content.hidden,
+.filter-tab-content.hidden {
+    display: none;
+}
+
+/* ========================================
+   Pulse Width and Spread Controls
+   ======================================== */
+
+/* Value display styles for pulse width and spread */
+.osc-pw-val-lg,
+.osc-spread-val-lg {
+    font-size: var(--ssli-fs-sm);
+    color: #aaa;
+    text-align: center;
+}
+
+/* Pulse width slider - cyan accent */
+.osc-pw-lg::-webkit-slider-thumb {
+    background: #4cc9f0 !important;
+}
+
+.osc-pw-lg::-moz-range-thumb {
+    background: #4cc9f0 !important;
+}
+
+/* Spread slider - orange accent */
+.osc-spread-lg::-webkit-slider-thumb {
+    background: #ff9f1c !important;
+}
+
+.osc-spread-lg::-moz-range-thumb {
+    background: #ff9f1c !important;
+}
+
+/* Conditional control rows - shown/hidden via JS */
+.osc-pw-row,
+.osc-spread-row {
+    display: none;
+}
+
+.osc-pw-row.visible,
+.osc-spread-row.visible {
+    display: flex;
+}
+
+/* ========================================
+   Instrument Selector in Modal
+   ======================================== */
+
+.instrument-selector-modal {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem;
+    background: rgba(247, 37, 133, 0.1);
+    border: 1px solid rgba(247, 37, 133, 0.3);
+    border-radius: var(--sslu-radius-lg);
+    margin-bottom: 0.75rem;
+}
+
+.instrument-selector-modal label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-semibold);
+    color: #fff;
+}
+
+.instrument-selector-modal select {
+    padding: 0.25rem 0.4rem;
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-bold);
+    background: #2a2a4e;
+    color: #fff;
+    border: 2px solid #f72585;
+    border-radius: var(--sslu-radius-md);
+    cursor: pointer;
+}
+
+.instrument-selector-modal select:focus {
+    outline: none;
+    border-color: #4cc9f0;
+}
+
+/* Test Tone Button */
+.test-tone-btn {
+    padding: 0.3rem 0.6rem;
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-semibold);
+    background: linear-gradient(135deg, #4cc9f0, #7209b7);
+    color: #fff;
+    border: none;
+    border-radius: var(--sslu-radius-md);
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-left: auto;
+}
+
+.test-tone-btn:hover {
+    filter: brightness(1.2);
+}
+
+.test-tone-btn:active {
+    transform: scale(0.95);
+}
+
+/* ========================================
+   Preset Selector
+   ======================================== */
+
+.preset-selector-row {
+    display: flex;
+    align-items: center;
+    gap: var(--ssli-gap-md);
+    margin: 8px 0;
+    padding: 6px 10px;
+    background: #1a1a2e;
+    border-radius: var(--sslu-radius-md);
+}
+
+.preset-selector-row label {
+    color: #b0b0b0;
+    font-size: var(--ssli-fs-body);
+    display: flex;
+    align-items: center;
+    gap: var(--ssli-gap-sm);
+}
+
+.preset-selector-row select {
+    background: #0d0d1a;
+    color: #e0e0e0;
+    border: 1px solid #333;
+    border-radius: var(--sslu-radius-sm);
+    padding: 3px 6px;
+    font-size: var(--ssli-fs-body);
+    min-width: 120px;
+}
+
+.preset-apply-btn {
+    background: #7b2fff;
+    color: white;
+    border: none;
+    border-radius: var(--sslu-radius-sm);
+    padding: 4px 12px;
+    font-size: var(--ssli-fs-body);
+    cursor: pointer;
+}
+
+.preset-apply-btn:hover {
+    background: #9b5fff;
+}
+
+/* ========================================
+   Experimental Checkbox
+   ======================================== */
+
+.experimental-checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: var(--ssli-fs-sm);
+    color: #ff9f1c;
+    cursor: pointer;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+}
+
+.experimental-checkbox-label input[type="checkbox"] {
+    width: 12px;
+    height: 12px;
+    cursor: pointer;
+    accent-color: #ff9f1c;
+}
+
+.experimental-checkbox-label span {
+    font-weight: var(--ssli-fw-semibold);
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
+/* Disabled state for Physical button */
+.instrument-type-btn.pm-disabled {
+    opacity: var(--ssli-opacity-disabled);
+    cursor: not-allowed;
+    pointer-events: none;
+    filter: grayscale(0.8);
+}
+
+/* ========================================
+   Phone Landscape: Larger Slider Thumbs
+   ======================================== */
+
+[data-layout="phone-land"] input[type="range"]::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+}
+
+[data-layout="phone-land"] input[type="range"]::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+}
+
+/* --- Phone Landscape: prevent select/button text truncation --- */
+[data-layout="phone-land"] select {
+    min-width: 90px;
+}
+
+[data-layout="phone-land"] .instrument-type-btn {
+    font-size: var(--ssli-fs-sm);
+    overflow: visible;
+    text-overflow: clip;
+}

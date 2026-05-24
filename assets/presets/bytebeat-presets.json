@@ -1,0 +1,264 @@
+{
+  "presets": [
+    {
+      "name": "The Original",
+      "category": "Classic",
+      "description": "The first bytebeat formula ever discovered by Viznut.",
+      "settings": {
+        "formula": "t*(t>>5|t>>8)",
+        "formulaIndex": 0,
+        "sampleRate": 8000,
+        "tIncrement": 1,
+        "bitDepth": 8,
+        "volume": 80
+      }
+    },
+    {
+      "name": "Sierpinski Harmony",
+      "category": "Classic",
+      "description": "Fractal-based harmonic pattern with shifting overtones.",
+      "settings": {
+        "formula": "t*(t>>11&t>>8&123&t>>3)",
+        "formulaIndex": 1,
+        "sampleRate": 8000,
+        "tIncrement": 1,
+        "bitDepth": 8,
+        "volume": 75
+      }
+    },
+    {
+      "name": "Bit Cascade",
+      "category": "Classic",
+      "description": "Cascading bit patterns creating a waterfall of tones.",
+      "settings": {
+        "formula": "(t*(t>>12)&255)",
+        "formulaIndex": 2,
+        "sampleRate": 8000,
+        "tIncrement": 1,
+        "bitDepth": 8,
+        "volume": 80
+      }
+    },
+    {
+      "name": "Digital Overtones",
+      "category": "Classic",
+      "description": "Complex overtone series from bitwise operations.",
+      "settings": {
+        "formula": "t*((t>>12|t>>8)&63&t>>4)",
+        "formulaIndex": 3,
+        "sampleRate": 8000,
+        "tIncrement": 1,
+        "bitDepth": 8,
+        "volume": 75
+      }
+    },
+    {
+      "name": "Pulse Engine",
+      "category": "Classic",
+      "description": "Raw rhythmic pulse from the early bytebeat era.",
+      "settings": {
+        "formula": "(t&t>>8)*t>>4",
+        "formulaIndex": 4,
+        "sampleRate": 8000,
+        "tIncrement": 1,
+        "bitDepth": 8,
+        "volume": 70
+      }
+    },
+    {
+      "name": "Music Box",
+      "category": "Melodic",
+      "description": "Delicate melodic pattern reminiscent of a music box.",
+      "settings": {
+        "formula": "(t*5&t>>7)|(t*3&t>>10)",
+        "formulaIndex": 6,
+        "sampleRate": 8000,
+        "tIncrement": 1,
+        "bitDepth": 8,
+        "volume": 80
+      }
+    },
+    {
+      "name": "Alien Transmission",
+      "category": "Melodic",
+      "description": "Eerie melodic signal from an unknown source.",
+      "settings": {
+        "formula": "t*(t>>9|t>>13)&16",
+        "formulaIndex": 7,
+        "sampleRate": 8000,
+        "tIncrement": 1,
+        "bitDepth": 8,
+        "volume": 75
+      }
+    },
+    {
+      "name": "Cathedral Organ",
+      "category": "Melodic",
+      "description": "Organ-like tones with evolving harmonics.",
+      "settings": {
+        "formula": "(t>>6|t|t>>(t>>16))*10+((t>>11)&7)",
+        "formulaIndex": 8,
+        "sampleRate": 8000,
+        "tIncrement": 1,
+        "bitDepth": 8,
+        "volume": 70
+      }
+    },
+    {
+      "name": "Chiptune March",
+      "category": "Melodic",
+      "description": "March-like melody with 8-bit game music character.",
+      "settings": {
+        "formula": "(t*((t>>12|t>>8)&63&t>>4))",
+        "formulaIndex": 9,
+        "sampleRate": 8000,
+        "tIncrement": 1,
+        "bitDepth": 8,
+        "volume": 80
+      }
+    },
+    {
+      "name": "Hi-Fi Music Box",
+      "category": "Melodic",
+      "description": "Music box pattern at higher sample rate for cleaner tone.",
+      "settings": {
+        "formula": "(t*5&t>>7)|(t*3&t>>10)",
+        "formulaIndex": 6,
+        "sampleRate": 16000,
+        "tIncrement": 1,
+        "bitDepth": 8,
+        "volume": 75
+      }
+    },
+    {
+      "name": "Bit Drummer",
+      "category": "Rhythmic",
+      "description": "Percussive patterns from shifting bit operations.",
+      "settings": {
+        "formula": "(t>>4)*(13&(0x8898a989>>(t>>11&30)))",
+        "formulaIndex": 10,
+        "sampleRate": 8000,
+        "tIncrement": 1,
+        "bitDepth": 8,
+        "volume": 80
+      }
+    },
+    {
+      "name": "Kick and Snare",
+      "category": "Rhythmic",
+      "description": "Approximation of a kick-snare drum pattern.",
+      "settings": {
+        "formula": "((t<<1)^((t<<1)+(t>>7)&t>>12))|t>>(4-(1^7&(t>>19)))",
+        "formulaIndex": 11,
+        "sampleRate": 8000,
+        "tIncrement": 1,
+        "bitDepth": 8,
+        "volume": 75
+      }
+    },
+    {
+      "name": "Evolving Beat",
+      "category": "Rhythmic",
+      "description": "Rhythmic pattern that morphs over time.",
+      "settings": {
+        "formula": "t*((t>>5|t>>8)>>((t>>16)&7))",
+        "formulaIndex": 12,
+        "sampleRate": 8000,
+        "tIncrement": 1,
+        "bitDepth": 8,
+        "volume": 75
+      }
+    },
+    {
+      "name": "Glitch Groove",
+      "category": "Rhythmic",
+      "description": "Glitchy rhythmic pattern with unpredictable accents.",
+      "settings": {
+        "formula": "(t>>7|t|t>>6)*10+4*(t&t>>13|t>>6)",
+        "formulaIndex": 13,
+        "sampleRate": 8000,
+        "tIncrement": 1,
+        "bitDepth": 8,
+        "volume": 70
+      }
+    },
+    {
+      "name": "Fast Pulse Train",
+      "category": "Rhythmic",
+      "description": "Rapid pulse train with evolving rhythmic structure.",
+      "settings": {
+        "formula": "(t*(t>>8*(t>>15|t>>8)&(20|(t>>19)*5>>t|t>>3)))",
+        "formulaIndex": 14,
+        "sampleRate": 8000,
+        "tIncrement": 2,
+        "bitDepth": 8,
+        "volume": 65
+      }
+    },
+    {
+      "name": "Slow Drift",
+      "category": "Ambient",
+      "description": "Slowly evolving texture with long-form structure.",
+      "settings": {
+        "formula": "(t>>8&t)*(t>>15&t)",
+        "formulaIndex": 15,
+        "sampleRate": 8000,
+        "tIncrement": 1,
+        "bitDepth": 8,
+        "volume": 80
+      }
+    },
+    {
+      "name": "Wind Chimes",
+      "category": "Ambient",
+      "description": "Delicate chime-like textures from sparse bit patterns.",
+      "settings": {
+        "formula": "(t*(t>>8|t>>9)&46&t>>8)",
+        "formulaIndex": 16,
+        "sampleRate": 8000,
+        "tIncrement": 1,
+        "bitDepth": 8,
+        "volume": 75
+      }
+    },
+    {
+      "name": "Deep Space Radio",
+      "category": "Ambient",
+      "description": "Deep ambient texture like intercepted space signals.",
+      "settings": {
+        "formula": "(t>>4)*(t&t>>8)|(t>>6)",
+        "formulaIndex": 17,
+        "sampleRate": 4000,
+        "tIncrement": 1,
+        "bitDepth": 8,
+        "volume": 70
+      }
+    },
+    {
+      "name": "16-Bit Chaos",
+      "category": "Extreme",
+      "description": "Original formula rendered in 16-bit for extreme dynamic range.",
+      "settings": {
+        "formula": "t*(t>>5|t>>8)",
+        "formulaIndex": 0,
+        "sampleRate": 8000,
+        "tIncrement": 1,
+        "bitDepth": 16,
+        "volume": 60
+      }
+    },
+    {
+      "name": "Hyperspeed",
+      "category": "Extreme",
+      "description": "Classic formula at maximum speed for glitchy noise textures.",
+      "settings": {
+        "formula": "t*((t>>12|t>>8)&63&t>>4)",
+        "formulaIndex": 3,
+        "sampleRate": 48000,
+        "tIncrement": 4,
+        "bitDepth": 8,
+        "volume": 55
+      }
+    }
+  ]
+}

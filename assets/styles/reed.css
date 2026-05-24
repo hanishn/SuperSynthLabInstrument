@@ -1,0 +1,164 @@
+/**
+ * reed.css - Reed Instrument Synthesis Controls Styles
+ * Woodwind amber (#CC9944) theme for reed engine controls
+ */
+
+/* ========================================
+   Reed Controls Container (Modal)
+   ======================================== */
+
+.reed-controls-modal {
+    padding: 0.5rem;
+    background: rgba(204, 153, 68, 0.06);
+    border-radius: var(--sslu-radius-lg);
+    margin-bottom: 0.5rem;
+    border-left: 2px solid #CC9944;
+}
+
+/* ========================================
+   Reed Type Selector Row
+   ======================================== */
+
+.reed-type-row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.reed-type-row label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+}
+
+.reed-type-row select {
+    padding: 2px 4px;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-input);
+    color: #e0e0e0;
+    border: 1px solid #CC9944;
+    border-radius: var(--sslu-radius-sm);
+}
+
+.reed-type-row select:focus {
+    border-color: #DDAA55;
+    outline: none;
+    box-shadow: 0 0 3px rgba(204, 153, 68, 0.4);
+}
+
+.reed-type-row input[type="range"] {
+    width: 80px;
+}
+
+.reed-type-row span {
+    font-size: var(--ssli-fs-sm);
+    color: #CC9944;
+    min-width: 20px;
+}
+
+/* ========================================
+   Parameter Groups
+   ======================================== */
+
+.reed-param-group {
+    margin-top: 0.3rem;
+}
+
+.reed-param-row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 0.3rem;
+    flex-wrap: wrap;
+}
+
+.reed-param-row label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+}
+
+.reed-param-row input[type="range"] {
+    width: 80px;
+    accent-color: #CC9944;
+}
+
+.reed-param-row span {
+    font-size: var(--ssli-fs-sm);
+    color: #CC9944;
+    min-width: 20px;
+}
+
+.reed-param-row select {
+    padding: 2px 4px;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-input);
+    color: #e0e0e0;
+    border: 1px solid #CC9944;
+    border-radius: var(--sslu-radius-sm);
+}
+
+/* ========================================
+   Register Toggle
+   ======================================== */
+
+.reed-register-toggle {
+    display: inline-flex;
+    gap: 0.3rem;
+    align-items: center;
+}
+
+.reed-register-toggle button {
+    padding: 2px 8px;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-input);
+    color: #b0b0b0;
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+}
+
+.reed-register-toggle button.active {
+    background: #CC9944;
+    color: #1a1a2e;
+    border-color: #CC9944;
+    font-weight: var(--ssli-fw-bold);
+}
+
+.reed-register-toggle button:hover {
+    border-color: #CC9944;
+}
+
+/* ========================================
+   Header
+   ======================================== */
+
+.reed-header {
+    font-size: var(--ssli-fs-body);
+    font-weight: var(--ssli-fw-bold);
+    color: #CC9944;
+    margin-bottom: 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ========================================
+   Vibrato Section
+   ======================================== */
+
+.reed-vibrato-group {
+    margin-top: 0.3rem;
+    padding-top: 0.3rem;
+    border-top: 1px solid rgba(204, 153, 68, 0.15);
+}
+
+.reed-vibrato-group .reed-param-row label {
+    color: #CC9944;
+    opacity: var(--ssli-opacity-hover);
+}

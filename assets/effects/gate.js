@@ -1,0 +1,296 @@
+// Synth Lab - Noise Gate Effect
+// Cleans up signals by attenuating audio below a threshold
+
+(function() {
+  var SL = window.SynthLab = window.SynthLab || {};
+  SL.effects = SL.effects || {};
+  var BaseEffect = SL.effects.BaseEffect;
+
+  // Surfaces where the gate effect MUST be forcibly bypassed.
+  // The gate's hold/release cycle chops legato pitch transitions on ribbon surfaces.
+  var GATE_BLACKLISTED_SURFACES = { mpe: true, ribbon: true };
+
+  /**
+   * GateEffect - Noise Gate for cleaning up signals
+   *
+   * Signal flow:
+   * input ---> AnalyserNode (for level detection)
+   *    |
+   *    +---> GainNode (gate control) ---> wetGain
+   *
+   * Parameters:
+   * - threshold: -60 to 0 dB (level below which gate closes)
+   * - attack: 0.1-50 ms (how fast gate opens)
+   * - hold: 0-500 ms (how long gate stays open after signal drops)
+   * - release: 10-1000 ms (how fast gate closes)
+   * - range: -80 to 0 dB (how much to attenuate when closed)
+   * - mix: 0-100% (wet/dry mix, inherited from BaseEffect)
+   */
+  class GateEffect extends BaseEffect {
+    constructor(ctx) {
+      super(ctx, 'gate');
+
+      // Create AnalyserNode for level detection
+      this.analyser = ctx.createAnalyser();
+      this.analyser.fftSize = 256;
+      this.analyserBuffer = new Float32Array(this.analyser.fftSize);
+
+      // Create GainNode for gate control
+      this.gateGain = ctx.createGain();
+      this.gateGain.gain.value = 1.0;
+
+      // Connect signal flow: input -> analyser -> gateGain -> wetGain
+      this.input.connect(this.analyser);
+      this.analyser.connect(this.gateGain);
+      this.gateGain.connect(this.wetGain);
+
+      // Initialize parameters
+      this.params = {
+        threshold: -50,   // dB — permissive default to allow quieter signals
+        attack: 1,        // ms
+        hold: 100,        // ms — generous hold to avoid premature close on transients
+        release: 100,     // ms
+        range: -80,       // dB (full attenuation by default)
+        mix: 100          // 100% wet (fully gated signal)
+      };
+
+      // Gate state tracking — start open so audio passes until first detection proves otherwise
+      this.isOpen = true;
+      this.holdStartTime = 0;  // AudioContext.currentTime when hold period began
+      this.holdActive = false; // Whether hold period is in progress
+      this.lastUpdateTime = 0;
+      this.currentGain = 1.0;
+      this.targetGain = 1.0;
+      this.enabledAtTime = 0;
+
+      // rAF loop only runs when enabled — started in setEnabled(true)
+      this.isRunning = false;
+
+      // Start in bypass mode
+      this.enabled = false;
+      this.dryGain.gain.value = 1;
+      this.wetGain.gain.value = 0;
+    }
+
+    /**
+     * Override setEnabled to start/stop level detection loop.
+     * On blacklisted surfaces (ribbon/mpe) the detection loop still runs
+     * but processGate() forces the gate open, so audio is never chopped.
+     */
+    setEnabled(on) {
+      super.setEnabled(on);
+      if (on) {
+        this.isRunning = true;
+        this.isOpen = true;
+        this.gateGain.gain.value = 1.0;
+        this.enabledAtTime = this.ctx.currentTime;
+        this.startLevelDetection();
+      } else {
+        this.stopLevelDetection();
+        // Ensure gate is fully open when disabled so no audio is blocked
+        this.isOpen = true;
+        this.gateGain.gain.cancelScheduledValues(this.ctx.currentTime);
+        this.gateGain.gain.value = 1.0;
+      }
+    }
+
+    /**
+     * Stop the level detection loop
+     */
+    stopLevelDetection() {
+      this.isRunning = false;
+      if (this.animationFrame) {
+        cancelAnimationFrame(this.animationFrame);
+        this.animationFrame = null;
+      }
+    }
+
+    /**
+     * Start the level detection loop using requestAnimationFrame
+     */
+    startLevelDetection() {
+      const SAFETY_TIMEOUT_SEC = 0.5; // Force gate open if stuck closed this long after enable
+
+      const detect = () => {
+        if (!this.isRunning) return;
+
+        this.animationFrame = requestAnimationFrame(detect);
+
+        // NOTE: tab visibility check intentionally removed — gate must function
+        // regardless of tab visibility to prevent permanent audio blockage.
+
+        // Get current audio level
+        this.analyser.getFloatTimeDomainData(this.analyserBuffer);
+
+        // Calculate RMS level
+        let sum = 0;
+        for (let i = 0; i < this.analyserBuffer.length; i++) {
+          sum += this.analyserBuffer[i] * this.analyserBuffer[i];
+        }
+        const rms = Math.sqrt(sum / this.analyserBuffer.length);
+
+        // Convert to dB
+        const hasSignal = (rms > 0);
+        const levelDb = hasSignal ? (20 * Math.log10(rms)) : -Infinity;
+
+        // Safety mechanism: if gate has been enabled for longer than SAFETY_TIMEOUT_SEC
+        // and gain is still at minimum, force it open to prevent permanent lock.
+        const rangeDb = this.params.range;
+        const minGain = Math.pow(10, rangeDb / 20);
+        const timeSinceEnable = this.ctx.currentTime - this.enabledAtTime;
+        const gainIsAtMin = (this.gateGain.gain.value <= (minGain + 0.001));
+        const pastSafetyTimeout = (timeSinceEnable > SAFETY_TIMEOUT_SEC);
+
+        if (pastSafetyTimeout && gainIsAtMin && (!this.isOpen)) {
+          this.isOpen = true;
+          this.targetGain = 1.0;
+          this.gateGain.gain.cancelScheduledValues(this.ctx.currentTime);
+          this.gateGain.gain.setTargetAtTime(1.0, this.ctx.currentTime, 0.005);
+        } else {
+          // Normal gate logic
+          this.processGate(levelDb);
+        }
+      };
+
+      detect();
+    }
+
+    /**
+     * Check if the current surface is blacklisted for gate processing.
+     * Ribbon/MPE surfaces produce brief silence during pitch transitions
+     * that the gate misinterprets as signal dropout.
+     */
+    _isSurfaceBlacklisted() {
+      var surface = (SL.screenPlay && SL.screenPlay.getSurface) ? SL.screenPlay.getSurface() : '';
+      return !!GATE_BLACKLISTED_SURFACES[surface];
+    }
+
+    /**
+     * Process gate logic based on input level.
+     * Uses AudioContext.currentTime for hold timing instead of setTimeout,
+     * which does not fire reliably when the tab is backgrounded.
+     */
+    processGate(levelDb) {
+      // PERMANENT FIX: On ribbon/mpe surfaces, force gate open unconditionally.
+      // The gate's hold/release cycle chops audio during legato pitch slides.
+      if (this._isSurfaceBlacklisted()) {
+        if (!this.isOpen) {
+          this.isOpen = true;
+          this.targetGain = 1.0;
+          this.gateGain.gain.cancelScheduledValues(this.ctx.currentTime);
+          this.gateGain.gain.setTargetAtTime(1.0, this.ctx.currentTime, 0.005);
+        }
+        this.holdActive = false;
+        return;
+      }
+
+      const now = this.ctx.currentTime;
+      const threshold = this.params.threshold;
+      const attackTime = this.params.attack / 1000;  // Convert ms to seconds
+      const HOLD_TIME_SEC = this.params.hold / 1000; // Convert ms to seconds
+      const releaseTime = this.params.release / 1000; // Convert ms to seconds
+      const rangeDb = this.params.range;
+
+      // Calculate the minimum gain from range (in linear scale)
+      const minGain = Math.pow(10, rangeDb / 20);
+
+      if (levelDb >= threshold) {
+        // Signal above threshold - open the gate
+        this.holdActive = false;
+
+        if (!this.isOpen) {
+          // Gate is opening
+          this.isOpen = true;
+          this.targetGain = 1.0;
+          this.gateGain.gain.cancelScheduledValues(now);
+          this.gateGain.gain.setTargetAtTime(1.0, now, attackTime / 3);
+        }
+      } else {
+        // Signal below threshold
+        if (this.isOpen && !this.holdActive) {
+          // Begin hold period using AudioContext.currentTime
+          this.holdActive = true;
+          this.holdStartTime = now;
+        }
+
+        // Check if hold period has elapsed
+        if (this.holdActive) {
+          const holdElapsed = now - this.holdStartTime;
+          if (holdElapsed >= HOLD_TIME_SEC) {
+            // Hold period complete — close the gate
+            this.holdActive = false;
+            this.isOpen = false;
+            this.targetGain = minGain;
+            this.gateGain.gain.cancelScheduledValues(now);
+            this.gateGain.gain.setTargetAtTime(minGain, now, releaseTime / 3);
+          }
+        }
+      }
+    }
+
+    /**
+     * Handle parameter updates
+     */
+    updateParam(name, value) {
+      switch (name) {
+        case 'threshold':
+          // Clamp to -60 to 0 dB
+          this.params.threshold = Math.max(-60, Math.min(0, value));
+          break;
+
+        case 'attack':
+          // Clamp to 0.1-50 ms
+          this.params.attack = Math.max(0.1, Math.min(50, value));
+          break;
+
+        case 'hold':
+          // Clamp to 0-500 ms
+          this.params.hold = Math.max(0, Math.min(500, value));
+          break;
+
+        case 'release':
+          // Clamp to 10-1000 ms
+          this.params.release = Math.max(10, Math.min(1000, value));
+          break;
+
+        case 'range':
+          // Clamp to -80 to 0 dB
+          this.params.range = Math.max(-80, Math.min(0, value));
+          // Update current gate position if closed
+          if (!this.isOpen) {
+            const minGain = Math.pow(10, this.params.range / 20);
+            this.gateGain.gain.setTargetAtTime(minGain, this.ctx.currentTime, 0.01);
+          }
+          break;
+      }
+    }
+
+    /**
+     * Get current gate state (useful for metering)
+     */
+    getGateState() {
+      return {
+        isOpen: this.isOpen,
+        currentGain: this.gateGain.gain.value
+      };
+    }
+
+    /**
+     * Clean up audio nodes and stop detection loop
+     */
+    dispose() {
+      this.isRunning = false;
+      if (this.animationFrame) {
+        cancelAnimationFrame(this.animationFrame);
+      }
+      this.holdActive = false;
+      this.analyser.disconnect();
+      this.gateGain.disconnect();
+      super.dispose();
+    }
+  }
+
+  // Export to SynthLab namespace
+  SL.effects.GateEffect = GateEffect;
+
+})();

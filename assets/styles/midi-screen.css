@@ -1,0 +1,588 @@
+/**
+ * midi-screen.css - MIDI screen styles for SuperSynthLab
+ * MIDI configuration, monitoring, and channel routing
+ */
+
+/* ========================================
+   Screen Container
+   ======================================== */
+
+#screen-midi {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    background: var(--sslu-bg-base);
+}
+
+/* ========================================
+   Top Bar
+   ======================================== */
+
+.midi-scr-top-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--sslu-gap-3xl);
+    padding: var(--sslu-pad-bar);
+    background: var(--sslu-bg-raised);
+    border-bottom: var(--sslu-border-w-thin) solid var(--sslu-border-default);
+    flex-shrink: 0;
+}
+
+.midi-scr-top-bar label {
+    color: var(--sslu-text-muted);
+    font-size: var(--sslu-fs-h4);
+    margin-right: var(--sslu-gap-sm);
+}
+
+.midi-scr-top-bar select {
+    background: var(--sslu-bg-input);
+    color: var(--sslu-text-body);
+    border: var(--sslu-border-w-thin) solid var(--sslu-border-medium);
+    border-radius: var(--sslu-radius-sm);
+    padding: var(--sslu-pad-input);
+    font-size: var(--sslu-fs-h4);
+    min-width: 120px;
+}
+
+.midi-scr-panic-btn {
+    background: var(--sslu-danger-bg);
+    color: var(--sslu-danger-text);
+    border: var(--sslu-border-w-thin) solid var(--sslu-danger-border);
+    border-radius: var(--sslu-radius-md);
+    padding: 0.3rem 0.8rem;
+    font-size: var(--sslu-fs-h4);
+    cursor: pointer;
+    font-weight: var(--sslu-fw-bold);
+    letter-spacing: var(--sslu-ls-normal);
+}
+
+.midi-scr-panic-btn:hover {
+    background: #882233;
+}
+
+.midi-scr-panic-btn:active {
+    background: #aa3344;
+}
+
+.midi-scr-rescan-btn {
+    background: #1a2a1a;
+    color: #88bb88;
+    border: var(--sslu-border-w-thin) solid #3a5a3a;
+    border-radius: var(--sslu-radius-md);
+    padding: 0.3rem 0.6rem;
+    font-size: var(--sslu-fs-body);
+    cursor: pointer;
+}
+
+.midi-scr-rescan-btn:hover {
+    background: #2a3a2a;
+}
+
+/* ========================================
+   Main Content Area
+   ======================================== */
+
+.midi-scr-main {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    gap: 0;
+}
+
+/* ========================================
+   Left Panel - Channel Routing Matrix
+   ======================================== */
+
+.midi-scr-routing {
+    flex: 0 0 340px;
+    padding: var(--sslu-pad-section);
+    border-right: var(--sslu-border-w-thin) solid var(--sslu-border-default);
+    overflow: auto;
+    width: 100%;
+    min-height: 0;
+}
+
+.midi-scr-routing h3 {
+    color: var(--sslu-text-label);
+    font-size: var(--sslu-fs-h2);
+    margin: 0 0 0.6rem 0;
+    text-transform: uppercase;
+    letter-spacing: var(--sslu-ls-wide);
+}
+
+.midi-scr-matrix-table {
+    border-collapse: collapse;
+    font-size: var(--sslu-fs-body);
+    width: 100%;
+}
+
+.midi-scr-matrix-table th {
+    color: var(--sslu-text-muted);
+    padding: var(--sslu-pad-input);
+    text-align: center;
+    font-weight: var(--sslu-fw-normal);
+    font-size: var(--sslu-fs-body-sm);
+    border-bottom: var(--sslu-border-w-thin) solid var(--sslu-border-default);
+}
+
+.midi-scr-matrix-table td {
+    padding: 0.15rem 0.3rem;
+    text-align: center;
+    border-bottom: var(--sslu-border-w-thin) solid var(--sslu-border-subtle);
+}
+
+.midi-scr-matrix-table .midi-scr-ch-label {
+    color: var(--sslu-text-dim);
+    text-align: left;
+    font-size: var(--sslu-fs-body-sm);
+    padding-left: 0.4rem;
+    white-space: nowrap;
+}
+
+.midi-scr-matrix-table input[type="checkbox"] {
+    min-width: var(--sslu-touch-min);
+    min-height: var(--sslu-touch-min);
+    cursor: pointer;
+    accent-color: var(--sslu-indigo);
+    padding: var(--sslu-space-4);
+}
+
+/* ========================================
+   Center Panel - Live MIDI Monitor
+   ======================================== */
+
+.midi-scr-monitor {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: var(--sslu-pad-section);
+    border-right: var(--sslu-border-w-thin) solid var(--sslu-border-default);
+    min-width: 0;
+}
+
+.midi-scr-monitor h3 {
+    color: var(--sslu-text-label);
+    font-size: var(--sslu-fs-h2);
+    margin: 0 0 0.4rem 0;
+    text-transform: uppercase;
+    letter-spacing: var(--sslu-ls-wide);
+    flex-shrink: 0;
+}
+
+.midi-scr-monitor-list {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--sslu-bg-canvas);
+    border: var(--sslu-border-w-thin) solid var(--sslu-border-default);
+    border-radius: var(--sslu-radius-md);
+    font-family: var(--sslu-font-mono);
+    font-size: var(--sslu-fs-body);
+    padding: 0.3rem;
+    min-height: 0;
+}
+
+.midi-scr-msg-row {
+    display: flex;
+    gap: var(--sslu-gap-xl);
+    padding: 0.15rem 0.3rem;
+    border-bottom: var(--sslu-border-w-thin) solid var(--sslu-border-subtle);
+    color: var(--sslu-text-label);
+}
+
+.midi-scr-msg-row .msg-time {
+    color: var(--sslu-text-muted);
+    min-width: 50px;
+}
+
+.midi-scr-msg-row .msg-type {
+    color: #88aaff;
+    min-width: 60px;
+    font-weight: var(--sslu-fw-bold);
+}
+
+.midi-scr-msg-row .msg-type.note-on {
+    color: var(--sslu-success);
+}
+
+.midi-scr-msg-row .msg-type.note-off {
+    color: var(--sslu-danger-text);
+}
+
+.midi-scr-msg-row .msg-type.cc {
+    color: var(--sslu-warning);
+}
+
+.midi-scr-msg-row .msg-type.pitch-bend {
+    color: var(--sslu-purple-light);
+}
+
+.midi-scr-msg-row .msg-ch {
+    color: var(--sslu-text-muted);
+    min-width: 30px;
+}
+
+.midi-scr-msg-row .msg-data {
+    color: var(--sslu-text-body);
+}
+
+.midi-scr-msg-row .msg-hex {
+    color: var(--sslu-text-dim);
+    margin-left: auto;
+}
+
+/* ========================================
+   Right Panel - Activity Indicators
+   ======================================== */
+
+.midi-scr-activity {
+    flex: 0 0 160px;
+    padding: var(--sslu-pad-section);
+    overflow-y: auto;
+}
+
+.midi-scr-activity h3 {
+    color: var(--sslu-text-label);
+    font-size: var(--sslu-fs-h2);
+    margin: 0 0 0.6rem 0;
+    text-transform: uppercase;
+    letter-spacing: var(--sslu-ls-wide);
+}
+
+.midi-scr-ch-leds {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sslu-gap-sm);
+}
+
+.midi-scr-ch-led-row {
+    display: flex;
+    align-items: center;
+    gap: var(--sslu-gap-lg);
+}
+
+.midi-scr-ch-led-row .ch-num {
+    color: var(--sslu-text-dim);
+    font-size: var(--sslu-fs-body-sm);
+    min-width: 28px;
+    text-align: right;
+}
+
+.midi-scr-led {
+    width: 10px;
+    height: 10px;
+    border-radius: var(--sslu-radius-pill);
+    background: var(--sslu-bg-highlight);
+    border: var(--sslu-border-w-thin) solid var(--sslu-border-medium);
+    transition: background var(--sslu-transition-fast) var(--sslu-transition-ease), box-shadow var(--sslu-transition-fast) var(--sslu-transition-ease);
+}
+
+.midi-scr-led.active {
+    background: #44ff66;
+    box-shadow: 0 0 6px #44ff66;
+}
+
+/* ========================================
+   Bottom Bar
+   ======================================== */
+
+.midi-scr-bottom-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--sslu-gap-3xl);
+    padding: var(--sslu-pad-bar);
+    background: var(--sslu-bg-raised);
+    border-top: var(--sslu-border-w-thin) solid var(--sslu-border-default);
+    flex: 0 0 auto;
+}
+
+.midi-scr-bottom-bar button {
+    background: var(--sslu-bg-input);
+    color: var(--sslu-text-label);
+    border: var(--sslu-border-w-thin) solid var(--sslu-border-medium);
+    border-radius: var(--sslu-radius-md);
+    padding: 0.3rem 0.8rem;
+    font-size: var(--sslu-fs-body);
+    cursor: pointer;
+}
+
+.midi-scr-bottom-bar button:hover {
+    background: var(--sslu-bg-button);
+}
+
+.midi-scr-transpose-group {
+    display: flex;
+    align-items: center;
+    gap: var(--sslu-gap-md);
+    margin-left: auto;
+}
+
+.midi-scr-transpose-group label {
+    color: var(--sslu-text-muted);
+    font-size: var(--sslu-fs-body);
+}
+
+.midi-scr-transpose-group input[type="range"] {
+    width: 120px;
+    accent-color: var(--sslu-indigo);
+}
+
+.midi-scr-transpose-group .transpose-val {
+    color: var(--sslu-text-body);
+    font-size: var(--sslu-fs-body);
+    min-width: 36px;
+    text-align: center;
+    font-family: var(--sslu-font-mono);
+}
+
+/* ========================================
+   Phone Landscape Overrides (844x390)
+   Single-pane mode, ~350px usable height
+   ======================================== */
+
+/* --- Screen container: constrain to viewport --- */
+[data-layout="phone-land"] #screen-midi {
+    max-height: 100%;
+    overflow: hidden;
+}
+
+/* --- Quad wrapper: fill the flex column --- */
+[data-layout="phone-land"] #screen-midi > .sslu-quad-wrapper {
+    flex: 1 1 0;
+    min-height: 0;
+}
+
+/* --- Quad: constrain content --- */
+[data-layout="phone-land"] #screen-midi .sslu-quad {
+    overflow: hidden;
+}
+
+/* --- Main body: flex-shrink into available space --- */
+[data-layout="phone-land"] .midi-scr-main {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* --- Top bar (Q1-like): fill quad, spread vertically --- */
+[data-layout="phone-land"] .midi-scr-top-bar {
+    padding: 8px 10px;
+    gap: var(--sslu-gap-md);
+    min-height: 0;
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: space-evenly;
+    flex-wrap: nowrap;
+}
+
+[data-layout="phone-land"] .midi-scr-top-bar label {
+    font-size: var(--ssli-fs-sm);
+    margin-right: 0;
+}
+
+[data-layout="phone-land"] .midi-scr-top-bar select {
+    font-size: var(--ssli-fs-body);
+    padding: 4px 8px;
+    min-width: 100%;
+    min-height: 32px;
+}
+
+[data-layout="phone-land"] .midi-scr-panic-btn {
+    padding: 6px 12px;
+    font-size: var(--ssli-fs-body);
+    min-height: 34px;
+    width: 100%;
+}
+
+[data-layout="phone-land"] .midi-scr-rescan-btn {
+    padding: 5px 10px;
+    font-size: var(--ssli-fs-sm);
+    min-height: 32px;
+}
+
+/* --- Routing panel (Q0): scrollable, compact to fit viewport --- */
+[data-layout="phone-land"] .midi-scr-routing {
+    flex: 1 1 0;
+    min-height: 0;
+    padding: var(--sslu-space-1) var(--sslu-space-4);
+    overflow-y: auto;
+    max-height: 100%;
+    position: relative;
+}
+
+/* Scroll indicator: fade at bottom of routing panel */
+[data-layout="phone-land"] .midi-scr-routing::after {
+    content: '\u25BC  Scroll for Ch 9\201316';
+    display: block;
+    text-align: center;
+    font-size: var(--ssli-fs-xs);
+    color: rgba(200, 200, 220, 0.5);
+    padding: 4px 0 2px;
+    letter-spacing: 0.5px;
+}
+
+[data-layout="phone-land"] .midi-scr-routing h3 {
+    font-size: var(--sslu-fs-px-sm);
+    margin: 0 0 var(--sslu-space-2) 0;
+}
+
+/* --- Routing matrix table: compact --- */
+[data-layout="phone-land"] .midi-scr-matrix-table {
+    font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone-land"] .midi-scr-matrix-table th {
+    font-size: var(--ssli-fs-xs);
+    padding: 2px 3px;
+    line-height: 1.2;
+}
+
+[data-layout="phone-land"] .midi-scr-matrix-table td {
+    padding: 0px 2px;
+    line-height: 1;
+}
+
+[data-layout="phone-land"] .midi-scr-matrix-table .midi-scr-ch-label {
+    font-size: var(--ssli-fs-xs);
+    padding-left: 2px;
+}
+
+/* --- Checkboxes: custom styled toggles for phone-land --- */
+[data-layout="phone-land"] .midi-scr-matrix-table input[type="checkbox"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    min-width: 28px;
+    min-height: 28px;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: var(--sslu-bg-input);
+    border: var(--sslu-border-w-thin) solid var(--sslu-border-medium);
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+    position: relative;
+    vertical-align: middle;
+}
+
+[data-layout="phone-land"] .midi-scr-matrix-table input[type="checkbox"]:checked {
+    background: var(--sslu-indigo);
+    border-color: var(--sslu-indigo);
+}
+
+[data-layout="phone-land"] .midi-scr-matrix-table input[type="checkbox"]:checked::after {
+    content: '\2713';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #fff;
+    font-size: var(--ssli-fs-body);
+    font-weight: var(--ssli-fw-bold);
+    line-height: 1;
+}
+
+/* --- Monitor panel (Q1): compact rows --- */
+[data-layout="phone-land"] .midi-scr-monitor {
+    padding: var(--sslu-space-2) var(--sslu-space-4);
+}
+
+[data-layout="phone-land"] .midi-scr-monitor h3 {
+    font-size: var(--sslu-fs-px-sm);
+    margin: 0 0 var(--sslu-space-2) 0;
+}
+
+[data-layout="phone-land"] .midi-scr-monitor-list {
+    font-size: var(--ssli-fs-xs);
+    padding: 2px;
+}
+
+[data-layout="phone-land"] .midi-scr-msg-row {
+    padding: 1px 2px;
+    gap: var(--sslu-gap-md);
+}
+
+[data-layout="phone-land"] .midi-scr-msg-row .msg-time {
+    min-width: 38px;
+}
+
+[data-layout="phone-land"] .midi-scr-msg-row .msg-type {
+    min-width: 48px;
+}
+
+[data-layout="phone-land"] .midi-scr-msg-row .msg-ch {
+    min-width: 22px;
+}
+
+/* --- Activity panel (Q2): compact LEDs --- */
+[data-layout="phone-land"] .midi-scr-activity {
+    flex: 1 1 auto;
+    padding: var(--sslu-space-2) var(--sslu-space-4);
+}
+
+[data-layout="phone-land"] .midi-scr-activity h3 {
+    font-size: var(--sslu-fs-px-sm);
+    margin: 0 0 var(--sslu-space-2) 0;
+}
+
+[data-layout="phone-land"] .midi-scr-ch-leds {
+    gap: var(--sslu-space-1);
+}
+
+[data-layout="phone-land"] .midi-scr-ch-led-row {
+    gap: var(--sslu-gap-sm);
+}
+
+[data-layout="phone-land"] .midi-scr-ch-led-row .ch-num {
+    font-size: var(--ssli-fs-xs);
+    min-width: 20px;
+}
+
+[data-layout="phone-land"] .midi-scr-led {
+    width: 8px;
+    height: 8px;
+}
+
+/* --- Bottom bar: fill quad, spread vertically, fix transpose cutoff --- */
+[data-layout="phone-land"] .midi-scr-bottom-bar {
+    padding: 8px 10px;
+    gap: var(--sslu-gap-md);
+    min-height: 0;
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: space-evenly;
+    flex-wrap: wrap;
+}
+
+[data-layout="phone-land"] .midi-scr-bottom-bar button {
+    padding: 5px 10px;
+    font-size: var(--ssli-fs-sm);
+    min-height: 32px;
+    width: 100%;
+}
+
+[data-layout="phone-land"] .midi-scr-transpose-group {
+    width: 100%;
+    margin-left: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--ssli-gap-xs);
+}
+
+[data-layout="phone-land"] .midi-scr-transpose-group label {
+    font-size: var(--ssli-fs-sm);
+}
+
+[data-layout="phone-land"] .midi-scr-transpose-group input[type="range"] {
+    width: 100%;
+    height: 8px;
+}
+
+[data-layout="phone-land"] .midi-scr-transpose-group .transpose-val {
+    font-size: var(--ssli-fs-body);
+    min-width: 36px;
+    text-align: center;
+}

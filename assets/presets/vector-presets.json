@@ -1,0 +1,537 @@
+{
+  "presets": [
+    {
+      "name": "Slow Morph",
+      "category": "Evolving",
+      "description": "Gentle sweep through all four corners over 8 seconds.",
+      "settings": {
+        "sources": [
+          { "waveform": "saw", "detune": 0 },
+          { "waveform": "square", "detune": 0 },
+          { "waveform": "triangle", "detune": 0 },
+          { "waveform": "sine", "detune": 0 }
+        ],
+        "vectorX": 0,
+        "vectorY": 0,
+        "vectorEnvelope": {
+          "enabled": true,
+          "loop": true,
+          "points": [
+            { "x": 0, "y": 0, "time": 0 },
+            { "x": 100, "y": 0, "time": 2000 },
+            { "x": 100, "y": 100, "time": 4000 },
+            { "x": 0, "y": 100, "time": 6000 },
+            { "x": 0, "y": 0, "time": 8000 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Breathing Pad",
+      "category": "Evolving",
+      "description": "Oscillates between warm and bright like breathing.",
+      "settings": {
+        "sources": [
+          { "waveform": "sine", "detune": -7 },
+          { "waveform": "triangle", "detune": 7 },
+          { "waveform": "saw", "detune": -3 },
+          { "waveform": "square", "detune": 3 }
+        ],
+        "vectorX": 25,
+        "vectorY": 25,
+        "vectorEnvelope": {
+          "enabled": true,
+          "loop": true,
+          "points": [
+            { "x": 25, "y": 25, "time": 0 },
+            { "x": 75, "y": 75, "time": 3000 },
+            { "x": 25, "y": 25, "time": 6000 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Circular Sweep",
+      "category": "Evolving",
+      "description": "Traces a smooth circle through the vector space.",
+      "settings": {
+        "sources": [
+          { "waveform": "saw", "detune": -5 },
+          { "waveform": "pulse", "detune": 5 },
+          { "waveform": "sine", "detune": -10 },
+          { "waveform": "triangle", "detune": 10 }
+        ],
+        "vectorX": 50,
+        "vectorY": 0,
+        "vectorEnvelope": {
+          "enabled": true,
+          "loop": true,
+          "points": [
+            { "x": 50, "y": 0, "time": 0 },
+            { "x": 100, "y": 50, "time": 1250 },
+            { "x": 50, "y": 100, "time": 2500 },
+            { "x": 0, "y": 50, "time": 3750 },
+            { "x": 50, "y": 0, "time": 5000 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Drift and Return",
+      "category": "Evolving",
+      "description": "Slowly drifts away from center then snaps back.",
+      "settings": {
+        "sources": [
+          { "waveform": "triangle", "detune": 0 },
+          { "waveform": "saw", "detune": -12 },
+          { "waveform": "square", "detune": 12 },
+          { "waveform": "sine", "detune": 0 }
+        ],
+        "vectorX": 50,
+        "vectorY": 50,
+        "vectorEnvelope": {
+          "enabled": true,
+          "loop": true,
+          "points": [
+            { "x": 50, "y": 50, "time": 0 },
+            { "x": 20, "y": 80, "time": 3000 },
+            { "x": 90, "y": 10, "time": 6000 },
+            { "x": 50, "y": 50, "time": 6500 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Figure Eight",
+      "category": "Evolving",
+      "description": "Traces a figure-eight pattern for complex timbral motion.",
+      "settings": {
+        "sources": [
+          { "waveform": "saw", "detune": 0 },
+          { "waveform": "sine", "detune": 0 },
+          { "waveform": "pulse", "detune": 0 },
+          { "waveform": "triangle", "detune": 0 }
+        ],
+        "vectorX": 50,
+        "vectorY": 0,
+        "vectorEnvelope": {
+          "enabled": true,
+          "loop": true,
+          "points": [
+            { "x": 50, "y": 0, "time": 0 },
+            { "x": 100, "y": 50, "time": 1000 },
+            { "x": 50, "y": 100, "time": 2000 },
+            { "x": 0, "y": 50, "time": 3000 },
+            { "x": 50, "y": 0, "time": 4000 },
+            { "x": 0, "y": 50, "time": 5000 },
+            { "x": 50, "y": 100, "time": 6000 },
+            { "x": 100, "y": 50, "time": 7000 },
+            { "x": 50, "y": 0, "time": 8000 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Full Saw",
+      "category": "Performance",
+      "description": "Pure saw wave at corner A for aggressive lead sound.",
+      "settings": {
+        "sources": [
+          { "waveform": "saw", "detune": 0 },
+          { "waveform": "square", "detune": 0 },
+          { "waveform": "triangle", "detune": 0 },
+          { "waveform": "sine", "detune": 0 }
+        ],
+        "vectorX": 0,
+        "vectorY": 0,
+        "vectorEnvelope": { "enabled": false, "loop": false, "points": [] }
+      }
+    },
+    {
+      "name": "Full Square",
+      "category": "Performance",
+      "description": "Pure square wave at corner B for hollow tone.",
+      "settings": {
+        "sources": [
+          { "waveform": "saw", "detune": 0 },
+          { "waveform": "square", "detune": 0 },
+          { "waveform": "triangle", "detune": 0 },
+          { "waveform": "sine", "detune": 0 }
+        ],
+        "vectorX": 100,
+        "vectorY": 0,
+        "vectorEnvelope": { "enabled": false, "loop": false, "points": [] }
+      }
+    },
+    {
+      "name": "Full Triangle",
+      "category": "Performance",
+      "description": "Pure triangle wave at corner C for soft flute-like tone.",
+      "settings": {
+        "sources": [
+          { "waveform": "saw", "detune": 0 },
+          { "waveform": "square", "detune": 0 },
+          { "waveform": "triangle", "detune": 0 },
+          { "waveform": "sine", "detune": 0 }
+        ],
+        "vectorX": 0,
+        "vectorY": 100,
+        "vectorEnvelope": { "enabled": false, "loop": false, "points": [] }
+      }
+    },
+    {
+      "name": "Full Sine",
+      "category": "Performance",
+      "description": "Pure sine wave at corner D for fundamental tone.",
+      "settings": {
+        "sources": [
+          { "waveform": "saw", "detune": 0 },
+          { "waveform": "square", "detune": 0 },
+          { "waveform": "triangle", "detune": 0 },
+          { "waveform": "sine", "detune": 0 }
+        ],
+        "vectorX": 100,
+        "vectorY": 100,
+        "vectorEnvelope": { "enabled": false, "loop": false, "points": [] }
+      }
+    },
+    {
+      "name": "X-Axis Sweep",
+      "category": "Performance",
+      "description": "Joystick-ready horizontal sweep between saw and square.",
+      "settings": {
+        "sources": [
+          { "waveform": "saw", "detune": -5 },
+          { "waveform": "square", "detune": 5 },
+          { "waveform": "saw", "detune": -10 },
+          { "waveform": "square", "detune": 10 }
+        ],
+        "vectorX": 50,
+        "vectorY": 50,
+        "vectorEnvelope": { "enabled": false, "loop": false, "points": [] }
+      }
+    },
+    {
+      "name": "Warm Blanket",
+      "category": "Pads",
+      "description": "Thick detuned pad with slow evolution.",
+      "settings": {
+        "sources": [
+          { "waveform": "saw", "detune": -12 },
+          { "waveform": "saw", "detune": 12 },
+          { "waveform": "triangle", "detune": -7 },
+          { "waveform": "triangle", "detune": 7 }
+        ],
+        "vectorX": 50,
+        "vectorY": 25,
+        "vectorEnvelope": {
+          "enabled": true,
+          "loop": true,
+          "points": [
+            { "x": 30, "y": 20, "time": 0 },
+            { "x": 70, "y": 30, "time": 4000 },
+            { "x": 30, "y": 20, "time": 8000 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Glass Cathedral",
+      "category": "Pads",
+      "description": "Shimmering pad with sine and triangle interplay.",
+      "settings": {
+        "sources": [
+          { "waveform": "sine", "detune": -3 },
+          { "waveform": "sine", "detune": 3 },
+          { "waveform": "triangle", "detune": -8 },
+          { "waveform": "triangle", "detune": 8 }
+        ],
+        "vectorX": 50,
+        "vectorY": 50,
+        "vectorEnvelope": {
+          "enabled": true,
+          "loop": true,
+          "points": [
+            { "x": 40, "y": 40, "time": 0 },
+            { "x": 60, "y": 60, "time": 5000 },
+            { "x": 40, "y": 40, "time": 10000 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Synth Strings",
+      "category": "Pads",
+      "description": "Lush string-like pad from detuned saws.",
+      "settings": {
+        "sources": [
+          { "waveform": "saw", "detune": -15 },
+          { "waveform": "saw", "detune": 15 },
+          { "waveform": "saw", "detune": -8 },
+          { "waveform": "saw", "detune": 8 }
+        ],
+        "vectorX": 50,
+        "vectorY": 50,
+        "vectorEnvelope": { "enabled": false, "loop": false, "points": [] }
+      }
+    },
+    {
+      "name": "Digital Choir",
+      "category": "Pads",
+      "description": "Voice-like pad from mixed waveforms with slow morph.",
+      "settings": {
+        "sources": [
+          { "waveform": "sine", "detune": 0 },
+          { "waveform": "pulse", "detune": 5 },
+          { "waveform": "triangle", "detune": -5 },
+          { "waveform": "square", "detune": 0 }
+        ],
+        "vectorX": 35,
+        "vectorY": 40,
+        "vectorEnvelope": {
+          "enabled": true,
+          "loop": true,
+          "points": [
+            { "x": 35, "y": 40, "time": 0 },
+            { "x": 65, "y": 60, "time": 6000 },
+            { "x": 35, "y": 40, "time": 12000 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Nebula",
+      "category": "Pads",
+      "description": "Ethereal pad with noise source adding texture.",
+      "settings": {
+        "sources": [
+          { "waveform": "sine", "detune": -5 },
+          { "waveform": "triangle", "detune": 5 },
+          { "waveform": "noise", "detune": 0 },
+          { "waveform": "sine", "detune": 12 }
+        ],
+        "vectorX": 30,
+        "vectorY": 30,
+        "vectorEnvelope": {
+          "enabled": true,
+          "loop": true,
+          "points": [
+            { "x": 20, "y": 20, "time": 0 },
+            { "x": 40, "y": 40, "time": 7000 },
+            { "x": 20, "y": 20, "time": 14000 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Vector Bass",
+      "category": "Bass",
+      "description": "Thick bass from saw and square blend.",
+      "settings": {
+        "sources": [
+          { "waveform": "saw", "detune": 0 },
+          { "waveform": "square", "detune": 0 },
+          { "waveform": "sine", "detune": 0 },
+          { "waveform": "triangle", "detune": 0 }
+        ],
+        "vectorX": 30,
+        "vectorY": 10,
+        "vectorEnvelope": { "enabled": false, "loop": false, "points": [] }
+      }
+    },
+    {
+      "name": "Sub Morph",
+      "category": "Bass",
+      "description": "Deep sub bass that morphs from sine to triangle.",
+      "settings": {
+        "sources": [
+          { "waveform": "sine", "detune": 0 },
+          { "waveform": "sine", "detune": 0 },
+          { "waveform": "triangle", "detune": 0 },
+          { "waveform": "triangle", "detune": 0 }
+        ],
+        "vectorX": 50,
+        "vectorY": 0,
+        "vectorEnvelope": {
+          "enabled": true,
+          "loop": false,
+          "points": [
+            { "x": 50, "y": 0, "time": 0 },
+            { "x": 50, "y": 80, "time": 500 },
+            { "x": 50, "y": 40, "time": 1500 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Growl Bass",
+      "category": "Bass",
+      "description": "Aggressive bass with pulse and saw creating growl.",
+      "settings": {
+        "sources": [
+          { "waveform": "saw", "detune": -5 },
+          { "waveform": "pulse", "detune": 5 },
+          { "waveform": "saw", "detune": -10 },
+          { "waveform": "square", "detune": 10 }
+        ],
+        "vectorX": 40,
+        "vectorY": 20,
+        "vectorEnvelope": {
+          "enabled": true,
+          "loop": false,
+          "points": [
+            { "x": 0, "y": 0, "time": 0 },
+            { "x": 80, "y": 40, "time": 200 },
+            { "x": 40, "y": 20, "time": 800 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Rubber Bass",
+      "category": "Bass",
+      "description": "Bouncy bass with quick vector envelope snap.",
+      "settings": {
+        "sources": [
+          { "waveform": "sine", "detune": 0 },
+          { "waveform": "saw", "detune": 0 },
+          { "waveform": "triangle", "detune": 0 },
+          { "waveform": "square", "detune": 0 }
+        ],
+        "vectorX": 0,
+        "vectorY": 100,
+        "vectorEnvelope": {
+          "enabled": true,
+          "loop": false,
+          "points": [
+            { "x": 100, "y": 0, "time": 0 },
+            { "x": 0, "y": 100, "time": 150 },
+            { "x": 30, "y": 70, "time": 600 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Acid Wobble",
+      "category": "Bass",
+      "description": "Wobbling bass with rapid vector movement.",
+      "settings": {
+        "sources": [
+          { "waveform": "saw", "detune": 0 },
+          { "waveform": "square", "detune": 0 },
+          { "waveform": "pulse", "detune": 0 },
+          { "waveform": "triangle", "detune": 0 }
+        ],
+        "vectorX": 50,
+        "vectorY": 50,
+        "vectorEnvelope": {
+          "enabled": true,
+          "loop": true,
+          "points": [
+            { "x": 0, "y": 0, "time": 0 },
+            { "x": 100, "y": 100, "time": 250 },
+            { "x": 0, "y": 0, "time": 500 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Noise Texture",
+      "category": "Creative",
+      "description": "Noise blended with tonal sources for textural sound.",
+      "settings": {
+        "sources": [
+          { "waveform": "noise", "detune": 0 },
+          { "waveform": "sine", "detune": 0 },
+          { "waveform": "noise", "detune": 0 },
+          { "waveform": "triangle", "detune": 0 }
+        ],
+        "vectorX": 50,
+        "vectorY": 50,
+        "vectorEnvelope": {
+          "enabled": true,
+          "loop": true,
+          "points": [
+            { "x": 0, "y": 50, "time": 0 },
+            { "x": 100, "y": 50, "time": 3000 },
+            { "x": 0, "y": 50, "time": 6000 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Phase Blur",
+      "category": "Creative",
+      "description": "Same waveform at different detunes creates phasing.",
+      "settings": {
+        "sources": [
+          { "waveform": "saw", "detune": -25 },
+          { "waveform": "saw", "detune": 25 },
+          { "waveform": "saw", "detune": -50 },
+          { "waveform": "saw", "detune": 50 }
+        ],
+        "vectorX": 50,
+        "vectorY": 50,
+        "vectorEnvelope": {
+          "enabled": true,
+          "loop": true,
+          "points": [
+            { "x": 0, "y": 0, "time": 0 },
+            { "x": 100, "y": 100, "time": 2000 },
+            { "x": 0, "y": 0, "time": 4000 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Pulse Width Illusion",
+      "category": "Creative",
+      "description": "Mixing pulse and square at different positions simulates PWM.",
+      "settings": {
+        "sources": [
+          { "waveform": "pulse", "detune": 0 },
+          { "waveform": "square", "detune": 0 },
+          { "waveform": "pulse", "detune": -7 },
+          { "waveform": "square", "detune": 7 }
+        ],
+        "vectorX": 50,
+        "vectorY": 50,
+        "vectorEnvelope": {
+          "enabled": true,
+          "loop": true,
+          "points": [
+            { "x": 0, "y": 0, "time": 0 },
+            { "x": 100, "y": 0, "time": 1500 },
+            { "x": 100, "y": 100, "time": 3000 },
+            { "x": 0, "y": 100, "time": 4500 },
+            { "x": 0, "y": 0, "time": 6000 }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Atonal Cluster",
+      "category": "Creative",
+      "description": "Heavily detuned sources create dissonant cluster textures.",
+      "settings": {
+        "sources": [
+          { "waveform": "saw", "detune": -100 },
+          { "waveform": "square", "detune": 67 },
+          { "waveform": "triangle", "detune": -33 },
+          { "waveform": "pulse", "detune": 88 }
+        ],
+        "vectorX": 50,
+        "vectorY": 50,
+        "vectorEnvelope": {
+          "enabled": true,
+          "loop": true,
+          "points": [
+            { "x": 10, "y": 10, "time": 0 },
+            { "x": 90, "y": 90, "time": 5000 },
+            { "x": 10, "y": 10, "time": 10000 }
+          ]
+        }
+      }
+    }
+  ]
+}

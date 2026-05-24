@@ -1,0 +1,1312 @@
+{
+  "presets": [
+    {
+      "name": "Nylon Guitar",
+      "category": "Plucked",
+      "description": "Warm nylon classical guitar.",
+      "settings": {
+        "model": "pluck",
+        "damping": 45,
+        "brightness": 55,
+        "excitation": "noise",
+        "bodySize": 60,
+        "decayTime": 70
+      }
+    },
+    {
+      "name": "Steel Guitar",
+      "category": "Plucked",
+      "description": "Bright steel-string acoustic.",
+      "settings": {
+        "model": "pluck",
+        "damping": 30,
+        "brightness": 80,
+        "excitation": "noise",
+        "bodySize": 55,
+        "decayTime": 65
+      }
+    },
+    {
+      "name": "Concert Harp",
+      "category": "Plucked",
+      "description": "Ethereal plucked harp strings.",
+      "settings": {
+        "model": "pluck",
+        "damping": 25,
+        "brightness": 70,
+        "excitation": "noise",
+        "bodySize": 70,
+        "decayTime": 85
+      }
+    },
+    {
+      "name": "Harpsichord",
+      "category": "Plucked",
+      "description": "Bright baroque harpsichord pluck.",
+      "settings": {
+        "model": "pluck",
+        "damping": 60,
+        "brightness": 90,
+        "excitation": "pick",
+        "bodySize": 40,
+        "decayTime": 50
+      }
+    },
+    {
+      "name": "Banjo",
+      "category": "Plucked",
+      "description": "Twangy banjo with quick decay.",
+      "settings": {
+        "model": "pluck",
+        "damping": 55,
+        "brightness": 85,
+        "excitation": "pick",
+        "bodySize": 35,
+        "decayTime": 40
+      }
+    },
+    {
+      "name": "Koto",
+      "category": "Plucked",
+      "description": "Japanese koto with bright attack.",
+      "settings": {
+        "model": "pluck",
+        "damping": 35,
+        "brightness": 75,
+        "excitation": "pick",
+        "bodySize": 50,
+        "decayTime": 60
+      }
+    },
+    {
+      "name": "Sitar",
+      "category": "Plucked",
+      "description": "Buzzy sitar with sympathetic resonance.",
+      "settings": {
+        "model": "pluck",
+        "damping": 20,
+        "brightness": 90,
+        "excitation": "noise",
+        "bodySize": 65,
+        "decayTime": 80
+      }
+    },
+    {
+      "name": "Pizzicato",
+      "category": "Plucked",
+      "description": "Short orchestral pizzicato.",
+      "settings": {
+        "model": "pluck",
+        "damping": 70,
+        "brightness": 50,
+        "excitation": "impulse",
+        "bodySize": 55,
+        "decayTime": 30
+      }
+    },
+    {
+      "name": "Music Box",
+      "category": "Plucked",
+      "description": "Delicate music box tines.",
+      "settings": {
+        "model": "pluck",
+        "damping": 15,
+        "brightness": 95,
+        "excitation": "impulse",
+        "bodySize": 20,
+        "decayTime": 75
+      }
+    },
+    {
+      "name": "Kalimba",
+      "category": "Plucked",
+      "description": "African thumb piano.",
+      "settings": {
+        "model": "pluck",
+        "damping": 30,
+        "brightness": 65,
+        "excitation": "impulse",
+        "bodySize": 45,
+        "decayTime": 60
+      }
+    },
+    {
+      "name": "Dulcimer",
+      "category": "Plucked",
+      "description": "Hammered dulcimer shimmer.",
+      "settings": {
+        "model": "pluck",
+        "damping": 25,
+        "brightness": 80,
+        "excitation": "noise",
+        "bodySize": 55,
+        "decayTime": 75
+      }
+    },
+    {
+      "name": "Violin",
+      "category": "Bowed",
+      "description": "Expressive solo violin.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 55,
+        "bowPosition": 40,
+        "brightness": 65
+      }
+    },
+    {
+      "name": "Viola",
+      "category": "Bowed",
+      "description": "Rich, dark viola tone.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 50,
+        "bowPosition": 45,
+        "brightness": 50
+      }
+    },
+    {
+      "name": "Cello",
+      "category": "Bowed",
+      "description": "Deep, warm cello.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 60,
+        "bowPosition": 50,
+        "brightness": 45
+      }
+    },
+    {
+      "name": "Contrabass",
+      "category": "Bowed",
+      "description": "Rumbling double bass.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 65,
+        "bowPosition": 55,
+        "brightness": 35
+      }
+    },
+    {
+      "name": "Erhu",
+      "category": "Bowed",
+      "description": "Chinese two-string fiddle.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 75,
+        "bowPosition": 28,
+        "brightness": 78
+      }
+    },
+    {
+      "name": "Sarangi",
+      "category": "Bowed",
+      "description": "Indian bowed string with nasal quality.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 82,
+        "bowPosition": 22,
+        "brightness": 82
+      }
+    },
+    {
+      "name": "Hurdy Gurdy",
+      "category": "Bowed",
+      "description": "Droning medieval wheel instrument.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 80,
+        "bowPosition": 50,
+        "brightness": 55
+      }
+    },
+    {
+      "name": "Bowed Glass",
+      "category": "Bowed",
+      "description": "Eerie bowed glass harmonica.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 22,
+        "bowPosition": 25,
+        "brightness": 92
+      }
+    },
+    {
+      "name": "Concert Flute",
+      "category": "Blown",
+      "description": "Clear orchestral flute.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 50,
+        "embouchure": 32,
+        "brightness": 70
+      }
+    },
+    {
+      "name": "Clarinet",
+      "category": "Blown",
+      "description": "Warm wooden clarinet.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 60,
+        "embouchure": 62,
+        "brightness": 48
+      }
+    },
+    {
+      "name": "Pan Pipe",
+      "category": "Blown",
+      "description": "Airy Andean pan flute.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 40,
+        "embouchure": 22,
+        "brightness": 60
+      }
+    },
+    {
+      "name": "Shakuhachi",
+      "category": "Blown",
+      "description": "Japanese bamboo flute with breathy tone.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 45,
+        "embouchure": 28,
+        "brightness": 52
+      }
+    },
+    {
+      "name": "Didgeridoo",
+      "category": "Blown",
+      "description": "Deep Australian drone instrument.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 78,
+        "embouchure": 78,
+        "brightness": 28
+      }
+    },
+    {
+      "name": "Recorder",
+      "category": "Blown",
+      "description": "Sweet baroque recorder.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 35,
+        "embouchure": 20,
+        "brightness": 72
+      }
+    },
+    {
+      "name": "Tin Whistle",
+      "category": "Blown",
+      "description": "Bright Irish whistle.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 45,
+        "embouchure": 15,
+        "brightness": 90
+      }
+    },
+    {
+      "name": "Bottle Blow",
+      "category": "Blown",
+      "description": "Blowing across a glass bottle.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 55,
+        "embouchure": 60,
+        "brightness": 40
+      }
+    },
+    {
+      "name": "Marimba",
+      "category": "Struck",
+      "description": "Warm wooden marimba bars.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 50,
+        "hardness": 40,
+        "material": "wood",
+        "decayTime": 55
+      }
+    },
+    {
+      "name": "Vibraphone",
+      "category": "Struck",
+      "description": "Shimmering jazz vibraphone.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 45,
+        "hardness": 50,
+        "material": "metal",
+        "decayTime": 75
+      }
+    },
+    {
+      "name": "Tubular Bells",
+      "category": "Struck",
+      "description": "Orchestral chime tubes.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 30,
+        "hardness": 60,
+        "material": "metal",
+        "decayTime": 85
+      }
+    },
+    {
+      "name": "Gong",
+      "category": "Struck",
+      "description": "Large suspended gong with long decay.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 50,
+        "hardness": 55,
+        "material": "metal",
+        "decayTime": 95
+      }
+    },
+    {
+      "name": "Steel Drum",
+      "category": "Struck",
+      "description": "Caribbean steel pan.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 40,
+        "hardness": 45,
+        "material": "metal",
+        "decayTime": 60
+      }
+    },
+    {
+      "name": "Tabla",
+      "category": "Struck",
+      "description": "Indian hand drum with tonal quality.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 35,
+        "hardness": 50,
+        "material": "membrane",
+        "decayTime": 40
+      }
+    },
+    {
+      "name": "Wood Block",
+      "category": "Struck",
+      "description": "Dry percussive wood block.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 50,
+        "hardness": 70,
+        "material": "wood",
+        "decayTime": 20
+      }
+    },
+    {
+      "name": "Glass Chime",
+      "category": "Struck",
+      "description": "Delicate glass wind chime.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 45,
+        "hardness": 60,
+        "material": "glass",
+        "decayTime": 70
+      }
+    },
+    {
+      "name": "Church Bell",
+      "category": "Struck",
+      "description": "Large church bell with complex overtones.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 25,
+        "hardness": 65,
+        "material": "metal",
+        "decayTime": 90
+      }
+    },
+    {
+      "name": "Timpani",
+      "category": "Struck",
+      "description": "Orchestral kettle drum.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 40,
+        "hardness": 55,
+        "material": "membrane",
+        "decayTime": 50
+      }
+    },
+    {
+      "name": "Bowed Metal",
+      "category": "Experimental",
+      "description": "Eerie bowed cymbal effect.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 85,
+        "bowPosition": 15,
+        "brightness": 95
+      }
+    },
+    {
+      "name": "Struck String",
+      "category": "Experimental",
+      "description": "Hammered piano string, no damper.",
+      "settings": {
+        "model": "pluck",
+        "damping": 10,
+        "brightness": 85,
+        "excitation": "impulse",
+        "bodySize": 65,
+        "decayTime": 90
+      }
+    },
+    {
+      "name": "Wind Chime",
+      "category": "Experimental",
+      "description": "Metallic wind chime cluster.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 60,
+        "hardness": 40,
+        "material": "metal",
+        "decayTime": 80
+      }
+    },
+    {
+      "name": "Prepared Piano",
+      "category": "Experimental",
+      "description": "Piano with objects between strings.",
+      "settings": {
+        "model": "pluck",
+        "damping": 65,
+        "brightness": 40,
+        "excitation": "impulse",
+        "bodySize": 30,
+        "decayTime": 45
+      }
+    },
+    {
+      "name": "Metallic Drone",
+      "category": "Experimental",
+      "description": "Sustained metallic drone texture.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 90,
+        "bowPosition": 10,
+        "brightness": 70
+      }
+    },
+    {
+      "name": "Resonant Body",
+      "category": "Experimental",
+      "description": "Deep resonant cavity sound.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 80,
+        "embouchure": 75,
+        "brightness": 25
+      }
+    },
+    {
+      "name": "Oud",
+      "category": "Plucked",
+      "description": "Middle Eastern fretless lute.",
+      "settings": {
+        "model": "pluck",
+        "damping": 35,
+        "brightness": 70,
+        "excitation": "pick",
+        "bodySize": 55,
+        "decayTime": 65
+      }
+    },
+    {
+      "name": "Ukulele",
+      "category": "Plucked",
+      "description": "Cheerful Hawaiian ukulele.",
+      "settings": {
+        "model": "pluck",
+        "damping": 50,
+        "brightness": 75,
+        "excitation": "noise",
+        "bodySize": 30,
+        "decayTime": 45
+      }
+    },
+    {
+      "name": "Mandolin",
+      "category": "Plucked",
+      "description": "Bright tremolo mandolin.",
+      "settings": {
+        "model": "pluck",
+        "damping": 40,
+        "brightness": 85,
+        "excitation": "pick",
+        "bodySize": 35,
+        "decayTime": 50
+      }
+    },
+    {
+      "name": "Lute",
+      "category": "Plucked",
+      "description": "Renaissance lute with warm body.",
+      "settings": {
+        "model": "pluck",
+        "damping": 40,
+        "brightness": 60,
+        "excitation": "noise",
+        "bodySize": 65,
+        "decayTime": 70
+      }
+    },
+    {
+      "name": "Electric Guitar Clean",
+      "category": "Plucked",
+      "description": "Clean electric guitar tone.",
+      "settings": {
+        "model": "pluck",
+        "damping": 30,
+        "brightness": 70,
+        "excitation": "pick",
+        "bodySize": 25,
+        "decayTime": 60
+      }
+    },
+    {
+      "name": "Bass Guitar",
+      "category": "Plucked",
+      "description": "Deep fingerstyle bass guitar.",
+      "settings": {
+        "model": "pluck",
+        "damping": 55,
+        "brightness": 40,
+        "excitation": "noise",
+        "bodySize": 70,
+        "decayTime": 55
+      }
+    },
+    {
+      "name": "Zither",
+      "category": "Plucked",
+      "description": "Alpine zither with long sustain.",
+      "settings": {
+        "model": "pluck",
+        "damping": 20,
+        "brightness": 65,
+        "excitation": "noise",
+        "bodySize": 50,
+        "decayTime": 80
+      }
+    },
+    {
+      "name": "Guzheng",
+      "category": "Plucked",
+      "description": "Chinese zither with silk string quality.",
+      "settings": {
+        "model": "pluck",
+        "damping": 25,
+        "brightness": 72,
+        "excitation": "noise",
+        "bodySize": 60,
+        "decayTime": 78
+      }
+    },
+    {
+      "name": "String Ensemble",
+      "category": "Bowed",
+      "description": "Lush orchestral string section.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 50,
+        "bowPosition": 45,
+        "brightness": 55
+      }
+    },
+    {
+      "name": "Fiddle",
+      "category": "Bowed",
+      "description": "Lively folk fiddle.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 68,
+        "bowPosition": 30,
+        "brightness": 72
+      }
+    },
+    {
+      "name": "Morin Khuur",
+      "category": "Bowed",
+      "description": "Mongolian horsehead fiddle.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 70,
+        "bowPosition": 40,
+        "brightness": 60
+      }
+    },
+    {
+      "name": "Nyckelharpa",
+      "category": "Bowed",
+      "description": "Swedish keyed fiddle with sympathetic strings.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 55,
+        "bowPosition": 38,
+        "brightness": 68
+      }
+    },
+    {
+      "name": "Rebab",
+      "category": "Bowed",
+      "description": "Arabic spike fiddle.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 74,
+        "bowPosition": 26,
+        "brightness": 74
+      }
+    },
+    {
+      "name": "Cello Sul Tasto",
+      "category": "Bowed",
+      "description": "Cello bowed over the fingerboard, soft and airy.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 28,
+        "bowPosition": 65,
+        "brightness": 35
+      }
+    },
+    {
+      "name": "Oboe",
+      "category": "Blown",
+      "description": "Reedy orchestral oboe.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 65,
+        "embouchure": 68,
+        "brightness": 68
+      }
+    },
+    {
+      "name": "Bassoon",
+      "category": "Blown",
+      "description": "Deep woody bassoon tone.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 70,
+        "embouchure": 72,
+        "brightness": 32
+      }
+    },
+    {
+      "name": "Piccolo",
+      "category": "Blown",
+      "description": "Piercing high piccolo.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 55,
+        "embouchure": 18,
+        "brightness": 95
+      }
+    },
+    {
+      "name": "Bansuri",
+      "category": "Blown",
+      "description": "Indian bamboo flute, breathy and meditative.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 42,
+        "embouchure": 25,
+        "brightness": 48
+      }
+    },
+    {
+      "name": "Quena",
+      "category": "Blown",
+      "description": "Andean end-blown flute.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 48,
+        "embouchure": 30,
+        "brightness": 62
+      }
+    },
+    {
+      "name": "Ocarina",
+      "category": "Blown",
+      "description": "Sweet ceramic vessel flute.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 38,
+        "embouchure": 18,
+        "brightness": 65
+      }
+    },
+    {
+      "name": "Harmonica",
+      "category": "Blown",
+      "description": "Blues harmonica with reedy tone.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 60,
+        "embouchure": 58,
+        "brightness": 58
+      }
+    },
+    {
+      "name": "Accordion",
+      "category": "Blown",
+      "description": "French musette accordion.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 55,
+        "embouchure": 56,
+        "brightness": 62
+      }
+    },
+    {
+      "name": "Bagpipe Drone",
+      "category": "Blown",
+      "description": "Scottish bagpipe drone.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 88,
+        "embouchure": 80,
+        "brightness": 45
+      }
+    },
+    {
+      "name": "Blown Jug",
+      "category": "Blown",
+      "description": "Deep jug band blown jug.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 65,
+        "embouchure": 68,
+        "brightness": 28
+      }
+    },
+    {
+      "name": "Xylophone",
+      "category": "Struck",
+      "description": "Bright wooden xylophone bars.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 50,
+        "hardness": 65,
+        "material": "wood",
+        "decayTime": 35
+      }
+    },
+    {
+      "name": "Glockenspiel",
+      "category": "Struck",
+      "description": "Sparkling metal glockenspiel.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 45,
+        "hardness": 55,
+        "material": "metal",
+        "decayTime": 65
+      }
+    },
+    {
+      "name": "Crotales",
+      "category": "Struck",
+      "description": "Tiny antique cymbals with pure tone.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 50,
+        "hardness": 60,
+        "material": "metal",
+        "decayTime": 80
+      }
+    },
+    {
+      "name": "Singing Bowl",
+      "category": "Struck",
+      "description": "Tibetan singing bowl with sustained ring.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 35,
+        "hardness": 35,
+        "material": "metal",
+        "decayTime": 95
+      }
+    },
+    {
+      "name": "Cowbell",
+      "category": "Struck",
+      "description": "Classic percussion cowbell.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 55,
+        "hardness": 70,
+        "material": "metal",
+        "decayTime": 25
+      }
+    },
+    {
+      "name": "Agogo Bells",
+      "category": "Struck",
+      "description": "Brazilian double agogo bells.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 40,
+        "hardness": 55,
+        "material": "metal",
+        "decayTime": 30
+      }
+    },
+    {
+      "name": "Balafon",
+      "category": "Struck",
+      "description": "West African wooden xylophone.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 48,
+        "hardness": 45,
+        "material": "wood",
+        "decayTime": 45
+      }
+    },
+    {
+      "name": "Temple Block",
+      "category": "Struck",
+      "description": "Hollow wooden temple block.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 50,
+        "hardness": 50,
+        "material": "wood",
+        "decayTime": 25
+      }
+    },
+    {
+      "name": "Hang Drum",
+      "category": "Struck",
+      "description": "Melodic steel handpan.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 42,
+        "hardness": 30,
+        "material": "metal",
+        "decayTime": 72
+      }
+    },
+    {
+      "name": "Djembe",
+      "category": "Struck",
+      "description": "West African goblet drum.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 38,
+        "hardness": 55,
+        "material": "membrane",
+        "decayTime": 32
+      }
+    },
+    {
+      "name": "Frame Drum",
+      "category": "Struck",
+      "description": "Large frame drum with deep tone.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 45,
+        "hardness": 40,
+        "material": "membrane",
+        "decayTime": 45
+      }
+    },
+    {
+      "name": "Bowed Plate",
+      "category": "Experimental",
+      "description": "Bowing a thin metal plate.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 90,
+        "bowPosition": 20,
+        "brightness": 85
+      }
+    },
+    {
+      "name": "Struck Ice",
+      "category": "Experimental",
+      "description": "Hitting a block of ice.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 30,
+        "hardness": 80,
+        "material": "glass",
+        "decayTime": 55
+      }
+    },
+    {
+      "name": "Wire Zither",
+      "category": "Experimental",
+      "description": "Tensioned wire on a resonant frame.",
+      "settings": {
+        "model": "pluck",
+        "damping": 15,
+        "brightness": 92,
+        "excitation": "impulse",
+        "bodySize": 40,
+        "decayTime": 85
+      }
+    },
+    {
+      "name": "Feedback Resonator",
+      "category": "Experimental",
+      "description": "Self-oscillating resonant cavity.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 95,
+        "embouchure": 85,
+        "brightness": 50
+      }
+    },
+    {
+      "name": "Struck Springs",
+      "category": "Experimental",
+      "description": "Hitting coiled springs on a board.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 60,
+        "hardness": 50,
+        "material": "metal",
+        "decayTime": 88
+      }
+    },
+    {
+      "name": "Bowed Saw",
+      "category": "Experimental",
+      "description": "Musical saw with eerie vibrato.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 45,
+        "bowPosition": 20,
+        "brightness": 88
+      }
+    },
+    {
+      "name": "Crystal Shimmer",
+      "category": "Ambient/Texture",
+      "description": "Ethereal crystalline texture.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 50,
+        "hardness": 25,
+        "material": "glass",
+        "decayTime": 98
+      }
+    },
+    {
+      "name": "Wind Through Reeds",
+      "category": "Ambient/Texture",
+      "description": "Gentle wind passing through hollow reeds.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 25,
+        "embouchure": 20,
+        "brightness": 42
+      }
+    },
+    {
+      "name": "Frozen Strings",
+      "category": "Ambient/Texture",
+      "description": "Icy, fragile bowed texture.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 25,
+        "bowPosition": 15,
+        "brightness": 88
+      }
+    },
+    {
+      "name": "Rain on Metal",
+      "category": "Ambient/Texture",
+      "description": "Pitter-patter on a metal roof.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 55,
+        "hardness": 20,
+        "material": "metal",
+        "decayTime": 40
+      }
+    },
+    {
+      "name": "Deep Ocean Hum",
+      "category": "Ambient/Texture",
+      "description": "Low rumbling underwater texture.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 70,
+        "embouchure": 80,
+        "brightness": 15
+      }
+    },
+    {
+      "name": "Aeolian Harp",
+      "category": "Ambient/Texture",
+      "description": "Wind-played harp strings.",
+      "settings": {
+        "model": "pluck",
+        "damping": 10,
+        "brightness": 55,
+        "excitation": "noise",
+        "bodySize": 75,
+        "decayTime": 95
+      }
+    },
+    {
+      "name": "Glass Forest",
+      "category": "Ambient/Texture",
+      "description": "Multiple glass resonances layered.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 40,
+        "hardness": 15,
+        "material": "glass",
+        "decayTime": 92
+      }
+    },
+    {
+      "name": "Breath Pad",
+      "category": "Ambient/Texture",
+      "description": "Soft breath-like sustained texture.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 30,
+        "embouchure": 25,
+        "brightness": 35
+      }
+    },
+    {
+      "name": "Berimbau",
+      "category": "Ethnic",
+      "description": "Brazilian musical bow.",
+      "settings": {
+        "model": "pluck",
+        "damping": 50,
+        "brightness": 60,
+        "excitation": "pick",
+        "bodySize": 45,
+        "decayTime": 40
+      }
+    },
+    {
+      "name": "Kamancheh",
+      "category": "Ethnic",
+      "description": "Persian spiked fiddle.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 68,
+        "bowPosition": 33,
+        "brightness": 72
+      }
+    },
+    {
+      "name": "Dizi",
+      "category": "Ethnic",
+      "description": "Chinese transverse bamboo flute.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 50,
+        "embouchure": 28,
+        "brightness": 75
+      }
+    },
+    {
+      "name": "Gamelan Metallophone",
+      "category": "Ethnic",
+      "description": "Javanese bronze metallophone.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 45,
+        "hardness": 50,
+        "material": "metal",
+        "decayTime": 78
+      }
+    },
+    {
+      "name": "Mbira",
+      "category": "Ethnic",
+      "description": "Zimbabwean thumb piano with buzz.",
+      "settings": {
+        "model": "pluck",
+        "damping": 35,
+        "brightness": 68,
+        "excitation": "impulse",
+        "bodySize": 40,
+        "decayTime": 55
+      }
+    },
+    {
+      "name": "Duduk",
+      "category": "Ethnic",
+      "description": "Armenian double-reed with haunting tone.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 58,
+        "embouchure": 65,
+        "brightness": 35
+      }
+    },
+    {
+      "name": "Santur",
+      "category": "Ethnic",
+      "description": "Persian hammered dulcimer.",
+      "settings": {
+        "model": "pluck",
+        "damping": 30,
+        "brightness": 78,
+        "excitation": "impulse",
+        "bodySize": 50,
+        "decayTime": 65
+      }
+    },
+    {
+      "name": "Kora",
+      "category": "Ethnic",
+      "description": "West African bridge harp.",
+      "settings": {
+        "model": "pluck",
+        "damping": 28,
+        "brightness": 62,
+        "excitation": "noise",
+        "bodySize": 55,
+        "decayTime": 72
+      }
+    },
+    {
+      "name": "Bowed Bass Pluck",
+      "category": "Hybrid",
+      "description": "Heavy bowed attack with plucked character.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 80,
+        "bowPosition": 55,
+        "brightness": 40
+      }
+    },
+    {
+      "name": "Blown Metal",
+      "category": "Hybrid",
+      "description": "Breath-driven metallic resonance.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 72,
+        "embouchure": 65,
+        "brightness": 78
+      }
+    },
+    {
+      "name": "Struck Breath",
+      "category": "Hybrid",
+      "description": "Percussive attack with wind-like body.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 85,
+        "embouchure": 50,
+        "brightness": 55
+      }
+    },
+    {
+      "name": "Plucked Membrane",
+      "category": "Hybrid",
+      "description": "Drum skin plucked like a string.",
+      "settings": {
+        "model": "pluck",
+        "damping": 60,
+        "brightness": 35,
+        "excitation": "impulse",
+        "bodySize": 80,
+        "decayTime": 35
+      }
+    },
+    {
+      "name": "Glass Marimba",
+      "category": "Hybrid",
+      "description": "Marimba-like instrument with glass bars.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 50,
+        "hardness": 42,
+        "material": "glass",
+        "decayTime": 58
+      }
+    },
+    {
+      "name": "Tension Riser",
+      "category": "Cinematic",
+      "description": "Building metallic tension for scores.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 95,
+        "bowPosition": 10,
+        "brightness": 92
+      }
+    },
+    {
+      "name": "Horror Strings",
+      "category": "Cinematic",
+      "description": "Screeching dissonant bowed strings.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 98,
+        "bowPosition": 5,
+        "brightness": 98
+      }
+    },
+    {
+      "name": "Impact Metal",
+      "category": "Cinematic",
+      "description": "Massive cinematic metal hit.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 50,
+        "hardness": 90,
+        "material": "metal",
+        "decayTime": 92
+      }
+    },
+    {
+      "name": "Whale Song",
+      "category": "Cinematic",
+      "description": "Deep underwater creature-like sound.",
+      "settings": {
+        "model": "blow",
+        "breathPressure": 35,
+        "embouchure": 78,
+        "brightness": 22
+      }
+    },
+    {
+      "name": "Distant Thunder Drum",
+      "category": "Cinematic",
+      "description": "Massive ceremonial drum in the distance.",
+      "settings": {
+        "model": "strike",
+        "strikePosition": 50,
+        "hardness": 75,
+        "material": "membrane",
+        "decayTime": 88
+      }
+    },
+    {
+      "name": "Spectral Choir",
+      "category": "Cinematic",
+      "description": "Ghost-like bowed vocal quality.",
+      "settings": {
+        "model": "bow",
+        "bowPressure": 30,
+        "bowPosition": 22,
+        "brightness": 75
+      }
+    }
+  ]
+}

@@ -1,0 +1,315 @@
+/* Pitch Ribbon / MPE continuous pitch surface styles */
+
+.mpe-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ---------- Header Bar ---------- */
+
+.mpe-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--ssli-gap-sm);
+  padding: 2px 6px;
+  height: var(--ssli-topbar-h);
+  flex: 0 0 var(--ssli-topbar-h);
+  box-sizing: border-box;
+  background: rgba(10, 10, 24, 0.95);
+  border-bottom: 1px solid rgba(76, 201, 240, 0.15);
+}
+
+.mpe-scroll-btn {
+  width: var(--ssli-topbar-h);
+  height: 100%;
+  min-height: 0;
+  font-size: var(--ssli-fs-body);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.mpe-note-display {
+  font-family: monospace;
+  font-size: var(--ssli-fs-md);
+  font-weight: var(--ssli-fw-bold);
+  color: rgba(220, 235, 245, 0.95);
+  min-width: 56px;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.mpe-range-label {
+  flex: 1 1 0;
+  font-family: monospace;
+  font-size: var(--ssli-fs-xs);
+  color: rgba(220, 235, 245, 0.5);
+  text-align: right;
+  padding-right: 4px;
+}
+
+/* ---------- Bend Indicator ---------- */
+
+.mpe-bend-indicator {
+  width: 4px;
+  height: 18px;
+  border-radius: var(--ssli-radius-sm);
+  background: rgba(76, 201, 240, 0.7);
+  box-shadow: 0 0 8px rgba(76, 201, 240, 0.4);
+  opacity: 0;
+  transition: transform 0.06s ease-out, opacity 0.12s ease-out, width 0.06s ease-out;
+  flex-shrink: 0;
+}
+
+/* ---------- Surface ---------- */
+
+.mpe-surface {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  background: rgba(8, 8, 20, 0.95);
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.mpe-slide-label {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%) rotate(-90deg);
+  font-size: var(--ssli-fs-xs);
+  color: rgba(220, 235, 245, 0.3);
+  pointer-events: none;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+/* ---------- Trail Canvas ---------- */
+
+.mpe-trail-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ---------- Keywaves ---------- */
+
+.mpe-keywave {
+  position: absolute;
+  top: 8%;
+  height: 84%;
+  box-sizing: border-box;
+  border-radius: var(--ssli-radius-md);
+  overflow: hidden;
+  transition: box-shadow 0.12s ease, transform 0.08s ease-out;
+  will-change: transform;
+  touch-action: none;
+
+  /* Default: out-of-scale, muted appearance */
+  background: linear-gradient(
+    to bottom,
+    rgba(40, 40, 60, 0.5) 0%,
+    rgba(25, 25, 40, 0.7) 40%,
+    rgba(18, 18, 30, 0.8) 100%
+  );
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.04),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.3),
+    0 1px 3px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(60, 60, 80, 0.3);
+}
+
+/* In-scale keywaves: raised, brighter */
+.mpe-keywave.mpe-keywave-inscale {
+  background: linear-gradient(
+    to bottom,
+    rgba(80, 90, 120, 0.6) 0%,
+    rgba(50, 55, 75, 0.7) 30%,
+    rgba(35, 38, 55, 0.8) 70%,
+    rgba(25, 28, 40, 0.9) 100%
+  );
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.08),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.5),
+    0 0 8px rgba(76, 201, 240, 0.05);
+  border: 1px solid rgba(100, 110, 140, 0.3);
+}
+
+/* Root note keywaves: extra glow */
+.mpe-keywave.mpe-keywave-root {
+  box-shadow:
+    inset 0 2px 5px rgba(255, 255, 255, 0.12),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.35),
+    0 2px 8px rgba(0, 0, 0, 0.5),
+    0 0 12px rgba(76, 201, 240, 0.12);
+  border: 1px solid rgba(76, 201, 240, 0.25);
+}
+
+/* Active (pressed) keywave */
+.mpe-keywave.mpe-keywave-active {
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.15),
+    inset 0 -1px 3px rgba(0, 0, 0, 0.2),
+    0 0 16px rgba(76, 201, 240, 0.3),
+    0 0 30px rgba(76, 201, 240, 0.1);
+  border-color: rgba(76, 201, 240, 0.5);
+  filter: brightness(1.3);
+}
+
+/* ---------- Per-note color tints via BG_CLASS ---------- */
+
+.mpe-keywave.bg-C   { background-image: linear-gradient(to bottom, rgba(255, 100, 100, 0.12) 0%, transparent 60%); }
+.mpe-keywave.bg-Cs  { background-image: linear-gradient(to bottom, rgba(255, 140, 80, 0.10) 0%, transparent 60%); }
+.mpe-keywave.bg-D   { background-image: linear-gradient(to bottom, rgba(255, 180, 60, 0.12) 0%, transparent 60%); }
+.mpe-keywave.bg-Ds  { background-image: linear-gradient(to bottom, rgba(255, 220, 40, 0.10) 0%, transparent 60%); }
+.mpe-keywave.bg-E   { background-image: linear-gradient(to bottom, rgba(180, 240, 60, 0.12) 0%, transparent 60%); }
+.mpe-keywave.bg-F   { background-image: linear-gradient(to bottom, rgba(80, 220, 120, 0.12) 0%, transparent 60%); }
+.mpe-keywave.bg-Fs  { background-image: linear-gradient(to bottom, rgba(60, 200, 200, 0.10) 0%, transparent 60%); }
+.mpe-keywave.bg-G   { background-image: linear-gradient(to bottom, rgba(76, 201, 240, 0.12) 0%, transparent 60%); }
+.mpe-keywave.bg-Gs  { background-image: linear-gradient(to bottom, rgba(100, 140, 255, 0.10) 0%, transparent 60%); }
+.mpe-keywave.bg-A   { background-image: linear-gradient(to bottom, rgba(160, 100, 255, 0.12) 0%, transparent 60%); }
+.mpe-keywave.bg-As  { background-image: linear-gradient(to bottom, rgba(200, 80, 220, 0.10) 0%, transparent 60%); }
+.mpe-keywave.bg-B   { background-image: linear-gradient(to bottom, rgba(240, 80, 160, 0.12) 0%, transparent 60%); }
+
+/* ---------- Keywave Label ---------- */
+
+.mpe-keywave-label {
+  position: absolute;
+  bottom: 6px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: var(--ssli-fs-xs);
+  font-weight: var(--ssli-fw-bold);
+  color: rgba(220, 235, 245, 0.7);
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+/* ---------- Octave Marker ---------- */
+
+.mpe-oct-marker {
+  position: absolute;
+  top: 4px;
+  left: 2px;
+  font-size: var(--ssli-fs-xs);
+  font-family: monospace;
+  color: rgba(76, 201, 240, 0.5);
+  pointer-events: none;
+}
+
+/* ---------- Ripple Animation ---------- */
+
+.mpe-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(76, 201, 240, 0.4) 0%,
+    rgba(76, 201, 240, 0.1) 50%,
+    transparent 70%
+  );
+  pointer-events: none;
+  transition:
+    width 0.5s ease-out,
+    height 0.5s ease-out,
+    margin-left 0.5s ease-out,
+    margin-top 0.5s ease-out,
+    opacity 0.5s ease-out;
+}
+
+/* ============================================================
+   Phone Landscape Overrides
+   ============================================================ */
+
+[data-layout="phone-land"] .mpe-wrapper {
+  /* Ensure full container use */
+}
+
+[data-layout="phone-land"] .mpe-header {
+  height: var(--ssli-topbar-h-phone);
+  flex: 0 0 var(--ssli-topbar-h-phone);
+  padding: 0 4px;
+  gap: var(--ssli-gap-xs);
+}
+
+[data-layout="phone-land"] .mpe-scroll-btn {
+  width: var(--ssli-touch-phone-min);
+  height: var(--ssli-touch-phone-min);
+  font-size: var(--ssli-fs-xs);
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0;
+}
+
+[data-layout="phone-land"] .mpe-note-display {
+  font-size: var(--ssli-fs-sm);
+  min-width: 40px;
+}
+
+[data-layout="phone-land"] .mpe-range-label {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone-land"] .mpe-keywave-label {
+  font-size: var(--ssli-fs-xs);
+  bottom: 3px;
+}
+
+[data-layout="phone-land"] .mpe-oct-marker {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone-land"] .mpe-slide-label {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone-land"] .mpe-bend-indicator {
+  height: 14px;
+}
+
+/* ============================================================
+   Phone Portrait Overrides
+   ============================================================ */
+
+[data-layout="phone"] .mpe-header {
+  height: var(--ssli-topbar-h-phone);
+  flex: 0 0 var(--ssli-topbar-h-phone);
+  padding: 1px 4px;
+  gap: var(--ssli-gap-xs);
+}
+
+[data-layout="phone"] .mpe-scroll-btn {
+  width: 32px;
+  height: 32px;
+  font-size: var(--ssli-fs-sm);
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0;
+}
+
+[data-layout="phone"] .mpe-note-display {
+  font-size: var(--ssli-fs-body);
+  min-width: 44px;
+}
+
+[data-layout="phone"] .mpe-keywave-label {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone"] .mpe-bend-indicator {
+  height: 16px;
+}

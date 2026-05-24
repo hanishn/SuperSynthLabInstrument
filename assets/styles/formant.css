@@ -1,0 +1,366 @@
+/**
+ * formant.css - Formant Oscillator Synthesis Controls Styles
+ * Vowel selection, morphing controls, breathiness, formant shift
+ * Accent color: warm coral (var(--sslu-synth-formant))
+ */
+
+/* ========================================
+   Formant Controls Container (Modal)
+   ======================================== */
+
+.formant-controls-modal {
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--sslu-radius-lg);
+    margin-bottom: 0.5rem;
+}
+
+.formant-title-modal {
+    font-size: var(--ssli-fs-body);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--sslu-synth-formant);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ========================================
+   Vowel Selection Row
+   ======================================== */
+
+.formant-vowel-row {
+    display: flex;
+    gap: 0.3rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.formant-vowel-row .vowel-label {
+    font-size: var(--ssli-fs-sm);
+    color: #888;
+    margin-right: 0.3rem;
+}
+
+.formant-vowel-btn {
+    padding: 3px 10px;
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-bold);
+    background: var(--sslu-bg-input);
+    color: #b0b0b0;
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    min-width: 28px;
+    text-align: center;
+}
+
+.formant-vowel-btn:hover {
+    background: #2a2a4e;
+    color: #e0e0e0;
+    border-color: var(--sslu-synth-formant);
+}
+
+.formant-vowel-btn:active {
+    background: #3a3a5e;
+}
+
+.formant-vowel-btn.active {
+    background: var(--sslu-synth-formant);
+    color: #fff;
+    border-color: #FF9966;
+    box-shadow: 0 0 6px rgba(255, 119, 68, 0.4);
+}
+
+/* ========================================
+   Morph Target Row
+   ======================================== */
+
+.formant-morph-target-row {
+    display: flex;
+    gap: 0.3rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.formant-morph-target-row .target-label {
+    font-size: var(--ssli-fs-sm);
+    color: #888;
+    margin-right: 0.3rem;
+}
+
+.formant-morph-target-btn {
+    padding: 2px 8px;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-input);
+    color: #b0b0b0;
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.formant-morph-target-btn:hover {
+    background: #2a2a4e;
+    color: #e0e0e0;
+}
+
+.formant-morph-target-btn.active {
+    background: rgba(255, 119, 68, 0.3);
+    color: #FF9966;
+    border-color: var(--sslu-synth-formant);
+}
+
+/* ========================================
+   Slider Controls (Morph, Breathiness, etc.)
+   ======================================== */
+
+.formant-slider-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.formant-slider-row label {
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+    min-width: 80px;
+    text-align: right;
+}
+
+.formant-slider-row input[type="range"] {
+    flex: 1;
+    max-width: 200px;
+    height: 4px;
+    cursor: pointer;
+    accent-color: var(--sslu-synth-formant);
+}
+
+.formant-slider-row .slider-value {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-synth-formant);
+    min-width: 36px;
+    text-align: left;
+}
+
+/* ========================================
+   Formant Shift Control
+   ======================================== */
+
+.formant-shift-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.formant-shift-row label {
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+    min-width: 80px;
+    text-align: right;
+}
+
+.formant-shift-row input[type="range"] {
+    flex: 1;
+    max-width: 200px;
+    height: 4px;
+    cursor: pointer;
+    accent-color: var(--sslu-synth-formant);
+}
+
+.formant-shift-row .shift-value {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-synth-formant);
+    min-width: 36px;
+    text-align: left;
+}
+
+/* ========================================
+   Vowel Sequence Controls
+   ======================================== */
+
+.formant-sequence-section {
+    padding: 0.4rem;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: var(--sslu-radius-md);
+    border: 1px solid var(--sslu-border-medium);
+    margin-bottom: 0.5rem;
+}
+
+.formant-sequence-header {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.3rem;
+}
+
+.formant-sequence-header label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+    cursor: pointer;
+}
+
+.formant-sequence-header .seq-title {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--sslu-synth-formant);
+}
+
+.formant-sequence-vowels {
+    display: flex;
+    gap: 0.2rem;
+    align-items: center;
+    margin-bottom: 0.3rem;
+    flex-wrap: wrap;
+}
+
+.formant-seq-vowel-btn {
+    padding: 2px 6px;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-input);
+    color: #b0b0b0;
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.formant-seq-vowel-btn.in-sequence {
+    background: rgba(255, 119, 68, 0.25);
+    color: #FF9966;
+    border-color: var(--sslu-synth-formant);
+}
+
+.formant-seq-vowel-btn:hover {
+    background: #2a2a4e;
+    color: #e0e0e0;
+}
+
+.formant-sequence-rate {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.formant-sequence-rate label {
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+}
+
+.formant-sequence-rate input[type="range"] {
+    flex: 1;
+    max-width: 150px;
+    height: 4px;
+    cursor: pointer;
+    accent-color: var(--sslu-synth-formant);
+}
+
+.formant-sequence-rate .rate-value {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-synth-formant);
+    min-width: 30px;
+}
+
+/* ========================================
+   Glottal Pulse Width Control
+   ======================================== */
+
+.formant-pulse-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.formant-pulse-row label {
+    font-size: var(--ssli-fs-sm);
+    color: #b0b0b0;
+    min-width: 80px;
+    text-align: right;
+}
+
+.formant-pulse-row input[type="range"] {
+    flex: 1;
+    max-width: 200px;
+    height: 4px;
+    cursor: pointer;
+    accent-color: var(--sslu-synth-formant);
+}
+
+.formant-pulse-row .pulse-value {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-synth-formant);
+    min-width: 36px;
+    text-align: left;
+}
+
+/* ========================================
+   Formant Visualizer (optional display)
+   ======================================== */
+
+.formant-viz-container {
+    height: 60px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--sslu-border-medium);
+    border-radius: var(--sslu-radius-md);
+    margin-bottom: 0.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.formant-viz-bar {
+    position: absolute;
+    bottom: 0;
+    width: 8px;
+    background: var(--sslu-synth-formant);
+    border-radius: 2px 2px 0 0;
+    opacity: var(--ssli-opacity-hover);
+    transition: height 0.2s ease, left 0.2s ease;
+}
+
+.formant-viz-label {
+    position: absolute;
+    bottom: -14px;
+    font-size: var(--ssli-fs-sm);
+    color: #888;
+    transform: translateX(-50%);
+}
+
+/* ========================================
+   Section Dividers
+   ======================================== */
+
+.formant-divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--sslu-synth-formant)40, transparent);
+    margin: 0.4rem 0;
+}
+
+/* ========================================
+   Accent Overrides for Formant Engine
+   ======================================== */
+
+.formant-controls-modal input[type="checkbox"] {
+    accent-color: var(--sslu-synth-formant);
+}
+
+.formant-controls-modal select {
+    padding: 2px 4px;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-input);
+    color: #e0e0e0;
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+}
+
+.formant-controls-modal select:focus {
+    border-color: var(--sslu-synth-formant);
+    outline: none;
+}

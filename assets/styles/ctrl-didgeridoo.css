@@ -1,0 +1,325 @@
+/* Didgeridoo surface styles */
+
+.ssli-didgeridoo-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  background: linear-gradient(135deg, #1a1208, #0a0804);
+}
+
+/* ---------- Main row: artic strips + drone zone ---------- */
+
+.ssli-didgeridoo-main-row {
+  display: flex;
+  flex-direction: row;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* ---------- Articulation strip (shared left/right) ---------- */
+
+.ssli-didgeridoo-artic-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ssli-gap-sm);
+  padding: 8px 4px;
+  box-sizing: border-box;
+  width: max(80px, 15%);
+  flex: 0 0 max(80px, 15%);
+  background: rgba(10, 8, 4, 0.6);
+}
+
+/* ---------- Strip header labels ---------- */
+
+.ssli-didgeridoo-strip-header {
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-text-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-align: center;
+  flex: 0 0 auto;
+  padding-bottom: 2px;
+}
+
+.ssli-didgeridoo-artic-left {
+  border-right: 1px solid rgba(232, 160, 64, 0.08);
+}
+
+.ssli-didgeridoo-overtone-right {
+  border-left: 1px solid rgba(76, 201, 240, 0.08);
+}
+
+/* ---------- Articulation buttons ---------- */
+
+.ssli-didgeridoo-artic-btn {
+  width: 60px;
+  height: 48px;
+  border-radius: var(--ssli-radius-lg);
+  border: 1px solid rgba(232, 160, 64, 0.2);
+  background: #2a1a0e;
+  color: var(--ssli-text-secondary);
+  font-size: var(--ssli-fs-body);
+  font-family: monospace;
+  font-weight: var(--ssli-fw-bold);
+  text-transform: lowercase;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s ease, box-shadow 0.1s ease, transform 0.08s ease;
+  touch-action: none;
+}
+
+.ssli-didgeridoo-artic-btn:hover {
+  background: #3a2a18;
+}
+
+.ssli-didgeridoo-artic-btn.active {
+  background: #805020;
+  border-color: rgba(232, 160, 64, 0.6);
+  box-shadow: 0 0 10px rgba(232, 160, 64, 0.35);
+  color: var(--ssli-text-primary);
+  transform: scale(0.92);
+}
+
+/* ---------- Overtone buttons ---------- */
+
+.ssli-didgeridoo-overtone-btn {
+  width: 60px;
+  height: 48px;
+  border-radius: var(--ssli-radius-lg);
+  border: 1px solid rgba(76, 201, 240, 0.2);
+  background: var(--ssli-bg-overlay);
+  color: var(--ssli-text-secondary);
+  font-size: var(--ssli-fs-body);
+  font-family: monospace;
+  font-weight: var(--ssli-fw-bold);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s ease, box-shadow 0.1s ease, transform 0.08s ease;
+  touch-action: none;
+}
+
+.ssli-didgeridoo-overtone-btn:hover {
+  background: #22224a;
+}
+
+.ssli-didgeridoo-overtone-btn.active {
+  background: rgba(76, 201, 240, 0.3);
+  border-color: rgba(76, 201, 240, 0.6);
+  box-shadow: 0 0 10px rgba(76, 201, 240, 0.3);
+  color: var(--ssli-text-primary);
+  transform: scale(0.92);
+}
+
+/* ---------- Drone zone ---------- */
+
+.ssli-didgeridoo-drone-zone {
+  flex: 1 1 0;
+  min-width: 0;
+  position: relative;
+  background: radial-gradient(ellipse at center, #1a1208 0%, #0a0804 100%);
+  border: 1px solid rgba(232, 160, 64, 0.15);
+  border-radius: 10px;
+  margin: 8px 4px;
+  touch-action: none;
+  cursor: crosshair;
+  overflow: hidden;
+}
+
+/* .ssli-didgeridoo-drone-zone already has touch-action: none above */
+
+.ssli-didgeridoo-drone-zone.active {
+  border-color: rgba(232, 160, 64, 0.35);
+}
+
+/* ---------- Glow overlay ---------- */
+
+.ssli-didgeridoo-glow-overlay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  display: none;
+  z-index: 1;
+}
+
+/* ---------- Crosshair lines ---------- */
+
+.ssli-didgeridoo-crosshair-h {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  pointer-events: none;
+  display: none;
+  z-index: 2;
+}
+
+.ssli-didgeridoo-crosshair-v {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  pointer-events: none;
+  display: none;
+  z-index: 2;
+}
+
+/* ---------- Cursor dot ---------- */
+
+.ssli-didgeridoo-cursor-dot {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(232, 160, 64, 0.7) 0%, rgba(232, 160, 64, 0.0) 70%);
+  box-shadow: 0 0 16px rgba(232, 160, 64, 0.4);
+  margin-left: -10px;
+  margin-top: -10px;
+  pointer-events: none;
+  display: none;
+  z-index: 3;
+}
+
+/* ---------- Axis labels ---------- */
+
+.ssli-didgeridoo-axis-label {
+  position: absolute;
+  font-size: var(--ssli-fs-xs);
+  color: var(--ssli-text-secondary);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.ssli-didgeridoo-axis-x {
+  left: 8px;
+  bottom: 6px;
+}
+
+.ssli-didgeridoo-axis-y {
+  right: 8px;
+  top: 6px;
+}
+
+/* ---------- Idle hint ---------- */
+
+.ssli-didgeridoo-idle-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: var(--ssli-fs-md);
+  color: var(--ssli-text-muted);
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* ---------- Readout ---------- */
+
+.ssli-didgeridoo-readout {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: var(--ssli-fs-body);
+  font-family: monospace;
+  color: var(--ssli-text-secondary);
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* ========== Phone landscape overrides ========== */
+
+[data-layout="phone-land"] .ssli-didgeridoo-artic-strip {
+  width: 60px;
+  flex: 0 0 60px;
+  padding: 4px 2px;
+  gap: var(--ssli-gap-xs);
+}
+
+[data-layout="phone-land"] .ssli-didgeridoo-artic-btn {
+  width: 44px;
+  height: 36px;
+  font-size: var(--ssli-fs-xs);
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+[data-layout="phone-land"] .ssli-didgeridoo-overtone-btn {
+  width: 44px;
+  height: 36px;
+  font-size: var(--ssli-fs-xs);
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+[data-layout="phone-land"] .ssli-didgeridoo-drone-zone {
+  margin: 4px 2px;
+  border-radius: var(--ssli-radius-md);
+}
+
+[data-layout="phone-land"] .ssli-didgeridoo-idle-hint {
+  font-size: var(--ssli-fs-sm);
+}
+
+[data-layout="phone-land"] .ssli-didgeridoo-readout {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone-land"] .ssli-didgeridoo-axis-label {
+  font-size: var(--ssli-fs-xs);
+}
+
+/* ========== Phone portrait overrides ========== */
+
+[data-layout="phone"] .ssli-didgeridoo-artic-strip {
+  width: 60px;
+  flex: 0 0 60px;
+  padding: 4px 2px;
+  gap: var(--ssli-gap-xs);
+}
+
+[data-layout="phone"] .ssli-didgeridoo-artic-btn {
+  width: 44px;
+  height: 36px;
+  font-size: var(--ssli-fs-xs);
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+[data-layout="phone"] .ssli-didgeridoo-overtone-btn {
+  width: 44px;
+  height: 36px;
+  font-size: var(--ssli-fs-xs);
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+[data-layout="phone"] .ssli-didgeridoo-drone-zone {
+  margin: 4px 2px;
+  border-radius: var(--ssli-radius-md);
+}
+
+[data-layout="phone"] .ssli-didgeridoo-idle-hint {
+  font-size: var(--ssli-fs-sm);
+}
+
+[data-layout="phone"] .ssli-didgeridoo-readout {
+  font-size: var(--ssli-fs-xs);
+}
+
+[data-layout="phone"] .ssli-didgeridoo-axis-label {
+  font-size: var(--ssli-fs-xs);
+}

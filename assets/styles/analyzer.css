@@ -1,0 +1,229 @@
+/* Analyzer Toggle Button */
+.analyzer-toggle {
+  position: fixed;
+  bottom: var(--sslu-space-5);
+  left: var(--sslu-space-5);
+  padding: 0.15rem 0.4rem;
+  font-size: var(--sslu-fs-px-base);
+  background: var(--sslu-gradient-brand);
+  color: var(--sslu-text-primary);
+  border: none;
+  border-radius: var(--sslu-radius-md);
+  cursor: pointer;
+  z-index: var(--sslu-z-analyzer);
+  font-family: var(--sslu-font-family);
+  min-width: var(--sslu-touch-min);
+  min-height: var(--sslu-touch-min);
+  touch-action: manipulation;
+}
+
+.analyzer-toggle:hover {
+  filter: brightness(1.2);
+  opacity: var(--ssli-opacity-active);
+}
+
+/* Auto-fade SCOPE button after 5s of inactivity */
+@keyframes sslu-scope-fade {
+  0%   { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { opacity: 0.25; }
+}
+
+.analyzer-toggle {
+  animation: sslu-scope-fade 5s ease-out forwards;
+}
+
+.analyzer-toggle:hover,
+.analyzer-toggle:focus {
+  animation: none;
+  opacity: var(--ssli-opacity-active);
+}
+
+/* Reduce opacity on Kids/Calm screens */
+#screen-kids .analyzer-toggle,
+#screen-calm .analyzer-toggle,
+.ssl-screen[data-screen="kids"] ~ .analyzer-toggle,
+.ssl-screen[data-screen="calm"] ~ .analyzer-toggle {
+  opacity: var(--ssli-opacity-overlay);
+}
+
+/* Analyzer Panel */
+.analyzer-panel {
+  position: fixed;
+  bottom: 40px;
+  left: var(--sslu-space-5);
+  right: var(--sslu-space-5);
+  height: 280px;
+  background: rgba(26, 26, 46, 0.95);
+  border: var(--sslu-border-w-thick) solid var(--sslu-cyan);
+  border-radius: var(--sslu-radius-xl);
+  z-index: var(--sslu-z-overlay);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sslu-space-4);
+  padding: var(--sslu-space-5);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.analyzer-panel.hidden {
+  display: none;
+}
+
+/* On phone layouts, hide analyzer controls entirely to prevent
+   iOS <select> picker wheels from covering the keyboard */
+[data-layout="phone"] .analyzer-panel,
+[data-layout="phone-land"] .analyzer-panel {
+  display: none !important;
+}
+
+/* Canvas Containers */
+.analyzer-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.analyzer-label {
+  font-size: var(--sslu-fs-px-base);
+  color: var(--sslu-cyan);
+  text-transform: uppercase;
+  letter-spacing: var(--sslu-ls-wider);
+  margin-bottom: var(--sslu-space-2);
+  font-weight: var(--sslu-fw-medium);
+}
+
+.analyzer-canvas {
+  flex: 1;
+  width: 100%;
+  background: var(--sslu-bg-input);
+  border-radius: var(--sslu-radius-md);
+  border: var(--sslu-border-w-thin) solid var(--sslu-border-medium);
+}
+
+/* Close Button */
+.analyzer-close {
+  position: absolute;
+  top: 5px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--sslu-text-muted);
+  font-size: var(--ssli-fs-lg);
+  cursor: pointer;
+  padding: var(--sslu-space-1) var(--sslu-space-3);
+}
+
+.analyzer-close:hover {
+  color: var(--sslu-text-primary);
+}
+
+/* Analyzer Controls Row */
+.analyzer-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--sslu-space-4);
+  margin-bottom: var(--sslu-space-2);
+}
+
+.analyzer-controls label {
+  font-size: var(--sslu-fs-px-base);
+  color: var(--sslu-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.analyzer-controls select {
+  background: var(--sslu-bg-button);
+  color: var(--sslu-text-secondary);
+  border: var(--sslu-border-w-thin) solid var(--sslu-border-strong);
+  border-radius: var(--sslu-radius-sm);
+  padding: var(--sslu-pad-input);
+  font-size: var(--sslu-fs-px-base);
+  font-family: var(--sslu-font-family);
+  cursor: pointer;
+  outline: none;
+}
+
+.analyzer-controls select:hover {
+  border-color: var(--sslu-cyan);
+}
+
+.analyzer-controls select:focus {
+  border-color: var(--sslu-cyan);
+  box-shadow: var(--sslu-shadow-glow-cyan);
+}
+
+.analyzer-mode-btn {
+  background: var(--sslu-bg-button);
+  color: var(--sslu-text-muted);
+  border: var(--sslu-border-w-thin) solid var(--sslu-border-strong);
+  border-radius: var(--sslu-radius-sm);
+  padding: var(--sslu-pad-btn);
+  font-size: var(--sslu-fs-px-base);
+  font-family: var(--sslu-font-family);
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all var(--sslu-transition-normal) var(--sslu-transition-ease);
+}
+
+.analyzer-mode-btn:hover {
+  border-color: var(--sslu-cyan);
+  color: var(--sslu-text-secondary);
+}
+
+.analyzer-mode-btn.active {
+  background: var(--sslu-gradient-brand);
+  color: var(--sslu-text-primary);
+  border-color: var(--sslu-cyan);
+}
+
+/* Adjust debug toggle position when analyzer is visible */
+.analyzer-panel:not(.hidden) ~ .debug-toggle {
+  bottom: 300px;
+}
+
+/* Clip indicator — flashes amber/red when brickwall limiter engages */
+.ssl-clip-indicator {
+  position: fixed;
+  bottom: var(--sslu-space-5);
+  left: 58px;
+  padding: 0.1rem 0.4rem;
+  font-size: var(--ssli-fs-xs);
+  font-weight: var(--ssli-fw-bold);
+  font-family: var(--sslu-font-family);
+  color: #1a1a2e;
+  background: #f59e0b;
+  border: 1px solid #d97706;
+  border-radius: var(--sslu-radius-md);
+  z-index: var(--sslu-z-analyzer);
+  pointer-events: none;
+  animation: ssl-clip-flash 0.3s ease-in-out;
+}
+
+@keyframes ssl-clip-flash {
+  0%   { opacity: 1; background: #ef4444; }
+  50%  { opacity: 1; background: #f59e0b; }
+  100% { opacity: 1; background: #f59e0b; }
+}
+
+/* Safe-volume indicator — shown on Kids/Calm screens */
+.ssl-safe-volume-indicator {
+  position: fixed;
+  bottom: var(--sslu-space-5);
+  left: 110px;
+  padding: 0.1rem 0.4rem;
+  font-size: var(--ssli-fs-xs);
+  font-weight: var(--ssli-fw-semibold);
+  font-family: var(--sslu-font-family);
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: var(--sslu-radius-md);
+  z-index: var(--sslu-z-analyzer);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ssli-gap-xs);
+  pointer-events: none;
+}

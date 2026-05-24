@@ -1,0 +1,280 @@
+/**
+ * chip.css - Chip Synth Controls Styles
+ * Classic sound chip emulation: SID, NES, Game Boy, Genesis
+ * Accent color: retro green var(--sslu-synth-chip), pixel-font-style
+ */
+
+/* ========================================
+   Chip Controls Container (Modal)
+   ======================================== */
+
+.chip-controls-modal {
+    padding: 0.5rem;
+    background: rgba(0, 40, 0, 0.08);
+    border-radius: var(--sslu-radius-lg);
+    margin-bottom: 0.5rem;
+    border: 1px solid #1a3a1a;
+}
+
+.chip-title-modal {
+    font-size: var(--ssli-fs-body);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--sslu-synth-chip);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-family: 'Courier New', Courier, monospace;
+    text-shadow: 0 0 6px rgba(51, 255, 51, 0.4);
+}
+
+/* ========================================
+   Chip Selector Row
+   ======================================== */
+
+.chip-selector-row {
+    display: flex;
+    gap: 0.3rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.chip-selector-row .chip-label {
+    font-size: var(--ssli-fs-sm);
+    color: #888;
+    margin-right: 0.3rem;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.chip-mode-btn {
+    padding: 3px 10px;
+    font-size: var(--ssli-fs-sm);
+    background: #0a1a0a;
+    color: #88cc88;
+    border: 1px solid #335533;
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    min-width: 32px;
+    text-align: center;
+    font-family: 'Courier New', Courier, monospace;
+    letter-spacing: 0.5px;
+}
+
+.chip-mode-btn:hover {
+    background: #0a2a0a;
+    color: #ccffcc;
+    border-color: var(--sslu-synth-chip);
+}
+
+.chip-mode-btn:active {
+    background: #1a3a1a;
+}
+
+.chip-mode-btn.active {
+    background: var(--sslu-synth-chip);
+    color: #000;
+    border-color: #66FF66;
+    box-shadow: 0 0 8px rgba(51, 255, 51, 0.5);
+    font-weight: var(--ssli-fw-bold);
+}
+
+/* ========================================
+   Waveform Selector
+   ======================================== */
+
+.chip-wave-row {
+    display: flex;
+    gap: 0.3rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.chip-wave-row .wave-label {
+    font-size: var(--ssli-fs-sm);
+    color: #888;
+    margin-right: 0.3rem;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.chip-wave-btn {
+    padding: 2px 8px;
+    font-size: var(--ssli-fs-sm);
+    background: #0a1a0a;
+    color: #88cc88;
+    border: 1px solid #335533;
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.chip-wave-btn:hover {
+    background: #0a2a0a;
+    color: #ccffcc;
+}
+
+.chip-wave-btn.active {
+    background: rgba(51, 255, 51, 0.3);
+    color: #66FF66;
+    border-color: var(--sslu-synth-chip);
+    text-shadow: 0 0 4px rgba(51, 255, 51, 0.3);
+}
+
+/* ========================================
+   Parameter Sliders
+   ======================================== */
+
+.chip-param-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.chip-param-row label {
+    font-size: var(--ssli-fs-sm);
+    color: #88cc88;
+    min-width: 80px;
+    text-align: right;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.chip-param-row input[type="range"] {
+    flex: 1;
+    min-width: 80px;
+    max-width: 200px;
+    height: 4px;
+    cursor: pointer;
+    accent-color: var(--sslu-synth-chip);
+}
+
+.chip-param-row .chip-param-val {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-synth-chip);
+    min-width: 40px;
+    text-align: right;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+/* ========================================
+   Chip Controls Grid
+   ======================================== */
+
+.chip-controls-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.chip-param-group {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 2px 0;
+}
+
+.chip-param-group label {
+    font-size: var(--ssli-fs-sm);
+    color: #88cc88;
+    min-width: 80px;
+    text-align: right;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.chip-param-group input[type="range"] {
+    flex: 1;
+    max-width: 200px;
+    height: 4px;
+    accent-color: var(--sslu-synth-chip);
+}
+
+.chip-param-group select {
+    padding: 2px 6px;
+    font-size: var(--ssli-fs-sm);
+    background: #0a1a0a;
+    color: #ccffcc;
+    border: 1px solid #335533;
+    border-radius: var(--sslu-radius-sm);
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.chip-param-group select:focus {
+    border-color: var(--sslu-synth-chip);
+    outline: none;
+}
+
+.param-value {
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-synth-chip);
+    min-width: 36px;
+    text-align: left;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+/* ========================================
+   FM Section (Genesis-specific)
+   ======================================== */
+
+.chip-fm-section {
+    padding: 0.4rem;
+    background: rgba(0, 30, 0, 0.2);
+    border-radius: var(--sslu-radius-md);
+    border: 1px solid #1a3a1a;
+    margin-bottom: 0.5rem;
+}
+
+.chip-fm-title {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--sslu-synth-chip);
+    margin-bottom: 0.3rem;
+    font-family: 'Courier New', Courier, monospace;
+    text-shadow: 0 0 4px rgba(51, 255, 51, 0.3);
+}
+
+/* ========================================
+   Section Dividers
+   ======================================== */
+
+.chip-divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--sslu-synth-chip)40, transparent);
+    margin: 0.4rem 0;
+}
+
+/* ========================================
+   Accent Overrides for Chip Engine
+   ======================================== */
+
+.chip-controls-modal input[type="checkbox"] {
+    accent-color: var(--sslu-synth-chip);
+}
+
+.chip-controls-modal select {
+    padding: 2px 6px;
+    font-size: var(--ssli-fs-sm);
+    background: #0a1a0a;
+    color: #ccffcc;
+    border: 1px solid #335533;
+    border-radius: var(--sslu-radius-sm);
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.chip-controls-modal select:focus {
+    border-color: var(--sslu-synth-chip);
+    outline: none;
+}
+
+/* ========================================
+   Instrument Type Button Accent
+   ======================================== */
+
+.instrument-type-btn[data-type="chip"].active {
+    background: #0a2a0a;
+    color: var(--sslu-synth-chip);
+    border-color: var(--sslu-synth-chip);
+    text-shadow: 0 0 6px rgba(51, 255, 51, 0.5);
+}

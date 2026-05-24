@@ -1,0 +1,254 @@
+/**
+ * lfo.css - LFO Controls Styles for SuperSynthLab
+ * Low Frequency Oscillator section in the mixer modal
+ * Color theme: teal/cyan-green (var(--sslu-synth-lfo) primary, #00b894 secondary)
+ */
+
+/* ========================================
+   LFO Section in Modal
+   ======================================== */
+
+.lfo-section-modal {
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--sslu-radius-lg);
+    margin-top: 0.5rem;
+    border: 1px solid rgba(0, 212, 170, 0.2);
+}
+
+/* ========================================
+   LFO Header
+   ======================================== */
+
+.lfo-header-modal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.lfo-title-modal {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--sslu-synth-lfo);
+}
+
+.lfo-enable-modal {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: var(--ssli-fs-sm);
+    color: #fff;
+    cursor: pointer;
+}
+
+.lfo-enable-modal input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+}
+
+/* ========================================
+   LFO Sub-sections (LFO1, LFO2)
+   ======================================== */
+
+.lfo-sub-section {
+    padding: 0.4rem;
+    margin-top: 0.3rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--sslu-radius-md);
+}
+
+.lfo-sub-section + .lfo-sub-section {
+    margin-top: 0.4rem;
+    padding-top: 0.4rem;
+    border-top: 1px solid rgba(0, 212, 170, 0.15);
+}
+
+.lfo-sub-title {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-bold);
+    color: var(--sslu-synth-lfo);
+    margin-bottom: 0.3rem;
+}
+
+/* ========================================
+   LFO Controls Layout
+   ======================================== */
+
+.lfo-controls-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.lfo-control-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    flex: 1;
+    min-width: 60px;
+}
+
+/* ========================================
+   LFO Rate Slider
+   ======================================== */
+
+.lfo-rate-lg {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 12px;
+    background: linear-gradient(90deg, #333, var(--sslu-synth-lfo));
+    border-radius: var(--sslu-radius-lg);
+    cursor: pointer;
+    margin-top: 0.1rem;
+    margin-bottom: 0.3rem;
+}
+
+.lfo-rate-lg::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--sslu-synth-lfo);
+    border: 2px solid #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.lfo-rate-lg::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: var(--sslu-synth-lfo);
+    border: 2px solid #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* ========================================
+   LFO Depth Slider
+   ======================================== */
+
+.lfo-depth-lg {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 8px;
+    background: linear-gradient(90deg, #333, #00b894);
+    border-radius: var(--sslu-radius-md);
+    cursor: pointer;
+    margin-top: 0.1rem;
+    margin-bottom: 0.3rem;
+}
+
+.lfo-depth-lg::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: var(--ssli-slider-thumb-size, 18px);
+    height: var(--ssli-slider-thumb-size, 18px);
+    background: #00b894;
+    border-radius: var(--ssli-radius-md, 6px);
+    cursor: pointer;
+    border: none;
+}
+
+.lfo-depth-lg::-moz-range-thumb {
+    width: var(--ssli-slider-thumb-size, 18px);
+    height: var(--ssli-slider-thumb-size, 18px);
+    background: #00b894;
+    border-radius: var(--ssli-radius-md, 6px);
+    cursor: pointer;
+    border: none;
+}
+
+/* ========================================
+   LFO Value Displays
+   ======================================== */
+
+.lfo-rate-value,
+.lfo-depth-value {
+    font-family: var(--sslu-font-mono);
+    font-size: var(--ssli-fs-sm);
+    color: var(--sslu-synth-lfo);
+}
+
+/* ========================================
+   LFO Waveform Selector
+   ======================================== */
+
+.lfo-waveform-select {
+    padding: 0.15rem 0.2rem;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-button);
+    color: #fff;
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+    width: 100%;
+    cursor: pointer;
+}
+
+/* ========================================
+   LFO Target Selector
+   ======================================== */
+
+.lfo-target-select {
+    padding: 0.15rem 0.2rem;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-button);
+    color: #fff;
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+    width: 100%;
+    cursor: pointer;
+}
+
+/* ========================================
+   LFO Waveform Visual
+   ======================================== */
+
+.lfo-wave-visual {
+    width: 60px;
+    height: 24px;
+    background: rgba(0, 212, 170, 0.1);
+    border: 1px solid rgba(0, 212, 170, 0.3);
+    border-radius: var(--sslu-radius-sm);
+    display: block;
+}
+
+/* ========================================
+   LFO Control Labels
+   ======================================== */
+
+.lfo-control-label {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-semibold);
+    color: #ccc;
+}
+
+/* ========================================
+   LFO Disabled State
+   ======================================== */
+
+.lfo-section-modal.disabled {
+    opacity: var(--ssli-opacity-inactive);
+    pointer-events: none;
+}
+
+.lfo-section-modal.disabled .lfo-header-modal {
+    pointer-events: auto;
+}
+
+/* ========================================
+   LFO Tab Content Visibility
+   ======================================== */
+
+.lfo-tab-content {
+    display: block;
+}
+
+.lfo-tab-content.hidden {
+    display: none;
+}

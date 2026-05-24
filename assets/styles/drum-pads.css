@@ -1,0 +1,5 @@
+.drum-pad-grid { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); gap: var(--sslu-space-1); padding: var(--sslu-space-1); height: 102px; }
+.drum-pad { background: var(--sslu-bg-button); border: var(--sslu-border-w-thin) solid var(--sslu-border-strong); border-radius: var(--sslu-radius-lg); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: var(--sslu-fs-tiny); color: var(--sslu-text-muted); font-family: var(--sslu-font-mono); user-select: none; }
+.drum-pad:hover { background: var(--sslu-bg-button-hover); border-color: var(--sslu-border-hover); }
+.drum-pad.active { background: #4a3a6e; border-color: var(--sslu-cyan); color: var(--sslu-text-primary); }
+.drum-pad.triggered { background: #6a4a8e; border-color: #acf; transition: background var(--sslu-transition-fast); }

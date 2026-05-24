@@ -1,0 +1,288 @@
+/**
+ * mod-matrix.css - Modulation Matrix Styles for SuperSynthLab
+ * Color theme: purple/violet (#a855f7 primary, #9333ea secondary)
+ */
+
+/* ========================================
+   Mod Matrix Tab Content
+   ======================================== */
+
+.mod-matrix-tab-inner {
+    padding: 0.3rem;
+}
+
+.mod-matrix-title {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-bold);
+    color: #a855f7;
+    margin-bottom: 0.4rem;
+}
+
+/* ========================================
+   Mod Matrix Routing Grid
+   ======================================== */
+
+.mod-matrix-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.mod-matrix-header {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.3rem;
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-bold);
+    color: #a855f7;
+    border-bottom: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.mod-matrix-header-enable {
+    width: 18px;
+    text-align: center;
+}
+
+.mod-matrix-header-slot {
+    width: 24px;
+    text-align: center;
+}
+
+.mod-matrix-header-source {
+    flex: 1;
+    min-width: 80px;
+}
+
+.mod-matrix-header-dest {
+    flex: 1;
+    min-width: 80px;
+}
+
+.mod-matrix-header-amount {
+    flex: 1.5;
+    min-width: 100px;
+}
+
+.mod-matrix-header-val {
+    width: 40px;
+    text-align: right;
+}
+
+/* ========================================
+   Mod Matrix Row
+   ======================================== */
+
+.mod-matrix-row {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.1rem 0.2rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--sslu-radius-md);
+    border: 1px solid rgba(168, 85, 247, 0.1);
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.mod-matrix-row.active {
+    border-color: rgba(168, 85, 247, 0.4);
+    background: rgba(168, 85, 247, 0.05);
+}
+
+.mod-matrix-row.disabled {
+    opacity: var(--ssli-opacity-disabled);
+}
+
+/* Enable checkbox */
+.mod-matrix-enable {
+    width: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mod-matrix-enable input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    accent-color: #a855f7;
+}
+
+/* Slot number */
+.mod-matrix-slot-num {
+    width: 24px;
+    text-align: center;
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-bold);
+    color: #888;
+}
+
+/* Source/Dest dropdowns */
+.mod-matrix-select {
+    flex: 1;
+    min-width: 80px;
+    padding: 0.15rem 0.2rem;
+    font-size: var(--ssli-fs-sm);
+    background: var(--sslu-bg-button);
+    color: #fff;
+    border: 1px solid var(--sslu-border-strong);
+    border-radius: var(--sslu-radius-sm);
+    cursor: pointer;
+}
+
+.mod-matrix-select:focus {
+    border-color: #a855f7;
+    outline: none;
+}
+
+/* Amount slider */
+.mod-matrix-amount {
+    flex: 1.5;
+    min-width: 100px;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 8px;
+    background: linear-gradient(90deg, #9333ea, #333 50%, #a855f7);
+    border-radius: var(--sslu-radius-md);
+    cursor: pointer;
+}
+
+.mod-matrix-amount::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: var(--ssli-slider-thumb-size, 18px);
+    height: var(--ssli-slider-thumb-size, 18px);
+    background: #a855f7;
+    border-radius: var(--ssli-radius-md, 6px);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.mod-matrix-amount::-moz-range-thumb {
+    width: var(--ssli-slider-thumb-size, 18px);
+    height: var(--ssli-slider-thumb-size, 18px);
+    background: #a855f7;
+    border-radius: var(--ssli-radius-md, 6px);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Amount value display */
+.mod-matrix-amount-val {
+    width: 40px;
+    text-align: right;
+    font-family: var(--sslu-font-mono);
+    font-size: var(--ssli-fs-sm);
+    color: #a855f7;
+}
+
+/* ========================================
+   Activity Indicator
+   ======================================== */
+
+.mod-matrix-activity {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--sslu-border-strong);
+    transition: background 0.1s;
+}
+
+.mod-matrix-activity.active {
+    background: #a855f7;
+    box-shadow: 0 0 4px rgba(168, 85, 247, 0.6);
+}
+
+/* ========================================
+   Mod Matrix Button (top bar)
+   ======================================== */
+
+.mod-matrix-btn {
+    padding: 0.15rem 0.4rem;
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-semibold);
+    background: linear-gradient(135deg, #a855f7, #7c3aed);
+    color: #fff;
+    border: none;
+    border-radius: var(--sslu-radius-md);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.mod-matrix-btn:hover {
+    filter: brightness(1.2);
+}
+
+.mod-matrix-btn:active {
+    transform: scale(0.98);
+}
+
+/* ========================================
+   Mod Matrix Standalone Overlay
+   ======================================== */
+
+.mod-matrix-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--sslu-bg-overlay);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 360;
+}
+
+.mod-matrix-overlay.hidden {
+    display: none;
+}
+
+.mod-matrix-panel {
+    background: var(--sslu-bg-input);
+    border: 1px solid rgba(168, 85, 247, 0.4);
+    border-radius: var(--sslu-radius-xl);
+    width: 560px;
+    max-width: 90vw;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 12px rgba(168, 85, 247, 0.15);
+}
+
+.mod-matrix-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.4rem 0.6rem;
+    border-bottom: 1px solid rgba(168, 85, 247, 0.3);
+    background: rgba(168, 85, 247, 0.08);
+}
+
+.mod-matrix-panel-title {
+    font-size: var(--ssli-fs-sm);
+    font-weight: var(--ssli-fw-bold);
+    color: #a855f7;
+    letter-spacing: 0.5px;
+}
+
+.mod-matrix-panel-close {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: var(--ssli-fs-h3);
+    cursor: pointer;
+    padding: 0 0.2rem;
+    line-height: 1;
+}
+
+.mod-matrix-panel-close:hover {
+    color: #fff;
+}
+
+.mod-matrix-panel-body {
+    padding: 0.4rem;
+}

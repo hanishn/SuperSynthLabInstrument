@@ -1,0 +1,37 @@
+/* Chord Engine Controls */
+
+#chordControlsModal {
+  padding: 10px 0;
+}
+
+.chord-controls-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ssli-gap-lg);
+  margin-bottom: 12px;
+}
+
+.chord-param-group {
+  background: rgba(255,255,255,0.03);
+  border-radius: var(--sslu-radius-lg);
+  padding: 10px;
+}
+
+.chord-param-group label {
+  display: block;
+  font-size: var(--sslu-fs-px-base);
+  color: #aaa;
+  margin-bottom: 4px;
+}
+
+.chord-param-group select,
+.chord-param-group input[type="range"] {
+  width: 100%;
+}
+
+.chord-param-group .param-value {
+  text-align: right;
+  font-size: var(--sslu-fs-px-base);
+  color: #8af;
+  margin-top: 2px;
+}

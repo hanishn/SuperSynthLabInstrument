@@ -1,0 +1,544 @@
+{
+  "ionian": {
+    "name": "Major",
+    "scale": [
+      0,
+      2,
+      4,
+      5,
+      7,
+      9,
+      11
+    ],
+    "triads": [
+      "maj",
+      "min",
+      "min",
+      "maj",
+      "maj",
+      "min",
+      "dim"
+    ],
+    "sevs": [
+      "maj7",
+      "min7",
+      "min7",
+      "maj7",
+      "7",
+      "min7",
+      "m7b5"
+    ]
+  },
+  "aeolian": {
+    "name": "Minor",
+    "scale": [
+      0,
+      2,
+      3,
+      5,
+      7,
+      8,
+      10
+    ],
+    "triads": [
+      "min",
+      "dim",
+      "maj",
+      "min",
+      "min",
+      "maj",
+      "maj"
+    ],
+    "sevs": [
+      "min7",
+      "m7b5",
+      "maj7",
+      "min7",
+      "min7",
+      "maj7",
+      "7"
+    ]
+  },
+  "dorian": {
+    "name": "Dorian",
+    "scale": [
+      0,
+      2,
+      3,
+      5,
+      7,
+      9,
+      10
+    ],
+    "triads": [
+      "min",
+      "min",
+      "maj",
+      "maj",
+      "min",
+      "dim",
+      "maj"
+    ],
+    "sevs": [
+      "min7",
+      "min7",
+      "maj7",
+      "7",
+      "min7",
+      "m7b5",
+      "maj7"
+    ]
+  },
+  "phrygian": {
+    "name": "Phrygian",
+    "scale": [
+      0,
+      1,
+      3,
+      5,
+      7,
+      8,
+      10
+    ],
+    "triads": [
+      "min",
+      "maj",
+      "maj",
+      "min",
+      "dim",
+      "maj",
+      "min"
+    ],
+    "sevs": [
+      "min7",
+      "maj7",
+      "7",
+      "min7",
+      "m7b5",
+      "maj7",
+      "min7"
+    ]
+  },
+  "lydian": {
+    "name": "Lydian",
+    "scale": [
+      0,
+      2,
+      4,
+      6,
+      7,
+      9,
+      11
+    ],
+    "triads": [
+      "maj",
+      "maj",
+      "min",
+      "dim",
+      "maj",
+      "min",
+      "min"
+    ],
+    "sevs": [
+      "maj7",
+      "7",
+      "min7",
+      "m7b5",
+      "maj7",
+      "min7",
+      "min7"
+    ]
+  },
+  "mixolydian": {
+    "name": "Mixolydian",
+    "scale": [
+      0,
+      2,
+      4,
+      5,
+      7,
+      9,
+      10
+    ],
+    "triads": [
+      "maj",
+      "min",
+      "dim",
+      "maj",
+      "min",
+      "min",
+      "maj"
+    ],
+    "sevs": [
+      "7",
+      "min7",
+      "m7b5",
+      "maj7",
+      "min7",
+      "min7",
+      "maj7"
+    ]
+  },
+  "locrian": {
+    "name": "Locrian",
+    "scale": [
+      0,
+      1,
+      3,
+      5,
+      6,
+      8,
+      10
+    ],
+    "triads": [
+      "dim",
+      "maj",
+      "min",
+      "min",
+      "maj",
+      "maj",
+      "min"
+    ],
+    "sevs": [
+      "m7b5",
+      "maj7",
+      "min7",
+      "min7",
+      "maj7",
+      "7",
+      "min7"
+    ]
+  },
+  "penta_maj": {
+    "name": "Pent.Maj",
+    "scale": [
+      0,
+      2,
+      4,
+      7,
+      9
+    ],
+    "triads": [
+      "maj",
+      "min",
+      "min",
+      "maj",
+      "min"
+    ],
+    "sevs": [
+      "maj7",
+      "min7",
+      "min7",
+      "7",
+      "min7"
+    ]
+  },
+  "penta_min": {
+    "name": "Pent.Min",
+    "scale": [
+      0,
+      3,
+      5,
+      7,
+      10
+    ],
+    "triads": [
+      "min",
+      "maj",
+      "min",
+      "min",
+      "maj"
+    ],
+    "sevs": [
+      "min7",
+      "maj7",
+      "min7",
+      "min7",
+      "7"
+    ]
+  },
+  "blues": {
+    "name": "Blues",
+    "scale": [
+      0,
+      3,
+      5,
+      6,
+      7,
+      10
+    ],
+    "triads": [
+      "min",
+      "maj",
+      "dim",
+      "dim",
+      "min",
+      "maj"
+    ],
+    "sevs": [
+      "min7",
+      "7",
+      "m7b5",
+      "m7b5",
+      "min7",
+      "7"
+    ]
+  },
+  "chromatic": {
+    "name": "Chromatic",
+    "scale": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "triads": [
+      "maj",
+      "min",
+      "min",
+      "maj",
+      "maj",
+      "min",
+      "dim",
+      "maj",
+      "min",
+      "min",
+      "maj",
+      "maj"
+    ],
+    "sevs": [
+      "maj7",
+      "min7",
+      "min7",
+      "maj7",
+      "7",
+      "min7",
+      "m7b5",
+      "maj7",
+      "min7",
+      "min7",
+      "maj7",
+      "7"
+    ]
+  },
+  "altered": {
+    "name": "Altered",
+    "scale": [0, 1, 3, 4, 6, 8, 10],
+    "triads": ["dim", "min", "min", "dim", "maj", "maj", "min"],
+    "sevs": ["m7b5", "min7", "min7", "m7b5", "7", "maj7", "min7"]
+  },
+  "dim_wh": {
+    "name": "Dim W-H",
+    "scale": [0, 2, 3, 5, 6, 8, 9, 11],
+    "triads": ["dim", "min", "dim", "min", "dim", "min", "dim", "min"],
+    "sevs": ["m7b5", "min7", "m7b5", "min7", "m7b5", "min7", "m7b5", "min7"]
+  },
+  "dim_hw": {
+    "name": "Dim H-W",
+    "scale": [0, 1, 3, 4, 6, 7, 9, 10],
+    "triads": ["dim", "dim", "dim", "dim", "dim", "dim", "dim", "dim"],
+    "sevs": ["m7b5", "m7b5", "m7b5", "m7b5", "m7b5", "m7b5", "m7b5", "m7b5"]
+  },
+  "bebop_dom": {
+    "name": "Bebop Dom",
+    "scale": [0, 2, 4, 5, 7, 9, 10, 11],
+    "triads": ["maj", "min", "min", "maj", "maj", "min", "dim", "dim"],
+    "sevs": ["7", "min7", "min7", "maj7", "7", "min7", "m7b5", "m7b5"]
+  },
+  "bebop_maj": {
+    "name": "Bebop Maj",
+    "scale": [0, 2, 4, 5, 7, 8, 9, 11],
+    "triads": ["maj", "min", "min", "maj", "maj", "min", "min", "dim"],
+    "sevs": ["maj7", "min7", "min7", "maj7", "7", "min7", "min7", "m7b5"]
+  },
+  "bhairav": {
+    "name": "Bhairav",
+    "scale": [0, 1, 4, 5, 7, 8, 11],
+    "triads": ["maj", "maj", "dim", "min", "maj", "maj", "dim"],
+    "sevs": ["maj7", "7", "m7b5", "min7", "maj7", "7", "m7b5"]
+  },
+  "yaman": {
+    "name": "Yaman",
+    "scale": [0, 2, 4, 6, 7, 9, 11],
+    "triads": ["maj", "maj", "min", "dim", "maj", "min", "min"],
+    "sevs": ["maj7", "7", "min7", "m7b5", "maj7", "min7", "min7"]
+  },
+  "kafi": {
+    "name": "Kafi",
+    "scale": [0, 2, 3, 5, 7, 9, 10],
+    "triads": ["min", "min", "maj", "maj", "min", "dim", "maj"],
+    "sevs": ["min7", "min7", "maj7", "7", "min7", "m7b5", "maj7"]
+  },
+  "asavari": {
+    "name": "Asavari",
+    "scale": [0, 2, 3, 5, 7, 8, 10],
+    "triads": ["min", "dim", "maj", "min", "min", "maj", "maj"],
+    "sevs": ["min7", "m7b5", "maj7", "min7", "min7", "maj7", "7"]
+  },
+  "marwa": {
+    "name": "Marwa",
+    "scale": [0, 1, 4, 6, 7, 9, 11],
+    "triads": ["maj", "aug", "min", "dim", "maj", "min", "dim"],
+    "sevs": ["maj7", "7", "min7", "m7b5", "maj7", "min7", "m7b5"]
+  },
+  "todi": {
+    "name": "Todi",
+    "scale": [0, 1, 3, 6, 7, 8, 11],
+    "triads": ["min", "maj", "dim", "dim", "maj", "maj", "dim"],
+    "sevs": ["min7", "maj7", "m7b5", "m7b5", "7", "maj7", "m7b5"]
+  },
+  "purvi": {
+    "name": "Purvi",
+    "scale": [0, 1, 4, 6, 7, 8, 11],
+    "triads": ["maj", "aug", "dim", "dim", "maj", "maj", "dim"],
+    "sevs": ["maj7", "7", "m7b5", "m7b5", "maj7", "7", "m7b5"]
+  },
+  "kalyan": {
+    "name": "Kalyan",
+    "scale": [0, 2, 4, 6, 7, 9, 11],
+    "triads": ["maj", "maj", "min", "dim", "maj", "min", "min"],
+    "sevs": ["maj7", "7", "min7", "m7b5", "maj7", "min7", "min7"]
+  },
+  "bilawal": {
+    "name": "Bilawal",
+    "scale": [0, 2, 4, 5, 7, 9, 11],
+    "triads": ["maj", "min", "min", "maj", "maj", "min", "dim"],
+    "sevs": ["maj7", "min7", "min7", "maj7", "7", "min7", "m7b5"]
+  },
+  "khamaj": {
+    "name": "Khamaj",
+    "scale": [0, 2, 4, 5, 7, 9, 10],
+    "triads": ["maj", "min", "dim", "maj", "min", "min", "maj"],
+    "sevs": ["7", "min7", "m7b5", "maj7", "min7", "min7", "maj7"]
+  },
+
+  "harmonic_min": {
+    "name": "Harmonic Min",
+    "category": "Jazz",
+    "scale": [0, 2, 3, 5, 7, 8, 11],
+    "triads": ["min", "dim", "aug", "min", "maj", "maj", "dim"],
+    "sevs": ["minMaj7", "m7b5", "maj7", "min7", "7", "maj7", "dim7"]
+  },
+  "melodic_min": {
+    "name": "Melodic Min",
+    "category": "Jazz",
+    "scale": [0, 2, 3, 5, 7, 9, 11],
+    "triads": ["min", "min", "aug", "maj", "maj", "dim", "dim"],
+    "sevs": ["minMaj7", "min7", "maj7", "7", "7", "m7b5", "m7b5"]
+  },
+  "whole_tone": {
+    "name": "Whole Tone",
+    "category": "Jazz",
+    "scale": [0, 2, 4, 6, 8, 10],
+    "triads": ["aug", "aug", "aug", "aug", "aug", "aug"],
+    "sevs": ["7", "7", "7", "7", "7", "7"]
+  },
+  "bebop_dominant": {
+    "name": "Bebop Dom",
+    "category": "Jazz",
+    "scale": [0, 2, 4, 5, 7, 9, 10, 11],
+    "triads": ["maj", "min", "min", "maj", "maj", "min", "dim", "dim"],
+    "sevs": ["7", "min7", "min7", "maj7", "7", "min7", "m7b5", "m7b5"]
+  },
+
+  "hirajoshi": {
+    "name": "Hirajoshi",
+    "category": "World",
+    "scale": [0, 2, 3, 7, 8],
+    "triads": ["min", "min", "maj", "min", "maj"],
+    "sevs": ["min7", "min7", "maj7", "min7", "maj7"]
+  },
+  "kumoi": {
+    "name": "Kumoi",
+    "category": "World",
+    "scale": [0, 2, 3, 7, 9],
+    "triads": ["min", "min", "maj", "min", "min"],
+    "sevs": ["min7", "min7", "maj7", "min7", "min7"]
+  },
+  "in_sen": {
+    "name": "In Sen",
+    "category": "World",
+    "scale": [0, 1, 5, 7, 10],
+    "triads": ["min", "maj", "min", "min", "maj"],
+    "sevs": ["min7", "maj7", "min7", "min7", "7"]
+  },
+  "pelog": {
+    "name": "Pelog",
+    "category": "World",
+    "scale": [0, 1, 3, 7, 8],
+    "triads": ["min", "min", "maj", "min", "maj"],
+    "sevs": ["min7", "min7", "maj7", "min7", "maj7"]
+  },
+  "chinese_pent": {
+    "name": "Chinese Pent",
+    "category": "World",
+    "scale": [0, 2, 4, 7, 9],
+    "triads": ["maj", "min", "min", "maj", "min"],
+    "sevs": ["maj7", "min7", "min7", "7", "min7"]
+  },
+  "egyptian": {
+    "name": "Egyptian",
+    "category": "World",
+    "scale": [0, 2, 5, 7, 10],
+    "triads": ["min", "min", "min", "min", "maj"],
+    "sevs": ["min7", "min7", "min7", "min7", "7"]
+  },
+  "hungarian_min": {
+    "name": "Hungarian Min",
+    "category": "World",
+    "scale": [0, 2, 3, 6, 7, 8, 11],
+    "triads": ["min", "dim", "aug", "min", "maj", "maj", "dim"],
+    "sevs": ["minMaj7", "m7b5", "maj7", "min7", "7", "maj7", "dim7"]
+  },
+
+  "maqam_rast": {
+    "name": "Maqam Rast",
+    "category": "Arabic",
+    "scale": [0, 2, 4, 5, 7, 9, 11],
+    "triads": ["maj", "min", "min", "maj", "maj", "min", "dim"],
+    "sevs": ["maj7", "min7", "min7", "maj7", "7", "min7", "m7b5"]
+  },
+  "maqam_bayati": {
+    "name": "Maqam Bayati",
+    "category": "Arabic",
+    "scale": [0, 2, 3, 5, 7, 8, 10],
+    "triads": ["min", "dim", "maj", "min", "min", "maj", "maj"],
+    "sevs": ["min7", "m7b5", "maj7", "min7", "min7", "maj7", "7"]
+  },
+  "maqam_hijaz": {
+    "name": "Maqam Hijaz",
+    "category": "Arabic",
+    "scale": [0, 1, 4, 5, 7, 8, 10],
+    "triads": ["maj", "maj", "dim", "min", "min", "maj", "min"],
+    "sevs": ["7", "maj7", "m7b5", "min7", "min7", "maj7", "min7"]
+  },
+  "maqam_nahawand": {
+    "name": "Maqam Nahawand",
+    "category": "Arabic",
+    "scale": [0, 2, 3, 5, 7, 8, 11],
+    "triads": ["min", "dim", "aug", "min", "maj", "maj", "dim"],
+    "sevs": ["minMaj7", "m7b5", "maj7", "min7", "7", "maj7", "dim7"]
+  },
+  "maqam_saba": {
+    "name": "Maqam Saba",
+    "category": "Arabic",
+    "scale": [0, 2, 3, 5, 6, 8, 10],
+    "triads": ["min", "dim", "maj", "dim", "maj", "min", "maj"],
+    "sevs": ["min7", "m7b5", "7", "m7b5", "maj7", "min7", "7"]
+  },
+  "maqam_kurd": {
+    "name": "Maqam Kurd",
+    "category": "Arabic",
+    "scale": [0, 1, 3, 5, 7, 8, 10],
+    "triads": ["min", "maj", "maj", "min", "dim", "maj", "min"],
+    "sevs": ["min7", "maj7", "7", "min7", "m7b5", "maj7", "min7"]
+  }
+}

@@ -1,0 +1,1201 @@
+{
+  "presets": [
+    {
+      "name": "Full Organ",
+      "category": "Organs",
+      "description": "All drawbars pulled for a full, rich organ tone.",
+      "settings": {
+        "partials": [],
+        "drawbarMode": true,
+        "drawbars": [8, 8, 8, 8, 8, 8, 8, 8, 8]
+      }
+    },
+    {
+      "name": "Gospel Organ",
+      "category": "Organs",
+      "description": "Soulful gospel registration with strong fundamental and upper harmonics.",
+      "settings": {
+        "partials": [],
+        "drawbarMode": true,
+        "drawbars": [8, 6, 8, 8, 0, 0, 0, 3, 6]
+      }
+    },
+    {
+      "name": "Jazz Organ",
+      "category": "Organs",
+      "description": "Warm jazz combo organ with mild upper harmonics.",
+      "settings": {
+        "partials": [],
+        "drawbarMode": true,
+        "drawbars": [8, 8, 6, 4, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Rock Organ",
+      "category": "Organs",
+      "description": "Gritty rock organ with biting harmonics.",
+      "settings": {
+        "partials": [],
+        "drawbarMode": true,
+        "drawbars": [8, 8, 8, 8, 6, 6, 4, 4, 4]
+      }
+    },
+    {
+      "name": "Blues Organ",
+      "category": "Organs",
+      "description": "Classic blues organ with emphasis on lower drawbars.",
+      "settings": {
+        "partials": [],
+        "drawbarMode": true,
+        "drawbars": [8, 5, 8, 6, 0, 0, 0, 0, 3]
+      }
+    },
+    {
+      "name": "Theatre Organ",
+      "category": "Organs",
+      "description": "Large theatre pipe organ with rich sub-octave and harmonics.",
+      "settings": {
+        "partials": [],
+        "drawbarMode": true,
+        "drawbars": [8, 4, 8, 4, 4, 4, 2, 2, 2]
+      }
+    },
+    {
+      "name": "Bright Organ",
+      "category": "Organs",
+      "description": "Bright organ with emphasis on upper harmonics.",
+      "settings": {
+        "partials": [],
+        "drawbarMode": true,
+        "drawbars": [0, 0, 8, 0, 0, 8, 0, 8, 8]
+      }
+    },
+    {
+      "name": "Mellow Organ",
+      "category": "Organs",
+      "description": "Soft, mellow organ with gentle lower registration.",
+      "settings": {
+        "partials": [],
+        "drawbarMode": true,
+        "drawbars": [6, 4, 6, 3, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Pure Sine",
+      "category": "Classic Waveforms",
+      "description": "Single pure sine wave fundamental.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0, "ratio": 2, "phase": 0},
+          {"amplitude": 0, "ratio": 3, "phase": 0},
+          {"amplitude": 0, "ratio": 4, "phase": 0},
+          {"amplitude": 0, "ratio": 5, "phase": 0},
+          {"amplitude": 0, "ratio": 6, "phase": 0},
+          {"amplitude": 0, "ratio": 7, "phase": 0},
+          {"amplitude": 0, "ratio": 8, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Bright Saw",
+      "category": "Classic Waveforms",
+      "description": "Sawtooth wave built from harmonic series 1/n.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0.5, "ratio": 2, "phase": 0},
+          {"amplitude": 0.333, "ratio": 3, "phase": 0},
+          {"amplitude": 0.25, "ratio": 4, "phase": 0},
+          {"amplitude": 0.2, "ratio": 5, "phase": 0},
+          {"amplitude": 0.167, "ratio": 6, "phase": 0},
+          {"amplitude": 0.143, "ratio": 7, "phase": 0},
+          {"amplitude": 0.125, "ratio": 8, "phase": 0},
+          {"amplitude": 0.111, "ratio": 9, "phase": 0},
+          {"amplitude": 0.1, "ratio": 10, "phase": 0},
+          {"amplitude": 0.091, "ratio": 11, "phase": 0},
+          {"amplitude": 0.083, "ratio": 12, "phase": 0},
+          {"amplitude": 0.077, "ratio": 13, "phase": 0},
+          {"amplitude": 0.071, "ratio": 14, "phase": 0},
+          {"amplitude": 0.067, "ratio": 15, "phase": 0},
+          {"amplitude": 0.063, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Hollow Square",
+      "category": "Classic Waveforms",
+      "description": "Square wave from odd harmonics only.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0, "ratio": 2, "phase": 0},
+          {"amplitude": 0.333, "ratio": 3, "phase": 0},
+          {"amplitude": 0, "ratio": 4, "phase": 0},
+          {"amplitude": 0.2, "ratio": 5, "phase": 0},
+          {"amplitude": 0, "ratio": 6, "phase": 0},
+          {"amplitude": 0.143, "ratio": 7, "phase": 0},
+          {"amplitude": 0, "ratio": 8, "phase": 0},
+          {"amplitude": 0.111, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0.091, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0.077, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0.067, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Soft Triangle",
+      "category": "Classic Waveforms",
+      "description": "Triangle wave from odd harmonics with 1/n^2 rolloff.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0, "ratio": 2, "phase": 0},
+          {"amplitude": 0.111, "ratio": 3, "phase": 3.14159},
+          {"amplitude": 0, "ratio": 4, "phase": 0},
+          {"amplitude": 0.04, "ratio": 5, "phase": 0},
+          {"amplitude": 0, "ratio": 6, "phase": 0},
+          {"amplitude": 0.02, "ratio": 7, "phase": 3.14159},
+          {"amplitude": 0, "ratio": 8, "phase": 0},
+          {"amplitude": 0.012, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0.008, "ratio": 11, "phase": 3.14159},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0.006, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0.004, "ratio": 15, "phase": 3.14159},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Even Harmonics",
+      "category": "Classic Waveforms",
+      "description": "Only even-numbered harmonics for a clarinet-like hollowness.",
+      "settings": {
+        "partials": [
+          {"amplitude": 0, "ratio": 1, "phase": 0},
+          {"amplitude": 1.0, "ratio": 2, "phase": 0},
+          {"amplitude": 0, "ratio": 3, "phase": 0},
+          {"amplitude": 0.5, "ratio": 4, "phase": 0},
+          {"amplitude": 0, "ratio": 5, "phase": 0},
+          {"amplitude": 0.333, "ratio": 6, "phase": 0},
+          {"amplitude": 0, "ratio": 7, "phase": 0},
+          {"amplitude": 0.25, "ratio": 8, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0.2, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0.167, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0.143, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0.125, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Odd Harmonics",
+      "category": "Classic Waveforms",
+      "description": "Only odd-numbered harmonics for a hollow, woody tone.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0, "ratio": 2, "phase": 0},
+          {"amplitude": 0.7, "ratio": 3, "phase": 0},
+          {"amplitude": 0, "ratio": 4, "phase": 0},
+          {"amplitude": 0.5, "ratio": 5, "phase": 0},
+          {"amplitude": 0, "ratio": 6, "phase": 0},
+          {"amplitude": 0.35, "ratio": 7, "phase": 0},
+          {"amplitude": 0, "ratio": 8, "phase": 0},
+          {"amplitude": 0.25, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0.18, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0.13, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0.1, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Church Bell",
+      "category": "Bells & Metallic",
+      "description": "Deep church bell with inharmonic partials.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0.6, "ratio": 2.76, "phase": 0},
+          {"amplitude": 0.45, "ratio": 5.4, "phase": 0},
+          {"amplitude": 0.3, "ratio": 8.93, "phase": 0},
+          {"amplitude": 0.2, "ratio": 11.34, "phase": 0},
+          {"amplitude": 0.15, "ratio": 13.5, "phase": 0},
+          {"amplitude": 0.1, "ratio": 16.7, "phase": 0},
+          {"amplitude": 0.08, "ratio": 19.2, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Tubular Bell",
+      "category": "Bells & Metallic",
+      "description": "Orchestral tubular bell with bright metallic resonance.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0.7, "ratio": 2.0, "phase": 0},
+          {"amplitude": 0.55, "ratio": 3.0, "phase": 0},
+          {"amplitude": 0.4, "ratio": 4.16, "phase": 0},
+          {"amplitude": 0.3, "ratio": 5.43, "phase": 0},
+          {"amplitude": 0.22, "ratio": 6.8, "phase": 0},
+          {"amplitude": 0.15, "ratio": 8.21, "phase": 0},
+          {"amplitude": 0.1, "ratio": 9.7, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Glockenspiel",
+      "category": "Bells & Metallic",
+      "description": "Bright, sparkling glockenspiel tone.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0.5, "ratio": 3.0, "phase": 0},
+          {"amplitude": 0.3, "ratio": 6.0, "phase": 0},
+          {"amplitude": 0.15, "ratio": 10.0, "phase": 0},
+          {"amplitude": 0.08, "ratio": 15.0, "phase": 0},
+          {"amplitude": 0, "ratio": 6, "phase": 0},
+          {"amplitude": 0, "ratio": 7, "phase": 0},
+          {"amplitude": 0, "ratio": 8, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Vibraphone",
+      "category": "Bells & Metallic",
+      "description": "Warm vibraphone with rounded attack.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0.6, "ratio": 4.0, "phase": 0},
+          {"amplitude": 0.3, "ratio": 10.0, "phase": 0},
+          {"amplitude": 0.15, "ratio": 16.0, "phase": 0},
+          {"amplitude": 0, "ratio": 5, "phase": 0},
+          {"amplitude": 0, "ratio": 6, "phase": 0},
+          {"amplitude": 0, "ratio": 7, "phase": 0},
+          {"amplitude": 0, "ratio": 8, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Steel Drum",
+      "category": "Bells & Metallic",
+      "description": "Caribbean steel pan with inharmonic overtones.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0.5, "ratio": 2.4, "phase": 0},
+          {"amplitude": 0.4, "ratio": 3.85, "phase": 0},
+          {"amplitude": 0.25, "ratio": 5.6, "phase": 0},
+          {"amplitude": 0.15, "ratio": 7.2, "phase": 0},
+          {"amplitude": 0.1, "ratio": 9.8, "phase": 0},
+          {"amplitude": 0, "ratio": 7, "phase": 0},
+          {"amplitude": 0, "ratio": 8, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Wind Chimes",
+      "category": "Bells & Metallic",
+      "description": "Delicate wind chime shimmer with high inharmonic partials.",
+      "settings": {
+        "partials": [
+          {"amplitude": 0.7, "ratio": 1, "phase": 0},
+          {"amplitude": 1.0, "ratio": 2.71, "phase": 0},
+          {"amplitude": 0.8, "ratio": 5.18, "phase": 0},
+          {"amplitude": 0.6, "ratio": 8.52, "phase": 0},
+          {"amplitude": 0.4, "ratio": 12.3, "phase": 0},
+          {"amplitude": 0.25, "ratio": 16.8, "phase": 0},
+          {"amplitude": 0.15, "ratio": 21.5, "phase": 0},
+          {"amplitude": 0.08, "ratio": 27.0, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Music Box",
+      "category": "Bells & Metallic",
+      "description": "Tinkly music box with pure harmonics.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0.4, "ratio": 3, "phase": 0},
+          {"amplitude": 0.2, "ratio": 5, "phase": 0},
+          {"amplitude": 0.1, "ratio": 7, "phase": 0},
+          {"amplitude": 0.05, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 6, "phase": 0},
+          {"amplitude": 0, "ratio": 7, "phase": 0},
+          {"amplitude": 0, "ratio": 8, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Crystal",
+      "category": "Bells & Metallic",
+      "description": "Crystalline tones with high harmonic emphasis.",
+      "settings": {
+        "partials": [
+          {"amplitude": 0.8, "ratio": 1, "phase": 0},
+          {"amplitude": 0.3, "ratio": 2, "phase": 0},
+          {"amplitude": 1.0, "ratio": 4, "phase": 0},
+          {"amplitude": 0.6, "ratio": 7, "phase": 0},
+          {"amplitude": 0.4, "ratio": 11, "phase": 0},
+          {"amplitude": 0.2, "ratio": 16, "phase": 0},
+          {"amplitude": 0, "ratio": 7, "phase": 0},
+          {"amplitude": 0, "ratio": 8, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Warm Pad",
+      "category": "Pads",
+      "description": "Lush warm pad with gentle harmonics.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0.6, "ratio": 2, "phase": 0},
+          {"amplitude": 0.3, "ratio": 3, "phase": 0},
+          {"amplitude": 0.15, "ratio": 4, "phase": 0},
+          {"amplitude": 0.08, "ratio": 5, "phase": 0},
+          {"amplitude": 0.04, "ratio": 6, "phase": 0},
+          {"amplitude": 0, "ratio": 7, "phase": 0},
+          {"amplitude": 0, "ratio": 8, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Glass Pad",
+      "category": "Pads",
+      "description": "Glassy, transparent pad with upper partials.",
+      "settings": {
+        "partials": [
+          {"amplitude": 0.8, "ratio": 1, "phase": 0},
+          {"amplitude": 0.2, "ratio": 2, "phase": 0},
+          {"amplitude": 0.6, "ratio": 3, "phase": 0},
+          {"amplitude": 0.1, "ratio": 4, "phase": 0},
+          {"amplitude": 0.4, "ratio": 5, "phase": 0},
+          {"amplitude": 0.05, "ratio": 6, "phase": 0},
+          {"amplitude": 0.3, "ratio": 7, "phase": 0},
+          {"amplitude": 0, "ratio": 8, "phase": 0},
+          {"amplitude": 0.2, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0.1, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Choir",
+      "category": "Pads",
+      "description": "Choir-like additive voice with formant structure.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0.7, "ratio": 2, "phase": 0},
+          {"amplitude": 0.5, "ratio": 3, "phase": 0},
+          {"amplitude": 0.8, "ratio": 4, "phase": 0},
+          {"amplitude": 0.3, "ratio": 5, "phase": 0},
+          {"amplitude": 0.2, "ratio": 6, "phase": 0},
+          {"amplitude": 0.5, "ratio": 7, "phase": 0},
+          {"amplitude": 0.15, "ratio": 8, "phase": 0},
+          {"amplitude": 0.1, "ratio": 9, "phase": 0},
+          {"amplitude": 0.3, "ratio": 10, "phase": 0},
+          {"amplitude": 0.08, "ratio": 11, "phase": 0},
+          {"amplitude": 0.05, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "String Ensemble",
+      "category": "Pads",
+      "description": "Rich ensemble strings with full harmonic spectrum.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0.8, "ratio": 2, "phase": 0},
+          {"amplitude": 0.6, "ratio": 3, "phase": 0},
+          {"amplitude": 0.45, "ratio": 4, "phase": 0},
+          {"amplitude": 0.35, "ratio": 5, "phase": 0},
+          {"amplitude": 0.25, "ratio": 6, "phase": 0},
+          {"amplitude": 0.18, "ratio": 7, "phase": 0},
+          {"amplitude": 0.12, "ratio": 8, "phase": 0},
+          {"amplitude": 0.08, "ratio": 9, "phase": 0},
+          {"amplitude": 0.05, "ratio": 10, "phase": 0},
+          {"amplitude": 0.03, "ratio": 11, "phase": 0},
+          {"amplitude": 0.02, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Evolving",
+      "category": "Pads",
+      "description": "Complex evolving pad with scattered harmonics.",
+      "settings": {
+        "partials": [
+          {"amplitude": 0.8, "ratio": 1, "phase": 0},
+          {"amplitude": 0.4, "ratio": 2.5, "phase": 0.5},
+          {"amplitude": 0.6, "ratio": 3.7, "phase": 1.2},
+          {"amplitude": 0.3, "ratio": 5.2, "phase": 2.0},
+          {"amplitude": 0.5, "ratio": 7.1, "phase": 0.8},
+          {"amplitude": 0.2, "ratio": 9.3, "phase": 1.5},
+          {"amplitude": 0.35, "ratio": 11.8, "phase": 2.5},
+          {"amplitude": 0.15, "ratio": 14.2, "phase": 0.3},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Ethereal",
+      "category": "Pads",
+      "description": "Airy, ethereal pad with wide harmonic spacing.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0.5, "ratio": 3, "phase": 0},
+          {"amplitude": 0.3, "ratio": 7, "phase": 0},
+          {"amplitude": 0.2, "ratio": 11, "phase": 0},
+          {"amplitude": 0.15, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 6, "phase": 0},
+          {"amplitude": 0, "ratio": 7, "phase": 0},
+          {"amplitude": 0, "ratio": 8, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Digital Pad",
+      "category": "Pads",
+      "description": "Clean digital pad with precise harmonic ratios.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0.5, "ratio": 2, "phase": 0},
+          {"amplitude": 0.7, "ratio": 4, "phase": 0},
+          {"amplitude": 0.3, "ratio": 8, "phase": 0},
+          {"amplitude": 0.15, "ratio": 16, "phase": 0},
+          {"amplitude": 0, "ratio": 6, "phase": 0},
+          {"amplitude": 0, "ratio": 7, "phase": 0},
+          {"amplitude": 0, "ratio": 8, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Shimmer",
+      "category": "Pads",
+      "description": "Shimmering pad with emphasized high partials.",
+      "settings": {
+        "partials": [
+          {"amplitude": 0.6, "ratio": 1, "phase": 0},
+          {"amplitude": 0.3, "ratio": 2, "phase": 0},
+          {"amplitude": 0.4, "ratio": 4, "phase": 0},
+          {"amplitude": 0.5, "ratio": 6, "phase": 0},
+          {"amplitude": 0.7, "ratio": 8, "phase": 0},
+          {"amplitude": 0.8, "ratio": 10, "phase": 0},
+          {"amplitude": 1.0, "ratio": 12, "phase": 0},
+          {"amplitude": 0.7, "ratio": 14, "phase": 0},
+          {"amplitude": 0.5, "ratio": 16, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Sub Bass",
+      "category": "Bass",
+      "description": "Deep sub bass with strong fundamental.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 0.5, "phase": 0},
+          {"amplitude": 0.8, "ratio": 1, "phase": 0},
+          {"amplitude": 0.1, "ratio": 2, "phase": 0},
+          {"amplitude": 0, "ratio": 4, "phase": 0},
+          {"amplitude": 0, "ratio": 5, "phase": 0},
+          {"amplitude": 0, "ratio": 6, "phase": 0},
+          {"amplitude": 0, "ratio": 7, "phase": 0},
+          {"amplitude": 0, "ratio": 8, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Organ Bass",
+      "category": "Bass",
+      "description": "Organ-style bass with drawbar registration.",
+      "settings": {
+        "partials": [],
+        "drawbarMode": true,
+        "drawbars": [8, 3, 8, 4, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Harmonics Bass",
+      "category": "Bass",
+      "description": "Bass with carefully tuned overtone structure.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0.7, "ratio": 2, "phase": 0},
+          {"amplitude": 0.5, "ratio": 3, "phase": 0},
+          {"amplitude": 0.3, "ratio": 4, "phase": 0},
+          {"amplitude": 0.15, "ratio": 5, "phase": 0},
+          {"amplitude": 0, "ratio": 6, "phase": 0},
+          {"amplitude": 0, "ratio": 7, "phase": 0},
+          {"amplitude": 0, "ratio": 8, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Saw Bass",
+      "category": "Bass",
+      "description": "Sawtooth bass with full harmonic series.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0.5, "ratio": 2, "phase": 0},
+          {"amplitude": 0.333, "ratio": 3, "phase": 0},
+          {"amplitude": 0.25, "ratio": 4, "phase": 0},
+          {"amplitude": 0.2, "ratio": 5, "phase": 0},
+          {"amplitude": 0.167, "ratio": 6, "phase": 0},
+          {"amplitude": 0.143, "ratio": 7, "phase": 0},
+          {"amplitude": 0.125, "ratio": 8, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Thick Bass",
+      "category": "Bass",
+      "description": "Thick, meaty bass with sub-octave reinforcement.",
+      "settings": {
+        "partials": [
+          {"amplitude": 0.8, "ratio": 0.5, "phase": 0},
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0.6, "ratio": 2, "phase": 0},
+          {"amplitude": 0.4, "ratio": 3, "phase": 0},
+          {"amplitude": 0.2, "ratio": 4, "phase": 0},
+          {"amplitude": 0.1, "ratio": 5, "phase": 0},
+          {"amplitude": 0, "ratio": 7, "phase": 0},
+          {"amplitude": 0, "ratio": 8, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Growl",
+      "category": "Bass",
+      "description": "Growling bass with odd harmonics emphasis.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0.3, "ratio": 2, "phase": 0},
+          {"amplitude": 0.8, "ratio": 3, "phase": 0},
+          {"amplitude": 0.2, "ratio": 4, "phase": 0},
+          {"amplitude": 0.6, "ratio": 5, "phase": 0},
+          {"amplitude": 0.15, "ratio": 6, "phase": 0},
+          {"amplitude": 0.4, "ratio": 7, "phase": 0},
+          {"amplitude": 0.1, "ratio": 8, "phase": 0},
+          {"amplitude": 0.3, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Flute",
+      "category": "Leads",
+      "description": "Breathy flute with fundamental and weak octave.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0.3, "ratio": 2, "phase": 0},
+          {"amplitude": 0.1, "ratio": 3, "phase": 0},
+          {"amplitude": 0.05, "ratio": 4, "phase": 0},
+          {"amplitude": 0, "ratio": 5, "phase": 0},
+          {"amplitude": 0, "ratio": 6, "phase": 0},
+          {"amplitude": 0, "ratio": 7, "phase": 0},
+          {"amplitude": 0, "ratio": 8, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Clarinet",
+      "category": "Leads",
+      "description": "Clarinet tone with odd harmonics.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0.05, "ratio": 2, "phase": 0},
+          {"amplitude": 0.75, "ratio": 3, "phase": 0},
+          {"amplitude": 0.04, "ratio": 4, "phase": 0},
+          {"amplitude": 0.5, "ratio": 5, "phase": 0},
+          {"amplitude": 0.03, "ratio": 6, "phase": 0},
+          {"amplitude": 0.3, "ratio": 7, "phase": 0},
+          {"amplitude": 0.02, "ratio": 8, "phase": 0},
+          {"amplitude": 0.15, "ratio": 9, "phase": 0},
+          {"amplitude": 0.01, "ratio": 10, "phase": 0},
+          {"amplitude": 0.08, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Oboe",
+      "category": "Leads",
+      "description": "Nasal oboe with strong even and odd harmonics.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0.8, "ratio": 2, "phase": 0},
+          {"amplitude": 0.6, "ratio": 3, "phase": 0},
+          {"amplitude": 0.7, "ratio": 4, "phase": 0},
+          {"amplitude": 0.5, "ratio": 5, "phase": 0},
+          {"amplitude": 0.4, "ratio": 6, "phase": 0},
+          {"amplitude": 0.3, "ratio": 7, "phase": 0},
+          {"amplitude": 0.2, "ratio": 8, "phase": 0},
+          {"amplitude": 0.15, "ratio": 9, "phase": 0},
+          {"amplitude": 0.1, "ratio": 10, "phase": 0},
+          {"amplitude": 0.05, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Whistle",
+      "category": "Leads",
+      "description": "Pure whistle tone with almost no harmonics.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0.05, "ratio": 2, "phase": 0},
+          {"amplitude": 0.02, "ratio": 3, "phase": 0},
+          {"amplitude": 0, "ratio": 4, "phase": 0},
+          {"amplitude": 0, "ratio": 5, "phase": 0},
+          {"amplitude": 0, "ratio": 6, "phase": 0},
+          {"amplitude": 0, "ratio": 7, "phase": 0},
+          {"amplitude": 0, "ratio": 8, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Nasal Lead",
+      "category": "Leads",
+      "description": "Nasal, honky lead with strong mid harmonics.",
+      "settings": {
+        "partials": [
+          {"amplitude": 0.7, "ratio": 1, "phase": 0},
+          {"amplitude": 0.5, "ratio": 2, "phase": 0},
+          {"amplitude": 1.0, "ratio": 3, "phase": 0},
+          {"amplitude": 0.8, "ratio": 4, "phase": 0},
+          {"amplitude": 0.6, "ratio": 5, "phase": 0},
+          {"amplitude": 0.3, "ratio": 6, "phase": 0},
+          {"amplitude": 0.15, "ratio": 7, "phase": 0},
+          {"amplitude": 0.08, "ratio": 8, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Bright Lead",
+      "category": "Leads",
+      "description": "Cutting bright lead with upper harmonic emphasis.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0.8, "ratio": 2, "phase": 0},
+          {"amplitude": 0.7, "ratio": 3, "phase": 0},
+          {"amplitude": 0.6, "ratio": 4, "phase": 0},
+          {"amplitude": 0.5, "ratio": 5, "phase": 0},
+          {"amplitude": 0.45, "ratio": 6, "phase": 0},
+          {"amplitude": 0.4, "ratio": 7, "phase": 0},
+          {"amplitude": 0.35, "ratio": 8, "phase": 0},
+          {"amplitude": 0.3, "ratio": 9, "phase": 0},
+          {"amplitude": 0.25, "ratio": 10, "phase": 0},
+          {"amplitude": 0.2, "ratio": 11, "phase": 0},
+          {"amplitude": 0.15, "ratio": 12, "phase": 0},
+          {"amplitude": 0.1, "ratio": 13, "phase": 0},
+          {"amplitude": 0.08, "ratio": 14, "phase": 0},
+          {"amplitude": 0.06, "ratio": 15, "phase": 0},
+          {"amplitude": 0.04, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Rising Harmonics",
+      "category": "FX",
+      "description": "Harmonics that increase in amplitude toward the top.",
+      "settings": {
+        "partials": [
+          {"amplitude": 0.1, "ratio": 1, "phase": 0},
+          {"amplitude": 0.15, "ratio": 2, "phase": 0},
+          {"amplitude": 0.2, "ratio": 3, "phase": 0},
+          {"amplitude": 0.3, "ratio": 4, "phase": 0},
+          {"amplitude": 0.4, "ratio": 5, "phase": 0},
+          {"amplitude": 0.5, "ratio": 6, "phase": 0},
+          {"amplitude": 0.6, "ratio": 7, "phase": 0},
+          {"amplitude": 0.7, "ratio": 8, "phase": 0},
+          {"amplitude": 0.75, "ratio": 9, "phase": 0},
+          {"amplitude": 0.8, "ratio": 10, "phase": 0},
+          {"amplitude": 0.85, "ratio": 11, "phase": 0},
+          {"amplitude": 0.9, "ratio": 12, "phase": 0},
+          {"amplitude": 0.92, "ratio": 13, "phase": 0},
+          {"amplitude": 0.95, "ratio": 14, "phase": 0},
+          {"amplitude": 0.97, "ratio": 15, "phase": 0},
+          {"amplitude": 1.0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Spectral Sweep",
+      "category": "FX",
+      "description": "Spread spectrum with phase offsets creating movement.",
+      "settings": {
+        "partials": [
+          {"amplitude": 0.8, "ratio": 1, "phase": 0},
+          {"amplitude": 0.7, "ratio": 2, "phase": 0.4},
+          {"amplitude": 0.6, "ratio": 3, "phase": 0.8},
+          {"amplitude": 0.5, "ratio": 4, "phase": 1.2},
+          {"amplitude": 0.5, "ratio": 5, "phase": 1.6},
+          {"amplitude": 0.4, "ratio": 6, "phase": 2.0},
+          {"amplitude": 0.4, "ratio": 7, "phase": 2.4},
+          {"amplitude": 0.35, "ratio": 8, "phase": 2.8},
+          {"amplitude": 0.3, "ratio": 9, "phase": 3.14},
+          {"amplitude": 0.3, "ratio": 10, "phase": 3.5},
+          {"amplitude": 0.25, "ratio": 11, "phase": 3.9},
+          {"amplitude": 0.25, "ratio": 12, "phase": 4.3},
+          {"amplitude": 0.2, "ratio": 13, "phase": 4.7},
+          {"amplitude": 0.2, "ratio": 14, "phase": 5.1},
+          {"amplitude": 0.15, "ratio": 15, "phase": 5.5},
+          {"amplitude": 0.15, "ratio": 16, "phase": 5.9}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Alien",
+      "category": "FX",
+      "description": "Weird alien tones with non-integer ratios.",
+      "settings": {
+        "partials": [
+          {"amplitude": 0.8, "ratio": 1, "phase": 0},
+          {"amplitude": 0.7, "ratio": 1.41, "phase": 0},
+          {"amplitude": 0.6, "ratio": 2.23, "phase": 0},
+          {"amplitude": 0.5, "ratio": 3.14, "phase": 0},
+          {"amplitude": 0.4, "ratio": 4.67, "phase": 0},
+          {"amplitude": 0.3, "ratio": 6.28, "phase": 0},
+          {"amplitude": 0.2, "ratio": 8.54, "phase": 0},
+          {"amplitude": 0.15, "ratio": 11.18, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Underwater",
+      "category": "FX",
+      "description": "Muffled underwater effect with low-frequency focus.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 0.5, "phase": 0},
+          {"amplitude": 0.8, "ratio": 1, "phase": 0.3},
+          {"amplitude": 0.4, "ratio": 1.5, "phase": 0.6},
+          {"amplitude": 0.2, "ratio": 2, "phase": 1.0},
+          {"amplitude": 0.1, "ratio": 2.5, "phase": 1.5},
+          {"amplitude": 0.05, "ratio": 3, "phase": 2.0},
+          {"amplitude": 0, "ratio": 7, "phase": 0},
+          {"amplitude": 0, "ratio": 8, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Radio",
+      "category": "FX",
+      "description": "Thin, mid-heavy radio-like tone.",
+      "settings": {
+        "partials": [
+          {"amplitude": 0.2, "ratio": 1, "phase": 0},
+          {"amplitude": 0.5, "ratio": 2, "phase": 0},
+          {"amplitude": 1.0, "ratio": 3, "phase": 0},
+          {"amplitude": 0.8, "ratio": 4, "phase": 0},
+          {"amplitude": 0.6, "ratio": 5, "phase": 0},
+          {"amplitude": 0.4, "ratio": 6, "phase": 0},
+          {"amplitude": 0.2, "ratio": 7, "phase": 0},
+          {"amplitude": 0.1, "ratio": 8, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Chiptune",
+      "category": "FX",
+      "description": "8-bit chiptune square wave with limited harmonics.",
+      "settings": {
+        "partials": [
+          {"amplitude": 1.0, "ratio": 1, "phase": 0},
+          {"amplitude": 0, "ratio": 2, "phase": 0},
+          {"amplitude": 0.333, "ratio": 3, "phase": 0},
+          {"amplitude": 0, "ratio": 4, "phase": 0},
+          {"amplitude": 0.2, "ratio": 5, "phase": 0},
+          {"amplitude": 0, "ratio": 6, "phase": 0},
+          {"amplitude": 0, "ratio": 7, "phase": 0},
+          {"amplitude": 0, "ratio": 8, "phase": 0},
+          {"amplitude": 0, "ratio": 9, "phase": 0},
+          {"amplitude": 0, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Formant",
+      "category": "FX",
+      "description": "Vowel-like formant structure in additive partials.",
+      "settings": {
+        "partials": [
+          {"amplitude": 0.5, "ratio": 1, "phase": 0},
+          {"amplitude": 1.0, "ratio": 2, "phase": 0},
+          {"amplitude": 0.3, "ratio": 3, "phase": 0},
+          {"amplitude": 0.8, "ratio": 4, "phase": 0},
+          {"amplitude": 0.2, "ratio": 5, "phase": 0},
+          {"amplitude": 0.6, "ratio": 6, "phase": 0},
+          {"amplitude": 0.15, "ratio": 7, "phase": 0},
+          {"amplitude": 0.4, "ratio": 8, "phase": 0},
+          {"amplitude": 0.1, "ratio": 9, "phase": 0},
+          {"amplitude": 0.3, "ratio": 10, "phase": 0},
+          {"amplitude": 0, "ratio": 11, "phase": 0},
+          {"amplitude": 0, "ratio": 12, "phase": 0},
+          {"amplitude": 0, "ratio": 13, "phase": 0},
+          {"amplitude": 0, "ratio": 14, "phase": 0},
+          {"amplitude": 0, "ratio": 15, "phase": 0},
+          {"amplitude": 0, "ratio": 16, "phase": 0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "Noise-ish",
+      "category": "FX",
+      "description": "Dense cluster of partials creating noise-like texture.",
+      "settings": {
+        "partials": [
+          {"amplitude": 0.5, "ratio": 1, "phase": 0},
+          {"amplitude": 0.5, "ratio": 1.13, "phase": 0.7},
+          {"amplitude": 0.5, "ratio": 2.37, "phase": 1.4},
+          {"amplitude": 0.5, "ratio": 3.71, "phase": 2.1},
+          {"amplitude": 0.5, "ratio": 5.19, "phase": 2.8},
+          {"amplitude": 0.5, "ratio": 6.83, "phase": 0.3},
+          {"amplitude": 0.5, "ratio": 8.61, "phase": 1.0},
+          {"amplitude": 0.5, "ratio": 10.53, "phase": 1.7},
+          {"amplitude": 0.5, "ratio": 12.67, "phase": 2.4},
+          {"amplitude": 0.5, "ratio": 14.97, "phase": 3.1},
+          {"amplitude": 0.5, "ratio": 17.43, "phase": 0.5},
+          {"amplitude": 0.5, "ratio": 20.11, "phase": 1.2},
+          {"amplitude": 0.5, "ratio": 23.07, "phase": 1.9},
+          {"amplitude": 0.5, "ratio": 26.29, "phase": 2.6},
+          {"amplitude": 0.5, "ratio": 29.83, "phase": 3.3},
+          {"amplitude": 0.5, "ratio": 31.97, "phase": 4.0}
+        ],
+        "drawbarMode": false,
+        "drawbars": [8, 0, 8, 0, 0, 0, 0, 0, 0]
+      }
+    }
+  ]
+}

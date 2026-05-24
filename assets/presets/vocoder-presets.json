@@ -1,0 +1,394 @@
+{
+  "presets": [
+    {
+      "name": "Robot Voice",
+      "category": "Classic Vocoder",
+      "description": "Classic robot voice with saw carrier.",
+      "settings": {
+        "carrierWaveform": "saw",
+        "vowel": "A",
+        "morphPosition": 0,
+        "bandCount": 16,
+        "formantShift": 0,
+        "filterQ": 8
+      }
+    },
+    {
+      "name": "Talk Box",
+      "category": "Classic Vocoder",
+      "description": "Talk box effect with square carrier.",
+      "settings": {
+        "carrierWaveform": "square",
+        "vowel": "A",
+        "morphPosition": 30,
+        "bandCount": 16,
+        "formantShift": 0,
+        "filterQ": 12
+      }
+    },
+    {
+      "name": "Kraftwerk",
+      "category": "Classic Vocoder",
+      "description": "Classic electronic voice in the style of Kraftwerk.",
+      "settings": {
+        "carrierWaveform": "saw",
+        "vowel": "E",
+        "morphPosition": 20,
+        "bandCount": 16,
+        "formantShift": 0,
+        "filterQ": 10
+      }
+    },
+    {
+      "name": "Daft Punk",
+      "category": "Classic Vocoder",
+      "description": "Around the world vocoder effect.",
+      "settings": {
+        "carrierWaveform": "saw",
+        "vowel": "O",
+        "morphPosition": 50,
+        "bandCount": 32,
+        "formantShift": 0,
+        "filterQ": 15
+      }
+    },
+    {
+      "name": "Cylon",
+      "category": "Classic Vocoder",
+      "description": "Menacing robotic Cylon voice.",
+      "settings": {
+        "carrierWaveform": "pulse",
+        "vowel": "I",
+        "morphPosition": 40,
+        "bandCount": 16,
+        "formantShift": -3,
+        "filterQ": 20
+      }
+    },
+    {
+      "name": "HAL 9000",
+      "category": "Classic Vocoder",
+      "description": "Calm, eerie computer voice.",
+      "settings": {
+        "carrierWaveform": "saw",
+        "vowel": "A",
+        "morphPosition": 10,
+        "bandCount": 32,
+        "formantShift": -2,
+        "filterQ": 6
+      }
+    },
+    {
+      "name": "Choir A",
+      "category": "Vowel Sounds",
+      "description": "Open A vowel choir sound.",
+      "settings": {
+        "carrierWaveform": "saw",
+        "vowel": "A",
+        "morphPosition": 0,
+        "bandCount": 16,
+        "formantShift": 0,
+        "filterQ": 8
+      }
+    },
+    {
+      "name": "Choir E",
+      "category": "Vowel Sounds",
+      "description": "Bright E vowel choir sound.",
+      "settings": {
+        "carrierWaveform": "saw",
+        "vowel": "E",
+        "morphPosition": 0,
+        "bandCount": 16,
+        "formantShift": 0,
+        "filterQ": 8
+      }
+    },
+    {
+      "name": "Choir I",
+      "category": "Vowel Sounds",
+      "description": "Narrow I vowel choir sound.",
+      "settings": {
+        "carrierWaveform": "saw",
+        "vowel": "I",
+        "morphPosition": 0,
+        "bandCount": 16,
+        "formantShift": 0,
+        "filterQ": 8
+      }
+    },
+    {
+      "name": "Choir O",
+      "category": "Vowel Sounds",
+      "description": "Round O vowel choir sound.",
+      "settings": {
+        "carrierWaveform": "saw",
+        "vowel": "O",
+        "morphPosition": 0,
+        "bandCount": 16,
+        "formantShift": 0,
+        "filterQ": 8
+      }
+    },
+    {
+      "name": "Choir U",
+      "category": "Vowel Sounds",
+      "description": "Deep U vowel choir sound.",
+      "settings": {
+        "carrierWaveform": "saw",
+        "vowel": "U",
+        "morphPosition": 0,
+        "bandCount": 16,
+        "formantShift": 0,
+        "filterQ": 8
+      }
+    },
+    {
+      "name": "Vocal Pad",
+      "category": "Pads",
+      "description": "Smooth vocal pad with wide bands.",
+      "settings": {
+        "carrierWaveform": "saw",
+        "vowel": "A",
+        "morphPosition": 50,
+        "bandCount": 8,
+        "formantShift": 0,
+        "filterQ": 4
+      }
+    },
+    {
+      "name": "Vowel Sweep",
+      "category": "Pads",
+      "description": "Sweeping vowel morph pad.",
+      "settings": {
+        "carrierWaveform": "saw",
+        "vowel": "A",
+        "morphPosition": 70,
+        "bandCount": 16,
+        "formantShift": 0,
+        "filterQ": 10
+      }
+    },
+    {
+      "name": "Breath Pad",
+      "category": "Pads",
+      "description": "Airy breathy pad from noise carrier.",
+      "settings": {
+        "carrierWaveform": "noise",
+        "vowel": "O",
+        "morphPosition": 30,
+        "bandCount": 16,
+        "formantShift": 2,
+        "filterQ": 6
+      }
+    },
+    {
+      "name": "Whisper",
+      "category": "Pads",
+      "description": "Whispered vocal texture.",
+      "settings": {
+        "carrierWaveform": "noise",
+        "vowel": "E",
+        "morphPosition": 20,
+        "bandCount": 32,
+        "formantShift": 4,
+        "filterQ": 5
+      }
+    },
+    {
+      "name": "Formant Drone",
+      "category": "Pads",
+      "description": "Deep droning formant pad.",
+      "settings": {
+        "carrierWaveform": "saw",
+        "vowel": "U",
+        "morphPosition": 10,
+        "bandCount": 16,
+        "formantShift": -5,
+        "filterQ": 12
+      }
+    },
+    {
+      "name": "Ethereal Voice",
+      "category": "Pads",
+      "description": "High ethereal vocal shimmer.",
+      "settings": {
+        "carrierWaveform": "saw",
+        "vowel": "I",
+        "morphPosition": 60,
+        "bandCount": 32,
+        "formantShift": 7,
+        "filterQ": 8
+      }
+    },
+    {
+      "name": "Talking Bass",
+      "category": "Bass",
+      "description": "Bass that talks with vowel formants.",
+      "settings": {
+        "carrierWaveform": "saw",
+        "vowel": "A",
+        "morphPosition": 40,
+        "bandCount": 16,
+        "formantShift": -5,
+        "filterQ": 15
+      }
+    },
+    {
+      "name": "Formant Bass",
+      "category": "Bass",
+      "description": "Deep formant-shaped bass.",
+      "settings": {
+        "carrierWaveform": "square",
+        "vowel": "O",
+        "morphPosition": 20,
+        "bandCount": 8,
+        "formantShift": -8,
+        "filterQ": 10
+      }
+    },
+    {
+      "name": "Growl Bass",
+      "category": "Bass",
+      "description": "Growling vocoder bass.",
+      "settings": {
+        "carrierWaveform": "saw",
+        "vowel": "U",
+        "morphPosition": 60,
+        "bandCount": 16,
+        "formantShift": -10,
+        "filterQ": 18
+      }
+    },
+    {
+      "name": "Sub Vowel",
+      "category": "Bass",
+      "description": "Sub-frequency vowel bass.",
+      "settings": {
+        "carrierWaveform": "square",
+        "vowel": "U",
+        "morphPosition": 0,
+        "bandCount": 8,
+        "formantShift": -12,
+        "filterQ": 6
+      }
+    },
+    {
+      "name": "Robot Bass",
+      "category": "Bass",
+      "description": "Mechanical robot bass tone.",
+      "settings": {
+        "carrierWaveform": "pulse",
+        "vowel": "A",
+        "morphPosition": 30,
+        "bandCount": 16,
+        "formantShift": -7,
+        "filterQ": 12
+      }
+    },
+    {
+      "name": "Alien Speech",
+      "category": "FX",
+      "description": "Alien language vocoder effect.",
+      "settings": {
+        "carrierWaveform": "pulse",
+        "vowel": "I",
+        "morphPosition": 80,
+        "bandCount": 32,
+        "formantShift": 8,
+        "filterQ": 20
+      }
+    },
+    {
+      "name": "Underwater Voice",
+      "category": "FX",
+      "description": "Submerged underwater vocal effect.",
+      "settings": {
+        "carrierWaveform": "saw",
+        "vowel": "O",
+        "morphPosition": 40,
+        "bandCount": 8,
+        "formantShift": -6,
+        "filterQ": 3
+      }
+    },
+    {
+      "name": "Radio Transmit",
+      "category": "FX",
+      "description": "Narrow-band radio transmission voice.",
+      "settings": {
+        "carrierWaveform": "square",
+        "vowel": "E",
+        "morphPosition": 10,
+        "bandCount": 8,
+        "formantShift": 3,
+        "filterQ": 25
+      }
+    },
+    {
+      "name": "Mosquito",
+      "category": "FX",
+      "description": "High-pitched buzzing mosquito effect.",
+      "settings": {
+        "carrierWaveform": "pulse",
+        "vowel": "I",
+        "morphPosition": 0,
+        "bandCount": 32,
+        "formantShift": 12,
+        "filterQ": 28
+      }
+    },
+    {
+      "name": "Wind Voice",
+      "category": "FX",
+      "description": "Windy, breathy voice texture.",
+      "settings": {
+        "carrierWaveform": "noise",
+        "vowel": "A",
+        "morphPosition": 50,
+        "bandCount": 16,
+        "formantShift": 0,
+        "filterQ": 4
+      }
+    },
+    {
+      "name": "Metallic Voice",
+      "category": "FX",
+      "description": "Cold metallic vocoder tone.",
+      "settings": {
+        "carrierWaveform": "square",
+        "vowel": "E",
+        "morphPosition": 60,
+        "bandCount": 32,
+        "formantShift": 5,
+        "filterQ": 22
+      }
+    },
+    {
+      "name": "Glitch Voice",
+      "category": "FX",
+      "description": "Glitchy digital voice artifact.",
+      "settings": {
+        "carrierWaveform": "pulse",
+        "vowel": "A",
+        "morphPosition": 90,
+        "bandCount": 8,
+        "formantShift": 10,
+        "filterQ": 30
+      }
+    },
+    {
+      "name": "Distorted Voice",
+      "category": "FX",
+      "description": "Heavily distorted vocoder voice.",
+      "settings": {
+        "carrierWaveform": "saw",
+        "vowel": "A",
+        "morphPosition": 70,
+        "bandCount": 8,
+        "formantShift": -3,
+        "filterQ": 28
+      }
+    }
+  ]
+}
