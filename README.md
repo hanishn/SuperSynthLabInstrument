@@ -19,15 +19,27 @@ SSLI is the instrument module of the larger Super Synth Lab project. Commercial 
 - **Touch velocity** -- pressure-sensitive touch input on supported devices
 - **Fully private** -- no data collection, no audio recording, no accounts. All settings stored locally on your device.
 
+## Building from Source
+
+Requires Python 3.6+. No other dependencies.
+
+```
+python build.py
+```
+
+Produces `dist/index.html` -- a self-contained file with all CSS, JS, and data inlined.
+
 ## Running
 
-Open `index.html` in any modern browser (Chrome, Firefox, Safari, Edge). No build step or server required.
+Open `index.html` (or `dist/index.html` after building) in any modern browser (Chrome, Firefox, Safari, Edge). No server required.
 
 Or visit the hosted version: **https://hanishn.github.io/SuperSynthLabInstrument/**
 
 ## Creator
 
 Nathan Hanish
+
+Built with the help of [Claude Code](https://claude.ai/code) and [Stardock Clairvoyance](https://www.stardock.com/products/clairvoyance/).
 
 ## License
 
