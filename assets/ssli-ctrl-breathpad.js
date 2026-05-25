@@ -24,6 +24,8 @@
   var DEFAULT_CONTAINER_WIDTH = 800;
   var DEFAULT_CONTAINER_HEIGHT = 300;
 
+  var NO_SAVED_SUSTAIN = null;
+
   var PAD_PADDING_PX = 10;
   var SEMITONES_PER_OCTAVE = 12;
   var OCTAVE_BASE_OFFSET = 1; // baseOctave 3 -> MIDI octave 4 (C4 = 60)
@@ -77,8 +79,8 @@
   // State
   // ============================================================
 
-  var _active = false;
-  var _activePointerId = -1;
+  var _isActive = false;
+  var _isActivePointerId = -1;
   var _currentMidi = -1;
   var _rootPc = DEFAULT_ROOT_PC;
   var _currentNoteButtons = null;
@@ -193,7 +195,7 @@
   function _startVibratoLoop() {
     _animStartMs = (typeof performance !== 'undefined') ? performance.now() : Date.now();
     function tick() {
-      if (!_active) { return; }
+      if (!_isActive) { return; }
       var nowMs = (typeof performance !== 'undefined') ? performance.now() : Date.now();
       var deltaYPx = _lastY - _strikeY;
       var depth = _effectivePressure(_lastPressure, deltaYPx);
@@ -216,9 +218,9 @@
 
   // Document-level safety: release note even if pointer goes up outside pad.
   function _releaseActivePointer() {
-    if (!_active) { return; }
-    _active = false;
-    _activePointerId = -1;
+    if (!_isActive) { return; }
+    _isActive = false;
+    _isActivePointerId = -1;
     _stopVibratoLoop();
     if (_currentResetPitchBend) { _currentResetPitchBend(); }
     if (_currentNoteOff && _currentMidi >= 0) { _currentNoteOff(_currentMidi); }
@@ -226,11 +228,13 @@
     _hideVisual();
     _currentMidi = -1;
     // Restore the preset's original sustain value we overrode on pointerdown.
-    if (_savedSustain !== null && _savedSustainInst >= 0
-        && SL.audio && SL.audio.getInstruments) {
+    var hasSavedSustain = _savedSustain !== NO_SAVED_SUSTAIN && _savedSustainInst >= 0;
+    var canRestoreSustain = hasSavedSustain && SL.audio && SL.audio.getInstruments;
+    if (canRestoreSustain) {
       var insts = SL.audio.getInstruments();
       var inst = insts ? insts[_savedSustainInst] : null;
-      if (inst && inst.settings && inst.settings.adsr) {
+      var hasAdsrForBreathpadRestore = inst && inst.settings && inst.settings.adsr;
+      if (hasAdsrForBreathpadRestore) {
         inst.settings.adsr.s = _savedSustain;
       }
       _savedSustain = null;
@@ -241,8 +245,8 @@
   function _documentPointerUp(e) {
     // Only release if this is the pad's own pointer, not a second finger
     // lifting off a note button while the pad drag is still active.
-    var isOurPointer = (typeof e.pointerId !== 'undefined') && (e.pointerId === _activePointerId);
-    if (_active && isOurPointer) {
+    var isOurPointer = (typeof e.pointerId !== 'undefined') && (e.pointerId === _isActivePointerId);
+    if (_isActive && isOurPointer) {
       _releaseActivePointer();
     }
   }
@@ -320,7 +324,7 @@
           // Use pointerdown instead of click so the note change fires
           // immediately when a second finger taps a note button while the
           // first finger is still holding the pad. Click fires AFTER
-          // pointerup, at which point _active is already false because
+          // pointerup, at which point _isActive is already false because
           // pointer capture release kills the pad's active state first.
           btn.addEventListener('pointerdown', function(ev) {
             ev.preventDefault();
@@ -332,7 +336,7 @@
             _refreshNoteActiveStyles();
             // If the pad is active (another finger is on it), retrigger
             // the note at the new pitch class.
-            var padIsActive = _active;
+            var padIsActive = _isActive;
             var rootChanged = (capturedPc !== oldRootPc);
             if (padIsActive && rootChanged) {
               var oldMidi = _currentMidi;
@@ -545,23 +549,26 @@
     }
 
     function _onPointerDown(e) {
-      if (_active) { return; }
+      if (_isActive) { return; }
       e.preventDefault();
       if (pad.setPointerCapture && typeof e.pointerId !== 'undefined') {
-        try { pad.setPointerCapture(e.pointerId); } catch (err) { /* capture best-effort */ }
+        try { pad.setPointerCapture(e.pointerId); } catch (err) { /* pointer capture is best-effort */ }
       }
-      _active = true;
-      _activePointerId = (typeof e.pointerId !== 'undefined') ? e.pointerId : -1;
+      _isActive = true;
+      _isActivePointerId = (typeof e.pointerId !== 'undefined') ? e.pointerId : -1;
       // Force sustain to 100% on the current instrument before note-on so the
       // envelope holds at full amplitude while the pad is held. Restore on
       // pointer-up in _releaseActivePointer. Guarded by getInstruments/
       // getCurrentInstrument existence so tests without full SL.audio still
       // work.
-      if (SL.audio && SL.audio.getInstruments && SL.audio.getCurrentInstrument) {
+      var canQueryPadInstrument = SL.audio && SL.audio.getInstruments;
+      var hasPadInstrumentQuery = canQueryPadInstrument && SL.audio.getCurrentInstrument;
+      if (hasPadInstrumentQuery) {
         var instId = SL.audio.getCurrentInstrument();
         var insts = SL.audio.getInstruments();
         var inst = insts ? insts[instId] : null;
-        if (inst && inst.settings && inst.settings.adsr) {
+        var hasAdsrForPadSustain = inst && inst.settings && inst.settings.adsr;
+        if (hasAdsrForPadSustain) {
           _savedSustainInst = instId;
           _savedSustain = inst.settings.adsr.s;
           inst.settings.adsr.s = BREATH_HELD_SUSTAIN;
@@ -575,12 +582,12 @@
     }
 
     function _onPointerMove(e) {
-      if (!_active) { return; }
+      if (!_isActive) { return; }
       _applyAtPointer(e, false);
     }
 
     function _onPointerUp(e) {
-      if (!_active) { return; }
+      if (!_isActive) { return; }
       _releaseActivePointer();
     }
 
@@ -592,7 +599,7 @@
       // have pointer capture, re-capture instead of releasing the note. If
       // capture fails, the document-level pointerup safety net will clean up.
       if (pad.setPointerCapture && typeof e.pointerId !== 'undefined') {
-        try { pad.setPointerCapture(e.pointerId); return; } catch (err) { /* fall through to release */ }
+        try { pad.setPointerCapture(e.pointerId); return; } catch (err) { /* capture failed; fall through to release handler */ }
       }
       _releaseActivePointer();
     });
@@ -622,7 +629,7 @@
       'voices',
       'breathpad.pointer',
       function() { _releaseActivePointer(); },
-      function() { return _active ? 'pointer active' : null; }
+      function() { return _isActive ? 'pointer active' : null; }
     );
   }
 

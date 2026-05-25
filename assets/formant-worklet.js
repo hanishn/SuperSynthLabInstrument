@@ -422,7 +422,9 @@ class FormantWorkletProcessor extends AudioWorkletProcessor {
     );
 
     // Handle vowel sequence auto-cycling
-    if (this.vowelSequenceEnabled && this.vowelSequence && this.vowelSequence.length > 1) {
+    var hasVowelSeq = this.vowelSequence && this.vowelSequence.length > 1;
+    var shouldCycleVowelSeq = this.vowelSequenceEnabled && hasVowelSeq;
+    if (shouldCycleVowelSeq) {
       var seqLen = this.vowelSequence.length;
       var samplesPerVowel = Math.max(1, Math.round(this.sr / this.vowelSequenceRate));
       this._seqCounter += blockSize;

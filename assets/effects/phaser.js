@@ -2,8 +2,8 @@
 // Creates sweeping notch filters using allpass filter stages modulated by an LFO
 
 (function() {
-  const SL = window.SynthLab;
-  const BaseEffect = SL.effects.BaseEffect;
+  var SL = window.SynthLab;
+  var BaseEffect = SL.effects.BaseEffect;
 
   /**
    * PhaserEffect - Multi-stage allpass filter phaser
@@ -75,17 +75,17 @@
       this.lfoGains = [];
 
       // Create new allpass filters
-      for (let i = 0; i < numStages; i++) {
-        const filter = this.ctx.createBiquadFilter();
+      for (var i = 0; i < numStages; i++) {
+        var filter = this.ctx.createBiquadFilter();
         filter.type = 'allpass';
         filter.frequency.value = this.params.baseFreq;
         filter.Q.value = 0.5; // Low Q for allpass
         this.allpassFilters.push(filter);
 
         // Create LFO gain for this stage with slight variation for richer sound
-        const lfoGain = this.ctx.createGain();
+        var lfoGain = this.ctx.createGain();
         // Each stage gets slightly different modulation depth for complexity
-        const stageDepthFactor = 1 + (i * 0.1);
+        var stageDepthFactor = 1 + (i * 0.1);
         lfoGain.gain.value = this._calculateLfoDepth() * stageDepthFactor;
         this.lfoGains.push(lfoGain);
 
@@ -104,7 +104,7 @@
     _calculateLfoDepth() {
       // Depth controls how many Hz the LFO sweeps
       // At depth 100, sweep from baseFreq/4 to baseFreq*4 (2 octaves each direction)
-      const maxSweep = this.params.baseFreq * 0.8;
+      var maxSweep = this.params.baseFreq * 0.8;
       return (this.params.depth / 100) * maxSweep;
     }
 
@@ -119,13 +119,13 @@
       this.feedbackGain.disconnect();
 
       // Disconnect all filters
-      this.allpassFilters.forEach(filter => {
+      this.allpassFilters.forEach(function(filter) {
         filter.disconnect();
       });
 
       // Disconnect LFO from gains
       this.lfo.disconnect();
-      this.lfoGains.forEach(gain => {
+      this.lfoGains.forEach(function(gain) {
         gain.disconnect();
       });
     }
@@ -143,8 +143,9 @@
       this.input.connect(this.inputMixer);
 
       // Chain the allpass filters
-      let currentNode = this.inputMixer;
-      this.allpassFilters.forEach(filter => {
+      var currentNode = this.inputMixer;
+      var self = this;
+      this.allpassFilters.forEach(function(filter) {
         currentNode.connect(filter);
         currentNode = filter;
       });
@@ -157,9 +158,9 @@
       this.feedbackGain.connect(this.inputMixer);
 
       // Reconnect LFO to all gain nodes
-      this.lfoGains.forEach((gain, i) => {
-        this.lfo.connect(gain);
-        gain.connect(this.allpassFilters[i].frequency);
+      this.lfoGains.forEach(function(gain, i) {
+        self.lfo.connect(gain);
+        gain.connect(self.allpassFilters[i].frequency);
       });
     }
 
@@ -167,9 +168,10 @@
      * Update all filter frequencies to the base frequency
      */
     _updateFilterFrequencies() {
-      const baseFreq = this.params.baseFreq;
-      this.allpassFilters.forEach(filter => {
-        filter.frequency.setTargetAtTime(baseFreq, this.ctx.currentTime, 0.01);
+      var self = this;
+      var baseFreq = this.params.baseFreq;
+      this.allpassFilters.forEach(function(filter) {
+        filter.frequency.setTargetAtTime(baseFreq, self.ctx.currentTime, 0.01);
       });
     }
 
@@ -177,10 +179,11 @@
      * Update all LFO gain values based on current depth
      */
     _updateLfoDepths() {
-      const baseDepth = this._calculateLfoDepth();
-      this.lfoGains.forEach((gain, i) => {
-        const stageDepthFactor = 1 + (i * 0.1);
-        gain.gain.setTargetAtTime(baseDepth * stageDepthFactor, this.ctx.currentTime, 0.01);
+      var self = this;
+      var baseDepth = this._calculateLfoDepth();
+      this.lfoGains.forEach(function(gain, i) {
+        var stageDepthFactor = 1 + (i * 0.1);
+        gain.gain.setTargetAtTime(baseDepth * stageDepthFactor, self.ctx.currentTime, 0.01);
       });
     }
 
@@ -203,7 +206,7 @@
 
         case 'stages':
           // Number of allpass stages (even numbers 2-12)
-          const newStages = Math.max(2, Math.min(12, Math.floor(value / 2) * 2));
+          var newStages = Math.max(2, Math.min(12, Math.floor(value / 2) * 2));
           if (newStages !== this.params.stages) {
             this.params.stages = newStages;
             this._buildFilterChain(newStages);

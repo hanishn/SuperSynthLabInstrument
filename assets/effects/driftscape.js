@@ -56,6 +56,8 @@
   var DROPOUT_RESCHEDULE_INTERVAL_S = 1.0; // top up every 1 s
   var DROPOUT_RESCHEDULE_INTERVAL_MS = 1000;
 
+  var NO_TIMER = null;
+
   // Saturation (tanh WaveShaper)
   var SAT_CURVE_SAMPLES = 2048;
   var SAT_DRIVE_MIN = 1.0;   // transparent
@@ -232,47 +234,46 @@
       // Hold nominal. Re-anchor schedule clock to now so we don't pile events later.
       try {
         this.dropoutGain.gain.setValueAtTime(DROPOUT_NOMINAL_GAIN, nowT);
-      } catch (e) { /* ignore */ }
+      } catch (e) { /* audio param scheduling may fail if context is closed */ }
       this._dropoutScheduledUntil = horizon;
-      return;
+    } else {
+      var t = startT;
+      var safetyMax = 128;
+      var iter = 0;
+      while (t < horizon && iter < safetyMax) {
+        // exponential inter-arrival
+        var u = Math.random();
+        if (u < 1e-6) { u = 1e-6; }
+        var dt = -Math.log(u) / rate;
+        t = t + dt;
+        if (t >= horizon) { break; }
+
+        var duration = DROPOUT_DURATION_MIN_S +
+          Math.random() * (DROPOUT_DURATION_MAX_S - DROPOUT_DURATION_MIN_S);
+        var edge = duration * DROPOUT_EDGE_FRACTION;
+        var tStart = t;
+        var tDown = tStart + edge;
+        var tUpStart = tStart + duration - edge;
+        var tUpEnd = tStart + duration;
+
+        try {
+          this.dropoutGain.gain.setValueAtTime(DROPOUT_NOMINAL_GAIN, tStart);
+          this.dropoutGain.gain.linearRampToValueAtTime(DROPOUT_MIN_GAIN, tDown);
+          this.dropoutGain.gain.setValueAtTime(DROPOUT_MIN_GAIN, tUpStart);
+          this.dropoutGain.gain.linearRampToValueAtTime(DROPOUT_NOMINAL_GAIN, tUpEnd);
+        } catch (e) { /* ignore scheduling errors on disposed contexts */ }
+
+        t = tUpEnd;
+        iter++;
+      }
+
+      this._dropoutScheduledUntil = horizon;
     }
-
-    var t = startT;
-    var safetyMax = 128;
-    var iter = 0;
-    while (t < horizon && iter < safetyMax) {
-      // exponential inter-arrival
-      var u = Math.random();
-      if (u < 1e-6) { u = 1e-6; }
-      var dt = -Math.log(u) / rate;
-      t = t + dt;
-      if (t >= horizon) { break; }
-
-      var duration = DROPOUT_DURATION_MIN_S +
-        Math.random() * (DROPOUT_DURATION_MAX_S - DROPOUT_DURATION_MIN_S);
-      var edge = duration * DROPOUT_EDGE_FRACTION;
-      var tStart = t;
-      var tDown = tStart + edge;
-      var tUpStart = tStart + duration - edge;
-      var tUpEnd = tStart + duration;
-
-      try {
-        this.dropoutGain.gain.setValueAtTime(DROPOUT_NOMINAL_GAIN, tStart);
-        this.dropoutGain.gain.linearRampToValueAtTime(DROPOUT_MIN_GAIN, tDown);
-        this.dropoutGain.gain.setValueAtTime(DROPOUT_MIN_GAIN, tUpStart);
-        this.dropoutGain.gain.linearRampToValueAtTime(DROPOUT_NOMINAL_GAIN, tUpEnd);
-      } catch (e) { /* ignore scheduling errors on disposed contexts */ }
-
-      t = tUpEnd;
-      iter++;
-    }
-
-    this._dropoutScheduledUntil = horizon;
   };
 
   DriftscapeEffect.prototype._startDropoutTimer = function() {
     var self = this;
-    if (self._dropoutTimer !== null) { return; }
+    if (self._dropoutTimer !== NO_TIMER) { return; }
     // setInterval is only meaningful in a realtime context; OfflineAudioContext
     // probes should call _scheduleDropouts() explicitly before rendering.
     if (typeof setInterval === 'function') {
@@ -283,7 +284,7 @@
   };
 
   DriftscapeEffect.prototype._stopDropoutTimer = function() {
-    if (this._dropoutTimer !== null && typeof clearInterval === 'function') {
+    if (this._dropoutTimer !== NO_TIMER && typeof clearInterval === 'function') {
       clearInterval(this._dropoutTimer);
       this._dropoutTimer = null;
     }
@@ -316,7 +317,7 @@
         this.dropoutGain.gain.linearRampToValueAtTime(DROPOUT_MIN_GAIN, tDown);
         this.dropoutGain.gain.setValueAtTime(DROPOUT_MIN_GAIN, tUpStart);
         this.dropoutGain.gain.linearRampToValueAtTime(DROPOUT_NOMINAL_GAIN, tUpEnd);
-      } catch (e) { /* ignore */ }
+      } catch (e) { /* audio param scheduling may fail if context is closed */ }
       t = tUpEnd;
       iter++;
     }
@@ -345,42 +346,41 @@
       if (typeof this.setMix === 'function') {
         this.setMix(clampedMix);
       }
-      return;
-    }
+    } else {
+      var unit = clampUnit(value);
 
-    var unit = clampUnit(value);
-
-    switch (name) {
-      case 'wowDepth':
-        this.params.wowDepth = unit;
-        this.wowGain.gain.setTargetAtTime(this._calcWowDepthS(), t, SMOOTH_TC);
-        break;
-      case 'wowRate':
-        this.params.wowRate = unit;
-        this.wowLfo.frequency.setTargetAtTime(this._calcWowRateHz(), t, SMOOTH_TC);
-        break;
-      case 'flutterDepth':
-        this.params.flutterDepth = unit;
-        this.flutterGain.gain.setTargetAtTime(this._calcFlutterDepthS(), t, SMOOTH_TC);
-        break;
-      case 'flutterRate':
-        this.params.flutterRate = unit;
-        this.flutterLfo.frequency.setTargetAtTime(this._calcFlutterRateHz(), t, SMOOTH_TC);
-        break;
-      case 'dropoutDensity':
-        this.params.dropoutDensity = unit;
-        // Let the next scheduler tick pick up new density naturally.
-        break;
-      case 'saturation':
-        this.params.saturation = unit;
-        this.satShaper.curve = this._buildSatCurve();
-        break;
-      case 'warmth':
-        this.params.warmth = unit;
-        this.warmthLP.frequency.setTargetAtTime(this._calcWarmthCutoffHz(), t, SMOOTH_TC);
-        break;
-      default:
-        break;
+      switch (name) {
+        case 'wowDepth':
+          this.params.wowDepth = unit;
+          this.wowGain.gain.setTargetAtTime(this._calcWowDepthS(), t, SMOOTH_TC);
+          break;
+        case 'wowRate':
+          this.params.wowRate = unit;
+          this.wowLfo.frequency.setTargetAtTime(this._calcWowRateHz(), t, SMOOTH_TC);
+          break;
+        case 'flutterDepth':
+          this.params.flutterDepth = unit;
+          this.flutterGain.gain.setTargetAtTime(this._calcFlutterDepthS(), t, SMOOTH_TC);
+          break;
+        case 'flutterRate':
+          this.params.flutterRate = unit;
+          this.flutterLfo.frequency.setTargetAtTime(this._calcFlutterRateHz(), t, SMOOTH_TC);
+          break;
+        case 'dropoutDensity':
+          this.params.dropoutDensity = unit;
+          // Let the next scheduler tick pick up new density naturally.
+          break;
+        case 'saturation':
+          this.params.saturation = unit;
+          this.satShaper.curve = this._buildSatCurve();
+          break;
+        case 'warmth':
+          this.params.warmth = unit;
+          this.warmthLP.frequency.setTargetAtTime(this._calcWarmthCutoffHz(), t, SMOOTH_TC);
+          break;
+        default:
+          break;
+      }
     }
   };
 

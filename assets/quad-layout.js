@@ -9,6 +9,8 @@ var SynthLab = window.SynthLab || {};
 SynthLab.quad = (function() {
     'use strict';
 
+    var NOT_FOUND = -1;  /* sentinel: indexOf / search returned no match */
+
     // ========================================================================
     // Platform Tiers
     // ========================================================================
@@ -26,6 +28,9 @@ SynthLab.quad = (function() {
     var _swipeStartX = 0;
     var _swipeStartY = 0;
     var _swipeThreshold = 50;
+
+    // Interactive element tags that block swipe gestures
+    var SWIPE_BLOCK_TAGS = { 'INPUT': 1, 'SELECT': 1, 'TEXTAREA': 1, 'CANVAS': 1 };
 
     // ========================================================================
     // Tier Detection
@@ -98,8 +103,8 @@ SynthLab.quad = (function() {
         if (_hamburgerBtn) return;
         _hamburgerBtn = document.createElement('button');
         _hamburgerBtn.className = 'sslu-hamburger-btn';
-        _hamburgerBtn.textContent = '\u2302';
-        _hamburgerBtn.setAttribute('aria-label', 'Open navigation menu');
+        _hamburgerBtn.textContent = SL.t('nav.home_icon');
+        _hamburgerBtn.setAttribute('aria-label', SL.t('nav.open_menu'));
         _hamburgerBtn.addEventListener('click', function(e) {
             e.stopPropagation();
             _openHamburgerOverlay();
@@ -131,7 +136,10 @@ SynthLab.quad = (function() {
         sb.classList.remove('fullscreen');
         void sb.offsetHeight; // trigger reflow
         sb.classList.add('fullscreen');
-        sb.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;width:100%;min-width:100%;z-index:10000;background:#0a0a1a;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:16px 24px 6px;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;';
+        sb.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;' +
+            'width:100%;min-width:100%;z-index:10000;background:#0a0a1a;' +
+            'display:flex;flex-direction:column;align-items:center;justify-content:flex-start;' +
+            'padding:16px 24px 6px;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;';
         if (_hamburgerBtn) {
             _hamburgerBtn.style.display = 'none';
         }
@@ -285,7 +293,7 @@ SynthLab.quad = (function() {
         _dotToggle = document.createElement('div');
         _dotToggle.className = 'sslu-dot-toggle';
         _dotToggle.setAttribute('role', 'navigation');
-        _dotToggle.setAttribute('aria-label', 'Quad switcher');
+        _dotToggle.setAttribute('aria-label', SL.t('nav.quad_switcher'));
         document.body.appendChild(_dotToggle);
     }
 
@@ -293,8 +301,7 @@ SynthLab.quad = (function() {
         _createDotToggle();
         if (wf.count < 2) {
             _dotToggle.style.display = 'none';
-            return;
-        }
+        } else {
 
         var html = '';
         _dotToggle.classList.remove('sslu-dot-toggle-rows');
@@ -309,7 +316,7 @@ SynthLab.quad = (function() {
                     (isActive ? ' aria-current="true"' : '') +
                     '>' + dotIcon + '</button>';
         }
-        _dotToggle.innerHTML = html;
+        _dotToggle.innerHTML = html; /* trusted: computed from internal state (QUAD_ICONS + labels) */
         _dotToggle.style.display = '';
 
         // Attach click handlers
@@ -318,11 +325,12 @@ SynthLab.quad = (function() {
             (function(dot) {
                 dot.addEventListener('click', function(e) {
                     e.stopPropagation();
-                    var idx = parseInt(dot.getAttribute('data-quad'), 10);
-                    _switchQuad(idx);
+                    var index = parseInt(dot.getAttribute('data-quad'), 10);
+                    _switchQuad(index);
                 });
             })(dots[d]);
         }
+        } // end else (wf.count >= 2)
     }
 
     function _hideDotToggle() {
@@ -334,12 +342,15 @@ SynthLab.quad = (function() {
     function _switchQuad(index) {
         if (!_activeWorkflow || !_workflows[_activeWorkflow]) return;
         var wf = _workflows[_activeWorkflow];
-        if (index < 0 || index >= wf.quads.length || !wf.quads[index]) return;
+        var isOutOfQuadRange = index < 0 || index >= wf.quads.length || !wf.quads[index];
+        if (isOutOfQuadRange) { return; }
 
         var oldIndex = _activeQuadIndex;
 
         // Slide transition on phone tiers (Fix 28)
-        if (_isPhoneTier() && oldIndex !== index && wf.quads[oldIndex]) {
+        var isPhoneSlide = _isPhoneTier() && oldIndex !== index;
+        var canAnimateSlide = isPhoneSlide && wf.quads[oldIndex];
+        if (canAnimateSlide) {
             var outgoing = wf.quads[oldIndex];
             var incoming = wf.quads[index];
             var slideDir = (index > oldIndex) ? -1 : 1;
@@ -385,34 +396,34 @@ SynthLab.quad = (function() {
     function _isInteractiveTarget(el) {
         while (el && el !== document.body) {
             var tag = el.tagName;
-            if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || tag === 'CANVAS') return true;
+            if (SWIPE_BLOCK_TAGS[tag]) return true;
             if (tag === 'BUTTON' && !el.classList.contains('sslu-dot')) return true;
             // Piano keys, drum pads, sound buttons, sliders, knobs
             var cls = el.className || '';
-            if (cls.indexOf('key') !== -1 || cls.indexOf('pad') !== -1 ||
-                cls.indexOf('fader') !== -1 || cls.indexOf('knob') !== -1 ||
-                cls.indexOf('slider') !== -1 || cls.indexOf('btn') !== -1 ||
-                cls.indexOf('sound') !== -1 || cls.indexOf('chord') !== -1 ||
-                cls.indexOf('grid-cell') !== -1 || cls.indexOf('iso-') !== -1) return true;
+            if (cls.indexOf('key') !== NOT_FOUND || cls.indexOf('pad') !== NOT_FOUND ||
+                cls.indexOf('fader') !== NOT_FOUND || cls.indexOf('knob') !== NOT_FOUND ||
+                cls.indexOf('slider') !== NOT_FOUND || cls.indexOf('btn') !== NOT_FOUND ||
+                cls.indexOf('sound') !== NOT_FOUND || cls.indexOf('chord') !== NOT_FOUND ||
+                cls.indexOf('grid-cell') !== NOT_FOUND || cls.indexOf('iso-') !== NOT_FOUND) return true;
             el = el.parentNode;
         }
         return false;
     }
 
     function _initSwipe() {
-        var _swipeBlocked = false;
+        var _isSwipeBlocked = false;
 
         document.addEventListener('touchstart', function(e) {
             if (!_isPhoneTier() || !_activeWorkflow) return;
             // Block swipe if touch starts on an interactive element
-            _swipeBlocked = _isInteractiveTarget(e.target);
+            _isSwipeBlocked = _isInteractiveTarget(e.target);
             _swipeStartX = e.changedTouches[0].clientX;
             _swipeStartY = e.changedTouches[0].clientY;
         }, { passive: true });
 
         document.addEventListener('touchend', function(e) {
             if (!_isPhoneTier() || !_activeWorkflow) return;
-            if (_swipeBlocked) return;
+            if (_isSwipeBlocked) return;
             if (!_workflows[_activeWorkflow]) return;
 
             var dx = e.changedTouches[0].clientX - _swipeStartX;
@@ -442,7 +453,9 @@ SynthLab.quad = (function() {
             }
 
             var newIndex = navRow * 2 + navCol;
-            if (newIndex !== _activeQuadIndex && newIndex < wf.quads.length && wf.quads[newIndex]) {
+            var isNewQuad = newIndex !== _activeQuadIndex && newIndex < wf.quads.length;
+            var hasNewQuadElement = isNewQuad && wf.quads[newIndex];
+            if (hasNewQuadElement) {
                 _switchQuad(newIndex);
             }
         }, { passive: true });
@@ -493,10 +506,10 @@ SynthLab.quad = (function() {
      */
     function _initIOSAudioResume() {
         // Resume audio on first user gesture (iOS requires this)
-        var firstGestureHandled = false;
+        var hasFirstGestureHandled = false;
         function resumeAudioOnGesture() {
-            if (firstGestureHandled) return;
-            firstGestureHandled = true;
+            if (hasFirstGestureHandled) return;
+            hasFirstGestureHandled = true;
             _tryResumeAudio();
             document.removeEventListener('touchstart', resumeAudioOnGesture, true);
             document.removeEventListener('click', resumeAudioOnGesture, true);
@@ -519,7 +532,9 @@ SynthLab.quad = (function() {
     }
 
     function _tryResumeAudio() {
-        if (window.SynthLab && SynthLab.audio && SynthLab.audio.getCtx) {
+        var hasSynthLabAudio = window.SynthLab && SynthLab.audio;
+        var canGetAudioCtx = hasSynthLabAudio && SynthLab.audio.getCtx;
+        if (canGetAudioCtx) {
             try {
                 var ctx = SynthLab.audio.getCtx();
                 if (ctx && ctx.state === 'suspended') {
@@ -534,9 +549,7 @@ SynthLab.quad = (function() {
                         }
                     });
                 }
-            } catch (e) {
-                // Context may not be ready yet
-            }
+            } catch (e) { /* audio context may not be ready yet */ }
         }
     }
 
@@ -549,9 +562,7 @@ SynthLab.quad = (function() {
                 _wakeLock.addEventListener('release', function() {
                     _wakeLock = null;
                 });
-            }).catch(function() {
-                // Wake lock not available or denied
-            });
+            }).catch(function() { /* wake lock not available or denied */ });
         }
     }
 
@@ -579,7 +590,7 @@ SynthLab.quad = (function() {
         }
         _silenceTimerId = setTimeout(function() {
             if (_wakeLock) {
-                _wakeLock.release().catch(function() {});
+                _wakeLock.release().catch(function() { /* release failure is non-fatal */ });
                 _wakeLock = null;
             }
         }, SILENCE_TIMEOUT_MS);

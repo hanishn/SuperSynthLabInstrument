@@ -2,77 +2,76 @@
 // Reduces bit depth and sample rate for lo-fi digital distortion
 
 (function() {
-  const SL = window.SynthLab;
-  const BaseEffect = SL.effects.BaseEffect;
+  var SL = window.SynthLab;
+  var BaseEffect = SL.effects.BaseEffect;
 
-  // AudioWorklet processor code as a string for inline registration
-  const workletCode = `
-class BitcrushProcessor extends AudioWorkletProcessor {
-  static get parameterDescriptors() {
-    return [
-      { name: 'bits', defaultValue: 8, minValue: 1, maxValue: 16 },
-      { name: 'downsample', defaultValue: 1, minValue: 1, maxValue: 50 }
-    ];
-  }
-
-  constructor() {
-    super();
-    this.lastSampleL = 0;
-    this.lastSampleR = 0;
-    this.sampleCounter = 0;
-  }
-
-  process(inputs, outputs, parameters) {
-    const input = inputs[0];
-    const output = outputs[0];
-
-    if (!input || !input.length) {
-      return true;
-    }
-
-    // Get parameter values (may be arrays for a-rate or single values for k-rate)
-    const bitsParam = parameters.bits;
-    const downsampleParam = parameters.downsample;
-
-    const bits = bitsParam.length > 1 ? bitsParam : bitsParam[0];
-    const downsample = downsampleParam.length > 1 ? downsampleParam : Math.floor(downsampleParam[0]);
-
-    // Process each channel
-    for (let channel = 0; channel < output.length; channel++) {
-      const inputChannel = input[channel] || input[0]; // Fallback to first channel if mono
-      const outputChannel = output[channel];
-
-      if (!inputChannel || !outputChannel) continue;
-
-      for (let i = 0; i < outputChannel.length; i++) {
-        // Get current parameter values (handle both a-rate and k-rate)
-        const currentBits = Array.isArray(bits) ? bits[i] : bits;
-        const currentDownsample = Array.isArray(downsample) ? Math.floor(downsample[i]) : downsample;
-
-        // Calculate step size for bit reduction
-        const step = Math.pow(0.5, currentBits);
-
-        this.sampleCounter++;
-        if (this.sampleCounter >= currentDownsample) {
-          this.sampleCounter = 0;
-          // Bit reduction: quantize to step size
-          const quantized = step * Math.floor(inputChannel[i] / step + 0.5);
-
-          if (channel === 0) {
-            this.lastSampleL = quantized;
-          } else {
-            this.lastSampleR = quantized;
-          }
-        }
-
-        outputChannel[i] = channel === 0 ? this.lastSampleL : this.lastSampleR;
-      }
-    }
-    return true;
-  }
-}
-registerProcessor('bitcrush-processor', BitcrushProcessor);
-`;
+  // AudioWorkvar processor code as a string for inline registration
+  var workletCode =
+    'class BitcrushProcessor extends AudioWorkletProcessor {\n' +
+    '  static get parameterDescriptors() {\n' +
+    '    return [\n' +
+    '      { name: \'bits\', defaultValue: 8, minValue: 1, maxValue: 16 },\n' +
+    '      { name: \'downsample\', defaultValue: 1, minValue: 1, maxValue: 50 }\n' +
+    '    ];\n' +
+    '  }\n' +
+    '\n' +
+    '  constructor() {\n' +
+    '    super();\n' +
+    '    this.lastSampleL = 0;\n' +
+    '    this.lastSampleR = 0;\n' +
+    '    this.sampleCounter = 0;\n' +
+    '  }\n' +
+    '\n' +
+    '  process(inputs, outputs, parameters) {\n' +
+    '    var input = inputs[0];\n' +
+    '    var output = outputs[0];\n' +
+    '\n' +
+    '    if (!input || !input.length) {\n' +
+    '      return true;\n' +
+    '    }\n' +
+    '\n' +
+    '    // Get parameter values (may be arrays for a-rate or single values for k-rate)\n' +
+    '    var bitsParam = parameters.bits;\n' +
+    '    var downsampleParam = parameters.downsample;\n' +
+    '\n' +
+    '    var bits = bitsParam.length > 1 ? bitsParam : bitsParam[0];\n' +
+    '    var downsample = downsampleParam.length > 1 ? downsampleParam : Math.floor(downsampleParam[0]);\n' +
+    '\n' +
+    '    // Process each channel\n' +
+    '    for (var channel = 0; channel < output.length; channel++) {\n' +
+    '      var inputChannel = input[channel] || input[0]; // Fallback to first channel if mono\n' +
+    '      var outputChannel = output[channel];\n' +
+    '\n' +
+    '      if (!inputChannel || !outputChannel) continue;\n' +
+    '\n' +
+    '      for (var i = 0; i < outputChannel.length; i++) {\n' +
+    '        // Get current parameter values (handle both a-rate and k-rate)\n' +
+    '        var currentBits = Array.isArray(bits) ? bits[i] : bits;\n' +
+    '        var currentDownsample = Array.isArray(downsample) ? Math.floor(downsample[i]) : downsample;\n' +
+    '\n' +
+    '        // Calculate step size for bit reduction\n' +
+    '        var step = Math.pow(0.5, currentBits);\n' +
+    '\n' +
+    '        this.sampleCounter++;\n' +
+    '        if (this.sampleCounter >= currentDownsample) {\n' +
+    '          this.sampleCounter = 0;\n' +
+    '          // Bit reduction: quantize to step size\n' +
+    '          var quantized = step * Math.floor(inputChannel[i] / step + 0.5);\n' +
+    '\n' +
+    '          if (channel === 0) {\n' +
+    '            this.lastSampleL = quantized;\n' +
+    '          } else {\n' +
+    '            this.lastSampleR = quantized;\n' +
+    '          }\n' +
+    '        }\n' +
+    '\n' +
+    '        outputChannel[i] = channel === 0 ? this.lastSampleL : this.lastSampleR;\n' +
+    '      }\n' +
+    '    }\n' +
+    '    return true;\n' +
+    '  }\n' +
+    '}\n' +
+    'registerProcessor(\'bitcrush-processor\', BitcrushProcessor);\n';
 
   /**
    * BitcrushEffect - Lo-fi bit depth and sample rate reduction
@@ -91,45 +90,48 @@ registerProcessor('bitcrush-processor', BitcrushProcessor);
       this.workletReady = false;
       this.workletNode = null;
       this.scriptNode = null;
-      this.useWorklet = false;
+      this.useWorkvar= false;
 
       // Initialize the effect
       this._init();
     }
 
     /**
-     * Initialize audio processing - tries AudioWorklet first, falls back to ScriptProcessor
+     * Initialize audio processing - tries AudioWorkvar first, falls back to ScriptProcessor
      */
     async _init() {
-      // Try to use AudioWorklet (modern approach)
+      var hasInitSucceeded = false;
+      // Try to use AudioWorkvar(modern approach)
       if (this.ctx.audioWorklet) {
         try {
           await this._initWorklet();
-          this.useWorklet = true;
-          return;
+          this.useWorkvar= true;
+          hasInitSucceeded = true;
         } catch (err) {
-          console.warn('Bitcrush: AudioWorklet not available, effect disabled', err);
+          console.warn('Bitcrush: AudioWorkvar not available, effect disabled', err);
         }
       }
 
-      // Skip ScriptProcessor fallback - at high sample rates (192kHz) it kills
-      // the AudioContext. Effect will pass through dry signal when disabled.
-      console.warn('Bitcrush: No processing backend available (effect pass-through only)');
+      if (!hasInitSucceeded) {
+        // Skip ScriptProcessor fallback - at high sample rates (192kHz) it kills
+        // the AudioContext. Effect will pass through dry signal when disabled.
+        console.warn('Bitcrush: No processing backend available (effect pass-through only)');
+      }
     }
 
     /**
      * Initialize using AudioWorklet
      */
     async _initWorklet() {
-      // Create a Blob from the worklet code and get a URL
-      const blob = new Blob([workletCode], { type: 'application/javascript' });
-      const workletUrl = URL.createObjectURL(blob);
+      // Create a Blob from the workvar code and get a URL
+      var blob = new Blob([workletCode], { type: 'application/javascript' });
+      var workletUrl = URL.createObjectURL(blob);
 
       try {
-        // Register the worklet module
+        // Register the workvar module
         await this.ctx.audioWorklet.addModule(workletUrl);
 
-        // Create the worklet node
+        // Create the workvar node
         this.workletNode = new AudioWorkletNode(this.ctx, 'bitcrush-processor');
 
         // Connect: input -> workletNode -> wetGain
@@ -151,30 +153,30 @@ registerProcessor('bitcrush-processor', BitcrushProcessor);
      */
     _initScriptProcessor() {
       // Buffer size of 4096 is a good balance between latency and performance
-      const bufferSize = 4096;
+      var bufferSize = 4096;
       this.scriptNode = this.ctx.createScriptProcessor(bufferSize, 2, 2);
 
       // State for sample-and-hold
-      let lastSampleL = 0;
-      let lastSampleR = 0;
-      let sampleCounter = 0;
+      var lastSampleL = 0;
+      var lastSampleR = 0;
+      var sampleCounter = 0;
 
       // Reference to params for closure
-      const params = this.params;
+      var params = this.params;
 
-      this.scriptNode.onaudioprocess = (event) => {
-        const inputL = event.inputBuffer.getChannelData(0);
-        const inputR = event.inputBuffer.numberOfChannels > 1
+      this.scriptNode.onaudioprocess = function(event) {
+        var inputL = event.inputBuffer.getChannelData(0);
+        var inputR = event.inputBuffer.numberOfChannels > 1
           ? event.inputBuffer.getChannelData(1)
           : inputL;
-        const outputL = event.outputBuffer.getChannelData(0);
-        const outputR = event.outputBuffer.getChannelData(1);
+        var outputL = event.outputBuffer.getChannelData(0);
+        var outputR = event.outputBuffer.getChannelData(1);
 
-        const bits = params.bits;
-        const downsample = Math.floor(params.downsample);
-        const step = Math.pow(0.5, bits);
+        var bits = params.bits;
+        var downsample = Math.floor(params.downsample);
+        var step = Math.pow(0.5, bits);
 
-        for (let i = 0; i < inputL.length; i++) {
+        for (var i = 0; i < inputL.length; i++) {
           sampleCounter++;
 
           if (sampleCounter >= downsample) {
@@ -195,13 +197,13 @@ registerProcessor('bitcrush-processor', BitcrushProcessor);
     }
 
     /**
-     * Update AudioWorklet parameters
+     * Update AudioWorkvar parameters
      */
     _updateWorkletParams() {
       if (!this.workletNode) return;
 
-      const bitsParam = this.workletNode.parameters.get('bits');
-      const downsampleParam = this.workletNode.parameters.get('downsample');
+      var bitsParam = this.workletNode.parameters.get('bits');
+      var downsampleParam = this.workletNode.parameters.get('downsample');
 
       if (bitsParam) {
         bitsParam.setTargetAtTime(this.params.bits, this.ctx.currentTime, 0.01);

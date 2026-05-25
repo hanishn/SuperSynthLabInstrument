@@ -12,6 +12,12 @@
   // Shared Constants
   // ============================================================
 
+  var NO_TIMER      = null;  /* sentinel: no active interval/animframe handle */
+  var NO_ATTR       = null;  /* sentinel: getAttribute returned no value */
+  var NO_HIT        = null;  /* sentinel: hit-test returned no result */
+  var NO_SELECTION  = null;  /* sentinel: no saved/selected value */
+  var NO_SENSOR_VAL = null;  /* sentinel: device-orientation sensor value absent */
+
   var DEFAULT_CONTAINER_WIDTH = 800;
   var DEFAULT_CONTAINER_HEIGHT = 300;
   var MAJOR_SCALE_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
@@ -117,7 +123,7 @@
   var RESTRUM_MAX_MS = 2000;
   var RESTRUM_DEFAULT_MS = 500;
   var _restrumMs = RESTRUM_DEFAULT_MS;
-  var _restrumEnabled = false;
+  var _isRestrumEnabled = false;
   var _restrumIntervalId = null;
 
   // Chromatic Grid constants
@@ -167,8 +173,8 @@
   var HARP_VELOCITY_BOOST = 127;
 
   // XY Pad / Theremin continuous mode state
-  var _xypadContinuousMode = false;
-  var _thereminContinuousMode = true; // Theremin defaults to continuous (natural mode)
+  var _isXypadContinuousMode = false;
+  var _isThereminContinuousMode = true; // Theremin defaults to continuous (natural mode)
 
   // ============================================================
   // Helpers
@@ -351,7 +357,7 @@
     for (i = 0; i < pids.length; i++) {
       var entry = _glowkeysActivePointers[pids[i]];
       if (entry.midi >= 0 && _glowkeysNoteOff) {
-        try { _glowkeysNoteOff(entry.midi); } catch (e) { /* ignore */ }
+        try { _glowkeysNoteOff(entry.midi); } catch (e) { /* note may already be off */ }
       }
       if (entry.el) {
         entry.el.classList.remove('ctrl-loom-active');
@@ -366,21 +372,21 @@
     var entry = _glowkeysActivePointers[pointerId];
     if (entry) {
       if (entry.midi >= 0 && _glowkeysNoteOff) {
-        try { _glowkeysNoteOff(entry.midi); } catch (e) { /* ignore */ }
+        try { _glowkeysNoteOff(entry.midi); } catch (e) { /* note may already be off */ }
       }
       if (entry.el) {
         // Only remove visual if no OTHER pointer is on this same note
-        var otherOnSame = false;
+        var isOtherOnSame = false;
         var pids = Object.keys(_glowkeysActivePointers);
         var i;
         for (i = 0; i < pids.length; i++) {
           var isSamePointer = (pids[i] === String(pointerId));
           var isSameMidi = (_glowkeysActivePointers[pids[i]].midi === entry.midi);
           if (!isSamePointer && isSameMidi) {
-            otherOnSame = true;
+            isOtherOnSame = true;
           }
         }
-        if (!otherOnSame) {
+        if (!isOtherOnSame) {
           entry.el.classList.remove('ctrl-loom-active');
           _glowkeysHideGlow(entry.el);
         }
@@ -395,10 +401,10 @@
   }
 
   // Install document-level safety handler exactly once.
-  var _glowkeysSafetyInstalled = false;
+  var _isGlowkeysSafetyInstalled = false;
   function _installGlowkeysSafety() {
-    if (_glowkeysSafetyInstalled) { return; }
-    _glowkeysSafetyInstalled = true;
+    if (_isGlowkeysSafetyInstalled) { return; }
+    _isGlowkeysSafetyInstalled = true;
     document.addEventListener('pointerup', function(ev) { _glowkeysReleasePointer(ev.pointerId); });
     document.addEventListener('pointercancel', function(ev) { _glowkeysReleasePointer(ev.pointerId); });
   }
@@ -485,7 +491,7 @@
   // Chord pad state (persists across rebuilds within session)
   var _chordPadKey = 0;
   var _chordPadModeName = 'Major';
-  var _chordPadStrumMode = false;
+  var _isChordPadStrumMode = false;
   var _chordPadInversions = [0, 0, 0, 0, 0, 0, 0, 0];
   var _chordPadQualityOverrides = [null, null, null, null, null, null, null, null];
   var _chordPadNoteCount = DEFAULT_CHORD_NOTE_COUNT;
@@ -529,6 +535,7 @@
     var scaleSteps = modeData.intervals;
     var modeQualities = modeData.qualities;
     var pads = [];
+    var noteNames = [];
 
     for (var ci = 0; ci < 7; ci++) {
       var rootNote = baseMidi + scaleSteps[ci];
@@ -537,7 +544,7 @@
       var chordMidis = _applyInversion(rawMidis, _chordPadInversions[ci]);
       var chordName = NOTES[rootNote % 12];
       var qualityLabel = QUALITY_SHORT[quality] || '';
-      var noteNames = [];
+      noteNames.length = 0;
       for (var nn = 0; nn < chordMidis.length; nn++) { noteNames.push(NOTES[chordMidis[nn] % 12]); }
       pads.push({ midis: chordMidis, name: chordName + qualityLabel, roman: CHORD_ROMAN[ci], quality: quality, colorIdx: ci, noteNames: noteNames.join(' '), padIdx: ci });
     }
@@ -658,9 +665,9 @@
         _fireStrumOnce(midis, noteOn, noteOff, _lastChordVelocity);
 
         /* Restrum: if enabled and not Block mode, repeat at interval */
-        if (_restrumIntervalId !== null) { clearInterval(_restrumIntervalId); _restrumIntervalId = null; }
+        if (_restrumIntervalId !== NO_TIMER) { clearInterval(_restrumIntervalId); _restrumIntervalId = null; }
         var mode = CHORD_PLAY_MODES[_chordPlayModeIdx];
-        if (_restrumEnabled && mode !== 'Block') {
+        if (_isRestrumEnabled && mode !== 'Block') {
           _restrumIntervalId = setInterval(function() {
             _fireStrumOnce(midis, noteOn, noteOff, _lastChordVelocity);
           }, _restrumMs);
@@ -669,7 +676,7 @@
       }
       function chordOff() {
         var i;
-        if (_restrumIntervalId !== null) { clearInterval(_restrumIntervalId); _restrumIntervalId = null; }
+        if (_restrumIntervalId !== NO_TIMER) { clearInterval(_restrumIntervalId); _restrumIntervalId = null; }
         var padNotes = _padActiveNotes[capturedPadIdx] || [];
         var mode = CHORD_PLAY_MODES[_chordPlayModeIdx];
         if (mode === 'Block') {
@@ -712,6 +719,7 @@
     grid.innerHTML = '';
     var pads = _getChordPadData(baseOctave);
 
+    var frag = document.createDocumentFragment();
     for (var ci = 0; ci < pads.length; ci++) {
       (function(pad) {
         var padEl = document.createElement('div');
@@ -774,9 +782,10 @@
         padEl.appendChild(invBtn);
 
         _wireChordPadEvents(pad.midis, padEl, noteOn, noteOff, pad.padIdx);
-        grid.appendChild(padEl);
+        frag.appendChild(padEl);
       })(pads[ci]);
     }
+    grid.appendChild(frag);
   }
 
   function _rebuildChordPads() {
@@ -838,7 +847,7 @@
     /* Note count dropdown */
     var noteCountSelect = document.createElement('select');
     noteCountSelect.className = 'ssli-chordpad-select';
-    noteCountSelect.setAttribute('aria-label', 'Notes per chord');
+    noteCountSelect.setAttribute('aria-label', SL.t('ctrl.notesPerChord'));
     noteCountSelect.title = SL.t('chordpads.notes_per_chord_title');
     for (var nci = 0; nci < CHORD_NOTE_COUNTS.length; nci++) {
       var ncOpt = document.createElement('option');
@@ -865,7 +874,7 @@
     var strumSelect = document.createElement('select');
     strumSelect.className = 'ssli-chordpad-select';
     strumSelect.id = 'chordPadStrumToggle';
-    strumSelect.setAttribute('aria-label', 'Strum Pattern');
+    strumSelect.setAttribute('aria-label', SL.t('ctrl.strumPattern'));
     for (var smi = 0; smi < CHORD_PLAY_MODE_COUNT; smi++) {
       var smOpt = document.createElement('option');
       smOpt.value = String(smi);
@@ -881,7 +890,7 @@
     /* Rhythm pattern dropdown */
     var rhythmSelect = document.createElement('select');
     rhythmSelect.className = 'ssli-chordpad-select';
-    rhythmSelect.setAttribute('aria-label', 'Rhythm Pattern');
+    rhythmSelect.setAttribute('aria-label', SL.t('ctrl.rhythmPattern'));
     rhythmSelect.title = SL.t('chordpads.rhythm_pattern_title');
     for (var rhi = 0; rhi < RHYTHM_PATTERN_NAMES.length; rhi++) {
       var rhOpt = document.createElement('option');
@@ -904,7 +913,7 @@
     strumSpeedSlider.min = String(STRUM_DELAY_MIN_MS);
     strumSpeedSlider.max = String(STRUM_DELAY_MAX_MS);
     strumSpeedSlider.value = String(_strumDelayMs);
-    strumSpeedSlider.setAttribute('aria-label', 'Strum Speed');
+    strumSpeedSlider.setAttribute('aria-label', SL.t('ctrl.strumSpeed'));
     strumSpeedSlider.addEventListener('input', function() {
       _strumDelayMs = parseInt(strumSpeedSlider.value, 10);
       strumSpeedLabel.textContent = _strumDelayMs + 'ms';
@@ -921,12 +930,12 @@
 
     var restrumToggle = document.createElement('button');
     restrumToggle.className = 'ssli-chordpad-strum-toggle';
-    restrumToggle.textContent = _restrumEnabled ? SL.t('chordpads.repeat') : SL.t('chordpads.once');
-    restrumToggle.style.borderColor = _restrumEnabled ? 'var(--ssli-text-chord-key)' : 'var(--ssli-border-light)';
+    restrumToggle.textContent = _isRestrumEnabled ? SL.t('chordpads.repeat') : SL.t('chordpads.once');
+    restrumToggle.style.borderColor = _isRestrumEnabled ? 'var(--ssli-text-chord-key)' : 'var(--ssli-border-light)';
     restrumToggle.addEventListener('click', function() {
-      _restrumEnabled = !_restrumEnabled;
-      restrumToggle.textContent = _restrumEnabled ? SL.t('chordpads.repeat') : SL.t('chordpads.once');
-      restrumToggle.style.borderColor = _restrumEnabled ? 'var(--ssli-text-chord-key)' : 'var(--ssli-border-light)';
+      _isRestrumEnabled = !_isRestrumEnabled;
+      restrumToggle.textContent = _isRestrumEnabled ? SL.t('chordpads.repeat') : SL.t('chordpads.once');
+      restrumToggle.style.borderColor = _isRestrumEnabled ? 'var(--ssli-text-chord-key)' : 'var(--ssli-border-light)';
     });
     topBar.appendChild(restrumToggle);
 
@@ -939,7 +948,7 @@
     restrumSlider.min = String(RESTRUM_MIN_MS);
     restrumSlider.max = String(RESTRUM_MAX_MS);
     restrumSlider.value = String(_restrumMs);
-    restrumSlider.setAttribute('aria-label', 'Restrum Interval');
+    restrumSlider.setAttribute('aria-label', SL.t('ctrl.restrumInterval'));
     restrumSlider.addEventListener('input', function() {
       _restrumMs = parseInt(restrumSlider.value, 10);
       restrumLabel.textContent = _restrumMs + 'ms';
@@ -978,7 +987,7 @@
 
     var containerW = container.clientWidth || DEFAULT_CONTAINER_WIDTH;
     var containerH = container.clientHeight || DEFAULT_CONTAINER_HEIGHT;
-    var _xyActive = false;
+    var _isXyActive = false;
     var _xyCurrentMidi = -1;
 
     var wrapper = document.createElement('div');
@@ -1029,7 +1038,7 @@
     var readout = document.createElement('div');
     readout.className = 'ctrl-xy-readout';
     readout.id = 'xyReadout';
-    readout.textContent = '-- / --';
+    readout.textContent = SL.t('ctrl.xyReadoutEmpty');
     wrapper.appendChild(readout);
 
     /* U-03: XY Pad idle state hint, center dot, and axis labels */
@@ -1057,13 +1066,13 @@
     /* Issue 15: Snap (discrete) vs Continuous toggle */
     var xySnapToggle = document.createElement('button');
     xySnapToggle.className = 'rhy-scr-btn ssli-ctrl-snap-toggle';
-    xySnapToggle.textContent = _xypadContinuousMode ? SL.t('vowelpad.smooth') : SL.t('vowelpad.snap');
+    xySnapToggle.textContent = _isXypadContinuousMode ? SL.t('vowelpad.smooth') : SL.t('vowelpad.snap');
     xySnapToggle.title = SL.t('chordpads.snap_toggle_title');
-    if (_xypadContinuousMode) { xySnapToggle.classList.add('active'); }
+    if (_isXypadContinuousMode) { xySnapToggle.classList.add('active'); }
     function _toggleSnap() {
-      _xypadContinuousMode = !_xypadContinuousMode;
-      xySnapToggle.textContent = _xypadContinuousMode ? SL.t('vowelpad.smooth') : SL.t('vowelpad.snap');
-      if (_xypadContinuousMode) { xySnapToggle.classList.add('active'); }
+      _isXypadContinuousMode = !_isXypadContinuousMode;
+      xySnapToggle.textContent = _isXypadContinuousMode ? SL.t('vowelpad.smooth') : SL.t('vowelpad.snap');
+      if (_isXypadContinuousMode) { xySnapToggle.classList.add('active'); }
       else { xySnapToggle.classList.remove('active'); }
     }
     xySnapToggle.addEventListener('click', _toggleSnap);
@@ -1091,7 +1100,7 @@
         var relY = Math.max(0, Math.min(1, (y - rect.top) / rect.height));
         var modVal = Math.round((1 - relY) * MIDI_MAX);
 
-        if (_xypadContinuousMode) {
+        if (_isXypadContinuousMode) {
           var midiFloat = notes[0] + relX * (notes[notes.length - 1] - notes[0]);
           var baseMidiC = ((startMidi >= 0) ? startMidi : Math.round(midiFloat));
           if (baseMidiC > MIDI_MAX) { baseMidiC = MIDI_MAX; }
@@ -1142,13 +1151,13 @@
 
       function clearReadout() {
         var rd = document.getElementById('xyReadout');
-        if (rd) { rd.textContent = '-- / --'; }
+        if (rd) { rd.textContent = SL.t('ctrl.xyReadoutEmpty'); }
       }
 
       /* ---- Mouse fallback (single pointer for desktop) ---- */
 
       function onMouseStart(x, y) {
-        _xyActive = true;
+        _isXyActive = true;
         _xyMouseStartMidi = -1;
         hideIdleHint();
         var info = xyToNote(x, y, -1);
@@ -1161,7 +1170,7 @@
       }
 
       function onMouseMove(x, y) {
-        if (!_xyActive) { return; }
+        if (!_isXyActive) { return; }
         var info = xyToNote(x, y, _xyMouseStartMidi);
         if (info.continuous) {
           applyPitchBend(info.bendCents);
@@ -1178,10 +1187,10 @@
       }
 
       function onMouseEnd() {
-        if (_xyActive) {
+        if (_isXyActive) {
           resetPitchBendFn();
           noteOff(_xyCurrentMidi);
-          _xyActive = false;
+          _isXyActive = false;
           _xyCurrentMidi = -1;
           _xyMouseStartMidi = -1;
           hideCrosshair();
@@ -1371,7 +1380,7 @@
     wrapper.appendChild(botRow);
 
     // Pointer-drag support: follow finger across bars for continuous play
-    var _marimbaDragActive = false;
+    var _isMarimbaDragActive = false;
     var _marimbaDragLastMidi = -1;
     var _marimbaDragLastEl = null;
     var MARIMBA_ACTIVE_CLASS = 'ctrl-marimba-active';
@@ -1384,7 +1393,7 @@
         var barEl = el.closest('.ctrl-marimba-bar');
         if (barEl) {
           var midiAttr = barEl.getAttribute('data-midi');
-          var hasMidi = (midiAttr !== null);
+          var hasMidi = (midiAttr !== NO_ATTR);
           if (hasMidi) {
             result = { el: barEl, midi: parseInt(midiAttr, 10) };
           }
@@ -1395,9 +1404,9 @@
 
     wrapper.addEventListener('pointerdown', function(ev) {
       ev.preventDefault();
-      _marimbaDragActive = true;
+      _isMarimbaDragActive = true;
       var hit = _marimbaBarAtPoint(ev.clientX, ev.clientY);
-      var hasHit = (hit !== null);
+      var hasHit = (hit !== NO_HIT);
       if (hasHit) {
         _marimbaDragLastMidi = hit.midi;
         _marimbaDragLastEl = hit.el;
@@ -1408,9 +1417,9 @@
     });
 
     wrapper.addEventListener('pointermove', function(ev) {
-      if (!_marimbaDragActive) { return; }
+      if (!_isMarimbaDragActive) { return; }
       var hit = _marimbaBarAtPoint(ev.clientX, ev.clientY);
-      var hasHit = (hit !== null);
+      var hasHit = (hit !== NO_HIT);
       if (hasHit) {
         var isDifferent = (hit.midi !== _marimbaDragLastMidi);
         if (isDifferent) {
@@ -1430,8 +1439,8 @@
     });
 
     function _marimbaPointerUp() {
-      if (_marimbaDragActive) {
-        _marimbaDragActive = false;
+      if (_isMarimbaDragActive) {
+        _isMarimbaDragActive = false;
         if (_marimbaDragLastMidi >= 0 && _marimbaDragLastEl) {
           noteOff(_marimbaDragLastMidi);
           _marimbaDragLastEl.classList.remove(MARIMBA_ACTIVE_CLASS);
@@ -1663,7 +1672,7 @@
       releaseAll: function() {
         var hi;
         for (hi = 0; hi < harpNotes.length; hi++) {
-          try { noteOff(harpNotes[hi]); } catch (e) { /* ignore */ }
+          try { noteOff(harpNotes[hi]); } catch (e) { /* note may already be off */ }
         }
         // Remove active classes
         for (hi = 0; hi < _harpStringEls.length; hi++) {
@@ -1706,12 +1715,12 @@
 
     var containerW = container.clientWidth || DEFAULT_CONTAINER_WIDTH;
     var containerH = container.clientHeight || DEFAULT_CONTAINER_HEIGHT;
-    var _airActive = false;
+    var _isAirActive = false;
     var _airCurrentMidi = -1;
     var _airSavedSustain = null;
     var _airSavedSustainInst = -1;
-    var _tiltAvailable = false;
-    var _tiltListenerBound = false;
+    var _isTiltAvailable = false;
+    var _isTiltListenerBound = false;
     var _animFrameId = null;
     var _smoothBeta = 0;
     var _smoothGamma = 30;
@@ -1850,6 +1859,8 @@
       }
     }
 
+    var rulerFrag = document.createDocumentFragment();
+    var wrapperFrag = document.createDocumentFragment();
     var rulerMidi;
     for (rulerMidi = startMidi; rulerMidi <= endMidi; rulerMidi++) {
       var rulerPc = rulerMidi % SEMITONES_PER_OCTAVE;
@@ -1869,7 +1880,7 @@
         octLine.style.width = PITCH_RULER_OCTAVE_LINE_WIDTH + 'px';
         octLine.style.background = PITCH_RULER_OCTAVE_LINE_COLOR;
         octLine.style.pointerEvents = 'none';
-        pitchRuler.appendChild(octLine);
+        rulerFrag.appendChild(octLine);
 
         // Solid vertical line extending full height into the play area
         var playAreaH = containerH - PITCH_RULER_HEIGHT;
@@ -1882,7 +1893,7 @@
         tallLine.style.background = PITCH_RULER_OCTAVE_LINE_COLOR;
         tallLine.style.opacity = String(PITCH_RULER_TALL_LINE_OPACITY);
         tallLine.style.pointerEvents = 'none';
-        wrapper.appendChild(tallLine);
+        wrapperFrag.appendChild(tallLine);
 
         // Alternating octave background stripe for visual tracking
         var octaveIdx = Math.floor(rulerMidi / SEMITONES_PER_OCTAVE);
@@ -1902,7 +1913,7 @@
         octStripe.style.background = stripeBg;
         octStripe.style.pointerEvents = 'none';
         octStripe.style.zIndex = '0';
-        wrapper.appendChild(octStripe);
+        wrapperFrag.appendChild(octStripe);
       }
 
       // Note label — clamp width so it doesn't exceed container bounds
@@ -1942,9 +1953,11 @@
         rulerLabel.appendChild(rulerOctNum);
       }
 
-      pitchRuler.appendChild(rulerLabel);
+      rulerFrag.appendChild(rulerLabel);
       _pitchRulerLabels.push({ el: rulerLabel, midi: rulerMidi });
     }
+    wrapper.appendChild(wrapperFrag);
+    pitchRuler.appendChild(rulerFrag);
     wrapper.appendChild(pitchRuler);
 
     // Helper to highlight the current note on the pitch ruler
@@ -1986,13 +1999,13 @@
     // Snap toggle
     var snapToggle = document.createElement('button');
     snapToggle.className = 'rhy-scr-btn ssli-ctrl-snap-toggle ssli-theremin-snap-toggle';
-    snapToggle.textContent = _thereminContinuousMode ? SL.t('vowelpad.smooth') : SL.t('vowelpad.snap');
+    snapToggle.textContent = _isThereminContinuousMode ? SL.t('vowelpad.smooth') : SL.t('vowelpad.snap');
     snapToggle.title = SL.t('chordpads.snap_toggle_title');
-    if (_thereminContinuousMode) { snapToggle.classList.add('active'); }
+    if (_isThereminContinuousMode) { snapToggle.classList.add('active'); }
     function _toggleSnap() {
-      _thereminContinuousMode = !_thereminContinuousMode;
-      snapToggle.textContent = _thereminContinuousMode ? SL.t('vowelpad.smooth') : SL.t('vowelpad.snap');
-      if (_thereminContinuousMode) { snapToggle.classList.add('active'); }
+      _isThereminContinuousMode = !_isThereminContinuousMode;
+      snapToggle.textContent = _isThereminContinuousMode ? SL.t('vowelpad.smooth') : SL.t('vowelpad.snap');
+      if (_isThereminContinuousMode) { snapToggle.classList.add('active'); }
       else { snapToggle.classList.remove('active'); }
     }
     snapToggle.addEventListener('click', _toggleSnap);
@@ -2014,7 +2027,7 @@
       var volume = 1.0 - relY;
 
       var midi, bendCents;
-      if (_thereminContinuousMode) {
+      if (_isThereminContinuousMode) {
         midi = Math.round(midiFloat);
         if (midi > MIDI_MAX) { midi = MIDI_MAX; }
         bendCents = (midiFloat - midi) * 100;
@@ -2035,7 +2048,7 @@
       var volume = 1.0 - relY;
 
       var midi, bendCents;
-      if (_thereminContinuousMode) {
+      if (_isThereminContinuousMode) {
         midi = Math.round(midiFloat);
         if (midi > MIDI_MAX) { midi = MIDI_MAX; }
         bendCents = (midiFloat - midi) * 100;
@@ -2093,15 +2106,18 @@
 
     // ---- Play state management ----
     function airStart(relX, relY) {
-      _airActive = true;
+      _isAirActive = true;
       var hint = document.getElementById('thereminIdleHint');
       if (hint) { hint.style.display = 'none'; }
       // Save and override sustain
-      if (SL.audio && SL.audio.getInstruments && SL.audio.getCurrentInstrument) {
+      var canQueryAirInstrument = SL.audio && SL.audio.getInstruments;
+      var hasAirInstrumentQuery = canQueryAirInstrument && SL.audio.getCurrentInstrument;
+      if (hasAirInstrumentQuery) {
         var instId = SL.audio.getCurrentInstrument();
         var insts = SL.audio.getInstruments();
         var inst = insts ? insts[instId] : null;
-        if (inst && inst.settings && inst.settings.adsr) {
+        var hasAdsrForAirSustain = inst && inst.settings && inst.settings.adsr;
+        if (hasAdsrForAirSustain) {
           _airSavedSustainInst = instId;
           _airSavedSustain = inst.settings.adsr.s;
           inst.settings.adsr.s = AIRSYNTH_HELD_SUSTAIN;
@@ -2121,13 +2137,13 @@
     }
 
     function airUpdate(relX, relY) {
-      if (!_airActive) { return; }
+      if (!_isAirActive) { return; }
       var midiFloat = startMidi + (relX * totalSemitones);
       var newMidi = Math.round(midiFloat);
       if (newMidi > MIDI_MAX) { newMidi = MIDI_MAX; }
       var volume = 1.0 - relY;
 
-      if (_thereminContinuousMode) {
+      if (_isThereminContinuousMode) {
         applyPitchBend((midiFloat - _airCurrentMidi) * 100);
       } else {
         if (newMidi !== _airCurrentMidi) {
@@ -2145,10 +2161,10 @@
     }
 
     function airEnd() {
-      if (_airActive) {
+      if (_isAirActive) {
         resetPitchBendFn();
         noteOff(_airCurrentMidi);
-        _airActive = false;
+        _isAirActive = false;
         _airCurrentMidi = -1;
         hideVisual();
         _clearRulerHighlight();
@@ -2158,11 +2174,12 @@
         if (hint) { hint.style.display = ''; }
         if (SL.audio && SL.audio.clearExpression) { SL.audio.clearExpression(); }
         // Restore sustain
-        if ((_airSavedSustain !== null) && (_airSavedSustainInst >= 0)
+        if ((_airSavedSustain !== NO_SELECTION) && (_airSavedSustainInst >= 0)
             && SL.audio && SL.audio.getInstruments) {
           var restInsts = SL.audio.getInstruments();
           var restInst = restInsts ? restInsts[_airSavedSustainInst] : null;
-          if (restInst && restInst.settings && restInst.settings.adsr) {
+          var hasAdsrForAirRestore = restInst && restInst.settings && restInst.settings.adsr;
+          if (hasAdsrForAirRestore) {
             restInst.settings.adsr.s = _airSavedSustain;
           }
           _airSavedSustain = null;
@@ -2173,32 +2190,32 @@
 
     // ---- DeviceOrientation handler ----
     function onDeviceOrientation(e) {
-      if (!_airActive) { return; }
-      var betaVal = (e.gamma !== null) ? e.gamma : 0;
-      var gammaVal = (e.beta !== null) ? e.beta : 30;
+      if (!_isAirActive) { return; }
+      var betaVal = (e.gamma !== NO_SENSOR_VAL) ? e.gamma : 0;
+      var gammaVal = (e.beta !== NO_SENSOR_VAL) ? e.beta : 30;
       _rawBeta = betaVal;
       _rawGamma = gammaVal;
     }
 
     // Tilt animation loop (applies smoothing)
     function tiltLoop() {
-      if (!_airActive) {
+      if (!_isAirActive) {
         _animFrameId = null;
-        return;
+      } else {
+        _smoothBeta = _smoothBeta + (1.0 - TILT_SMOOTHING) * (_rawBeta - _smoothBeta);
+        _smoothGamma = _smoothGamma + (1.0 - TILT_SMOOTHING) * (_rawGamma - _smoothGamma);
+        var info = tiltToData(_smoothBeta, _smoothGamma);
+        airUpdate(info.relX, info.relY);
+        _animFrameId = requestAnimationFrame(tiltLoop);
       }
-      _smoothBeta = _smoothBeta + (1.0 - TILT_SMOOTHING) * (_rawBeta - _smoothBeta);
-      _smoothGamma = _smoothGamma + (1.0 - TILT_SMOOTHING) * (_rawGamma - _smoothGamma);
-      var info = tiltToData(_smoothBeta, _smoothGamma);
-      airUpdate(info.relX, info.relY);
-      _animFrameId = requestAnimationFrame(tiltLoop);
     }
 
     // ---- Attempt to enable tilt ----
     function enableTilt() {
-      if (_tiltListenerBound) { return; }
-      _tiltListenerBound = true;
+      if (_isTiltListenerBound) { return; }
+      _isTiltListenerBound = true;
       window.addEventListener('deviceorientation', onDeviceOrientation);
-      _tiltAvailable = true;
+      _isTiltAvailable = true;
       var label = document.getElementById('airSynthModeLabel');
       if (label) { label.textContent = SL.t('theremin.tilt_mode'); }
     }
@@ -2268,7 +2285,7 @@
       e.preventDefault();
       var info = posToData(e.clientX, e.clientY);
       airStart(info.relX, info.relY);
-      if (_tiltAvailable) {
+      if (_isTiltAvailable) {
         _smoothBeta = 0;
         _smoothGamma = 30;
         _animFrameId = requestAnimationFrame(tiltLoop);
@@ -2278,18 +2295,18 @@
       var previewInfo = posToData(e.clientX, e.clientY);
       var previewMidi = previewInfo.midi;
       var previewRd = document.getElementById('thereminReadout');
-      if (!_airActive) {
+      if (!_isAirActive) {
         if (previewRd) { previewRd.textContent = _midiToName(previewMidi); }
         _highlightRulerNote(previewMidi);
       } else {
-        if (!_tiltAvailable) {
+        if (!_isTiltAvailable) {
           airUpdate(previewInfo.relX, previewInfo.relY);
         }
       }
     });
     wrapper.addEventListener('mouseup', function() { airEnd(); });
     wrapper.addEventListener('mouseleave', function() {
-      if (!_airActive) {
+      if (!_isAirActive) {
         var leaveRd = document.getElementById('thereminReadout');
         if (leaveRd) { leaveRd.textContent = '--'; }
         _clearRulerHighlight();
@@ -2301,7 +2318,7 @@
       requestTiltAccess();
       var info = posToData(e.touches[0].clientX, e.touches[0].clientY);
       airStart(info.relX, info.relY);
-      if (_tiltAvailable) {
+      if (_isTiltAvailable) {
         _smoothBeta = 0;
         _smoothGamma = 30;
         _animFrameId = requestAnimationFrame(tiltLoop);
@@ -2309,8 +2326,8 @@
     });
     wrapper.addEventListener('touchmove', function(e) {
       e.preventDefault();
-      if (!_airActive) { return; }
-      if (!_tiltAvailable) {
+      if (!_isAirActive) { return; }
+      if (!_isTiltAvailable) {
         var info = posToData(e.touches[0].clientX, e.touches[0].clientY);
         airUpdate(info.relX, info.relY);
       }
@@ -2323,16 +2340,16 @@
       airEnd: airEnd,
       getAnimFrameId: function() { return _animFrameId; },
       cancelAnimFrame: function() {
-        if (_animFrameId !== null) {
+        if (_animFrameId !== NO_TIMER) {
           cancelAnimationFrame(_animFrameId);
           _animFrameId = null;
         }
       },
       removeTiltListener: function() {
-        if (_tiltListenerBound) {
+        if (_isTiltListenerBound) {
           window.removeEventListener('deviceorientation', onDeviceOrientation);
-          _tiltListenerBound = false;
-          _tiltAvailable = false;
+          _isTiltListenerBound = false;
+          _isTiltAvailable = false;
         }
       }
     };
@@ -2414,7 +2431,7 @@
           var target = el;
           while (target && target !== wrapper) {
             var attr = target.getAttribute('data-midi');
-            if (attr !== null) {
+            if (attr !== NO_ATTR) {
               var m = parseInt(attr, 10);
               var touchPressureEvent = { pointerType: 'touch', pressure: t.force };
               var touchVel = SL.velocityFromPressure(touchPressureEvent, CHROMGRID_DEFAULT_VELOCITY);
@@ -2445,7 +2462,7 @@
             var target = newEl;
             while (target && target !== wrapper) {
               var attr = target.getAttribute('data-midi');
-              if (attr !== null) {
+              if (attr !== NO_ATTR) {
                 var newMidi = parseInt(attr, 10);
                 if (newMidi !== info.midi) {
                   noteOff(info.midi);
@@ -2496,20 +2513,20 @@
     });
 
     // Mouse support
-    var _linnMouseDown = false;
+    var _isLinnMouseDown = false;
     var _linnMouseMidi = -1;
     var _linnMouseStartX = 0;
     var _linnMouseEl = null;
 
     wrapper.addEventListener('mousedown', function(e) {
       e.preventDefault();
-      _linnMouseDown = true;
+      _isLinnMouseDown = true;
       var el = document.elementFromPoint(e.clientX, e.clientY);
       if (el) {
         var target = el;
         while (target && target !== wrapper) {
           var attr = target.getAttribute('data-midi');
-          if (attr !== null) {
+          if (attr !== NO_ATTR) {
             _linnMouseMidi = parseInt(attr, 10);
             _linnMouseStartX = e.clientX;
             _linnMouseEl = target;
@@ -2524,7 +2541,7 @@
     });
 
     wrapper.addEventListener('mousemove', function(e) {
-      if (!_linnMouseDown || _linnMouseMidi < 0) { return; }
+      if (!_isLinnMouseDown || _linnMouseMidi < 0) { return; }
       var dx = e.clientX - _linnMouseStartX;
       var bendCents = (dx / cellW) * 100;
       bendCents = Math.max(-MAX_BEND_CENTS, Math.min(MAX_BEND_CENTS, bendCents));
@@ -2537,7 +2554,7 @@
         resetPitchBendFn();
         if (_linnMouseEl) { _linnMouseEl.classList.remove('ctrl-linn-active'); }
       }
-      _linnMouseDown = false;
+      _isLinnMouseDown = false;
       _linnMouseMidi = -1;
       _linnMouseEl = null;
     });
@@ -2548,7 +2565,7 @@
         resetPitchBendFn();
         if (_linnMouseEl) { _linnMouseEl.classList.remove('ctrl-linn-active'); }
       }
-      _linnMouseDown = false;
+      _isLinnMouseDown = false;
       _linnMouseMidi = -1;
       _linnMouseEl = null;
     });
@@ -2569,7 +2586,7 @@
       clearTimeout(_strumTimeouts[st]);
     }
     _strumTimeouts = [];
-    if (_restrumIntervalId !== null) { clearInterval(_restrumIntervalId); _restrumIntervalId = null; }
+    if (_restrumIntervalId !== NO_TIMER) { clearInterval(_restrumIntervalId); _restrumIntervalId = null; }
   }
 
   // ============================================================
@@ -2667,7 +2684,7 @@
         if (_strumTimeouts && _strumTimeouts.length > 0) {
           return _strumTimeouts.length + ' chordpad strum timeouts remain';
         }
-        if (_restrumIntervalId !== null) {
+        if (_restrumIntervalId !== NO_TIMER) {
           return 'chordpad restrum interval still running';
         }
         return null;

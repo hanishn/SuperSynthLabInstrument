@@ -60,8 +60,8 @@
 
   var audioContext = null;
   var scriptNode = null;
-  var engineReady = false;
-  var playing = false;
+  var isEngineReady = false;
+  var isPlaying = false;
   var settings = JSON.parse(JSON.stringify(DEFAULT_BYTEBEAT_SETTINGS));
 
   // Bytebeat counter
@@ -160,71 +160,75 @@
     var depth = settings.bitDepth;
     var inc = settings.tIncrement;
 
-    if (!formulaFn || !playing) {
+    if (!formulaFn || !isPlaying) {
       // Fade out smoothly
       for (var s = 0; s < output.length; s++) {
         currentVolume += (0 - currentVolume) * volumeSmoothRate;
         output[s] = lastBytebeatSample * currentVolume;
       }
-      return;
-    }
+    } else {
+      var vol = settings.volume / 100;
+      var startTime = performance.now();
+      var hasTooManyErrors = false;
 
-    var vol = settings.volume / 100;
-    var startTime = performance.now();
-
-    for (var i = 0; i < output.length; i++) {
-      // Guard against runaway formulas: check elapsed time every 256 samples
-      if ((i & 255) === 0 && i > 0) {
-        var elapsed = performance.now() - startTime;
-        if (elapsed > MAX_PROCESS_TIME_MS) {
-          // Fill remainder with last sample and bail
-          for (var fill = i; fill < output.length; fill++) {
-            output[fill] = lastBytebeatSample * currentVolume;
+      for (var i = 0; i < output.length; i++) {
+        // Guard against runaway formulas: check elapsed time every 256 samples
+        if ((i & 255) === 0 && i > 0) {
+          var elapsed = performance.now() - startTime;
+          if (elapsed > MAX_PROCESS_TIME_MS) {
+            // Fill remainder with last sample and bail
+            for (var fill = i; fill < output.length; fill++) {
+              output[fill] = lastBytebeatSample * currentVolume;
+            }
+            console.warn('[BYTEBEAT] Process time exceeded limit, truncated at sample ' + i);
+            break;
           }
-          console.warn('[BYTEBEAT] Process time exceeded limit, truncated at sample ' + i);
-          break;
+        }
+
+        // Accumulate fractional samples for rate conversion
+        sampleAccumulator += ratio;
+
+        while (sampleAccumulator >= 1.0 && !hasTooManyErrors) {
+          sampleAccumulator -= 1.0;
+
+          // Evaluate the bytebeat formula (sandboxed, try/catch inside)
+          var raw = formulaFn(tCounter);
+
+          // Track errors: if formula returns NaN/undefined, count as error
+          if (raw !== raw || raw === undefined) {
+            raw = 0;
+            _consecutiveErrors++;
+            if (_consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+              console.error('[BYTEBEAT] Too many formula errors, stopping playback');
+              isPlaying = false;
+              hasTooManyErrors = true;
+            }
+          } else {
+            _consecutiveErrors = 0;
+          }
+
+          if (!hasTooManyErrors) {
+            // Scale based on bit depth
+            if (depth === 8) {
+              raw = (raw & 255);
+              lastBytebeatSample = (raw / 127.5) - 1.0;
+            } else {
+              raw = (raw & 65535);
+              lastBytebeatSample = (raw / 32767.5) - 1.0;
+            }
+
+            tCounter += inc;
+          }
+        }
+
+        if (!hasTooManyErrors) {
+          // Volume smoothing
+          targetVolume = vol;
+          currentVolume += (targetVolume - currentVolume) * volumeSmoothRate;
+
+          output[i] = lastBytebeatSample * currentVolume;
         }
       }
-
-      // Accumulate fractional samples for rate conversion
-      sampleAccumulator += ratio;
-
-      while (sampleAccumulator >= 1.0) {
-        sampleAccumulator -= 1.0;
-
-        // Evaluate the bytebeat formula (sandboxed, try/catch inside)
-        var raw = formulaFn(tCounter);
-
-        // Track errors: if formula returns NaN/undefined, count as error
-        if (raw !== raw || raw === undefined) {
-          raw = 0;
-          _consecutiveErrors++;
-          if (_consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-            console.error('[BYTEBEAT] Too many formula errors, stopping playback');
-            playing = false;
-            return;
-          }
-        } else {
-          _consecutiveErrors = 0;
-        }
-
-        // Scale based on bit depth
-        if (depth === 8) {
-          raw = (raw & 255);
-          lastBytebeatSample = (raw / 127.5) - 1.0;
-        } else {
-          raw = (raw & 65535);
-          lastBytebeatSample = (raw / 32767.5) - 1.0;
-        }
-
-        tCounter += inc;
-      }
-
-      // Volume smoothing
-      targetVolume = vol;
-      currentVolume += (targetVolume - currentVolume) * volumeSmoothRate;
-
-      output[i] = lastBytebeatSample * currentVolume;
     }
   }
 
@@ -250,7 +254,7 @@
     formulaFn = compileFormula(settings.formula);
     volumeSmoothRate = 1.0 / (0.01 * audioContext.sampleRate);
 
-    engineReady = true;
+    isEngineReady = true;
     return Promise.resolve(true);
   }
 
@@ -277,18 +281,17 @@
       instId = 0;
     }
     var filterNode = filterNodes[instId];
-    if (!filterNode) {
-      return;
-    }
-    var filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
-    if (!filterSettings || !filterSettings.enabled) {
-      filterNode.type = 'lowpass';
-      filterNode.frequency.value = 20000;
-      filterNode.Q.value = 0.707;
-    } else {
-      filterNode.type = filterSettings.type || 'lowpass';
-      filterNode.frequency.value = Math.max(20, Math.min(20000, filterSettings.frequency || 20000));
-      filterNode.Q.value = Math.max(0.1, Math.min(30, filterSettings.resonance || 1));
+    if (filterNode) {
+      var filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
+      if (!filterSettings || !filterSettings.enabled) {
+        filterNode.type = 'lowpass';
+        filterNode.frequency.value = 20000;
+        filterNode.Q.value = 0.707;
+      } else {
+        filterNode.type = filterSettings.type || 'lowpass';
+        filterNode.frequency.value = Math.max(20, Math.min(20000, filterSettings.frequency || 20000));
+        filterNode.Q.value = Math.max(0.1, Math.min(30, filterSettings.resonance || 1));
+      }
     }
   }
 
@@ -296,44 +299,42 @@
     if (instId === undefined) {
       instId = 0;
     }
-    if (!scriptNode) {
-      return;
-    }
-
-    if (connectedInsts[instId]) {
-      updateFilter(instId);
-    } else {
-      var instruments = SL.audio && SL.audio.getInstruments ? SL.audio.getInstruments() : null;
-      var inst = instruments ? instruments[instId] : null;
-      var destination;
-
-      if (inst && inst.masterOutput) {
-        destination = inst.masterOutput;
-      } else if (audioContext) {
-        destination = audioContext.destination;
+    if (scriptNode) {
+      if (connectedInsts[instId]) {
+        updateFilter(instId);
       } else {
-        return;
+        var instruments = SL.audio && SL.audio.getInstruments ? SL.audio.getInstruments() : null;
+        var inst = instruments ? instruments[instId] : null;
+        var destination;
+
+        if (inst && inst.masterOutput) {
+          destination = inst.masterOutput;
+        } else if (audioContext) {
+          destination = audioContext.destination;
+        }
+
+        if (destination) {
+          var filterNode = getOrCreateFilterNode(instId);
+          updateFilter(instId);
+
+          // DC blocking filter — bytebeat formulas often produce asymmetric waveforms
+          var DC_BLOCK_FREQ = 10;
+          var dcBlocker = audioContext.createBiquadFilter();
+          dcBlocker.type = 'highpass';
+          dcBlocker.frequency.value = DC_BLOCK_FREQ;
+          dcBlocker.Q.value = 0.707;
+
+          if (filterNode) {
+            scriptNode.connect(filterNode);
+            filterNode.connect(dcBlocker);
+          } else {
+            scriptNode.connect(dcBlocker);
+          }
+          dcBlocker.connect(destination);
+
+          connectedInsts[instId] = true;
+        }
       }
-
-      var filterNode = getOrCreateFilterNode(instId);
-      updateFilter(instId);
-
-      // DC blocking filter — bytebeat formulas often produce asymmetric waveforms
-      var DC_BLOCK_FREQ = 10;
-      var dcBlocker = audioContext.createBiquadFilter();
-      dcBlocker.type = 'highpass';
-      dcBlocker.frequency.value = DC_BLOCK_FREQ;
-      dcBlocker.Q.value = 0.707;
-
-      if (filterNode) {
-        scriptNode.connect(filterNode);
-        filterNode.connect(dcBlocker);
-      } else {
-        scriptNode.connect(dcBlocker);
-      }
-      dcBlocker.connect(destination);
-
-      connectedInsts[instId] = true;
     }
   }
 
@@ -342,27 +343,26 @@
   // ============================================================
 
   function start() {
-    if (!engineReady) {
+    if (!isEngineReady) {
       // Auto-initialize if AudioContext is available
       var ctx = (SL.audio && SL.audio.getCtx) ? SL.audio.getCtx() : null;
       if (ctx) {
         init(ctx);
       }
-      if (!engineReady) {
-        return;
+    }
+    if (isEngineReady) {
+      // Ensure the ScriptProcessor is connected to output
+      var instId = (SL.audio && SL.audio.getCurrentInstrument) ? SL.audio.getCurrentInstrument() : 0;
+      if (!connectedInsts[instId]) {
+        connectToOutput(instId);
       }
+      isPlaying = true;
+      targetVolume = settings.volume / 100;
     }
-    // Ensure the ScriptProcessor is connected to output
-    var instId = (SL.audio && SL.audio.getCurrentInstrument) ? SL.audio.getCurrentInstrument() : 0;
-    if (!connectedInsts[instId]) {
-      connectToOutput(instId);
-    }
-    playing = true;
-    targetVolume = settings.volume / 100;
   }
 
   function stop() {
-    playing = false;
+    isPlaying = false;
     targetVolume = 0;
     tCounter = 0;
     sampleAccumulator = 0;
@@ -460,11 +460,11 @@
   }
 
   function isReady() {
-    return engineReady;
+    return isEngineReady;
   }
 
   function isPlaying() {
-    return playing;
+    return isPlaying;
   }
 
   // ============================================================

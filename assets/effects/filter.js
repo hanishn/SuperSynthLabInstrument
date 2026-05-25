@@ -2,9 +2,9 @@
 // Creates a resonant filter with LFO modulation for sweeping wah effects
 
 (function() {
-  const SL = window.SynthLab = window.SynthLab || {};
+  var SL = window.SynthLab = window.SynthLab || {};
   SL.effects = SL.effects || {};
-  const BaseEffect = SL.effects.BaseEffect;
+  var BaseEffect = SL.effects.BaseEffect;
 
   /**
    * FilterEffect - Auto-wah style filter with LFO modulation
@@ -88,8 +88,8 @@
     _calculateLfoDepth() {
       // At depth 100, sweep up to 2 octaves above base frequency
       // At depth 0, no sweep
-      const baseFreq = this._getEffectiveFreq();
-      const maxSweep = baseFreq * 2; // 2x frequency = 1 octave up
+      var baseFreq = this._getEffectiveFreq();
+      var maxSweep = baseFreq * 2; // 2x frequency = 1 octave up
       return (this.params.lfoDepth / 100) * maxSweep;
     }
 
@@ -190,7 +190,7 @@
 
         case 'type':
           // Filter type: lowpass, highpass, or bandpass
-          const validTypes = ['lowpass', 'highpass', 'bandpass'];
+          var validTypes = ['lowpass', 'highpass', 'bandpass'];
           if (validTypes.includes(value)) {
             this.params.type = value;
             this.filter.type = value;

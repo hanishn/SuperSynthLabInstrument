@@ -2,8 +2,8 @@
 // Creates a wider stereo image using mid-side processing and Haas effect
 
 (function() {
-  const SL = window.SynthLab;
-  const BaseEffect = SL.effects.BaseEffect;
+  var SL = window.SynthLab;
+  var BaseEffect = SL.effects.BaseEffect;
 
   /**
    * WidenerEffect - Stereo width enhancement using mid-side processing
@@ -242,14 +242,14 @@
      * @param {number} width - 0-200% (0=mono, 100=normal, 200=max wide)
      */
     updateWidth(width) {
-      const widthValue = Math.max(0, Math.min(200, width));
+      var widthValue = Math.max(0, Math.min(200, width));
       this.params.width = widthValue;
 
       // Width controls the ratio of Side to Mid
       // At 100%, side gain = 1.0 (normal stereo)
       // At 200%, side gain = 2.0 (emphasized sides)
       // At 0%, side gain = 0 (mono)
-      const sideMultiplier = widthValue / 100;
+      var sideMultiplier = widthValue / 100;
 
       this.sideGain.gain.setTargetAtTime(sideMultiplier, this.ctx.currentTime, 0.01);
     }
@@ -259,10 +259,10 @@
      * @param {number} delayMs - 0-30ms
      */
     updateDelay(delayMs) {
-      const delayValue = Math.max(0, Math.min(30, delayMs));
+      var delayValue = Math.max(0, Math.min(30, delayMs));
       this.params.delay = delayValue;
 
-      const delaySeconds = delayValue / 1000;
+      var delaySeconds = delayValue / 1000;
       this.haasDelay.delayTime.setTargetAtTime(delaySeconds, this.ctx.currentTime, 0.01);
     }
 
@@ -271,14 +271,14 @@
      * @param {number} bassMono - 0-100%
      */
     updateBassMono(bassMono) {
-      const bassMonoValue = Math.max(0, Math.min(100, bassMono));
+      var bassMonoValue = Math.max(0, Math.min(100, bassMono));
       this.params.bassMono = bassMonoValue;
 
       // bassMono controls how much the bass is collapsed to mono
       // At 0%, keep original stereo bass
       // At 100%, fully mono bass
-      const monoAmount = bassMonoValue / 100;
-      const originalAmount = 1 - monoAmount;
+      var monoAmount = bassMonoValue / 100;
+      var originalAmount = 1 - monoAmount;
 
       this.bassMonoMixL.gain.setTargetAtTime(monoAmount * 0.5, this.ctx.currentTime, 0.01);
       this.bassMonoMixR.gain.setTargetAtTime(monoAmount * 0.5, this.ctx.currentTime, 0.01);

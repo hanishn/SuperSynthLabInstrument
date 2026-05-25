@@ -15,6 +15,9 @@
   var MAX_VOICES_PER_INSTRUMENT = 16;
   var NUM_MODES = 16;
 
+  // Valid excitation types
+  var VALID_EXCITATION_TYPES = { 'impulse': 1, 'noise': 1, 'mallet': 1 };
+
   // Material partial ratio tables — characteristic inharmonic spectra
   var MATERIAL_RATIOS = {
     bar:      [1, 2.76, 5.40, 8.93, 13.34, 18.64, 24.82, 31.87, 39.81, 48.62, 58.31, 68.88, 80.33, 92.66, 105.86, 119.94],
@@ -58,7 +61,7 @@
   var audioContext = null;
   var scriptNodes = [null, null, null, null];
   var fallbackVoicesByInst = [[], [], [], []];
-  var engineReady = false;
+  var isEngineReady = false;
 
   // Per-instrument settings cache (instId -> settings object)
   var instrumentSettings = {};
@@ -422,7 +425,9 @@
     }
 
     // Check for silence after excitation ends
-    if (this.exciteRemaining <= 0 && this.decayCounter > this.sampleRate * 0.3 && Math.abs(output) < 0.00001) {
+    var isExciteFinished = this.exciteRemaining <= 0 && this.decayCounter > this.sampleRate * 0.3;
+    var isSilentAfterDecay = isExciteFinished && Math.abs(output) < 0.00001;
+    if (isSilentAfterDecay) {
       this.active = false;
       return 0;
     }
@@ -454,7 +459,7 @@
 
     // Pre-allocate per-instrument voice pools (16 voices each)
     for (var i = 0; i < 4; i++) {
-      fallbackVoicesByInst[i] = [];
+      fallbackVoicesByInst[i].length = 0;
       for (var v = 0; v < MAX_VOICES_PER_INSTRUMENT; v++) {
         fallbackVoicesByInst[i].push(new ModalVoice(sr));
       }
@@ -483,7 +488,7 @@
       })(idx);
     }
 
-    engineReady = true;
+    isEngineReady = true;
     return Promise.resolve(true);
   }
 
@@ -510,9 +515,7 @@
       instId = 0;
     }
     var filterNode = modalFilterNodes[instId];
-    if (!filterNode) {
-      return;
-    }
+    if (filterNode) {
 
     var filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
     if (!filterSettings || !filterSettings.enabled) {
@@ -524,41 +527,44 @@
       filterNode.frequency.value = Math.max(20, Math.min(20000, filterSettings.frequency || 20000));
       filterNode.Q.value = Math.max(0.1, Math.min(30, filterSettings.resonance || 1));
     }
+    } // end if (filterNode)
   }
 
   function connectToOutput(instId) {
     // Null-guard: if script node not created yet, skip silently
-    if (!scriptNodes[instId]) {
-      return;
-    }
+    if (scriptNodes[instId]) {
 
     if (connectedInsts[instId]) {
       updateFilter(instId);
     } else {
       var instruments = SL.audio && SL.audio.getInstruments ? SL.audio.getInstruments() : null;
       var inst = instruments ? instruments[instId] : null;
+      var isDestinationResolved = false;
       var destination;
 
       if (inst && inst.masterOutput) {
         destination = inst.masterOutput;
+        isDestinationResolved = true;
       } else if (audioContext) {
         destination = audioContext.destination;
-      } else {
-        return;
+        isDestinationResolved = true;
       }
 
-      var filterNode = getOrCreateFilterNode(instId);
-      updateFilter(instId);
+      if (isDestinationResolved) {
+        var filterNode = getOrCreateFilterNode(instId);
+        updateFilter(instId);
 
-      if (filterNode) {
-        scriptNodes[instId].connect(filterNode);
-        filterNode.connect(destination);
-      } else {
-        scriptNodes[instId].connect(destination);
+        if (filterNode) {
+          scriptNodes[instId].connect(filterNode);
+          filterNode.connect(destination);
+        } else {
+          scriptNodes[instId].connect(destination);
+        }
+
+        connectedInsts[instId] = true;
       }
-
-      connectedInsts[instId] = true;
     }
+    } // end if (scriptNodes[instId])
   }
 
   // ============================================================
@@ -684,7 +690,7 @@
 
   function setExcitation(instId, excitation) {
     var settings = getOrCreateSettings(instId);
-    if (excitation === 'impulse' || excitation === 'noise' || excitation === 'mallet') {
+    if (VALID_EXCITATION_TYPES[excitation]) {
       settings.excitation = excitation;
     }
   }
@@ -727,7 +733,7 @@
   }
 
   function isReady() {
-    return engineReady;
+    return isEngineReady;
   }
 
   function getDefaultSettings() {

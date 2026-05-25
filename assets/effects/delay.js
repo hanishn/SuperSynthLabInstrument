@@ -2,8 +2,8 @@
 // Multiple delay algorithms: Digital, Tape, Analog BBD, Ping-Pong, Multi-Tap, Ducking
 
 (function() {
-  const SL = window.SynthLab;
-  const BaseEffect = SL.effects.BaseEffect;
+  var SL = window.SynthLab;
+  var BaseEffect = SL.effects.BaseEffect;
 
   /**
    * DelayEffect - Multi-algorithm delay processor
@@ -109,23 +109,23 @@
       try {
         this.input.disconnect();
         this.input.connect(this.dryGain);
-      } catch (e) {}
+      } catch (e) { /* node may already be disconnected */ }
 
       // Stop and disconnect any oscillators/LFOs
       if (this.nodes.wowLFO) {
-        try { this.nodes.wowLFO.stop(); } catch (e) {}
+        try { this.nodes.wowLFO.stop(); } catch (e) { /* LFO may not have started */ }
       }
       if (this.nodes.flutterLFO) {
-        try { this.nodes.flutterLFO.stop(); } catch (e) {}
+        try { this.nodes.flutterLFO.stop(); } catch (e) { /* LFO may not have started */ }
       }
       if (this.nodes.noiseSource) {
-        try { this.nodes.noiseSource.stop(); } catch (e) {}
+        try { this.nodes.noiseSource.stop(); } catch (e) { /* noise source may not have started */ }
       }
 
       // Disconnect all stored nodes
-      Object.values(this.nodes).forEach(node => {
+      Object.values(this.nodes).forEach(function(node) {
         if (node && node.disconnect) {
-          try { node.disconnect(); } catch (e) {}
+          try { node.disconnect(); } catch (e) { /* node already disconnected */ }
         }
       });
 
@@ -141,7 +141,7 @@
      *             +-- feedback <-+
      */
     buildDigital() {
-      const n = this.nodes;
+      var n = this.nodes;
 
       // Create nodes
       n.delay = this.ctx.createDelay(2.0);
@@ -170,8 +170,8 @@
      */
     updateDampingFreq() {
       if (!this.nodes.damping) return;
-      const dampingNormalized = Math.max(0, Math.min(100, this.params.damping)) / 100;
-      const cutoffFreq = 20000 * Math.pow(0.05, dampingNormalized);
+      var dampingNormalized = Math.max(0, Math.min(100, this.params.damping)) / 100;
+      var cutoffFreq = 20000 * Math.pow(0.05, dampingNormalized);
       this.nodes.damping.frequency.setTargetAtTime(cutoffFreq, this.ctx.currentTime, 0.01);
     }
 
@@ -180,7 +180,7 @@
      * Features: Wow/flutter, lowpass for tape roll-off, saturation
      */
     buildTape() {
-      const n = this.nodes;
+      var n = this.nodes;
 
       // Main delay
       n.delay = this.ctx.createDelay(2.0);
@@ -245,17 +245,17 @@
      */
     updateTapeSaturation() {
       if (!this.nodes.saturation) return;
-      const amount = this.params.saturation / 100;
-      const samples = 256;
-      const curve = new Float32Array(samples);
+      var amount = this.params.saturation / 100;
+      var samples = 256;
+      var curve = new Float32Array(samples);
 
-      for (let i = 0; i < samples; i++) {
-        const x = (i * 2) / samples - 1;
+      for (var i = 0; i < samples; i++) {
+        var x = (i * 2) / samples - 1;
         // Soft clipping curve with adjustable saturation
         if (amount < 0.01) {
           curve[i] = x;
         } else {
-          const k = amount * 10;
+          var k = amount * 10;
           curve[i] = Math.tanh(k * x) / Math.tanh(k);
         }
       }
@@ -269,7 +269,7 @@
      * Features: Lowpass (2-5kHz), highpass (60-100Hz), subtle noise
      */
     buildAnalog() {
-      const n = this.nodes;
+      var n = this.nodes;
 
       // Main delay
       n.delay = this.ctx.createDelay(2.0);
@@ -296,9 +296,9 @@
       n.noiseGain.gain.value = (this.params.noise / 100) * 0.02;
 
       // Create noise buffer
-      const noiseBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 2, this.ctx.sampleRate);
-      const noiseData = noiseBuffer.getChannelData(0);
-      for (let i = 0; i < noiseData.length; i++) {
+      var noiseBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 2, this.ctx.sampleRate);
+      var noiseData = noiseBuffer.getChannelData(0);
+      for (var i = 0; i < noiseData.length; i++) {
         noiseData[i] = Math.random() * 2 - 1;
       }
 
@@ -333,10 +333,10 @@
      * Uses ChannelSplitter/Merger for L/R processing
      */
     buildPingPong() {
-      const n = this.nodes;
+      var n = this.nodes;
 
-      const baseTime = this.params.time / 1000;
-      const offsetRatio = this.params.offset / 100;
+      var baseTime = this.params.time / 1000;
+      var offsetRatio = this.params.offset / 100;
 
       // Create stereo splitter and merger
       n.splitter = this.ctx.createChannelSplitter(2);
@@ -357,7 +357,7 @@
       n.feedbackR.gain.value = this.params.feedback / 100;
 
       // Panners for width control
-      const width = this.params.width / 100;
+      var width = this.params.width / 100;
       n.panL = this.ctx.createStereoPanner();
       n.panL.pan.value = -width;
 
@@ -411,7 +411,7 @@
      * 4 delay taps with independent times and levels
      */
     buildMultiTap() {
-      const n = this.nodes;
+      var n = this.nodes;
 
       // Apply pattern presets if not custom
       this.applyMultiTapPattern();
@@ -420,7 +420,7 @@
       n.taps = [];
       n.tapGains = [];
 
-      const tapParams = [
+      var tapParams = [
         { time: this.params.tap1Time, level: this.params.tap1Level },
         { time: this.params.tap2Time, level: this.params.tap2Level },
         { time: this.params.tap3Time, level: this.params.tap3Level },
@@ -441,11 +441,11 @@
       n.damping.frequency.value = 6000;
       n.damping.Q.value = 0.707;
 
-      for (let i = 0; i < 4; i++) {
-        const delay = this.ctx.createDelay(2.0);
+      for (var i = 0; i < 4; i++) {
+        var delay = this.ctx.createDelay(2.0);
         delay.delayTime.value = tapParams[i].time / 1000;
 
-        const gain = this.ctx.createGain();
+        var gain = this.ctx.createGain();
         gain.gain.value = tapParams[i].level / 100;
 
         // Connect: input -> delay -> gain -> tapSum
@@ -470,7 +470,7 @@
      * Apply multi-tap pattern presets
      */
     applyMultiTapPattern() {
-      const baseTime = this.params.time;
+      var baseTime = this.params.time;
 
       switch (this.params.pattern) {
         case 'rhythmic':
@@ -491,7 +491,7 @@
 
         case 'fibonacci':
           // Fibonacci sequence: 1, 2, 3, 5 normalized
-          const fibSum = 1 + 2 + 3 + 5;
+          var fibSum = 1 + 2 + 3 + 5;
           this.params.tap1Time = baseTime * (1 / fibSum);
           this.params.tap2Time = baseTime * (3 / fibSum);
           this.params.tap3Time = baseTime * (6 / fibSum);
@@ -515,7 +515,7 @@
      * Delay output attenuates when input is loud, swells during pauses
      */
     buildDucking() {
-      const n = this.nodes;
+      var n = this.nodes;
 
       // Main delay (same as digital base)
       n.delay = this.ctx.createDelay(2.0);
@@ -563,65 +563,65 @@
         clearInterval(this._duckingInterval);
       }
 
-      const analyser = this.nodes.analyser;
-      const ducker = this.nodes.ducker;
+      var analyser = this.nodes.analyser;
+      var ducker = this.nodes.ducker;
       if (!analyser || !ducker) return;
 
-      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      var dataArray = new Uint8Array(analyser.frequencyBinCount);
 
       // Store current gain for smooth transitions
-      let currentGain = 1;
+      var currentGain = 1;
+      var self = this;
 
-      this._duckingInterval = setInterval(() => {
-        if (!this.enabled || this.algorithm !== 'ducking') {
-          clearInterval(this._duckingInterval);
-          this._duckingInterval = null;
-          return;
-        }
-
-        // Get time domain data
-        analyser.getByteTimeDomainData(dataArray);
-
-        // Calculate RMS level
-        let sum = 0;
-        for (let i = 0; i < dataArray.length; i++) {
-          const normalized = (dataArray[i] - 128) / 128;
-          sum += normalized * normalized;
-        }
-        const rms = Math.sqrt(sum / dataArray.length);
-
-        // Convert to dB
-        const db = 20 * Math.log10(rms + 0.0001);
-
-        // Calculate target gain based on threshold and duck amount
-        const threshold = this.params.duckThreshold;
-        const duckAmount = this.params.duckAmount / 100;
-
-        let targetGain;
-        if (db > threshold) {
-          // Above threshold - duck
-          const excess = db - threshold;
-          const reduction = Math.min(1, excess / 20) * duckAmount;
-          targetGain = 1 - reduction;
+      this._duckingInterval = setInterval(function() {
+        if (!self.enabled || self.algorithm !== 'ducking') {
+          clearInterval(self._duckingInterval);
+          self._duckingInterval = null;
         } else {
-          // Below threshold - full volume
-          targetGain = 1;
+          // Get time domain data
+          analyser.getByteTimeDomainData(dataArray);
+
+          // Calculate RMS level
+          var sum = 0;
+          for (var i = 0; i < dataArray.length; i++) {
+            var normalized = (dataArray[i] - 128) / 128;
+            sum += normalized * normalized;
+          }
+          var rms = Math.sqrt(sum / dataArray.length);
+
+          // Convert to dB
+          var db = 20 * Math.log10(rms + 0.0001);
+
+          // Calculate target gain based on threshold and duck amount
+          var threshold = self.params.duckThreshold;
+          var duckAmount = self.params.duckAmount / 100;
+
+          var targetGain;
+          if (db > threshold) {
+            // Above threshold - duck
+            var excess = db - threshold;
+            var reduction = Math.min(1, excess / 20) * duckAmount;
+            targetGain = 1 - reduction;
+          } else {
+            // Below threshold - full volume
+            targetGain = 1;
+          }
+
+          // Apply attack/release smoothing
+          var attackTime = self.params.duckAttack / 1000;
+          var releaseTime = self.params.duckRelease / 1000;
+
+          if (targetGain < currentGain) {
+            // Attacking (ducking)
+            currentGain = currentGain + (targetGain - currentGain) * Math.min(1, 0.016 / attackTime);
+          } else {
+            // Releasing (un-ducking)
+            currentGain = currentGain + (targetGain - currentGain) * Math.min(1, 0.016 / releaseTime);
+          }
+
+          // Apply gain
+          ducker.gain.setTargetAtTime(currentGain, self.ctx.currentTime, 0.01);
         }
-
-        // Apply attack/release smoothing
-        const attackTime = this.params.duckAttack / 1000;
-        const releaseTime = this.params.duckRelease / 1000;
-
-        if (targetGain < currentGain) {
-          // Attacking (ducking)
-          currentGain = currentGain + (targetGain - currentGain) * Math.min(1, 0.016 / attackTime);
-        } else {
-          // Releasing (un-ducking)
-          currentGain = currentGain + (targetGain - currentGain) * Math.min(1, 0.016 / releaseTime);
-        }
-
-        // Apply gain
-        ducker.gain.setTargetAtTime(currentGain, this.ctx.currentTime, 0.01);
       }, 16); // ~60fps
     }
 
@@ -629,15 +629,14 @@
      * Handle parameter updates
      */
     updateParam(name, value) {
-      const now = this.ctx.currentTime;
+      var now = this.ctx.currentTime;
 
       // Handle algorithm change
       if (name === 'algorithm') {
         if (value !== this.algorithm) {
           this.buildAlgorithm(value);
         }
-        return;
-      }
+      } else {
 
       switch (name) {
         case 'time':
@@ -700,7 +699,7 @@
         // Ping-Pong params
         case 'width':
           if (this.nodes.panL && this.nodes.panR) {
-            const w = value / 100;
+            var w = value / 100;
             this.nodes.panL.pan.setTargetAtTime(-w, now, 0.01);
             this.nodes.panR.pan.setTargetAtTime(w, now, 0.01);
           }
@@ -708,8 +707,8 @@
 
         case 'offset':
           if (this.nodes.delayR) {
-            const baseTime = this.params.time / 1000;
-            const offsetRatio = value / 100;
+            var baseTime = this.params.time / 1000;
+            var offsetRatio = value / 100;
             this.nodes.delayR.delayTime.setTargetAtTime(baseTime * (1 + offsetRatio), now, 0.01);
           }
           break;
@@ -744,14 +743,15 @@
           // These are read directly by the envelope follower
           break;
       }
+      }
     }
 
     /**
      * Update delay time across all algorithms
      */
     updateDelayTime(value) {
-      const now = this.ctx.currentTime;
-      const timeInSeconds = Math.max(0.01, Math.min(2.0, value / 1000));
+      var now = this.ctx.currentTime;
+      var timeInSeconds = Math.max(0.01, Math.min(2.0, value / 1000));
 
       switch (this.algorithm) {
         case 'digital':
@@ -768,7 +768,7 @@
             this.nodes.delayL.delayTime.setTargetAtTime(timeInSeconds, now, 0.01);
           }
           if (this.nodes.delayR) {
-            const offsetRatio = this.params.offset / 100;
+            var offsetRatio = this.params.offset / 100;
             this.nodes.delayR.delayTime.setTargetAtTime(timeInSeconds * (1 + offsetRatio), now, 0.01);
           }
           break;
@@ -784,9 +784,9 @@
      * Update feedback across all algorithms
      */
     updateFeedback(value) {
-      const now = this.ctx.currentTime;
+      var now = this.ctx.currentTime;
       var DELAY_FEEDBACK_MAX = 0.88;
-      const feedbackValue = Math.max(0, Math.min(DELAY_FEEDBACK_MAX, value / 100));
+      var feedbackValue = Math.max(0, Math.min(DELAY_FEEDBACK_MAX, value / 100));
 
       if (this.nodes.feedback) {
         if (this.algorithm === 'multitap') {
@@ -810,17 +810,17 @@
      */
     updateMultiTapDelays() {
       if (!this.nodes.taps) return;
-      const now = this.ctx.currentTime;
+      var now = this.ctx.currentTime;
 
-      const times = [
+      var times = [
         this.params.tap1Time,
         this.params.tap2Time,
         this.params.tap3Time,
         this.params.tap4Time
       ];
 
-      for (let i = 0; i < this.nodes.taps.length; i++) {
-        const timeInSeconds = Math.max(0.01, Math.min(2.0, times[i] / 1000));
+      for (var i = 0; i < this.nodes.taps.length; i++) {
+        var timeInSeconds = Math.max(0.01, Math.min(2.0, times[i] / 1000));
         this.nodes.taps[i].delayTime.setTargetAtTime(timeInSeconds, now, 0.01);
       }
     }
@@ -830,16 +830,16 @@
      */
     updateMultiTapLevels() {
       if (!this.nodes.tapGains) return;
-      const now = this.ctx.currentTime;
+      var now = this.ctx.currentTime;
 
-      const levels = [
+      var levels = [
         this.params.tap1Level,
         this.params.tap2Level,
         this.params.tap3Level,
         this.params.tap4Level
       ];
 
-      for (let i = 0; i < this.nodes.tapGains.length; i++) {
+      for (var i = 0; i < this.nodes.tapGains.length; i++) {
         this.nodes.tapGains[i].gain.setTargetAtTime(levels[i] / 100, now, 0.01);
       }
     }

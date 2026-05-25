@@ -2,8 +2,8 @@
 // Classic flanger with LFO-modulated delay and feedback
 
 (function() {
-  const SL = window.SynthLab;
-  const BaseEffect = SL.effects.BaseEffect;
+  var SL = window.SynthLab;
+  var BaseEffect = SL.effects.BaseEffect;
 
   /**
    * FlangerEffect - LFO-modulated delay with feedback
@@ -81,20 +81,20 @@
      * Handle parameter updates
      */
     updateParam(name, value) {
-      const now = this.ctx.currentTime;
+      var now = this.ctx.currentTime;
 
       switch (name) {
         case 'rate':
           // LFO frequency: 0.05-5 Hz
-          const rateHz = Math.max(0.05, Math.min(5, value));
+          var rateHz = Math.max(0.05, Math.min(5, value));
           this.lfo.frequency.setTargetAtTime(rateHz, now, 0.01);
           break;
 
         case 'depth':
           // Depth 0-100 maps to 0-5ms of delay sweep
           // The LFO outputs -1 to +1, so depthGain determines the sweep range
-          const depthNormalized = Math.max(0, Math.min(100, value)) / 100;
-          const sweepAmount = depthNormalized * 0.005; // Max 5ms sweep
+          var depthNormalized = Math.max(0, Math.min(100, value)) / 100;
+          var sweepAmount = depthNormalized * 0.005; // Max 5ms sweep
           this.depthGain.gain.setTargetAtTime(sweepAmount, now, 0.01);
           break;
 
@@ -102,15 +102,15 @@
           // Feedback -95 to +95% (allow negative for different tonal character)
           // Negative feedback creates a hollow, nasal sound
           // Positive feedback creates a resonant, jet-like sound
-          const feedbackValue = Math.max(-0.95, Math.min(0.95, value / 100));
+          var feedbackValue = Math.max(-0.95, Math.min(0.95, value / 100));
           this.feedbackGain.gain.setTargetAtTime(feedbackValue, now, 0.01);
           break;
 
         case 'delay':
           // Base delay time: 1-20 ms
           // This sets the center point around which the LFO modulates
-          const delayMs = Math.max(1, Math.min(20, value));
-          const delaySeconds = delayMs / 1000;
+          var delayMs = Math.max(1, Math.min(20, value));
+          var delaySeconds = delayMs / 1000;
           this.delayNode.delayTime.setTargetAtTime(delaySeconds, now, 0.01);
           break;
       }

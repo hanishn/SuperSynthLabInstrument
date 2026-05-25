@@ -12,6 +12,8 @@
 
   var NOTES = SL.NOTES;
   var BLACK_KEYS = [1, 3, 6, 8, 10];
+
+  var NO_NODE = null;
   var WHITE_KEY_BASE_WIDTH = 62;
   var WHITES_PER_OCTAVE = 7;
   var DEFAULT_VELOCITY = 100;
@@ -156,7 +158,7 @@
       e.preventDefault();
 
       var keyEl = _keyFromPoint(e.clientX, e.clientY);
-      var hasKey = (keyEl !== null);
+      var hasKey = (keyEl !== NO_NODE);
 
       if (hasKey) {
         var m = parseInt(keyEl.getAttribute('data-midi'), 10);
@@ -173,9 +175,7 @@
 
     container.addEventListener('pointermove', function(e) {
       var ptr = _activePointers[e.pointerId];
-      if (!ptr) {
-        return;
-      }
+      if (ptr) {
 
       var keyEl = _keyFromPoint(e.clientX, e.clientY);
       var isSameKey = (keyEl === ptr.el);
@@ -201,6 +201,7 @@
           ptr.midi = -1;
         }
       }
+      } // end if (ptr)
     });
 
     function _pointerEnd(e) {

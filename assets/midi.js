@@ -7,7 +7,14 @@
   var SL = window.SynthLab;
   if (!SL || !SL.audio) {
     console.error('[midi] SynthLab.audio not available');
-    return;
+  } else {
+
+  // ============================================================
+  // Helpers
+  // ============================================================
+
+  function _makeSustainMap() {
+    return {};
   }
 
   // ============================================================
@@ -19,7 +26,7 @@
   var selectedOutputId = null;
   var currentInput = null;
   var currentOutput = null;
-  var midiEnabled = false;
+  var isMidiEnabled = false;
 
   // Active MIDI notes per instrument channel (0-4, 5 instruments)
   // Each is a Map: midi -> { type, oscillators, master, filterChain, releaseTime }
@@ -59,6 +66,8 @@
     { channel: 4, velCurve: 'linear', program: 0 }
   ];
 
+  var NO_STORED_VALUE = null;
+
   // ============================================================
   // Web MIDI Access
   // ============================================================
@@ -66,20 +75,20 @@
   function init() {
     if (!navigator.requestMIDIAccess) {
       console.warn('[MIDI] Web MIDI API not available in this browser');
-      return;
+    } else {
+      navigator.requestMIDIAccess({ sysex: false }).then(
+        function(access) {
+          midiAccess = access;
+          isMidiEnabled = true;
+          access.onstatechange = onStateChange;
+          updateDeviceSelectors();
+          autoSelectDevices();
+        },
+        function(err) {
+          console.error('[MIDI] Access denied:', err);
+        }
+      );
     }
-    navigator.requestMIDIAccess({ sysex: false }).then(
-      function(access) {
-        midiAccess = access;
-        midiEnabled = true;
-        access.onstatechange = onStateChange;
-        updateDeviceSelectors();
-        autoSelectDevices();
-      },
-      function(err) {
-        console.error('[MIDI] Access denied:', err);
-      }
-    );
   }
 
   function onStateChange() {
@@ -164,16 +173,21 @@
 
     // Apply transpose to note messages
     var transposedByte1 = byte1;
-    if ((status === 0x90 || status === 0x80) && midiTranspose !== 0) {
+    var isNoteMessage = status === 0x90 || status === 0x80;
+    var shouldTransposeNote = isNoteMessage && midiTranspose !== 0;
+    if (shouldTransposeNote) {
       transposedByte1 = Math.max(0, Math.min(127, byte1 + midiTranspose));
     }
 
     // Route to instruments based on their configured channel (5 instruments)
     for (var instId = 0; instId < 5; instId++) {
-      if (midiConfig[instId].channel === channel && midiConfig[instId].midiIn) {
+      var isChannelMatch = midiConfig[instId].channel === channel;
+      var isInboundMidi = isChannelMatch && midiConfig[instId].midiIn;
+      if (isInboundMidi) {
+        var isNoteOffMessage = (status === 0x80) || ((status === 0x90) && (byte2 === 0));
         if (status === 0x90 && byte2 > 0) {
           midiNoteOn(transposedByte1, byte2, instId);
-        } else if (status === 0x80 || (status === 0x90 && byte2 === 0)) {
+        } else if (isNoteOffMessage) {
           midiNoteOff(transposedByte1, instId);
         } else if (status === 0xB0) {
           handleCC(byte1, byte2, instId);
@@ -266,7 +280,8 @@
       if (SL.audio && SL.audio.getInstruments) {
         var instruments = SL.audio.getInstruments();
         var inst = instruments[channel];
-        if (inst && inst.settings && inst.settings.filter) {
+        var hasFilterQ = inst && inst.settings && inst.settings.filter;
+        if (hasFilterQ) {
           inst.settings.filter.q = Math.round((value / 127) * 100);
           if (SL.audio.loadInstrumentSettings) {
             SL.audio.loadInstrumentSettings(channel);
@@ -278,7 +293,8 @@
       if (SL.audio && SL.audio.getInstruments) {
         var instruments = SL.audio.getInstruments();
         var inst = instruments[channel];
-        if (inst && inst.settings && inst.settings.adsr) {
+        var hasAdsrRelease = inst && inst.settings && inst.settings.adsr;
+        if (hasAdsrRelease) {
           inst.settings.adsr.r = Math.round((value / 127) * 100);
           if (SL.audio.loadInstrumentSettings) {
             SL.audio.loadInstrumentSettings(channel);
@@ -290,7 +306,8 @@
       if (SL.audio && SL.audio.getInstruments) {
         var instruments = SL.audio.getInstruments();
         var inst = instruments[channel];
-        if (inst && inst.settings && inst.settings.adsr) {
+        var hasAdsrAttack = inst && inst.settings && inst.settings.adsr;
+        if (hasAdsrAttack) {
           inst.settings.adsr.a = Math.round((value / 127) * 100);
           if (SL.audio.loadInstrumentSettings) {
             SL.audio.loadInstrumentSettings(channel);
@@ -302,7 +319,8 @@
       if (SL.audio && SL.audio.getInstruments) {
         var instruments = SL.audio.getInstruments();
         var inst = instruments[channel];
-        if (inst && inst.settings && inst.settings.filter) {
+        var hasFilterCutoff = inst && inst.settings && inst.settings.filter;
+        if (hasFilterCutoff) {
           // Map 0-127 to 20-20000 Hz logarithmically
           var normalized = value / 127;
           var freq = 20 * Math.pow(1000, normalized);
@@ -317,7 +335,8 @@
       if (SL.audio && SL.audio.getInstruments) {
         var instruments = SL.audio.getInstruments();
         var inst = instruments[channel];
-        if (inst && inst.settings && inst.settings.adsr) {
+        var hasAdsrDecay = inst && inst.settings && inst.settings.adsr;
+        if (hasAdsrDecay) {
           inst.settings.adsr.d = Math.round((value / 127) * 100);
           if (SL.audio.loadInstrumentSettings) {
             SL.audio.loadInstrumentSettings(channel);
@@ -372,7 +391,8 @@
     var freq = 20 * Math.pow(1000, normalized);
     var activeNotes = midiActiveNotes[channel];
     activeNotes.forEach(function(noteData) {
-      if (noteData.filterChain && noteData.filterChain.input && noteData.filterChain.input.frequency) {
+      var hasFilterFrequency = noteData.filterChain && noteData.filterChain.input && noteData.filterChain.input.frequency;
+      if (hasFilterFrequency) {
         noteData.filterChain.input.frequency.value = freq;
       }
     });
@@ -385,9 +405,9 @@
   function handleProgramChange(program, instId) {
     // A-09: Map MIDI program 0-127 to preset index for current engine/category.
     // Uses the presets system to find and apply the preset at the given index.
-    if (!SL.presets || !SL.presets.getPresetsForEngineCategory || !SL.presets.apply) {
-      return;
-    }
+    var hasPresetsSystem = SL.presets && SL.presets.getPresetsForEngineCategory;
+    var canApplyPreset = hasPresetsSystem && SL.presets.apply;
+    if (canApplyPreset) {
     var engineType = 'Subtractive';
     if (SL.audio && SL.audio.getInstrumentType) {
       var rawType = SL.audio.getInstrumentType(instId);
@@ -404,6 +424,7 @@
         SL.state.notify('preset');
       }
     }
+    } // end if (SL.presets)
   }
 
   // ============================================================
@@ -419,43 +440,38 @@
     var type = SL.audio.getInstrumentType(instId);
 
     // MIDIOUT type — send MIDI out, no local audio
+    var hasFmEngine = SL.fm && SL.fm.noteOn;
+    var isFmNoteOnReady = type === 'fm' && hasFmEngine;
+    var hasPhysicalEngine = SL.physical && SL.physical.noteOn;
+    var isPhysicalNoteOnReady = type === 'physical' && hasPhysicalEngine;
+    var hasSamplerEngine = SL.sampler && SL.sampler.noteOn;
+    var isSamplerNoteOnReady = type === 'sampler' && hasSamplerEngine;
     if (type === 'midiout') {
       var moSettings = midioutSettings[instId];
       var adjVel = applyVelocityCurve(velocity, moSettings.velCurve);
       sendNoteOn(midi, adjVel, moSettings.channel);
       midiActiveNotes[instId].set(midi, { type: 'midiout' });
       SL.audio.highlightNote(midi, true);
-      return;
-    }
-
-    // FM synthesis
-    if (type === 'fm' && SL.fm && SL.fm.noteOn) {
+    } else if (isFmNoteOnReady) {
+      // FM synthesis
       SL.fm.noteOn(midi, velocity, instId);
       midiActiveNotes[instId].set(midi, { type: 'fm' });
       SL.audio.highlightNote(midi, true);
-      return;
-    }
-
-    // Physical modelling
-    if (type === 'physical' && SL.physical && SL.physical.noteOn) {
+    } else if (isPhysicalNoteOnReady) {
+      // Physical modelling
       SL.physical.noteOn(midi, velocity, instId);
       midiActiveNotes[instId].set(midi, { type: 'physical' });
       SL.audio.highlightNote(midi, true);
-      return;
-    }
-
-    // Sampler
-    if (type === 'sampler' && SL.sampler && SL.sampler.noteOn) {
+    } else if (isSamplerNoteOnReady) {
+      // Sampler
       SL.sampler.noteOn(midi, velocity, instId);
       midiActiveNotes[instId].set(midi, { type: 'sampler' });
       SL.audio.highlightNote(midi, true);
-      return;
-    }
-
+    } else {
     // Subtractive synthesis — create oscillators routed to this instrument's masterOutput
     var instruments = SL.audio.getInstruments();
     var inst = instruments[instId];
-    if (!inst) return;
+    if (inst) {
 
     // Read saved settings for this instrument
     var settings = inst.settings;
@@ -562,20 +578,21 @@
       releaseTime: effectiveRelease
     });
     SL.audio.highlightNote(midi, true);
+    }
+    } // end else (subtractive path)
   }
 
   function midiNoteOff(midi, instId) {
     // If sustain pedal is down (>10% threshold), hold the note instead of releasing
     if (_sustainPedalAmount[instId] >= 0.1 && !_sustainedNotes[instId][midi]) {
       _sustainedNotes[instId][midi] = true;
-      return;
-    }
+    } else {
     // Clear sustained flag and base release tracking
     delete _sustainedNotes[instId][midi];
     delete _baseReleaseTimes[instId][midi];
 
     var noteData = midiActiveNotes[instId].get(midi);
-    if (!noteData) return;
+    if (noteData) {
 
     if (noteData.type === 'midiout') {
       var moSettings = midioutSettings[instId];
@@ -599,7 +616,7 @@
       // Schedule oscillator stop after release
       var stopTime = now + releaseTime + 0.02;
       noteData.oscillators.forEach(function(o) {
-        try { o.osc.stop(stopTime); } catch (e) { /* already stopped */ }
+        try { o.osc.stop(stopTime); } catch (e) { /* oscillator may already be stopped */ }
       });
 
       // Disconnect filter chain after release
@@ -608,13 +625,15 @@
           try {
             noteData.master.disconnect();
             if (noteData.filterChain.output) noteData.filterChain.output.disconnect();
-          } catch (e) { /* ignore */ }
+          } catch (e) { /* node may already be disconnected */ }
         }, (releaseTime + 0.05) * 1000);
       }
     }
 
     midiActiveNotes[instId].delete(midi);
     SL.audio.highlightNote(midi, false);
+    } // end if (noteData)
+    } // end else (not sustained)
   }
 
   // ============================================================
@@ -897,11 +916,9 @@
       if (isStillLinear) {
         try {
           var savedCurve = localStorage.getItem('ssli-vel-curve');
-          var hasSavedCurve = (savedCurve !== null);
+          var hasSavedCurve = (savedCurve !== NO_STORED_VALUE);
           if (hasSavedCurve) { curve = savedCurve; }
-        } catch (lsErr) {
-          // localStorage may be unavailable
-        }
+        } catch (lsErr) { /* localStorage may be unavailable */ }
       }
       result = applyVelocityCurve(rawVelocity, curve);
     }
@@ -966,34 +983,44 @@
   function updateDeviceSelectors() {
     var inputSelect = document.getElementById('midiInput');
     var outputSelect = document.getElementById('midiOutput');
-    if (!inputSelect || !outputSelect) return;
+    if (inputSelect) {
+      if (outputSelect) {
+        var inputs = getInputDevices();
+        var outputs = getOutputDevices();
 
-    var inputs = getInputDevices();
-    var outputs = getOutputDevices();
+        // Device discovery complete -- no console logging in production
 
-    // Device discovery complete -- no console logging in production
+        // Update input selector
+        inputSelect.textContent = '';
+        var inputNoneOpt = document.createElement('option');
+        inputNoneOpt.value = '';
+        inputNoneOpt.textContent = SL.t('midi.none_option');
+        inputSelect.appendChild(inputNoneOpt);
+        inputs.forEach(function(dev) {
+          var opt = document.createElement('option');
+          opt.value = dev.id;
+          opt.textContent = dev.name;
+          if (dev.id === selectedInputId) opt.selected = true;
+          inputSelect.appendChild(opt);
+        });
 
-    // Update input selector
-    inputSelect.innerHTML = '<option value="">' + SL.t('midi.none_option') + '</option>';
-    inputs.forEach(function(dev) {
-      var opt = document.createElement('option');
-      opt.value = dev.id;
-      opt.textContent = dev.name;
-      if (dev.id === selectedInputId) opt.selected = true;
-      inputSelect.appendChild(opt);
-    });
+        // Update output selector
+        outputSelect.textContent = '';
+        var outputNoneOpt = document.createElement('option');
+        outputNoneOpt.value = '';
+        outputNoneOpt.textContent = SL.t('midi.none_option');
+        outputSelect.appendChild(outputNoneOpt);
+        outputs.forEach(function(dev) {
+          var opt = document.createElement('option');
+          opt.value = dev.id;
+          opt.textContent = dev.name;
+          if (dev.id === selectedOutputId) opt.selected = true;
+          outputSelect.appendChild(opt);
+        });
 
-    // Update output selector
-    outputSelect.innerHTML = '<option value="">' + SL.t('midi.none_option') + '</option>';
-    outputs.forEach(function(dev) {
-      var opt = document.createElement('option');
-      opt.value = dev.id;
-      opt.textContent = dev.name;
-      if (dev.id === selectedOutputId) opt.selected = true;
-      outputSelect.appendChild(opt);
-    });
-
-    updateStatusIndicator();
+        updateStatusIndicator();
+      }
+    }
   }
 
   // Full rescan: re-request MIDI access to pick up newly connected USB devices
@@ -1001,28 +1028,28 @@
     // Rescan requested
     if (!navigator.requestMIDIAccess) {
       console.warn('[MIDI] Web MIDI API not available');
-      return;
-    }
-    navigator.requestMIDIAccess({ sysex: false }).then(
-      function(access) {
-        midiAccess = access;
-        midiEnabled = true;
-        access.onstatechange = onStateChange;
-        updateDeviceSelectors();
-        autoSelectDevices();
-        // Rescan complete
-      },
-      function(err) {
+    } else {
+      navigator.requestMIDIAccess({ sysex: false }).then(
+        function(access) {
+          midiAccess = access;
+          isMidiEnabled = true;
+          access.onstatechange = onStateChange;
+          updateDeviceSelectors();
+          autoSelectDevices();
+          // Rescan complete
+        },
+        function(err) {
         console.error('[MIDI] Rescan failed:', err);
       }
     );
+  }
   }
 
   function updateStatusIndicator() {
     var indicator = document.getElementById('midiStatus');
     if (!indicator) return;
 
-    if (!midiEnabled) {
+    if (!isMidiEnabled) {
       indicator.className = 'midi-status midi-unavailable';
       indicator.title = SL.t('midi.not_available');
     } else if (currentInput) {
@@ -1066,17 +1093,17 @@
     if (panicBtn && panicBtn.parentNode) {
       var rescanBtn = document.createElement('button');
       rescanBtn.id = 'midiRescanBtn';
-      rescanBtn.innerHTML = SL.icon('refresh', 14);
+      rescanBtn.innerHTML = SL.icon('refresh', 14); /* trusted: internal SVG icon */
       rescanBtn.title = SL.t('midi.rescan');
       rescanBtn.setAttribute('aria-label', SL.t('midi.rescan'));
       rescanBtn.style.cssText = panicBtn.style.cssText || '';
       rescanBtn.className = panicBtn.className.replace('panic-flash', '').trim();
       rescanBtn.addEventListener('click', function() {
-        rescanBtn.innerHTML = SL.icon('refresh', 14);
+        rescanBtn.innerHTML = SL.icon('refresh', 14); /* trusted: internal SVG icon */
         rescanBtn.disabled = true;
         rescanDevices();
         setTimeout(function() {
-          rescanBtn.innerHTML = SL.icon('refresh', 14);
+          rescanBtn.innerHTML = SL.icon('refresh', 14); /* trusted: internal SVG icon */
           rescanBtn.disabled = false;
         }, 1000);
       });
@@ -1088,7 +1115,7 @@
     var midiPanel = document.getElementById('midiPanel');
     if (midiToggle && midiPanel) {
       midiToggle.addEventListener('click', function() {
-        midiPanel.classList.toggle('hidden');
+        if (midiPanel) { midiPanel.classList.toggle('hidden'); }
       });
     }
 
@@ -1236,7 +1263,7 @@
     selectInput: selectInput,
     selectOutput: selectOutput,
     rescan: rescanDevices,
-    isEnabled: function() { return midiEnabled; },
+    isEnabled: function() { return isMidiEnabled; },
     setTranspose: function(val) { midiTranspose = Math.max(-24, Math.min(24, parseInt(val) || 0)); },
     getTranspose: function() { return midiTranspose; },
     setPitchBendRange: function(val) { _pitchBendRange = Math.max(1, Math.min(24, parseInt(val) || 2)); },
@@ -1248,7 +1275,9 @@
     },
     getMidiConfig: function() { return midiConfig; },
     setMidiConfig: function(instId, cfg) {
-      if (instId >= 0 && instId < 5 && cfg) {
+      var isValidSetConfigId = instId >= 0 && instId < 5;
+      var hasValidSetConfig = isValidSetConfigId && cfg;
+      if (hasValidSetConfig) {
         if (cfg.midiIn !== undefined) midiConfig[instId].midiIn = cfg.midiIn;
         if (cfg.midiOut !== undefined) midiConfig[instId].midiOut = cfg.midiOut;
         if (cfg.channel !== undefined) midiConfig[instId].channel = cfg.channel;
@@ -1256,7 +1285,9 @@
     },
     getMidioutSettings: function() { return midioutSettings; },
     setMidioutSettings: function(instId, cfg) {
-      if (instId >= 0 && instId < 5 && cfg) {
+      var isValidSetMidioutId = instId >= 0 && instId < 5;
+      var hasValidSetMidiout = isValidSetMidioutId && cfg;
+      if (hasValidSetMidiout) {
         if (cfg.channel !== undefined) midioutSettings[instId].channel = cfg.channel;
         if (cfg.velCurve !== undefined) midioutSettings[instId].velCurve = cfg.velCurve;
         if (cfg.program !== undefined) midioutSettings[instId].program = cfg.program;
@@ -1299,7 +1330,7 @@
       function teardownSustained() {
         var ch;
         for (ch = 0; ch < MIDI_CHANNEL_COUNT; ch++) {
-          _sustainedNotes[ch] = {};
+          _sustainedNotes[ch] = _makeSustainMap();
           _sustainPedalAmount[ch] = 0;
         }
       },
@@ -1336,5 +1367,7 @@
       }
     );
   }
+
+  } // end if (SL && SL.audio)
 
 })();

@@ -4,18 +4,17 @@
 (function() {
   'use strict';
 
-  const SL = window.SynthLab;
+  var SL = window.SynthLab;
   var _cachedMethodEl = null;
   var _cachedRefHzEl = null;
 
-  // Track active non-worklet notes so they can be killed on noteOff.
+  // Track active non-workvar notes so they can be killed on noteOff.
   // Key: "instId:midi", Value: array of { gain, sources }
   var _activeBufferNotes = {};
 
   if (!SL || !SL.audio) {
     console.error('[instrument-settings] SynthLab.audio not available');
-    return;
-  }
+  } else {
 
   // ============================================================
   // Multi-Instrument Management
@@ -26,7 +25,7 @@
    * @returns {Object} Current instrument's settings object
    */
   function getInstrumentSettings() {
-    const instruments = SL.audio.getInstruments();
+    var instruments = SL.audio.getInstruments();
     return instruments[SL.audio.getCurrentInstrument()].settings;
   }
 
@@ -36,8 +35,8 @@
    * @returns {Object} Instrument's settings object
    */
   function getSettingsForInstrument(instId) {
-    const instruments = SL.audio.getInstruments();
-    const NUM_INSTRUMENTS = SL.audio.getNumInstruments();
+    var instruments = SL.audio.getInstruments();
+    var NUM_INSTRUMENTS = SL.audio.getNumInstruments();
     if (instId < 0 || instId >= NUM_INSTRUMENTS) {
       return instruments[SL.audio.getCurrentInstrument()].settings;
     }
@@ -55,7 +54,7 @@
   }
 
   /**
-   * Stop a non-worklet note by fading its gain node and stopping sources.
+   * Stop a non-workvar note by fading its gain node and stopping sources.
    */
   function _stopBufferNote(instId, midi) {
     var key = instId + ':' + midi;
@@ -70,11 +69,11 @@
           entry.gain.gain.cancelScheduledValues(now);
           entry.gain.gain.setValueAtTime(entry.gain.gain.value, now);
           entry.gain.gain.linearRampToValueAtTime(0.0001, now + 0.05);
-        } catch (e) { /* ignore */ }
+        } catch (e) { /* node may already be disconnected */ }
       }
       if (entry.sources) {
         for (var s = 0; s < entry.sources.length; s++) {
-          try { entry.sources[s].stop(now + 0.06); } catch (e) { /* ignore */ }
+          try { entry.sources[s].stop(now + 0.06); } catch (e) { /* source may already be stopped */ }
         }
       }
     }
@@ -91,25 +90,45 @@
   function playNoteOnInstrument(midi, dur, instId, noteVel) {
     dur = dur || SL.DURATION || 0.4;
 
-    const settings = getSettingsForInstrument(instId);
-    const instruments = SL.audio.getInstruments();
-    const inst = instruments[instId];
+    var settings = getSettingsForInstrument(instId);
+    var instruments = SL.audio.getInstruments();
+    var inst = instruments[instId];
 
     // Raw velocity — per-voice randomization happens in worklets
     var vel = (typeof noteVel === 'number') ? noteVel : 100;
 
     // Detect if any sequencer (drum or chord) is playing — used to skip
-    // expensive visual feedback and force worklet synthesis mode
+    // expensive visual feedback and force workvar synthesis mode
     var anySeqPlaying = (SL.sequencer && SL.sequencer.isPlaying && SL.sequencer.isPlaying())
       || (SL.chordSeq && SL.chordSeq.isPlaying && SL.chordSeq.isPlaying());
 
+    // Pre-computed engine availability booleans for dispatch
+    var isFmReady = SL.fm && SL.fm.noteOn;
+    var isPhysicalReady = SL.physical && SL.physical.noteOn;
+    var isAdditiveReady = SL.additive && SL.additive.noteOn;
+    var isGranularReady = SL.granular && SL.granular.noteOn;
+    var isVocoderSynthReady = SL.vocoderSynth && SL.vocoderSynth.noteOn;
+    var isWavefolderReady = SL.wavefolder && SL.wavefolder.noteOn;
+    var isFormantReady = SL.formant && SL.formant.noteOn;
+    var isModalReady = SL.modal && SL.modal.noteOn;
+    var isRingmodReady = SL.ringmod && SL.ringmod.noteOn;
+    var isChordReady = SL.chord && SL.chord.noteOn;
+    var isSuperwaveReady = SL.superwave && SL.superwave.noteOn;
+    var isWavetableReady = SL.wavetableSynth && SL.wavetableSynth.noteOn;
+    var isPhasedistReady = SL.phasedist && SL.phasedist.noteOn;
+    var isChipReady = SL.chip && SL.chip.noteOn;
+    var isBytebeatReady = SL.bytebeat && SL.bytebeat.start;
+    var isVectorReady = SL.vector && SL.vector.noteOn;
+    var isDrumsynReady = SL.drumsyn && SL.drumsyn.noteOn;
+    var isPulsarReady = SL.pulsar && SL.pulsar.noteOn;
+    var isReedReady = SL.reed && SL.reed.noteOn;
+    var isSamplerReady = SL.sampler && SL.sampler.playPad;
+
     // LOOP type — no-op for individual note playback (loops are always-on/off)
     if (inst.type === 'loop') {
-      return;
-    }
-
-    // MIDIOUT type — send MIDI out, no local audio
-    if (inst.type === 'midiout' && SL.midi) {
+      // no-op
+    } else if (inst.type === 'midiout' && SL.midi) {
+      // MIDIOUT type — send MIDI out, no local audio
       if (!anySeqPlaying) {
         SL.audio.highlightNote(midi, true);
         setTimeout(function() { SL.audio.highlightNote(midi, false); }, dur * 1000);
@@ -119,37 +138,28 @@
       setTimeout(function() {
         SL.midi.sendNoteOff(midi, moSettings.channel);
       }, dur * 1000);
-      return;
-    }
-
-    // FM synthesis dispatch
-    if (inst.type === 'fm' && SL.fm && SL.fm.noteOn) {
+    } else if (inst.type === 'fm' && isFmReady) {
+      // FM synthesis dispatch
       if (!anySeqPlaying) {
         SL.audio.highlightNote(midi, true);
         setTimeout(function() { SL.audio.highlightNote(midi, false); }, dur * 1000);
       }
       SL.fm.noteOn(midi, vel, instId);
-      setTimeout(() => {
+      setTimeout(function() {
         if (SL.fm && SL.fm.noteOff) SL.fm.noteOff(midi, instId);
       }, dur * 1000);
-      return;
-    }
-
-    // Physical modelling synthesis dispatch
-    if (inst.type === 'physical' && SL.physical && SL.physical.noteOn) {
+    } else if (inst.type === 'physical' && isPhysicalReady) {
+      // Physical modelling synthesis dispatch
       if (!anySeqPlaying) {
         SL.audio.highlightNote(midi, true);
         setTimeout(function() { SL.audio.highlightNote(midi, false); }, dur * 1000);
       }
       SL.physical.noteOn(midi, vel, instId);
-      setTimeout(() => {
+      setTimeout(function() {
         if (SL.physical && SL.physical.noteOff) SL.physical.noteOff(midi, instId);
       }, dur * 1000);
-      return;
-    }
-
-    // Additive synthesis dispatch
-    if (inst.type === 'additive' && SL.additive && SL.additive.noteOn) {
+    } else if (inst.type === 'additive' && isAdditiveReady) {
+      // Additive synthesis dispatch
       if (!anySeqPlaying) {
         SL.audio.highlightNote(midi, true);
         setTimeout(function() { SL.audio.highlightNote(midi, false); }, dur * 1000);
@@ -158,11 +168,8 @@
       setTimeout(function() {
         if (SL.additive && SL.additive.noteOff) SL.additive.noteOff(midi, instId);
       }, dur * 1000);
-      return;
-    }
-
-    // Granular synthesis dispatch
-    if (inst.type === 'granular' && SL.granular && SL.granular.noteOn) {
+    } else if (inst.type === 'granular' && isGranularReady) {
+      // Granular synthesis dispatch
       if (!anySeqPlaying) {
         SL.audio.highlightNote(midi, true);
         setTimeout(function() { SL.audio.highlightNote(midi, false); }, dur * 1000);
@@ -171,11 +178,8 @@
       setTimeout(function() {
         if (SL.granular && SL.granular.noteOff) SL.granular.noteOff(midi, instId);
       }, dur * 1000);
-      return;
-    }
-
-    // Vocoder synthesis dispatch
-    if (inst.type === 'vocoderSynth' && SL.vocoderSynth && SL.vocoderSynth.noteOn) {
+    } else if (inst.type === 'vocoderSynth' && isVocoderSynthReady) {
+      // Vocoder synthesis dispatch
       if (!anySeqPlaying) {
         SL.audio.highlightNote(midi, true);
         setTimeout(function() { SL.audio.highlightNote(midi, false); }, dur * 1000);
@@ -184,11 +188,8 @@
       setTimeout(function() {
         if (SL.vocoderSynth && SL.vocoderSynth.noteOff) SL.vocoderSynth.noteOff(midi, instId);
       }, dur * 1000);
-      return;
-    }
-
-    // Wavefolder synthesis dispatch
-    if (inst.type === 'wavefolder' && SL.wavefolder && SL.wavefolder.noteOn) {
+    } else if (inst.type === 'wavefolder' && isWavefolderReady) {
+      // Wavefolder synthesis dispatch
       if (!anySeqPlaying) {
         SL.audio.highlightNote(midi, true);
         setTimeout(function() { SL.audio.highlightNote(midi, false); }, dur * 1000);
@@ -197,11 +198,8 @@
       setTimeout(function() {
         if (SL.wavefolder && SL.wavefolder.noteOff) SL.wavefolder.noteOff(midi, instId);
       }, dur * 1000);
-      return;
-    }
-
-    // Formant synthesis dispatch
-    if (inst.type === 'formant' && SL.formant && SL.formant.noteOn) {
+    } else if (inst.type === 'formant' && isFormantReady) {
+      // Formant synthesis dispatch
       if (!anySeqPlaying) {
         SL.audio.highlightNote(midi, true);
         setTimeout(function() { SL.audio.highlightNote(midi, false); }, dur * 1000);
@@ -210,11 +208,8 @@
       setTimeout(function() {
         if (SL.formant && SL.formant.noteOff) SL.formant.noteOff(midi, instId);
       }, dur * 1000);
-      return;
-    }
-
-    // Modal synthesis dispatch
-    if (inst.type === 'modal' && SL.modal && SL.modal.noteOn) {
+    } else if (inst.type === 'modal' && isModalReady) {
+      // Modal synthesis dispatch
       if (!anySeqPlaying) {
         SL.audio.highlightNote(midi, true);
         setTimeout(function() { SL.audio.highlightNote(midi, false); }, dur * 1000);
@@ -223,11 +218,8 @@
       setTimeout(function() {
         if (SL.modal && SL.modal.noteOff) SL.modal.noteOff(midi, instId);
       }, dur * 1000);
-      return;
-    }
-
-    // Ring modulation synthesis dispatch
-    if (inst.type === 'ringmod' && SL.ringmod && SL.ringmod.noteOn) {
+    } else if (inst.type === 'ringmod' && isRingmodReady) {
+      // Ring modulation synthesis dispatch
       if (!anySeqPlaying) {
         SL.audio.highlightNote(midi, true);
         setTimeout(function() { SL.audio.highlightNote(midi, false); }, dur * 1000);
@@ -236,11 +228,8 @@
       setTimeout(function() {
         if (SL.ringmod && SL.ringmod.noteOff) SL.ringmod.noteOff(midi, instId);
       }, dur * 1000);
-      return;
-    }
-
-    // Chord synthesis dispatch
-    if (inst.type === 'chord' && SL.chord && SL.chord.noteOn) {
+    } else if (inst.type === 'chord' && isChordReady) {
+      // Chord synthesis dispatch
       if (!anySeqPlaying) {
         SL.audio.highlightNote(midi, true);
         setTimeout(function() { SL.audio.highlightNote(midi, false); }, dur * 1000);
@@ -249,11 +238,8 @@
       setTimeout(function() {
         if (SL.chord && SL.chord.noteOff) SL.chord.noteOff(midi, instId);
       }, dur * 1000);
-      return;
-    }
-
-    // SuperWave synthesis dispatch
-    if (inst.type === 'superwave' && SL.superwave && SL.superwave.noteOn) {
+    } else if (inst.type === 'superwave' && isSuperwaveReady) {
+      // SuperWave synthesis dispatch
       if (!anySeqPlaying) {
         SL.audio.highlightNote(midi, true);
         setTimeout(function() { SL.audio.highlightNote(midi, false); }, dur * 1000);
@@ -262,11 +248,8 @@
       setTimeout(function() {
         if (SL.superwave && SL.superwave.noteOff) SL.superwave.noteOff(midi, instId);
       }, dur * 1000);
-      return;
-    }
-
-    // Wavetable scanning synthesis dispatch
-    if (inst.type === 'wavetable' && SL.wavetableSynth && SL.wavetableSynth.noteOn) {
+    } else if (inst.type === 'wavetable' && isWavetableReady) {
+      // Wavetable scanning synthesis dispatch
       if (!anySeqPlaying) {
         SL.audio.highlightNote(midi, true);
         setTimeout(function() { SL.audio.highlightNote(midi, false); }, dur * 1000);
@@ -275,11 +258,8 @@
       setTimeout(function() {
         if (SL.wavetableSynth && SL.wavetableSynth.noteOff) SL.wavetableSynth.noteOff(midi, instId);
       }, dur * 1000);
-      return;
-    }
-
-    // Phase distortion synthesis dispatch
-    if (inst.type === 'phasedist' && SL.phasedist && SL.phasedist.noteOn) {
+    } else if (inst.type === 'phasedist' && isPhasedistReady) {
+      // Phase distortion synthesis dispatch
       if (!anySeqPlaying) {
         SL.audio.highlightNote(midi, true);
         setTimeout(function() { SL.audio.highlightNote(midi, false); }, dur * 1000);
@@ -288,11 +268,8 @@
       setTimeout(function() {
         if (SL.phasedist && SL.phasedist.noteOff) SL.phasedist.noteOff(midi, instId);
       }, dur * 1000);
-      return;
-    }
-
-    // Chip synth dispatch
-    if (inst.type === 'chip' && SL.chip && SL.chip.noteOn) {
+    } else if (inst.type === 'chip' && isChipReady) {
+      // Chip synth dispatch
       if (!anySeqPlaying) {
         SL.audio.highlightNote(midi, true);
         setTimeout(function() { SL.audio.highlightNote(midi, false); }, dur * 1000);
@@ -301,11 +278,8 @@
       setTimeout(function() {
         if (SL.chip && SL.chip.noteOff) SL.chip.noteOff(midi, instId);
       }, dur * 1000);
-      return;
-    }
-
-    // Bytebeat dispatch (monophonic - start/stop)
-    if (inst.type === 'bytebeat' && SL.bytebeat && SL.bytebeat.start) {
+    } else if (inst.type === 'bytebeat' && isBytebeatReady) {
+      // Bytebeat dispatch (monophonic - start/stop)
       if (!anySeqPlaying) {
         SL.audio.highlightNote(midi, true);
         setTimeout(function() { SL.audio.highlightNote(midi, false); }, dur * 1000);
@@ -314,11 +288,8 @@
       setTimeout(function() {
         if (SL.bytebeat && SL.bytebeat.stop) SL.bytebeat.stop();
       }, dur * 1000);
-      return;
-    }
-
-    // Vector synthesis dispatch
-    if (inst.type === 'vector' && SL.vector && SL.vector.noteOn) {
+    } else if (inst.type === 'vector' && isVectorReady) {
+      // Vector synthesis dispatch
       if (!anySeqPlaying) {
         SL.audio.highlightNote(midi, true);
         setTimeout(function() { SL.audio.highlightNote(midi, false); }, dur * 1000);
@@ -327,11 +298,8 @@
       setTimeout(function() {
         if (SL.vector && SL.vector.noteOff) SL.vector.noteOff(midi, instId);
       }, dur * 1000);
-      return;
-    }
-
-    // Drum synth dispatch
-    if (inst.type === 'drumsyn' && SL.drumsyn && SL.drumsyn.noteOn) {
+    } else if (inst.type === 'drumsyn' && isDrumsynReady) {
+      // Drum synth dispatch
       if (!anySeqPlaying) {
         SL.audio.highlightNote(midi, true);
         setTimeout(function() { SL.audio.highlightNote(midi, false); }, dur * 1000);
@@ -340,11 +308,8 @@
       setTimeout(function() {
         if (SL.drumsyn && SL.drumsyn.noteOff) SL.drumsyn.noteOff(midi, instId);
       }, dur * 1000);
-      return;
-    }
-
-    // Pulsar synthesis dispatch
-    if (inst.type === 'pulsar' && SL.pulsar && SL.pulsar.noteOn) {
+    } else if (inst.type === 'pulsar' && isPulsarReady) {
+      // Pulsar synthesis dispatch
       if (!anySeqPlaying) {
         SL.audio.highlightNote(midi, true);
         setTimeout(function() { SL.audio.highlightNote(midi, false); }, dur * 1000);
@@ -353,12 +318,8 @@
       setTimeout(function() {
         if (SL.pulsar && SL.pulsar.noteOff) SL.pulsar.noteOff(midi, instId);
       }, dur * 1000);
-      return;
-    }
-
-
-    // Reed synthesis dispatch
-    if (inst.type === 'reed' && SL.reed && SL.reed.noteOn) {
+    } else if (inst.type === 'reed' && isReedReady) {
+      // Reed synthesis dispatch
       if (!anySeqPlaying) {
         SL.audio.highlightNote(midi, true);
         setTimeout(function() { SL.audio.highlightNote(midi, false); }, dur * 1000);
@@ -367,43 +328,42 @@
       setTimeout(function() {
         if (SL.reed && SL.reed.noteOff) SL.reed.noteOff(midi, instId);
       }, dur * 1000);
-      return;
-    }
-
-    // Sampler dispatch — map MIDI note to pad index
-    if (inst.type === 'sampler' && SL.sampler && SL.sampler.playPad) {
+    } else if (inst.type === 'sampler' && isSamplerReady) {
+      // Sampler dispatch — map MIDI note to pad index
       var baseMidi = SL.SEQ_BASE_MIDI || 24;
       var padId = midi - baseMidi;
-      if (padId >= 0 && padId < (SL.sampler.NUM_PADS || 16)) {
+      var isValidPadIndex = (padId >= 0) && (padId < (SL.sampler.NUM_PADS || 16));
+      if (isValidPadIndex) {
         if (!anySeqPlaying) {
           SL.audio.highlightNote(midi, true);
           setTimeout(function() { SL.audio.highlightNote(midi, false); }, dur * 1000);
         }
         SL.sampler.playPad(instId, padId, vel, dur);
       }
-      return;
-    }
+    } else {
 
-    const f = SL.audio.m2f(midi);
+    var f = SL.audio.m2f(midi);
     if (!_cachedMethodEl) _cachedMethodEl = document.getElementById('method');
-    // During any sequencer playback (drum OR chord sequencer), force worklet mode
+    // During any sequencer playback (drum OR chord sequencer), force workvar mode
     // to avoid main-thread synthesis. bandlimited computes waveforms sample-by-sample
     // (e.g. 1.3M samples × 48 harmonics per note), blocking the event loop for seconds.
     var m;
-    if (anySeqPlaying && _cachedMethodEl.value === 'bandlimited') {
-      if (SL.audio.isWorkletAvailable()) {
-        m = 'worklet';
+    if (_cachedMethodEl) {
+      if (anySeqPlaying && _cachedMethodEl.value === 'bandlimited') {
+        if (SL.audio.isWorkletAvailable()) {
+          m = 'worklet';
+        } else {
+          m = 'oscillator';
+        }
       } else {
-        m = 'oscillator';
+        m = _cachedMethodEl.value;
       }
-    } else {
-      m = _cachedMethodEl.value;
     }
-    const sr = SL.SR || 44100;
-    const TWO_PI = SL.TWO_PI || (2 * Math.PI);
+    var sr = SL.SR || 44100;
+    var TWO_PI = SL.TWO_PI || (2 * Math.PI);
 
     // Convert cached ADSR values (slider values) to seconds
-    const adsr = {
+    var adsr = {
       a: SL.audio.sliderToTime(settings.adsr.a, 500, 500) / 1000,
       d: SL.audio.sliderToTime(settings.adsr.d, 500, 500) / 1000,
       s: settings.adsr.s / 100,
@@ -413,17 +373,19 @@
     // ADSR jitter is now applied per-voice in the worklets
 
     // Convert cached oscillator settings
-    const oscSet = settings.osc.map(os => ({
-      wave: os.wave,
-      oct: os.oct,
-      detune: os.detune,
-      level: os.level / 100,
-      pulseWidth: os.pulseWidth,
-      superSawSpread: os.superSawSpread
-    }));
+    var oscSet = settings.osc.map(function(os) {
+      return {
+        wave: os.wave,
+        oct: os.oct,
+        detune: os.detune,
+        level: os.level / 100,
+        pulseWidth: os.pulseWidth,
+        superSawSpread: os.superSawSpread
+      };
+    });
 
     // Convert cached filter settings
-    const filterSettings = {
+    var filterSettings = {
       enabled: settings.filter.enabled,
       type: settings.filter.type,
       frequency: SL.audio.sliderToFreq(settings.filter.freq),
@@ -434,7 +396,7 @@
     };
 
     // Convert cached filter envelope settings
-    const filterEnvSettings = {
+    var filterEnvSettings = {
       enabled: settings.filterEnv.enabled,
       amount: settings.filterEnv.amount,
       attack: SL.audio.sliderToTime(settings.filterEnv.a, 2000, 2000) / 1000,
@@ -450,14 +412,14 @@
       setTimeout(function() { SL.audio.highlightNote(midi, false); }, dur * 1000);
     }
 
-    const c = SL.audio.getCtx();
+    var c = SL.audio.getCtx();
     var destination = inst.masterOutput || SL.audio.getFinalDestination();
 
-    // AudioWorklet synthesis
+    // AudioWorkvar synthesis
     if (m === 'worklet') {
       if (SL.audio.isWorkletAvailable()) {
         if (!_cachedRefHzEl) _cachedRefHzEl = document.getElementById('refHz');
-        const refHz = parseFloat(_cachedRefHzEl.value) || 440;
+        var refHz = (_cachedRefHzEl ? parseFloat(_cachedRefHzEl.value) : 440) || 440;
 
         // Build extra params for worklet
         var extraParams = {};
@@ -486,30 +448,27 @@
 
         SL.audio.workletNoteOn(midi, dur, oscSet, adsr, refHz, instId, extraParams);
       } else {
-        console.warn('Worklet not available, falling back to band-limited synthesis');
+        console.warn('Workvar not available, falling back to band-limited synthesis');
         SL.audio._playNoteFallbackWithDestination(midi, dur, adsr, oscSet, filterSettings, filterEnvSettings, sr, TWO_PI, c, destination);
       }
-      return;
-    }
-
-    if (m === 'oscillator') {
+    } else if (m === 'oscillator') {
       var oscDur = Math.min(dur, 30);
-      const now = c.currentTime;
-      const peak = 0.12;
-      const { a, d, s, r } = adsr;
-      const sustainEnd = Math.max(a + d, oscDur - r);
+      var now = c.currentTime;
+      var peak = 0.12;
+      var a = adsr.a, d = adsr.d, s = adsr.s, r = adsr.r;
+      var sustainEnd = Math.max(a + d, oscDur - r);
 
-      const master = c.createGain();
+      var master = c.createGain();
       master.gain.setValueAtTime(0, now);
       master.gain.linearRampToValueAtTime(peak, now + a);
       master.gain.linearRampToValueAtTime(peak * s, now + a + d);
       master.gain.setValueAtTime(peak * s, now + sustainEnd);
       master.gain.linearRampToValueAtTime(0.001, now + oscDur);
 
-      const keyTrackedFreq = SL.audio.calcKeyTrackedFreq(filterSettings.frequency, f, filterSettings.keyTrack);
-      const adjustedFilterSettings = { ...filterSettings, frequency: keyTrackedFreq };
+      var keyTrackedFreq = SL.audio.calcKeyTrackedFreq(filterSettings.frequency, f, filterSettings.keyTrack);
+      var adjustedFilterSettings = Object.assign({}, filterSettings, { frequency: keyTrackedFreq });
 
-      const filterChain = SL.audio.createFilterChain(c, adjustedFilterSettings);
+      var filterChain = SL.audio.createFilterChain(c, adjustedFilterSettings);
       if (filterChain) {
         master.connect(filterChain.input);
         filterChain.output.connect(destination);
@@ -518,21 +477,21 @@
       }
 
       var oscSources = [];
-      oscSet.forEach(os => {
+      oscSet.forEach(function(os) {
         if (os.level <= 0) return;
-        const oscFreq = f * Math.pow(2, os.oct) * Math.pow(2, os.detune / 1200);
+        var oscFreq = f * Math.pow(2, os.oct) * Math.pow(2, os.detune / 1200);
 
         if (os.wave === 'supersaw') {
-          const superSawOscs = SL.audio.createSuperSawOscillators(c, oscFreq, os.superSawSpread, master, os.level);
-          superSawOscs.forEach(osc => {
+          var superSawOscs = SL.audio.createSuperSawOscillators(c, oscFreq, os.superSawSpread, master, os.level);
+          superSawOscs.forEach(function(osc) {
             osc.start();
             osc.stop(now + oscDur + 0.01);
             oscSources.push(osc);
           });
         } else if (os.wave === 'pulse') {
-          const o = c.createOscillator();
-          const g = c.createGain();
-          const pulseWave = SL.audio.createPulseWave(c, os.pulseWidth);
+          var o = c.createOscillator();
+          var g = c.createGain();
+          var pulseWave = SL.audio.createPulseWave(c, os.pulseWidth);
           o.setPeriodicWave(pulseWave);
           o.frequency.value = oscFreq;
           g.gain.value = os.level;
@@ -542,10 +501,10 @@
           o.stop(now + oscDur + 0.01);
           oscSources.push(o);
         } else {
-          const o = c.createOscillator();
+          var o = c.createOscillator();
           o.type = os.wave;
           o.frequency.value = oscFreq;
-          const g = c.createGain();
+          var g = c.createGain();
           g.gain.value = os.level;
           o.connect(g);
           g.connect(master);
@@ -562,65 +521,67 @@
       // Cap duration to 30s max to prevent enormous buffer allocations
       // (chord sequencer pads/drones pass dur=9999 for sustained notes)
       var blDur = Math.min(dur, 30);
-      const n = Math.floor(sr * blDur);
-      const b = SL.audio.acquireBuffer(n);
-      const envCurve = SL.audio.getEnvelopeCurve(blDur, adsr, sr);
-      const WAVETABLE_WAVES = SL.audio._WAVETABLE_WAVES;
-      const SUPERSAW_DETUNES = SL.audio._SUPERSAW_DETUNES;
+      var n = Math.floor(sr * blDur);
+      var b = SL.audio.acquireBuffer(n);
+      var envCurve = SL.audio.getEnvelopeCurve(blDur, adsr, sr);
+      var WAVETABLE_WAVES = SL.audio._WAVETABLE_WAVES;
+      var SUPERSAW_DETUNES = SL.audio._SUPERSAW_DETUNES;
 
-      oscSet.forEach(os => {
+      oscSet.forEach(function(os) {
         if (os.level <= 0) return;
-        const oscFreq = f * Math.pow(2, os.oct) * Math.pow(2, os.detune / 1200);
+        var oscFreq = f * Math.pow(2, os.oct) * Math.pow(2, os.detune / 1200);
 
+        var hasUsedWavetable = false;
         if (WAVETABLE_WAVES.includes(os.wave) && SL.audio.areWavetablesReady()) {
-          const table = SL.audio.getWavetableForFreq(os.wave, oscFreq);
+          var table = SL.audio.getWavetableForFreq(os.wave, oscFreq);
           if (table) {
-            const phaseInc = oscFreq / sr;
-            let phase = 0;
-            for (let i = 0; i < n; i++) {
-              const env = envCurve[i];
-              const sample = SL.audio.sampleWavetable(table, phase);
+            var phaseInc = oscFreq / sr;
+            var phase = 0;
+            for (var i = 0; i < n; i++) {
+              var env = envCurve[i];
+              var sample = SL.audio.sampleWavetable(table, phase);
               b[i] += sample * env * os.level;
               phase += phaseInc;
               if (phase >= 1) phase -= 1;
             }
-            return;
+            hasUsedWavetable = true;
           }
         }
 
-        const mH = Math.min(SL.audio.maxH(oscFreq), 48);
+        if (!hasUsedWavetable) {
+        var mH = Math.min(SL.audio.maxH(oscFreq), 48);
 
-        for (let i = 0; i < n; i++) {
-          const t = i / sr;
-          const ph = TWO_PI * oscFreq * t;
-          const env = envCurve[i];
-          let sample = 0;
+        for (var i = 0; i < n; i++) {
+          var t = i / sr;
+          var ph = TWO_PI * oscFreq * t;
+          var env = envCurve[i];
+          var sample = 0;
 
           if (os.wave === 'pulse') {
-            const pw = os.pulseWidth / 100;
-            for (let h = 1; h <= mH; h++) {
-              const harmAmp = (2 / (h * Math.PI)) * SL.audio.fastSin(h * Math.PI * pw);
+            var pw = os.pulseWidth / 100;
+            for (var h = 1; h <= mH; h++) {
+              var harmAmp = (2 / (h * Math.PI)) * SL.audio.fastSin(h * Math.PI * pw);
               sample += harmAmp * SL.audio.fastSin(ph * h);
             }
           } else if (os.wave === 'supersaw') {
-            const spreadFactor = os.superSawSpread / 50;
-            const sawTable = SL.audio.getWavetableForFreq('sawtooth', oscFreq);
+            var spreadFactor = os.superSawSpread / 50;
+            var sawTable = SL.audio.getWavetableForFreq('sawtooth', oscFreq);
 
             if (sawTable && SL.audio.areWavetablesReady()) {
-              SUPERSAW_DETUNES.forEach(detuneCents => {
-                const actualDetune = detuneCents * spreadFactor;
-                const voiceFreq = oscFreq * Math.pow(2, actualDetune / 1200);
-                const voicePhase = ((voiceFreq * t) % 1 + 1) % 1;
+              SUPERSAW_DETUNES.forEach(function(detuneCents) {
+                var actualDetune = detuneCents * spreadFactor;
+                var voiceFreq = oscFreq * Math.pow(2, actualDetune / 1200);
+                var voicePhase = ((voiceFreq * t) % 1 + 1) % 1;
                 sample += SL.audio.sampleWavetable(sawTable, voicePhase) / SUPERSAW_DETUNES.length;
               });
             } else {
-              SUPERSAW_DETUNES.forEach(detuneCents => {
-                const actualDetune = detuneCents * spreadFactor;
-                const voiceFreq = oscFreq * Math.pow(2, actualDetune / 1200);
-                const voicePh = TWO_PI * voiceFreq * t;
-                const voiceMH = Math.min(SL.audio.maxH(voiceFreq), 48);
-                let voiceSample = 0;
-                for (let h = 1; h <= voiceMH; h++) {
+              SUPERSAW_DETUNES.forEach(function(detuneCents) {
+                var actualDetune = detuneCents * spreadFactor;
+                var voiceFreq = oscFreq * Math.pow(2, actualDetune / 1200);
+                var voicePh = TWO_PI * voiceFreq * t;
+                var voiceMH = Math.min(SL.audio.maxH(voiceFreq), 48);
+                var voiceSample = 0;
+                for (var h = 1; h <= voiceMH; h++) {
                   voiceSample += SL.audio.fastSin(voicePh * h) / h;
                 }
                 voiceSample *= 2 / Math.PI;
@@ -628,8 +589,8 @@
               });
             }
           } else {
-            let sg = 1;
-            for (let h = 1; h <= mH; h += 2) {
+            var sg = 1;
+            for (var h = 1; h <= mH; h += 2) {
               sample += sg * Math.cos(ph * h) / (h * h);
               sg = -sg;
             }
@@ -638,21 +599,22 @@
 
           b[i] += sample * env * os.level;
         }
+        } // end if (!hasUsedWavetable)
       });
 
-      const ab = c.createBuffer(1, n, sr);
+      var ab = c.createBuffer(1, n, sr);
       ab.copyToChannel(b, 0);
       SL.audio.releaseBuffer(b);
-      const src = c.createBufferSource();
-      const g = c.createGain();
+      var src = c.createBufferSource();
+      var g = c.createGain();
       g.gain.value = 0.12;
       src.buffer = ab;
       src.connect(g);
 
-      const keyTrackedFreq = SL.audio.calcKeyTrackedFreq(filterSettings.frequency, f, filterSettings.keyTrack);
-      const adjustedFilterSettings = { ...filterSettings, frequency: keyTrackedFreq };
+      var keyTrackedFreq = SL.audio.calcKeyTrackedFreq(filterSettings.frequency, f, filterSettings.keyTrack);
+      var adjustedFilterSettings = Object.assign({}, filterSettings, { frequency: keyTrackedFreq });
 
-      const filterChain = SL.audio.createFilterChain(c, adjustedFilterSettings);
+      var filterChain = SL.audio.createFilterChain(c, adjustedFilterSettings);
       if (filterChain) {
         g.connect(filterChain.input);
         filterChain.output.connect(destination);
@@ -670,22 +632,22 @@
     } else {
       // PolyBLEP synthesis
       var pbDur = Math.min(dur, 30);
-      const n = Math.floor(sr * pbDur);
-      const b = SL.audio.acquireBuffer(n);
-      const envCurve = SL.audio.getEnvelopeCurve(pbDur, adsr, sr);
-      const SUPERSAW_DETUNES = SL.audio._SUPERSAW_DETUNES;
+      var n = Math.floor(sr * pbDur);
+      var b = SL.audio.acquireBuffer(n);
+      var envCurve = SL.audio.getEnvelopeCurve(pbDur, adsr, sr);
+      var SUPERSAW_DETUNES = SL.audio._SUPERSAW_DETUNES;
 
-      oscSet.forEach(os => {
+      oscSet.forEach(function(os) {
         if (os.level <= 0) return;
-        const oscFreq = f * Math.pow(2, os.oct) * Math.pow(2, os.detune / 1200);
-        const dt = oscFreq / sr;
+        var oscFreq = f * Math.pow(2, os.oct) * Math.pow(2, os.detune / 1200);
+        var dt = oscFreq / sr;
 
-        for (let i = 0; i < n; i++) {
-          const t = i / sr;
-          const ph = TWO_PI * oscFreq * t;
-          const phase = (t * oscFreq) % 1;
-          const env = envCurve[i];
-          let sample = 0;
+        for (var i = 0; i < n; i++) {
+          var t = i / sr;
+          var ph = TWO_PI * oscFreq * t;
+          var phase = (t * oscFreq) % 1;
+          var env = envCurve[i];
+          var sample = 0;
 
           if (os.wave === 'sine') {
             sample = SL.audio.fastSin(ph);
@@ -696,16 +658,16 @@
           } else if (os.wave === 'triangle') {
             sample = SL.audio.polyBlepTriangle(phase, dt);
           } else if (os.wave === 'pulse') {
-            const pw = os.pulseWidth / 100;
+            var pw = os.pulseWidth / 100;
             sample = SL.audio.polyBlepPulse(phase, dt, pw);
           } else if (os.wave === 'supersaw') {
-            const spreadFactor = os.superSawSpread / 50;
-            SUPERSAW_DETUNES.forEach(detuneCents => {
-              const actualDetune = detuneCents * spreadFactor;
-              const voiceFreq = oscFreq * Math.pow(2, actualDetune / 1200);
-              const voiceDt = voiceFreq / sr;
-              const voicePhase = (t * voiceFreq) % 1;
-              const voiceSample = SL.audio.polyBlepSaw(voicePhase, voiceDt);
+            var spreadFactor = os.superSawSpread / 50;
+            SUPERSAW_DETUNES.forEach(function(detuneCents) {
+              var actualDetune = detuneCents * spreadFactor;
+              var voiceFreq = oscFreq * Math.pow(2, actualDetune / 1200);
+              var voiceDt = voiceFreq / sr;
+              var voicePhase = (t * voiceFreq) % 1;
+              var voiceSample = SL.audio.polyBlepSaw(voicePhase, voiceDt);
               sample += voiceSample / SUPERSAW_DETUNES.length;
             });
           } else {
@@ -716,19 +678,19 @@
         }
       });
 
-      const ab = c.createBuffer(1, n, sr);
+      var ab = c.createBuffer(1, n, sr);
       ab.copyToChannel(b, 0);
       SL.audio.releaseBuffer(b);
-      const src = c.createBufferSource();
-      const g = c.createGain();
+      var src = c.createBufferSource();
+      var g = c.createGain();
       g.gain.value = 0.12;
       src.buffer = ab;
       src.connect(g);
 
-      const keyTrackedFreq = SL.audio.calcKeyTrackedFreq(filterSettings.frequency, f, filterSettings.keyTrack);
-      const adjustedFilterSettings = { ...filterSettings, frequency: keyTrackedFreq };
+      var keyTrackedFreq = SL.audio.calcKeyTrackedFreq(filterSettings.frequency, f, filterSettings.keyTrack);
+      var adjustedFilterSettings = Object.assign({}, filterSettings, { frequency: keyTrackedFreq });
 
-      const filterChain = SL.audio.createFilterChain(c, adjustedFilterSettings);
+      var filterChain = SL.audio.createFilterChain(c, adjustedFilterSettings);
       if (filterChain) {
         g.connect(filterChain.input);
         filterChain.output.connect(destination);
@@ -743,6 +705,7 @@
       if (!_activeBufferNotes[pbKey]) { _activeBufferNotes[pbKey] = []; }
       _activeBufferNotes[pbKey].push({ gain: g, sources: [src] });
     }
+    } // end else (default synthesis path)
   }
 
   /**
@@ -750,27 +713,27 @@
    * @param {number} instId - Instrument index (0-4)
    */
   function saveInstrumentSettings(instId) {
-    const instruments = SL.audio.getInstruments();
-    const NUM_INSTRUMENTS = SL.audio.getNumInstruments();
+    var instruments = SL.audio.getInstruments();
+    var NUM_INSTRUMENTS = SL.audio.getNumInstruments();
     if (instId < 0 || instId >= NUM_INSTRUMENTS) return;
 
-    const inst = instruments[instId];
-    const settings = inst.settings;
+    var inst = instruments[instId];
+    var settings = inst.settings;
 
     // Save oscillator settings from UI — only if DOM elements are present.
     // When the Tweak/Shape screen is not active (e.g. user is on Play screen),
     // these DOM elements do not exist. Writing defaults would clobber the
     // in-memory settings that the user set on the Shape screen.
-    for (let n = 1; n <= 3; n++) {
-      const inlineWave = document.querySelector('.osc-wave[data-osc="' + n + '"]');
-      const inlineOct = document.querySelector('.osc-oct[data-osc="' + n + '"]');
-      const inlineDetune = document.querySelector('.osc-detune[data-osc="' + n + '"]');
-      const inlineLevel = document.querySelector('.osc-level[data-osc="' + n + '"]');
-      const modalPw = document.querySelector('.osc-pw-lg[data-osc="' + n + '"]');
-      const modalSpread = document.querySelector('.osc-spread-lg[data-osc="' + n + '"]');
-      const inlineFine = document.querySelector('.osc-fine[data-osc="' + n + '"]');
+    for (var n = 1; n <= 3; n++) {
+      var inlineWave = document.querySelector('.osc-wave[data-osc="' + n + '"]');
+      var inlineOct = document.querySelector('.osc-oct[data-osc="' + n + '"]');
+      var inlineDetune = document.querySelector('.osc-detune[data-osc="' + n + '"]');
+      var inlineLevel = document.querySelector('.osc-level[data-osc="' + n + '"]');
+      var modalPw = document.querySelector('.osc-pw-lg[data-osc="' + n + '"]');
+      var modalSpread = document.querySelector('.osc-spread-lg[data-osc="' + n + '"]');
+      var inlineFine = document.querySelector('.osc-fine[data-osc="' + n + '"]');
 
-      const oscDomPresent = inlineWave || inlineOct || inlineDetune || inlineLevel;
+      var oscDomPresent = inlineWave || inlineOct || inlineDetune || inlineLevel;
       if (oscDomPresent) {
         settings.osc[n - 1] = {
           wave: inlineWave ? inlineWave.value : 'sine',
@@ -787,32 +750,64 @@
     // Save ADSR — only if DOM elements are present.
     // In SSLI the Shape screen writes directly to inst.settings.adsr;
     // these legacy DOM IDs only exist when the SSLU Tweak panel is rendered.
-    const adsrAEl = document.getElementById('adsrA');
-    const adsrDEl = document.getElementById('adsrD');
-    const adsrSEl = document.getElementById('adsrS');
-    const adsrREl = document.getElementById('adsrR');
-    const adsrDomPresent = adsrAEl || adsrDEl || adsrSEl || adsrREl;
+    var adsrAEl = document.getElementById('adsrA');
+    var adsrDEl = document.getElementById('adsrD');
+    var adsrSEl = document.getElementById('adsrS');
+    var adsrREl = document.getElementById('adsrR');
+    var adsrDomPresent = adsrAEl || adsrDEl || adsrSEl || adsrREl;
     if (adsrDomPresent) {
+      var adsrA;
+      if (adsrAEl) {
+        adsrA = parseFloat(adsrAEl.value) || 10;
+      } else if (settings.adsr) {
+        adsrA = settings.adsr.a;
+      } else {
+        adsrA = 10;
+      }
+      var adsrD;
+      if (adsrDEl) {
+        adsrD = parseFloat(adsrDEl.value) || 100;
+      } else if (settings.adsr) {
+        adsrD = settings.adsr.d;
+      } else {
+        adsrD = 100;
+      }
+      var adsrS;
+      if (adsrSEl) {
+        adsrS = parseFloat(adsrSEl.value) || 70;
+      } else if (settings.adsr) {
+        adsrS = settings.adsr.s;
+      } else {
+        adsrS = 70;
+      }
+      var adsrR;
+      if (adsrREl) {
+        adsrR = parseFloat(adsrREl.value) || 200;
+      } else if (settings.adsr) {
+        adsrR = settings.adsr.r;
+      } else {
+        adsrR = 200;
+      }
       settings.adsr = {
-        a: adsrAEl ? (parseFloat(adsrAEl.value) || 10) : (settings.adsr ? settings.adsr.a : 10),
-        d: adsrDEl ? (parseFloat(adsrDEl.value) || 100) : (settings.adsr ? settings.adsr.d : 100),
-        s: adsrSEl ? (parseFloat(adsrSEl.value) || 70) : (settings.adsr ? settings.adsr.s : 70),
-        r: adsrREl ? (parseFloat(adsrREl.value) || 200) : (settings.adsr ? settings.adsr.r : 200)
+        a: adsrA,
+        d: adsrD,
+        s: adsrS,
+        r: adsrR
       };
     }
 
     // Save filter settings — only if DOM elements are present.
     // In SSLI the Shape screen writes directly to inst.settings.filter;
     // these legacy DOM IDs only exist when the SSLU panel is rendered.
-    const filterEnabled = document.getElementById('filterEnabled');
-    const filterType = document.getElementById('filterType');
-    const filterFreq = document.getElementById('filterFreq');
-    const filterQ = document.getElementById('filterQ');
-    const filterKeyTrack = document.getElementById('filterKeyTrack');
-    const filterModel = document.getElementById('filterModel');
-    const filterSlopeRadio = document.querySelector('input[name="filterSlope"]:checked');
+    var filterEnabled = document.getElementById('filterEnabled');
+    var filterType = document.getElementById('filterType');
+    var filterFreq = document.getElementById('filterFreq');
+    var filterQ = document.getElementById('filterQ');
+    var filterKeyTrack = document.getElementById('filterKeyTrack');
+    var filterModel = document.getElementById('filterModel');
+    var filterSlopeRadio = document.querySelector('input[name="filterSlope"]:checked');
 
-    const filterDomPresent = filterType || filterFreq || filterQ || filterEnabled;
+    var filterDomPresent = filterType || filterFreq || filterQ || filterEnabled;
     if (filterDomPresent) {
       settings.filter = {
         enabled: filterEnabled ? filterEnabled.checked : true,
@@ -826,10 +821,10 @@
     }
 
     // Save noise settings — only if DOM elements are present.
-    const noiseType = document.getElementById('noiseType');
-    const noiseLevel = document.getElementById('noiseLevel');
+    var noiseType = document.getElementById('noiseType');
+    var noiseLevel = document.getElementById('noiseLevel');
 
-    const noiseDomPresent = noiseType || noiseLevel;
+    var noiseDomPresent = noiseType || noiseLevel;
     if (noiseDomPresent) {
       settings.noise = {
         type: noiseType ? noiseType.value : 'white',
@@ -838,15 +833,15 @@
     }
 
     // Save filter envelope settings — only if DOM elements are present.
-    const filterEnvEnabled = document.getElementById('filterEnvEnabled');
-    const filterEnvAmount = document.getElementById('filterEnvAmount');
-    const filterEnvA = document.getElementById('filterEnvA');
-    const filterEnvD = document.getElementById('filterEnvD');
-    const filterEnvS = document.getElementById('filterEnvS');
-    const filterEnvR = document.getElementById('filterEnvR');
-    const filterEnvLink = document.getElementById('filterEnvLinkToAmp');
+    var filterEnvEnabled = document.getElementById('filterEnvEnabled');
+    var filterEnvAmount = document.getElementById('filterEnvAmount');
+    var filterEnvA = document.getElementById('filterEnvA');
+    var filterEnvD = document.getElementById('filterEnvD');
+    var filterEnvS = document.getElementById('filterEnvS');
+    var filterEnvR = document.getElementById('filterEnvR');
+    var filterEnvLink = document.getElementById('filterEnvLinkToAmp');
 
-    const filterEnvDomPresent = filterEnvEnabled || filterEnvAmount || filterEnvA || filterEnvD;
+    var filterEnvDomPresent = filterEnvEnabled || filterEnvAmount || filterEnvA || filterEnvD;
     if (filterEnvDomPresent) {
       settings.filterEnv = {
         enabled: filterEnvEnabled ? filterEnvEnabled.checked : false,
@@ -1240,10 +1235,10 @@
     }
 
     // Humanization (4 sliders)
-    const humVel = document.getElementById('humVelocity');
-    const humTime = document.getElementById('humTiming');
-    const humAdsr = document.getElementById('humAdsr');
-    const humDrift = document.getElementById('humDrift');
+    var humVel = document.getElementById('humVelocity');
+    var humTime = document.getElementById('humTiming');
+    var humAdsr = document.getElementById('humAdsr');
+    var humDrift = document.getElementById('humDrift');
     settings.humanization = {
       velocity: humVel ? parseInt(humVel.value) : 0,
       timing: humTime ? parseInt(humTime.value) : 0,
@@ -1251,12 +1246,12 @@
       drift: humDrift ? parseInt(humDrift.value) : 0
     };
 
-    const humStrum = document.getElementById('humStrum');
+    var humStrum = document.getElementById('humStrum');
     settings.strum = humStrum ? parseInt(humStrum.value) : 0;
 
-    const strumDirEl = document.getElementById('strumDir');
+    var strumDirEl = document.getElementById('strumDir');
     settings.strumDir = strumDirEl ? strumDirEl.value : 'up';
-    const strumRepeatEl = document.getElementById('strumRepeat');
+    var strumRepeatEl = document.getElementById('strumRepeat');
     settings.strumRepeat = strumRepeatEl ? parseInt(strumRepeatEl.value) : 0;
 
     // Save glide setting
@@ -1270,7 +1265,8 @@
     var pvmEl = document.getElementById('padVolumeMod');
     var pvibEl = document.getElementById('padVibrato');
     var prateEl = document.getElementById('padLfoRate');
-    if (pfmEl || pvmEl || pvibEl || prateEl) {
+    var hasAnyPadAftertouchEl = pfmEl || pvmEl || pvibEl || prateEl;
+    if (hasAnyPadAftertouchEl) {
       settings.padAftertouch = {
         filterMod: pfmEl ? parseInt(pfmEl.value) : 20,
         volumeMod: pvmEl ? parseInt(pvmEl.value) : 10,
@@ -1338,11 +1334,11 @@
         enabled: {},
         params: {}
       };
-      inst.effectChain.getRegisteredEffects().forEach(name => {
-        const effect = inst.effectChain.effects.get(name);
+      inst.effectChain.getRegisteredEffects().forEach(function(name) {
+        var effect = inst.effectChain.effects.get(name);
         if (effect) {
           settings.effects.enabled[name] = effect.enabled;
-          settings.effects.params[name] = { ...effect.params, enabled: undefined };
+          settings.effects.params[name] = Object.assign({}, effect.params, { enabled: undefined });
         }
       });
     }
@@ -1354,23 +1350,23 @@
    * @param {number} instId - Instrument index (0-4)
    */
   function loadInstrumentSettings(instId) {
-    const instruments = SL.audio.getInstruments();
-    const NUM_INSTRUMENTS = SL.audio.getNumInstruments();
+    var instruments = SL.audio.getInstruments();
+    var NUM_INSTRUMENTS = SL.audio.getNumInstruments();
     if (instId < 0 || instId >= NUM_INSTRUMENTS) return;
 
-    const inst = instruments[instId];
-    const settings = inst.settings;
+    var inst = instruments[instId];
+    var settings = inst.settings;
 
     // Load oscillator settings to UI
-    for (let n = 1; n <= 3; n++) {
-      const osc = settings.osc[n - 1];
+    for (var n = 1; n <= 3; n++) {
+      var osc = settings.osc[n - 1];
 
-      const inlineWave = document.querySelector('.osc-wave[data-osc="' + n + '"]');
-      const inlineOct = document.querySelector('.osc-oct[data-osc="' + n + '"]');
-      const inlineDetune = document.querySelector('.osc-detune[data-osc="' + n + '"]');
-      const inlineDetuneVal = document.querySelector('.osc-detune-val[data-osc="' + n + '"]');
-      const inlineLevel = document.querySelector('.osc-level[data-osc="' + n + '"]');
-      const inlineLevelVal = document.querySelector('.osc-level-val[data-osc="' + n + '"]');
+      var inlineWave = document.querySelector('.osc-wave[data-osc="' + n + '"]');
+      var inlineOct = document.querySelector('.osc-oct[data-osc="' + n + '"]');
+      var inlineDetune = document.querySelector('.osc-detune[data-osc="' + n + '"]');
+      var inlineDetuneVal = document.querySelector('.osc-detune-val[data-osc="' + n + '"]');
+      var inlineLevel = document.querySelector('.osc-level[data-osc="' + n + '"]');
+      var inlineLevelVal = document.querySelector('.osc-level-val[data-osc="' + n + '"]');
 
       if (inlineWave) inlineWave.value = osc.wave;
       if (inlineOct) inlineOct.value = osc.oct;
@@ -1379,14 +1375,14 @@
       if (inlineLevel) inlineLevel.value = osc.level;
       if (inlineLevelVal) inlineLevelVal.textContent = osc.level + '%';
 
-      const inlineFine = document.querySelector('.osc-fine[data-osc="' + n + '"]');
+      var inlineFine = document.querySelector('.osc-fine[data-osc="' + n + '"]');
       var fineValue = (osc.fine !== undefined) ? osc.fine : 0;
       if (inlineFine) inlineFine.value = fineValue;
 
-      const modalPw = document.querySelector('.osc-pw-lg[data-osc="' + n + '"]');
-      const modalPwVal = document.querySelector('.osc-pw-val-lg[data-osc="' + n + '"]');
-      const modalSpread = document.querySelector('.osc-spread-lg[data-osc="' + n + '"]');
-      const modalSpreadVal = document.querySelector('.osc-spread-val-lg[data-osc="' + n + '"]');
+      var modalPw = document.querySelector('.osc-pw-lg[data-osc="' + n + '"]');
+      var modalPwVal = document.querySelector('.osc-pw-val-lg[data-osc="' + n + '"]');
+      var modalSpread = document.querySelector('.osc-spread-lg[data-osc="' + n + '"]');
+      var modalSpreadVal = document.querySelector('.osc-spread-val-lg[data-osc="' + n + '"]');
 
       if (modalPw) modalPw.value = osc.pulseWidth;
       if (modalPwVal) modalPwVal.textContent = osc.pulseWidth + '%';
@@ -1395,14 +1391,14 @@
     }
 
     // Load ADSR
-    const adsrA = document.getElementById('adsrA');
-    const adsrD = document.getElementById('adsrD');
-    const adsrS = document.getElementById('adsrS');
-    const adsrR = document.getElementById('adsrR');
-    const valA = document.getElementById('valA');
-    const valD = document.getElementById('valD');
-    const valS = document.getElementById('valS');
-    const valR = document.getElementById('valR');
+    var adsrA = document.getElementById('adsrA');
+    var adsrD = document.getElementById('adsrD');
+    var adsrS = document.getElementById('adsrS');
+    var adsrR = document.getElementById('adsrR');
+    var valA = document.getElementById('valA');
+    var valD = document.getElementById('valD');
+    var valS = document.getElementById('valS');
+    var valR = document.getElementById('valR');
 
     if (adsrA) adsrA.value = settings.adsr.a;
     if (adsrD) adsrD.value = settings.adsr.d;
@@ -1414,13 +1410,13 @@
     if (valR) valR.textContent = SL.audio.sliderToTime(settings.adsr.r, 1000, 1000) + 'ms';
 
     // Load filter settings
-    const filterEnabled = document.getElementById('filterEnabled');
-    const filterType = document.getElementById('filterType');
-    const filterFreq = document.getElementById('filterFreq');
-    const filterQ = document.getElementById('filterQ');
-    const filterKeyTrack = document.getElementById('filterKeyTrack');
-    const filterModel = document.getElementById('filterModel');
-    const filterSlopeRadios = document.querySelectorAll('input[name="filterSlope"]');
+    var filterEnabled = document.getElementById('filterEnabled');
+    var filterType = document.getElementById('filterType');
+    var filterFreq = document.getElementById('filterFreq');
+    var filterQ = document.getElementById('filterQ');
+    var filterKeyTrack = document.getElementById('filterKeyTrack');
+    var filterModel = document.getElementById('filterModel');
+    var filterSlopeRadios = document.querySelectorAll('input[name="filterSlope"]');
 
     if (filterEnabled) filterEnabled.checked = settings.filter.enabled;
     if (filterType) filterType.value = settings.filter.type;
@@ -1428,23 +1424,23 @@
     if (filterQ) filterQ.value = settings.filter.q;
     if (filterKeyTrack) filterKeyTrack.value = settings.filter.keyTrack;
     if (filterModel) filterModel.value = settings.filter.model;
-    filterSlopeRadios.forEach(r => { r.checked = (parseInt(r.value) === settings.filter.slope); });
+    filterSlopeRadios.forEach(function(r) { r.checked = (parseInt(r.value) === settings.filter.slope); });
 
     // Load noise settings
-    const noiseType = document.getElementById('noiseType');
-    const noiseLevel = document.getElementById('noiseLevel');
+    var noiseType = document.getElementById('noiseType');
+    var noiseLevel = document.getElementById('noiseLevel');
 
     if (noiseType) noiseType.value = settings.noise.type;
     if (noiseLevel) noiseLevel.value = settings.noise.level;
 
     // Load filter envelope settings
-    const filterEnvEnabled = document.getElementById('filterEnvEnabled');
-    const filterEnvAmount = document.getElementById('filterEnvAmount');
-    const filterEnvA = document.getElementById('filterEnvA');
-    const filterEnvD = document.getElementById('filterEnvD');
-    const filterEnvS = document.getElementById('filterEnvS');
-    const filterEnvR = document.getElementById('filterEnvR');
-    const filterEnvLink = document.getElementById('filterEnvLinkToAmp');
+    var filterEnvEnabled = document.getElementById('filterEnvEnabled');
+    var filterEnvAmount = document.getElementById('filterEnvAmount');
+    var filterEnvA = document.getElementById('filterEnvA');
+    var filterEnvD = document.getElementById('filterEnvD');
+    var filterEnvS = document.getElementById('filterEnvS');
+    var filterEnvR = document.getElementById('filterEnvR');
+    var filterEnvLink = document.getElementById('filterEnvLinkToAmp');
 
     if (filterEnvEnabled) filterEnvEnabled.checked = settings.filterEnv.enabled;
     if (filterEnvAmount) filterEnvAmount.value = settings.filterEnv.amount;
@@ -1644,7 +1640,7 @@
       }
       // Restore freeze state
       if (SL.granular && SL.granular.setFreeze) {
-        SL.granular.setFreeze(instId, !!granSettings.freeze);
+        SL.granular.setFreeze(instId, Boolean(granSettings.freeze));
       }
       // Update freeze button UI (both modal and top bar)
       var granFreezeBtn = document.getElementById('granularFreezeBtn');
@@ -1924,12 +1920,12 @@
     }
 
     // Humanization (4 sliders, backward compatible)
-    const hum = settings.humanization || {};
-    const isOldFormat = (typeof hum === 'number');
-    const humVel = document.getElementById('humVelocity');
-    const humTime = document.getElementById('humTiming');
-    const humAdsrEl = document.getElementById('humAdsr');
-    const humDrift = document.getElementById('humDrift');
+    var hum = settings.humanization || {};
+    var isOldFormat = (typeof hum === 'number');
+    var humVel = document.getElementById('humVelocity');
+    var humTime = document.getElementById('humTiming');
+    var humAdsrEl = document.getElementById('humAdsr');
+    var humDrift = document.getElementById('humDrift');
     if (humVel) { humVel.value = isOldFormat ? hum : (hum.velocity || 0); }
     if (humTime) { humTime.value = isOldFormat ? hum : (hum.timing || 0); }
     if (humAdsrEl) { humAdsrEl.value = isOldFormat ? hum : (hum.adsr || 0); }
@@ -1943,15 +1939,15 @@
     if (humAdsrVal) humAdsrVal.textContent = humAdsrEl ? humAdsrEl.value : 0;
     if (humDriftVal) humDriftVal.textContent = humDrift ? humDrift.value : 0;
 
-    const humStrum = document.getElementById('humStrum');
-    const humStrumVal = document.getElementById('humStrumVal');
+    var humStrum = document.getElementById('humStrum');
+    var humStrumVal = document.getElementById('humStrumVal');
     if (humStrum) { humStrum.value = settings.strum || 0; }
     if (humStrumVal) humStrumVal.textContent = humStrum ? humStrum.value : 0;
 
-    const strumDirEl = document.getElementById('strumDir');
+    var strumDirEl = document.getElementById('strumDir');
     if (strumDirEl) strumDirEl.value = settings.strumDir || 'up';
-    const strumRepeatEl = document.getElementById('strumRepeat');
-    const strumRepeatValEl = document.getElementById('strumRepeatVal');
+    var strumRepeatEl = document.getElementById('strumRepeat');
+    var strumRepeatValEl = document.getElementById('strumRepeatVal');
     if (strumRepeatEl) { strumRepeatEl.value = settings.strumRepeat || 0; }
     if (strumRepeatValEl) strumRepeatValEl.textContent = strumRepeatEl ? strumRepeatEl.value : 0;
 
@@ -2062,7 +2058,8 @@
     }
 
     // Load MIDIOUT settings
-    if (settings.midioutSettings && SL.midi && SL.midi.setMidioutSettings) {
+    var canSetMidioutSettings = settings.midioutSettings && SL.midi && SL.midi.setMidioutSettings;
+    if (canSetMidioutSettings) {
       SL.midi.setMidioutSettings(instId, settings.midioutSettings);
       if (instId === SL.audio.getCurrentInstrument() && SL.midi.loadMidioutUI) {
         SL.midi.loadMidioutUI(instId);
@@ -2115,7 +2112,8 @@
       }
 
       // Refresh the effects screen UI if it is currently active
-      if (SL.screenEffects && SL.screenEffects.activate && SL.screens && SL.screens.getCurrentScreen && SL.screens.getCurrentScreen() === 'effects') {
+      var isEffectsScreenActive = SL.screenEffects && SL.screenEffects.activate && SL.screens && SL.screens.getCurrentScreen && (SL.screens.getCurrentScreen() === 'effects');
+      if (isEffectsScreenActive) {
         SL.screenEffects.activate();
       }
     }
@@ -2136,12 +2134,12 @@
    * @param {number} instId - Instrument index (0-4)
    */
   function clearInstrument(instId) {
-    const instruments = SL.audio.getInstruments();
-    const NUM_INSTRUMENTS = SL.audio.getNumInstruments();
+    var instruments = SL.audio.getInstruments();
+    var NUM_INSTRUMENTS = SL.audio.getNumInstruments();
     if (instId < 0 || instId >= NUM_INSTRUMENTS) return;
 
-    const inst = instruments[instId];
-    const defaults = JSON.parse(JSON.stringify(SL.audio._DEFAULT_INSTRUMENT_SETTINGS));
+    var inst = instruments[instId];
+    var defaults = JSON.parse(JSON.stringify(SL.audio._DEFAULT_INSTRUMENT_SETTINGS));
 
     // Reset settings to defaults
     inst.settings.osc = defaults.osc;
@@ -2238,11 +2236,13 @@
   SL.audio.clearAllInstruments = clearAllInstruments;
   SL.audio.stopBufferNote = _stopBufferNote;
 
-  // Patch workletNoteOff to also kill non-worklet (buffer/oscillator) notes
+  // Patch workletNoteOff to also kill non-workvar (buffer/oscillator) notes
   var _origWorkletNoteOff = SL.audio.workletNoteOff;
   SL.audio.workletNoteOff = function(midi, instId) {
     if (_origWorkletNoteOff) { _origWorkletNoteOff(midi, instId); }
     _stopBufferNote(instId !== undefined ? instId : SL.audio.getCurrentInstrument(), midi);
   };
+
+  } // end if (SL && SL.audio)
 
 })();

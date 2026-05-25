@@ -11,6 +11,10 @@
   var SL = window.SynthLab;
   var NOTES = SL.NOTES;
 
+  // Sentinel constants
+  var NO_TIMER = null;
+  var OCT_DOWN = -1;
+
   // ============================================================
   // Constants
   // ============================================================
@@ -20,6 +24,9 @@
   var PANIC_CATEGORY_VOICES = 'voices';
   var PANIC_KEY_CLOCK = 'ssli-acid-clock';
   var PANIC_KEY_VOICES = 'ssli-acid-voices';
+
+  // Input element tags that should suppress keyboard shortcuts
+  var KEYBOARD_PASSTHROUGH_TAGS = { 'INPUT': 1, 'SELECT': 1, 'TEXTAREA': 1 };
 
   var STEPS_8 = 8;
   var STEPS_16 = 16;
@@ -1227,8 +1234,8 @@
   // State
   // ============================================================
 
-  var _initialized = false;
-  var _active = false;
+  var isScreenInitialized = false;
+  var isScreenActive = false;
 
   var _rootPc = DEFAULT_ROOT_PC;
   var _modeKey = DEFAULT_MODE;
@@ -1240,7 +1247,7 @@
   var _phraseKey = DEFAULT_PHRASE_KEY;
   var _categoryKey = CATEGORY_ALL;
 
-  var _playing = false;
+  var isPlaying = false;
   var _currentStep = 0;
   var _clockTimerId = null;
   var _slideTimerId = null;
@@ -1272,7 +1279,7 @@
   var _silhouettePlayheadEl = null;
   var _emptyHintEl = null;
   var _selectedStepIdx = 0;
-  var _keyHandlerBound = false;
+  var isKeyHandlerBound = false;
 
   // ============================================================
   // Helpers
@@ -1283,7 +1290,7 @@
   }
 
   function _cloneStep(s) {
-    return { pc: s.pc, oct: s.oct, gate: !!s.gate, slide: !!s.slide, accent: !!s.accent };
+    return { pc: s.pc, oct: s.oct, gate: Boolean(s.gate), slide: Boolean(s.slide), accent: Boolean(s.accent) };
   }
 
   function _getPhraseKeysForCategory(categoryKey) {
@@ -1305,34 +1312,35 @@
   // and propagate to the corresponding UI controls. Does NOT touch rootPc.
   function _applyPhraseHints(phraseKey) {
     var phrase = PHRASE_PRESETS[phraseKey];
-    if (!phrase) {
-      return;
-    }
-    if (phrase.modeHint && SL.MODES && SL.MODES[phrase.modeHint]) {
-      _modeKey = phrase.modeHint;
-      if (_modeSelect) {
-        _modeSelect.value = _modeKey;
+    if (phrase) {
+      var hasModeHint = phrase.modeHint && SL.MODES;
+      var isKnownModeHint = hasModeHint && SL.MODES[phrase.modeHint];
+      if (isKnownModeHint) {
+        _modeKey = phrase.modeHint;
+        if (_modeSelect) {
+          _modeSelect.value = _modeKey;
+        }
       }
-    }
-    if (typeof phrase.bpmHint === 'number') {
-      var bpmVal = phrase.bpmHint;
-      if (bpmVal < MIN_BPM) { bpmVal = MIN_BPM; }
-      if (bpmVal > MAX_BPM) { bpmVal = MAX_BPM; }
-      _bpm = bpmVal;
-      if (_bpmInput) {
-        _bpmInput.value = String(bpmVal);
+      if (typeof phrase.bpmHint === 'number') {
+        var bpmVal = phrase.bpmHint;
+        if (bpmVal < MIN_BPM) { bpmVal = MIN_BPM; }
+        if (bpmVal > MAX_BPM) { bpmVal = MAX_BPM; }
+        _bpm = bpmVal;
+        if (_bpmInput) {
+          _bpmInput.value = String(bpmVal);
+        }
       }
-    }
-    if (typeof phrase.swingHint === 'number') {
-      var swingVal = phrase.swingHint;
-      if (swingVal < MIN_SWING_PCT) { swingVal = MIN_SWING_PCT; }
-      if (swingVal > MAX_SWING_PCT) { swingVal = MAX_SWING_PCT; }
-      _swingPct = swingVal;
-      if (_swingInput) {
-        _swingInput.value = String(swingVal);
-      }
-      if (_swingLabel) {
-        _swingLabel.textContent = swingVal + '%';
+      if (typeof phrase.swingHint === 'number') {
+        var swingVal = phrase.swingHint;
+        if (swingVal < MIN_SWING_PCT) { swingVal = MIN_SWING_PCT; }
+        if (swingVal > MAX_SWING_PCT) { swingVal = MAX_SWING_PCT; }
+        _swingPct = swingVal;
+        if (_swingInput) {
+          _swingInput.value = String(swingVal);
+        }
+        if (_swingLabel) {
+          _swingLabel.textContent = swingVal + '%';
+        }
       }
     }
   }
@@ -1340,30 +1348,28 @@
   // Single entry-point for loading a phrase. Called from the phrase select,
   // the random button, and init. Applies hints + resets steps.
   function _loadPhraseByKey(phraseKey) {
-    if (!PHRASE_PRESETS[phraseKey]) {
-      return;
-    }
-    _phraseKey = phraseKey;
-    _applyPhraseHints(phraseKey);
-    _resetStepsFromPhrase(phraseKey);
-    _clampAllStepsToScale();
-    _syncStepCountButtons();
-    _rebuildGrid();
-    if (_phraseSelect && _phraseSelect.value !== phraseKey) {
-      _phraseSelect.value = phraseKey;
+    if (PHRASE_PRESETS[phraseKey]) {
+      _phraseKey = phraseKey;
+      _applyPhraseHints(phraseKey);
+      _resetStepsFromPhrase(phraseKey);
+      _clampAllStepsToScale();
+      _syncStepCountButtons();
+      _rebuildGrid();
+      if (_phraseSelect && _phraseSelect.value !== phraseKey) {
+        _phraseSelect.value = phraseKey;
+      }
     }
   }
 
   function _onRandomInCategory() {
     var keys = _getPhraseKeysForCategory(_categoryKey);
-    if (!keys.length) {
-      return;
+    if (keys.length) {
+      var pickKey = keys[Math.floor(Math.random() * keys.length)];
+      if (keys.length > 1 && pickKey === _phraseKey) {
+        pickKey = keys[Math.floor(Math.random() * keys.length)];
+      }
+      _loadPhraseByKey(pickKey);
     }
-    var pickKey = keys[Math.floor(Math.random() * keys.length)];
-    if (keys.length > 1 && pickKey === _phraseKey) {
-      pickKey = keys[Math.floor(Math.random() * keys.length)];
-    }
-    _loadPhraseByKey(pickKey);
   }
 
   function _resetStepsFromPhrase(phraseKey) {
@@ -1375,18 +1381,18 @@
         newSteps.push(_makeEmptyStep());
       }
       _steps = newSteps;
-      return;
-    }
-    // Copy phrase pattern (exactly phrase.steps entries); pad to 16 if smaller.
-    for (i = 0; i < STEPS_16; i++) {
-      if (i < phrase.pattern.length) {
-        newSteps.push(_cloneStep(phrase.pattern[i]));
-      } else {
-        newSteps.push(_makeEmptyStep());
+    } else {
+      // Copy phrase pattern (exactly phrase.steps entries); pad to 16 if smaller.
+      for (i = 0; i < STEPS_16; i++) {
+        if (i < phrase.pattern.length) {
+          newSteps.push(_cloneStep(phrase.pattern[i]));
+        } else {
+          newSteps.push(_makeEmptyStep());
+        }
       }
+      _steps = newSteps;
+      _stepCount = phrase.steps;
     }
-    _steps = newSteps;
-    _stepCount = phrase.steps;
   }
 
   function _getScalePitchClasses() {
@@ -1456,37 +1462,36 @@
   }
 
   function _onPlay() {
-    if (_playing) {
+    if (isPlaying) {
       _stopTransport();
-      return;
+    } else {
+      _startTransport();
     }
-    _startTransport();
   }
 
   function _startTransport() {
-    if (_playing) {
-      return;
-    }
-    // Resume AudioContext if suspended
-    if (SL.audio && SL.audio.getCtx) {
-      var ctx = SL.audio.getCtx();
-      if (ctx && ctx.state === 'suspended') {
-        ctx.resume();
+    if (!isPlaying) {
+      // Resume AudioContext if suspended
+      if (SL.audio && SL.audio.getCtx) {
+        var ctx = SL.audio.getCtx();
+        if (ctx && ctx.state === 'suspended') {
+          ctx.resume();
+        }
       }
+      isPlaying = true;
+      _currentStep = 0;
+      _updateTransportUI();
+      _scheduleNextStep(0);
     }
-    _playing = true;
-    _currentStep = 0;
-    _updateTransportUI();
-    _scheduleNextStep(0);
   }
 
   function _stopTransport() {
-    _playing = false;
-    if (_clockTimerId !== null) {
+    isPlaying = false;
+    if (_clockTimerId !== NO_TIMER) {
       clearTimeout(_clockTimerId);
       _clockTimerId = null;
     }
-    if (_slideTimerId !== null) {
+    if (_slideTimerId !== NO_TIMER) {
       clearInterval(_slideTimerId);
       _slideTimerId = null;
     }
@@ -1511,27 +1516,25 @@
   }
 
   function _scheduleNextStep(delayMs) {
-    if (!_playing) {
-      return;
+    if (isPlaying) {
+      _clockTimerId = setTimeout(_tick, delayMs);
     }
-    _clockTimerId = setTimeout(_tick, delayMs);
   }
 
   function _tick() {
-    if (!_playing) {
-      return;
+    if (isPlaying) {
+      _clockTimerId = null;
+      var stepIdx = _currentStep;
+      var step = _steps[stepIdx];
+      var intervalMs = _computeStepIntervalMs((stepIdx % 2) === 1);
+
+      _fireStep(step, intervalMs);
+      _refreshPlayheadHighlight();
+
+      // Advance
+      _currentStep = (_currentStep + 1) % _stepCount;
+      _scheduleNextStep(intervalMs);
     }
-    _clockTimerId = null;
-    var stepIdx = _currentStep;
-    var step = _steps[stepIdx];
-    var intervalMs = _computeStepIntervalMs((stepIdx % 2) === 1);
-
-    _fireStep(step, intervalMs);
-    _refreshPlayheadHighlight();
-
-    // Advance
-    _currentStep = (_currentStep + 1) % _stepCount;
-    _scheduleNextStep(intervalMs);
   }
 
   function _fireStep(step, intervalMs) {
@@ -1540,9 +1543,7 @@
       // step was a slide that expected its tail; we still cut here because
       // the next step has no gate).
       _silenceActiveVoice();
-      return;
-    }
-
+    } else {
     var targetMidi = _computeMidiForStep(step);
     var velocity = step.accent ? VELOCITY_ACCENT : VELOCITY_NORMAL;
 
@@ -1567,112 +1568,108 @@
         _maybeReleaseGate(thisStepIdx);
       }, gateMs);
     }
+    }
   }
 
   function _maybeReleaseGate(firedAtStepIdx) {
-    if (!_playing) {
-      return;
+    if (isPlaying) {
+      // If the sequencer has already advanced past this step, and the next
+      // step was a slide, don't cut.
+      var nextIdx = (firedAtStepIdx + 1) % _stepCount;
+      var nextStep = _steps[nextIdx];
+      var isNextSlide = (nextStep && nextStep.gate && nextStep.slide);
+      if (!isNextSlide) {
+        _silenceActiveVoice();
+      }
     }
-    // If the sequencer has already advanced past this step, and the next
-    // step was a slide, don't cut.
-    var nextIdx = (firedAtStepIdx + 1) % _stepCount;
-    var nextStep = _steps[nextIdx];
-    if (nextStep && nextStep.gate && nextStep.slide) {
-      return;
-    }
-    _silenceActiveVoice();
   }
 
   function _startPitchSlideTo(targetMidi, intervalMs) {
     // Cancel any in-flight slide animation.
-    if (_slideTimerId !== null) {
+    if (_slideTimerId !== NO_TIMER) {
       clearInterval(_slideTimerId);
       _slideTimerId = null;
     }
     var fromMidi = _activeSustainedMidi;
     var semitoneDelta = targetMidi - fromMidi;
-    if (semitoneDelta === 0) {
-      // Same pitch; nothing to slide. Just refresh timing.
-      return;
+    if (semitoneDelta !== 0) {
+      var glideScale = _glidePct / DEFAULT_GLIDE_PCT;
+      var slideDurMs = intervalMs * SLIDE_GATE_MS_RATIO * glideScale;
+      var steps = Math.max(4, Math.floor(slideDurMs / SLIDE_STEP_MS));
+      var stepIdx = 0;
+      _slideTimerId = setInterval(function() {
+        stepIdx++;
+        var progress = stepIdx / steps;
+        if (progress >= 1) {
+          progress = 1;
+        }
+        var cents = semitoneDelta * SLIDE_BEND_CENTS_PER_SEMI * progress;
+        _applyCentsToActiveVoices(cents);
+        if (progress >= 1) {
+          clearInterval(_slideTimerId);
+          _slideTimerId = null;
+          // The slide has completed. We keep the voice alive until the
+          // next non-slide step cuts it. Logical MIDI "target" is now
+          // targetMidi but the actual oscillators are still the old voice
+          // with bend applied. That's the 303 behavior — no retrigger.
+          _activeSustainedMidi = targetMidi;
+          // Reset stored detune base so subsequent bends compose relative
+          // to the new target (not cumulative bend on next slide).
+          _resetDetuneOrigin();
+        }
+      }, SLIDE_STEP_MS);
     }
-    var glideScale = _glidePct / DEFAULT_GLIDE_PCT;
-    var slideDurMs = intervalMs * SLIDE_GATE_MS_RATIO * glideScale;
-    var steps = Math.max(4, Math.floor(slideDurMs / SLIDE_STEP_MS));
-    var stepIdx = 0;
-    _slideTimerId = setInterval(function() {
-      stepIdx++;
-      var progress = stepIdx / steps;
-      if (progress >= 1) {
-        progress = 1;
-      }
-      var cents = semitoneDelta * SLIDE_BEND_CENTS_PER_SEMI * progress;
-      _applyCentsToActiveVoices(cents);
-      if (progress >= 1) {
-        clearInterval(_slideTimerId);
-        _slideTimerId = null;
-        // The slide has completed. We keep the voice alive until the
-        // next non-slide step cuts it. Logical MIDI "target" is now
-        // targetMidi but the actual oscillators are still the old voice
-        // with bend applied. That's the 303 behavior — no retrigger.
-        _activeSustainedMidi = targetMidi;
-        // Reset stored detune base so subsequent bends compose relative
-        // to the new target (not cumulative bend on next slide).
-        _resetDetuneOrigin();
-      }
-    }, SLIDE_STEP_MS);
   }
 
   function _applyCentsToActiveVoices(cents) {
-    if (!SL.audio || !SL.audio.getActiveOscillators) {
-      return;
-    }
-    var activeOscs = SL.audio.getActiveOscillators();
-    if (!activeOscs || !activeOscs.forEach) {
-      return;
-    }
-    activeOscs.forEach(function(voiceData) {
-      if (!voiceData) {
-        return;
-      }
-      if (voiceData.oscillators) {
-        for (var i = 0; i < voiceData.oscillators.length; i++) {
-          var entry = voiceData.oscillators[i];
-          if (entry && entry.osc && entry.osc.detune) {
-            if (entry._acidOrigDetune === undefined) {
-              entry._acidOrigDetune = entry.osc.detune.value;
+    if (SL.audio && SL.audio.getActiveOscillators) {
+      var activeOscs = SL.audio.getActiveOscillators();
+      if (activeOscs && activeOscs.forEach) {
+        activeOscs.forEach(function(voiceData) {
+          if (voiceData) {
+            if (voiceData.oscillators) {
+              for (var i = 0; i < voiceData.oscillators.length; i++) {
+                var entry = voiceData.oscillators[i];
+                var hasAcidDetune = entry && entry.osc && entry.osc.detune;
+                if (hasAcidDetune) {
+                  if (entry._acidOrigDetune === undefined) {
+                    entry._acidOrigDetune = entry.osc.detune.value;
+                  }
+                  entry.osc.detune.value = entry._acidOrigDetune + cents;
+                }
+              }
             }
-            entry.osc.detune.value = entry._acidOrigDetune + cents;
+            var canSetFmBend = voiceData.fm && SL.fm && SL.fm.setBend;
+            if (canSetFmBend) {
+              SL.fm.setBend(cents);
+            }
+            var canSetPhysicalBend = voiceData.physical && SL.physical && SL.physical.setBend;
+            if (canSetPhysicalBend) {
+              SL.physical.setBend(cents);
+            }
           }
-        }
+        });
       }
-      if (voiceData.fm && SL.fm && SL.fm.setBend) {
-        SL.fm.setBend(cents);
-      }
-      if (voiceData.physical && SL.physical && SL.physical.setBend) {
-        SL.physical.setBend(cents);
-      }
-    });
+    }
   }
 
   function _resetDetuneOrigin() {
-    if (!SL.audio || !SL.audio.getActiveOscillators) {
-      return;
-    }
-    var activeOscs = SL.audio.getActiveOscillators();
-    if (!activeOscs || !activeOscs.forEach) {
-      return;
-    }
-    activeOscs.forEach(function(voiceData) {
-      if (!voiceData || !voiceData.oscillators) {
-        return;
+    if (SL.audio && SL.audio.getActiveOscillators) {
+      var activeOscs = SL.audio.getActiveOscillators();
+      if (activeOscs && activeOscs.forEach) {
+        activeOscs.forEach(function(voiceData) {
+          if (voiceData && voiceData.oscillators) {
+            for (var i = 0; i < voiceData.oscillators.length; i++) {
+              var entry = voiceData.oscillators[i];
+              var hasCapturableDetune = entry && entry.osc && entry.osc.detune;
+              if (hasCapturableDetune) {
+                entry._acidOrigDetune = entry.osc.detune.value;
+              }
+            }
+          }
+        });
       }
-      for (var i = 0; i < voiceData.oscillators.length; i++) {
-        var entry = voiceData.oscillators[i];
-        if (entry && entry.osc && entry.osc.detune) {
-          entry._acidOrigDetune = entry.osc.detune.value;
-        }
-      }
-    });
+    }
   }
 
   // ============================================================
@@ -1681,21 +1678,20 @@
 
   function _buildScreen() {
     _screenEl = document.getElementById(SCREEN_CONTAINER_ID);
-    if (!_screenEl) {
-      return;
+    if (_screenEl) {
+      _screenEl.innerHTML = '';
+
+      var root = document.createElement('div');
+      root.className = 'ssli-acid-root';
+
+      root.appendChild(_buildHeaderBar());
+      root.appendChild(_buildControlsBar());
+      root.appendChild(_buildGridArea());
+      root.appendChild(_buildFooterHint());
+
+      _screenEl.appendChild(root);
+      _rebuildGrid();
     }
-    _screenEl.innerHTML = '';
-
-    var root = document.createElement('div');
-    root.className = 'ssli-acid-root';
-
-    root.appendChild(_buildHeaderBar());
-    root.appendChild(_buildControlsBar());
-    root.appendChild(_buildGridArea());
-    root.appendChild(_buildFooterHint());
-
-    _screenEl.appendChild(root);
-    _rebuildGrid();
   }
 
   function _buildHeaderBar() {
@@ -1921,9 +1917,9 @@
     _randomBtn.type = 'button';
     _randomBtn.className = 'ssli-acid-btn ssli-acid-random-btn';
     // Die face glyph via surrogate-pair escape (ES5 safe).
-    _randomBtn.textContent = '\uD83C\uDFB2';
-    _randomBtn.setAttribute('aria-label', 'Random phrase in category');
-    _randomBtn.title = 'Random phrase in current category';
+    _randomBtn.textContent = SL.t('btn.randomDice');
+    _randomBtn.setAttribute('aria-label', SL.t('aria.randomPhraseInCategory'));
+    _randomBtn.title = SL.t('tooltip.randomPhraseInCategory');
     _randomBtn.addEventListener('click', _onRandomInCategory);
     row.appendChild(_randomBtn);
 
@@ -1932,16 +1928,16 @@
   }
 
   function _populatePhraseSelect() {
-    if (!_phraseSelect) {
-      return;
-    }
-    _phraseSelect.innerHTML = '';
+    if (_phraseSelect) {
+      _phraseSelect.innerHTML = '';
     var keys = _getPhraseKeysForCategory(_categoryKey);
     var i;
-    var foundCurrent = false;
+    var RE_PHRASE_NONALNUM = /[^a-z0-9]+/g;
+    var RE_PHRASE_TRAIL_UNDERSCORE = /_+$/;
+    var isFoundCurrent = false;
     for (i = 0; i < keys.length; i++) {
       if (keys[i] === _phraseKey) {
-        foundCurrent = true;
+        isFoundCurrent = true;
         break;
       }
     }
@@ -1949,14 +1945,15 @@
       var opt = document.createElement('option');
       opt.value = keys[i];
       var phraseName = PHRASE_PRESETS[keys[i]].label;
-      var phraseI18nKey = 'acid_phrase.' + phraseName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/_+$/, '');
+      var phraseI18nKey = 'acid_phrase.' + phraseName.toLowerCase().replace(RE_PHRASE_NONALNUM, '_').replace(RE_PHRASE_TRAIL_UNDERSCORE, '');
       opt.textContent = SL.t(phraseI18nKey, phraseName);
-      if (foundCurrent && keys[i] === _phraseKey) {
+      if (isFoundCurrent && keys[i] === _phraseKey) {
         opt.selected = true;
-      } else if (!foundCurrent && i === 0) {
+      } else if (!isFoundCurrent && i === 0) {
         opt.selected = true;
       }
       _phraseSelect.appendChild(opt);
+    }
     }
   }
 
@@ -1994,25 +1991,23 @@
   }
 
   function _syncStepCountButtons() {
-    if (!_stepCountBtns) {
-      return;
-    }
-    if (_stepCount === STEPS_8) {
-      _stepCountBtns.eight.classList.add('active');
-      _stepCountBtns.sixteen.classList.remove('active');
-    } else {
-      _stepCountBtns.sixteen.classList.add('active');
-      _stepCountBtns.eight.classList.remove('active');
+    if (_stepCountBtns) {
+      if (_stepCount === STEPS_8) {
+        _stepCountBtns.eight.classList.add('active');
+        _stepCountBtns.sixteen.classList.remove('active');
+      } else {
+        _stepCountBtns.sixteen.classList.add('active');
+        _stepCountBtns.eight.classList.remove('active');
+      }
     }
   }
 
   function _setStepCount(n) {
-    if (n !== STEPS_8 && n !== STEPS_16) {
-      return;
+    if (n === STEPS_8 || n === STEPS_16) {
+      _stepCount = n;
+      _syncStepCountButtons();
+      _rebuildGrid();
     }
-    _stepCount = n;
-    _syncStepCountButtons();
-    _rebuildGrid();
   }
 
   function _buildBpmControl() {
@@ -2173,26 +2168,25 @@
   }
 
   function _rebuildGrid() {
-    if (!_gridEl) {
-      return;
-    }
-    _gridEl.innerHTML = '';
-    _gridEl.setAttribute('data-stepcount', String(_stepCount));
+    if (_gridEl) {
+      _gridEl.innerHTML = '';
+      _gridEl.setAttribute('data-stepcount', String(_stepCount));
 
-    var useDrumGrid = _isPhoneLand();
-    if (useDrumGrid) {
-      _rebuildDrumGrid();
-    } else {
-      _rebuildColumnGrid();
-    }
+      var useDrumGrid = _isPhoneLand();
+      if (useDrumGrid) {
+        _rebuildDrumGrid();
+      } else {
+        _rebuildColumnGrid();
+      }
 
-    _refreshPlayheadHighlight();
-    _rebuildSilhouette();
-    _updateSlideArcs();
-    _updateEmptyHint();
-    // Re-run after layout settles so SVG arc geometry picks up final cell rects.
-    if (typeof requestAnimationFrame === 'function') {
-      requestAnimationFrame(function() { _updateSlideArcs(); });
+      _refreshPlayheadHighlight();
+      _rebuildSilhouette();
+      _updateSlideArcs();
+      _updateEmptyHint();
+      // Re-run after layout settles so SVG arc geometry picks up final cell rects.
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(function() { _updateSlideArcs(); });
+      }
     }
   }
 
@@ -2317,7 +2311,7 @@
       slideBtn.classList.add('slide-on');
     }
     slideBtn.textContent = 'S';
-    slideBtn.setAttribute('aria-label', 'Slide step ' + (stepIdx + 1));
+    slideBtn.setAttribute('aria-label', SL.t('aria.slideStep') + ' ' + (stepIdx + 1));
     (function(sIdx) {
       slideBtn.addEventListener('click', function() {
         _steps[sIdx].slide = !_steps[sIdx].slide;
@@ -2333,7 +2327,7 @@
       accentBtn.classList.add('accent-on');
     }
     accentBtn.textContent = 'A';
-    accentBtn.setAttribute('aria-label', 'Accent step ' + (stepIdx + 1));
+    accentBtn.setAttribute('aria-label', SL.t('aria.accentStep') + ' ' + (stepIdx + 1));
     (function(sIdx) {
       accentBtn.addEventListener('click', function() {
         _steps[sIdx].accent = !_steps[sIdx].accent;
@@ -2346,11 +2340,9 @@
   }
 
   function _rebuildSilhouette() {
-    if (!_silhouetteEl) {
-      return;
-    }
-    // Remove all ticks (preserve the playhead element)
-    var children = _silhouetteEl.querySelectorAll('.ssli-acid-silhouette-tick');
+    if (_silhouetteEl) {
+      // Remove all ticks (preserve the playhead element)
+      var children = _silhouetteEl.querySelectorAll('.ssli-acid-silhouette-tick');
     var c;
     for (c = 0; c < children.length; c++) {
       _silhouetteEl.removeChild(children[c]);
@@ -2373,6 +2365,7 @@
       _silhouetteEl.insertBefore(tick, _silhouettePlayheadEl);
     }
     _refreshSilhouettePlayhead();
+    }
   }
 
   function _pitchFillPct(pcIdx, scaleLen) {
@@ -2391,86 +2384,81 @@
   }
 
   function _refreshSilhouettePlayhead() {
-    if (!_silhouettePlayheadEl) {
-      return;
-    }
-    var isVisible = _playing;
-    if (isVisible) {
-      _silhouettePlayheadEl.classList.add('visible');
-      var pct = (_currentStep + 0.5) / _stepCount * 100;
-      _silhouettePlayheadEl.style.left = pct + '%';
-    } else {
-      _silhouettePlayheadEl.classList.remove('visible');
+    if (_silhouettePlayheadEl) {
+      var isVisible = isPlaying;
+      if (isVisible) {
+        _silhouettePlayheadEl.classList.add('visible');
+        var pct = (_currentStep + 0.5) / _stepCount * 100;
+        _silhouettePlayheadEl.style.left = pct + '%';
+      } else {
+        _silhouettePlayheadEl.classList.remove('visible');
+      }
     }
   }
 
   function _updateSlideArcs() {
-    if (!_slideSvgEl || !_gridEl) {
-      return;
-    }
-    // Clear existing paths
-    while (_slideSvgEl.firstChild) {
-      _slideSvgEl.removeChild(_slideSvgEl.firstChild);
-    }
-    var cells = _gridEl.querySelectorAll('.ssli-acid-step');
-    if (!cells || cells.length < 2) {
-      return;
-    }
-    var gridRect = _gridEl.getBoundingClientRect();
-    if (gridRect.width <= 0 || gridRect.height <= 0) {
-      return;
-    }
-    _slideSvgEl.setAttribute('viewBox', '0 0 ' + gridRect.width + ' ' + gridRect.height);
-    _slideSvgEl.setAttribute('width', String(gridRect.width));
-    _slideSvgEl.setAttribute('height', String(gridRect.height));
-    var i;
-    var pathCount = 0;
-    for (i = 0; i < _stepCount - 1; i++) {
-      var stepA = _steps[i];
-      var stepB = _steps[i + 1];
-      var hasSlide = stepA && stepA.gate && stepA.slide && stepB && stepB.gate;
-      if (!hasSlide) {
-        continue;
+    if (_slideSvgEl && _gridEl) {
+      // Clear existing paths
+      while (_slideSvgEl.firstChild) {
+        _slideSvgEl.removeChild(_slideSvgEl.firstChild);
       }
-      var rectA = cells[i].getBoundingClientRect();
-      var rectB = cells[i + 1].getBoundingClientRect();
-      var ax = (rectA.left + rectA.width - gridRect.left);
-      var ay = (rectA.top - gridRect.top) + 6;
-      var bx = (rectB.left - gridRect.left);
-      var by = (rectB.top - gridRect.top) + 6;
-      var midY = Math.min(ay, by) - ((rectA.height + rectB.height) * 0.5 * SLIDE_ARC_CURVE_RATIO);
-      if (midY < 2) { midY = 2; }
-      var cx = (ax + bx) / 2;
-      var d = 'M ' + ax + ' ' + ay
-            + ' Q ' + cx + ' ' + midY
-            + ' ' + bx + ' ' + by;
-      var pathEl = document.createElementNS(SVG_NS, 'path');
-      pathEl.setAttribute('class', 'ssli-acid-slide-path');
-      pathEl.setAttribute('d', d);
-      pathEl.setAttribute('data-slide-from', String(i));
-      pathEl.setAttribute('data-slide-to', String(i + 1));
-      _slideSvgEl.appendChild(pathEl);
-      pathCount++;
+      var cells = _gridEl.querySelectorAll('.ssli-acid-step');
+      if (cells && cells.length >= 2) {
+        var gridRect = _gridEl.getBoundingClientRect();
+        if (gridRect.width > 0 && gridRect.height > 0) {
+          _slideSvgEl.setAttribute('viewBox', '0 0 ' + gridRect.width + ' ' + gridRect.height);
+          _slideSvgEl.setAttribute('width', String(gridRect.width));
+          _slideSvgEl.setAttribute('height', String(gridRect.height));
+          var i;
+          var pathCount = 0;
+          for (i = 0; i < _stepCount - 1; i++) {
+            var stepA = _steps[i];
+            var stepB = _steps[i + 1];
+            var hasSlide = stepA && stepA.gate && stepA.slide && stepB && stepB.gate;
+            if (!hasSlide) {
+              continue;
+            }
+            var rectA = cells[i].getBoundingClientRect();
+            var rectB = cells[i + 1].getBoundingClientRect();
+            var ax = (rectA.left + rectA.width - gridRect.left);
+            var ay = (rectA.top - gridRect.top) + 6;
+            var bx = (rectB.left - gridRect.left);
+            var by = (rectB.top - gridRect.top) + 6;
+            var midY = Math.min(ay, by) - ((rectA.height + rectB.height) * 0.5 * SLIDE_ARC_CURVE_RATIO);
+            if (midY < 2) { midY = 2; }
+            var cx = (ax + bx) / 2;
+            var d = 'M ' + ax + ' ' + ay
+                  + ' Q ' + cx + ' ' + midY
+                  + ' ' + bx + ' ' + by;
+            var pathEl = document.createElementNS(SVG_NS, 'path');
+            pathEl.setAttribute('class', 'ssli-acid-slide-path');
+            pathEl.setAttribute('d', d);
+            pathEl.setAttribute('data-slide-from', String(i));
+            pathEl.setAttribute('data-slide-to', String(i + 1));
+            _slideSvgEl.appendChild(pathEl);
+            pathCount++;
+          }
+          _slideSvgEl.setAttribute('data-slide-count', String(pathCount));
+        }
+      }
     }
-    _slideSvgEl.setAttribute('data-slide-count', String(pathCount));
   }
 
   function _updateEmptyHint() {
-    if (!_emptyHintEl) {
-      return;
-    }
-    var anyGate = false;
-    var i;
-    for (i = 0; i < _stepCount; i++) {
-      if (_steps[i] && _steps[i].gate) {
-        anyGate = true;
-        break;
+    if (_emptyHintEl) {
+      var isAnyGate = false;
+      var i;
+      for (i = 0; i < _stepCount; i++) {
+        if (_steps[i] && _steps[i].gate) {
+          isAnyGate = true;
+          break;
+        }
       }
-    }
-    if (anyGate) {
-      _emptyHintEl.classList.remove('visible');
-    } else {
-      _emptyHintEl.classList.add('visible');
+      if (isAnyGate) {
+        _emptyHintEl.classList.remove('visible');
+      } else {
+        _emptyHintEl.classList.add('visible');
+      }
     }
   }
 
@@ -2497,7 +2485,7 @@
     pitchUp.type = 'button';
     pitchUp.className = 'ssli-acid-step-pitch-btn ssli-acid-step-pitch-up';
     pitchUp.textContent = '▲';
-    pitchUp.setAttribute('aria-label', 'Pitch up');
+    pitchUp.setAttribute('aria-label', SL.t('aria.pitchUp'));
     pitchUp.addEventListener('click', function() {
       step.pc = step.pc + 1;
       if (step.pc >= scaleLen) { step.pc = scaleLen - 1; }
@@ -2522,7 +2510,7 @@
     var header = document.createElement('button');
     header.type = 'button';
     header.className = 'ssli-acid-step-header';
-    header.setAttribute('aria-label', 'Toggle gate for step ' + (stepIdx + 1));
+    header.setAttribute('aria-label', SL.t('aria.toggleGateForStep') + ' ' + (stepIdx + 1));
     header.textContent = String(stepIdx + 1);
     header.addEventListener('click', function() {
       step.gate = !step.gate;
@@ -2535,8 +2523,8 @@
     var pitchDown = document.createElement('button');
     pitchDown.type = 'button';
     pitchDown.className = 'ssli-acid-step-pitch-btn ssli-acid-step-pitch-down';
-    pitchDown.textContent = '▼';
-    pitchDown.setAttribute('aria-label', 'Pitch down');
+    pitchDown.textContent = SL.t('btn.arrowDown');
+    pitchDown.setAttribute('aria-label', SL.t('aria.pitchDown'));
     pitchDown.addEventListener('click', function() {
       step.pc = step.pc - 1;
       if (step.pc < 0) { step.pc = 0; }
@@ -2566,8 +2554,8 @@
     var pitchDown = document.createElement('button');
     pitchDown.type = 'button';
     pitchDown.className = 'ssli-acid-step-mini';
-    pitchDown.textContent = '\u25BC';
-    pitchDown.setAttribute('aria-label', 'Pitch down');
+    pitchDown.textContent = SL.t('btn.arrowDown');
+    pitchDown.setAttribute('aria-label', SL.t('aria.pitchDown'));
     pitchDown.addEventListener('click', function() {
       step.pc = step.pc - 1;
       if (step.pc < 0) { step.pc = 0; }
@@ -2584,8 +2572,8 @@
     var pitchUp = document.createElement('button');
     pitchUp.type = 'button';
     pitchUp.className = 'ssli-acid-step-mini';
-    pitchUp.textContent = '\u25B2';
-    pitchUp.setAttribute('aria-label', 'Pitch up');
+    pitchUp.textContent = SL.t('btn.arrowUp');
+    pitchUp.setAttribute('aria-label', SL.t('aria.pitchUp'));
     pitchUp.addEventListener('click', function() {
       step.pc = step.pc + 1;
       if (step.pc >= scaleLen) { step.pc = scaleLen - 1; }
@@ -2607,15 +2595,15 @@
     octDot.className = 'ssli-acid-dot dot-octave';
     if (step.oct === 1) {
       octDot.classList.add('on', 'dot-octave-up');
-    } else if (step.oct === -1) {
+    } else if (step.oct === OCT_DOWN) {
       octDot.classList.add('on', 'dot-octave-down');
     }
     var octAriaLabel = 'Octave ';
     if (step.oct === 1) { octAriaLabel += 'plus one'; }
-    else if (step.oct === -1) { octAriaLabel += 'minus one'; }
+    else if (step.oct === OCT_DOWN) { octAriaLabel += 'minus one'; }
     else { octAriaLabel += 'zero'; }
     octDot.setAttribute('aria-label', octAriaLabel);
-    octDot.title = 'Octave (tap to cycle)';
+    octDot.title = SL.t('tooltip.octaveTapCycle');
     octDot.addEventListener('click', function() {
       var nextOct;
       if (step.oct === 0) {
@@ -2639,7 +2627,7 @@
       slideDot.classList.add('on');
     }
     slideDot.setAttribute('aria-label', step.slide ? 'Slide on' : 'Slide off');
-    slideDot.title = 'Slide / glide to next step';
+    slideDot.title = SL.t('tooltip.slideGlide');
     slideDot.addEventListener('click', function() {
       step.slide = !step.slide;
       _selectedStepIdx = stepIdx;
@@ -2655,7 +2643,7 @@
       accentDot.classList.add('on');
     }
     accentDot.setAttribute('aria-label', step.accent ? 'Accent on' : 'Accent off');
-    accentDot.title = 'Accent (louder)';
+    accentDot.title = SL.t('tooltip.accentLouder');
     accentDot.addEventListener('click', function() {
       step.accent = !step.accent;
       _selectedStepIdx = stepIdx;
@@ -2678,14 +2666,12 @@
   }
 
   function _refreshPlayheadHighlight() {
-    if (!_gridEl) {
-      return;
-    }
-    // Original column-based grid
-    var cells = _gridEl.querySelectorAll('.ssli-acid-step');
+    if (_gridEl) {
+      // Original column-based grid
+      var cells = _gridEl.querySelectorAll('.ssli-acid-step');
     var i;
     for (i = 0; i < cells.length; i++) {
-      if (_playing && i === _currentStep) {
+      if (isPlaying && i === _currentStep) {
         cells[i].classList.add('playing');
       } else {
         cells[i].classList.remove('playing');
@@ -2695,13 +2681,14 @@
     var drumCells = _gridEl.querySelectorAll('[data-step-col]');
     for (i = 0; i < drumCells.length; i++) {
       var colIdx = parseInt(drumCells[i].getAttribute('data-step-col'), 10);
-      if (_playing && (colIdx === _currentStep)) {
+      if (isPlaying && (colIdx === _currentStep)) {
         drumCells[i].classList.add('playing-col');
       } else {
         drumCells[i].classList.remove('playing-col');
       }
     }
     _refreshSilhouettePlayhead();
+    }
   }
 
   // ============================================================
@@ -2709,77 +2696,75 @@
   // ============================================================
 
   function _onKeyDown(e) {
-    if (!_active) {
-      return;
-    }
-    // Ignore when user is typing in an input/select
-    var tgt = e.target;
-    if (tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'SELECT' || tgt.tagName === 'TEXTAREA')) {
-      return;
-    }
-    var scalePcs = _getScalePitchClasses();
-    var scaleLen = scalePcs.length;
-    var handled = false;
+    if (isScreenActive) {
+      // Ignore when user is typing in an input/select
+      var tgt = e.target;
+      var isPassthrough = (tgt && KEYBOARD_PASSTHROUGH_TAGS[tgt.tagName]);
+      if (!isPassthrough) {
+        var scalePcs = _getScalePitchClasses();
+        var scaleLen = scalePcs.length;
+        var isHandled = false;
 
-    if (e.key === KEY_SPACE) {
-      _onPlay();
-      handled = true;
-    } else if (e.key === KEY_ARROW_LEFT) {
-      _selectedStepIdx = (_selectedStepIdx - 1 + _stepCount) % _stepCount;
-      _rebuildGrid();
-      handled = true;
-    } else if (e.key === KEY_ARROW_RIGHT) {
-      _selectedStepIdx = (_selectedStepIdx + 1) % _stepCount;
-      _rebuildGrid();
-      handled = true;
-    } else if (e.key === KEY_ARROW_UP) {
-      var sUp = _steps[_selectedStepIdx];
-      if (sUp) {
-        sUp.pc = sUp.pc + 1;
-        if (sUp.pc >= scaleLen) { sUp.pc = scaleLen - 1; }
-        _rebuildGrid();
+        if (e.key === KEY_SPACE) {
+          _onPlay();
+          isHandled = true;
+        } else if (e.key === KEY_ARROW_LEFT) {
+          _selectedStepIdx = (_selectedStepIdx - 1 + _stepCount) % _stepCount;
+          _rebuildGrid();
+          isHandled = true;
+        } else if (e.key === KEY_ARROW_RIGHT) {
+          _selectedStepIdx = (_selectedStepIdx + 1) % _stepCount;
+          _rebuildGrid();
+          isHandled = true;
+        } else if (e.key === KEY_ARROW_UP) {
+          var sUp = _steps[_selectedStepIdx];
+          if (sUp) {
+            sUp.pc = sUp.pc + 1;
+            if (sUp.pc >= scaleLen) { sUp.pc = scaleLen - 1; }
+            _rebuildGrid();
+          }
+          isHandled = true;
+        } else if (e.key === KEY_ARROW_DOWN) {
+          var sDown = _steps[_selectedStepIdx];
+          if (sDown) {
+            sDown.pc = sDown.pc - 1;
+            if (sDown.pc < 0) { sDown.pc = 0; }
+            _rebuildGrid();
+          }
+          isHandled = true;
+        } else if (e.key === KEY_S_LOWER || e.key === 'S') {
+          var sSlide = _steps[_selectedStepIdx];
+          if (sSlide) {
+            sSlide.slide = !sSlide.slide;
+            _rebuildGrid();
+          }
+          isHandled = true;
+        } else if (e.key === KEY_A_LOWER || e.key === 'A') {
+          var sAcc = _steps[_selectedStepIdx];
+          if (sAcc) {
+            sAcc.accent = !sAcc.accent;
+            _rebuildGrid();
+          }
+          isHandled = true;
+        }
+        if (isHandled) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
       }
-      handled = true;
-    } else if (e.key === KEY_ARROW_DOWN) {
-      var sDown = _steps[_selectedStepIdx];
-      if (sDown) {
-        sDown.pc = sDown.pc - 1;
-        if (sDown.pc < 0) { sDown.pc = 0; }
-        _rebuildGrid();
-      }
-      handled = true;
-    } else if (e.key === KEY_S_LOWER || e.key === 'S') {
-      var sSlide = _steps[_selectedStepIdx];
-      if (sSlide) {
-        sSlide.slide = !sSlide.slide;
-        _rebuildGrid();
-      }
-      handled = true;
-    } else if (e.key === KEY_A_LOWER || e.key === 'A') {
-      var sAcc = _steps[_selectedStepIdx];
-      if (sAcc) {
-        sAcc.accent = !sAcc.accent;
-        _rebuildGrid();
-      }
-      handled = true;
-    }
-    if (handled) {
-      e.preventDefault();
-      e.stopPropagation();
     }
   }
 
   function _bindKeyboard() {
-    if (_keyHandlerBound) {
-      return;
+    if (!isKeyHandlerBound) {
+      document.addEventListener('keydown', _onKeyDown, true);
+      isKeyHandlerBound = true;
     }
-    document.addEventListener('keydown', _onKeyDown, true);
-    _keyHandlerBound = true;
   }
 
   function _updateTransportUI() {
     if (_playBtn) {
-      if (_playing) {
+      if (isPlaying) {
         _playBtn.textContent = SL.t('acid.pause');
         _playBtn.classList.add('playing');
       } else {
@@ -2802,20 +2787,18 @@
   // ============================================================
 
   function _registerPanic() {
-    if (!SL.PanicRegistry) {
-      return;
-    }
-    SL.PanicRegistry.register(
+    if (SL.PanicRegistry) {
+      SL.PanicRegistry.register(
       PANIC_CATEGORY_INTERVALS,
       PANIC_KEY_CLOCK,
       function() {
         // Teardown: stop the clock + slide interval.
-        _playing = false;
-        if (_clockTimerId !== null) {
+        isPlaying = false;
+        if (_clockTimerId !== NO_TIMER) {
           clearTimeout(_clockTimerId);
           _clockTimerId = null;
         }
-        if (_slideTimerId !== null) {
+        if (_slideTimerId !== NO_TIMER) {
           clearInterval(_slideTimerId);
           _slideTimerId = null;
         }
@@ -2823,10 +2806,10 @@
         _refreshPlayheadHighlight();
       },
       function() {
-        if (_clockTimerId !== null) {
+        if (_clockTimerId !== NO_TIMER) {
           return 'acid clock timer still scheduled';
         }
-        if (_slideTimerId !== null) {
+        if (_slideTimerId !== NO_TIMER) {
           return 'acid slide timer still scheduled';
         }
         return null;
@@ -2845,6 +2828,7 @@
         return null;
       }
     );
+    }
   }
 
   // ============================================================
@@ -2852,15 +2836,13 @@
   // ============================================================
 
   function _init() {
-    if (_initialized) {
-      return;
-    }
+    if (!isScreenInitialized) {
     _resetStepsFromPhrase(_phraseKey);
     _clampAllStepsToScale();
     _buildScreen();
     _registerPanic();
     _bindKeyboard();
-    _initialized = true;
+    isScreenInitialized = true;
 
     // Refresh translatable text in category and phrase dropdowns when the
     // active language changes after the screen has already been built.
@@ -2883,13 +2865,15 @@
         // --- Phrase select options ---
         if (_phraseSelect) {
           var phraseOpts = _phraseSelect.querySelectorAll('option');
+          var RE_OPT_NONALNUM = /[^a-z0-9]+/g;
+          var RE_OPT_TRAIL_UNDERSCORE = /_+$/;
           var pi = 0;
           while (pi < phraseOpts.length) {
             var pKey = phraseOpts[pi].value;
             var preset = PHRASE_PRESETS[pKey];
             if (preset) {
               var phraseName = preset.label;
-              var phraseI18nKey = 'acid_phrase.' + phraseName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/_+$/, '');
+              var phraseI18nKey = 'acid_phrase.' + phraseName.toLowerCase().replace(RE_OPT_NONALNUM, '_').replace(RE_OPT_TRAIL_UNDERSCORE, '');
               phraseOpts[pi].textContent = SL.t(phraseI18nKey, phraseName);
             }
             pi = pi + 1;
@@ -2897,11 +2881,12 @@
         }
       });
     }
+    }
   }
 
   function activate() {
     _init();
-    _active = true;
+    isScreenActive = true;
     // Rebuild in case DOM was lost
     if (!_gridEl || !_screenEl) {
       _buildScreen();
@@ -2926,7 +2911,7 @@
     // If the sequencer is still running from a prior activation, re-sync the
     // Play button's visual state so it reflects reality.
     if (_playBtn) {
-      if (_playing) {
+      if (isPlaying) {
         _playBtn.classList.add('playing');
       } else {
         _playBtn.classList.remove('playing');
@@ -2935,10 +2920,10 @@
   }
 
   function deactivate() {
-    _active = false;
+    isScreenActive = false;
     // Stop the transport when leaving the Acid screen so the clock interval
     // does not keep sending noteOn/noteOff to the audio engine indefinitely.
-    if (_playing) {
+    if (isPlaying) {
       _stopTransport();
     }
   }
@@ -2951,7 +2936,7 @@
     activate: activate,
     deactivate: deactivate,
     // Test helpers
-    _isPlaying: function() { return _playing; },
+    isPlaying: function() { return isPlaying; },
     _getCurrentStep: function() { return _currentStep; },
     _getActiveMidi: function() { return _activeSustainedMidi; },
     _getSteps: function() { return _steps; },

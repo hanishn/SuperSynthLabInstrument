@@ -128,8 +128,7 @@
     // With 0 or 1 notes, no intervals exist — all offsets are 0
     if (notes.length <= 1) {
       _adaptiveOffsets = newOffsets;
-      return;
-    }
+    } else {
 
     // Convert keys to numbers
     var midiNotes = [];
@@ -180,6 +179,7 @@
     }
 
     _adaptiveOffsets = newOffsets;
+    } // end else (notes.length > 1)
   }
 
   // ============================================================
@@ -242,7 +242,7 @@
     if (SYSTEMS[id]) {
       _currentSystem = id;
       // Persist to localStorage
-      try { localStorage.setItem('ssl_tuningSystem', id); } catch(e) {}
+      try { localStorage.setItem('ssl_tuningSystem', id); } catch(e) { /* localStorage may be unavailable */ }
     }
   }
 
@@ -281,7 +281,7 @@
   function setCustomOffset(pitchClass, cents) {
     if (pitchClass >= 0 && pitchClass < 12) {
       SYSTEMS['custom'].offsets[pitchClass] = cents;
-      try { localStorage.setItem('ssl_customTuning', JSON.stringify(SYSTEMS['custom'].offsets)); } catch(e) {}
+      try { localStorage.setItem('ssl_customTuning', JSON.stringify(SYSTEMS['custom'].offsets)); } catch(e) { /* localStorage may be unavailable */ }
     }
   }
 
@@ -307,7 +307,7 @@
           SYSTEMS['custom'].offsets = parsed;
         }
       }
-    } catch(e) {}
+    } catch(e) { /* localStorage may be unavailable or JSON parse failed */ }
 
     // Build UI dropdown if container exists
     _buildUI();
@@ -319,15 +319,10 @@
 
   function _buildUI() {
     var refHzEl = document.getElementById('refHz');
-    if (!refHzEl) {
-      return;
-    }
-
-    // Find the parent label of refHz to insert after it
-    var refHzLabel = refHzEl.parentNode;
-    if (!refHzLabel) {
-      return;
-    }
+    if (refHzEl) {
+      // Find the parent label of refHz to insert after it
+      var refHzLabel = refHzEl.parentNode;
+      if (refHzLabel) {
 
     // Create tuning label+select
     var label = document.createElement('label');
@@ -351,6 +346,7 @@
     customPanel.id = 'customTuningPanel';
     customPanel.style.cssText = 'display:' + (_currentSystem === 'custom' ? 'flex' : 'none') + ';flex-wrap:wrap;gap:4px;margin-top:4px;padding:4px;background:#1a1a2e;border-radius:4px;';
     var NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    var frag = document.createDocumentFragment();
     for (var ci = 0; ci < 12; ci++) {
       (function(pc) {
         var field = document.createElement('label');
@@ -376,9 +372,10 @@
         });
         field.appendChild(slider);
         field.appendChild(valDisplay);
-        customPanel.appendChild(field);
+        frag.appendChild(field);
       })(ci);
     }
+    customPanel.appendChild(frag);
 
     sel.addEventListener('change', function() {
       setSystem(sel.value);
@@ -398,6 +395,8 @@
         parent.appendChild(customPanel);
       }
     }
+      } // end if (refHzLabel)
+    } // end if (refHzEl)
   }
 
   // ============================================================

@@ -5,7 +5,7 @@
 
   var SL = window.SynthLab;
 
-  var _drumPadMode = false;
+  var _isDrumPadMode = false;
 
   var DRUM_PAD_VELOCITY = 120;
 
@@ -14,7 +14,7 @@
    * @returns {boolean}
    */
   function isDrumPadMode() {
-    return _drumPadMode;
+    return _isDrumPadMode;
   }
 
   /**
@@ -25,7 +25,7 @@
     var kbEl = document.getElementById('keyboard');
     if (kbEl) {
       kbEl.innerHTML = '';
-      _drumPadMode = true;
+      _isDrumPadMode = true;
 
       var grid = document.createElement('div');
       grid.className = 'drum-pad-grid';
@@ -129,7 +129,7 @@
    * Clear drum pad mode flag (called when restoring keyboard)
    */
   function clearDrumPadMode() {
-    _drumPadMode = false;
+    _isDrumPadMode = false;
   }
 
   // Export to SynthLab namespace

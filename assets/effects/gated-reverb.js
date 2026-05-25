@@ -2,9 +2,9 @@
 // The iconic 80s drum sound - reverb with abrupt gate cutoff (Phil Collins, Peter Gabriel style)
 
 (function() {
-  const SL = window.SynthLab = window.SynthLab || {};
+  var SL = window.SynthLab = window.SynthLab || {};
   SL.effects = SL.effects || {};
-  const BaseEffect = SL.effects.BaseEffect;
+  var BaseEffect = SL.effects.BaseEffect;
 
   /**
    * GatedReverbEffect - Convolution reverb with noise gate
@@ -109,29 +109,29 @@
      * Uses a denser early reflection pattern for that classic 80s sound
      */
     _generateIR() {
-      const sampleRate = this.ctx.sampleRate;
-      const duration = this._getDuration();
-      const decayRate = this._getDecayRate();
+      var sampleRate = this.ctx.sampleRate;
+      var duration = this._getDuration();
+      var decayRate = this._getDecayRate();
 
-      const length = Math.floor(sampleRate * duration);
-      const buffer = this.ctx.createBuffer(2, length, sampleRate);
+      var length = Math.floor(sampleRate * duration);
+      var buffer = this.ctx.createBuffer(2, length, sampleRate);
 
-      for (let channel = 0; channel < 2; channel++) {
-        const data = buffer.getChannelData(channel);
+      for (var channel = 0; channel < 2; channel++) {
+        var data = buffer.getChannelData(channel);
 
-        // Channel variation for stereo width
-        const channelDecayOffset = channel === 0 ? 0.97 : 1.03;
-        const effectiveDecay = decayRate * channelDecayOffset;
+        // Channel var iation for stereo width
+        var channelDecayOffset = channel === 0 ? 0.97 : 1.03;
+        var effectiveDecay = decayRate * channelDecayOffset;
 
-        for (let i = 0; i < length; i++) {
-          const t = i / sampleRate;
+        for (var i = 0; i < length; i++) {
+          var t = i / sampleRate;
 
           // Create a more aggressive initial burst followed by decay
           // This is characteristic of gated reverb - strong attack, then gate cuts it
-          let envelope;
+          var envelope;
 
           // Initial attack burst (first 30ms)
-          const attackTime = 0.03;
+          var attackTime = 0.03;
           if (t < attackTime) {
             // Fast rise to peak
             envelope = Math.pow(t / attackTime, 0.5);
@@ -141,13 +141,13 @@
           }
 
           // Random noise with envelope
-          let sample = (Math.random() * 2 - 1) * envelope;
+          var sample = (Math.random() * 2 - 1) * envelope;
 
           // Add some early reflections character
           // Simulate discrete reflections in the first 50ms
           if (t < 0.05) {
-            const reflectionIntervals = [0.007, 0.013, 0.019, 0.027, 0.037, 0.043];
-            for (const interval of reflectionIntervals) {
+            var reflectionIntervals = [0.007, 0.013, 0.019, 0.027, 0.037, 0.043];
+            for (var interval of reflectionIntervals) {
               if (Math.abs(t - interval) < 0.002) {
                 // Add discrete reflection spikes
                 sample += (Math.random() * 0.5 - 0.25) * (1 - t / 0.05);
@@ -159,13 +159,13 @@
         }
 
         // Normalize the channel
-        let maxVal = 0;
-        for (let i = 0; i < length; i++) {
+        var maxVal = 0;
+        for (var i = 0; i < length; i++) {
           maxVal = Math.max(maxVal, Math.abs(data[i]));
         }
         if (maxVal > 0) {
-          const normFactor = 0.9 / maxVal;
-          for (let i = 0; i < length; i++) {
+          var normFactor = 0.9 / maxVal;
+          for (var i = 0; i < length; i++) {
             data[i] *= normFactor;
           }
         }
@@ -182,14 +182,15 @@
         clearTimeout(this._irDebounceTimer);
       }
 
-      this._irDebounceTimer = setTimeout(() => {
+      var self = this;
+      this._irDebounceTimer = setTimeout(function() {
         try {
-          const ir = this._generateIR();
-          this.convolver.buffer = ir;
+          var ir = self._generateIR();
+          self.convolver.buffer = ir;
         } catch (e) {
           console.error('GatedReverb: Error generating impulse response:', e);
         }
-        this._irDebounceTimer = null;
+        self._irDebounceTimer = null;
       }, this._irDebounceDelay);
     }
 
@@ -206,42 +207,43 @@
      * and control the gate gain accordingly
      */
     _startGateProcessing() {
-      const processGate = () => {
-        this._animationFrameId = requestAnimationFrame(processGate);
+      var self = this;
+      var processGate = function() {
+        self._animationFrameId = requestAnimationFrame(processGate);
 
         if (!SL._tabVisible) return;
 
         // Get current input level from analyzer
-        this.analyzer.getFloatTimeDomainData(this._analyzerData);
+        self.analyzer.getFloatTimeDomainData(self._analyzerData);
 
         // Calculate RMS level
-        let sumSquares = 0;
-        for (let i = 0; i < this._analyzerData.length; i++) {
-          sumSquares += this._analyzerData[i] * this._analyzerData[i];
+        var sumSquares = 0;
+        for (var i = 0; i < self._analyzerData.length; i++) {
+          sumSquares += self._analyzerData[i] * self._analyzerData[i];
         }
-        const rms = Math.sqrt(sumSquares / this._analyzerData.length);
-        const levelDb = this._linearToDb(rms);
+        var rms = Math.sqrt(sumSquares / self._analyzerData.length);
+        var levelDb = self._linearToDb(rms);
 
-        const currentTime = this.ctx.currentTime;
-        const releaseTime = this.params.release / 1000; // Convert ms to seconds
+        var currentTime = self.ctx.currentTime;
+        var releaseTime = self.params.release / 1000; // Convert ms to seconds
 
         // Gate logic
-        if (levelDb > this.params.threshold) {
+        if (levelDb > self.params.threshold) {
           // Input above threshold - open gate
-          if (!this._gateOpen) {
+          if (!self._gateOpen) {
             // Gate opening - fast attack
-            this.gateGain.gain.cancelScheduledValues(currentTime);
-            this.gateGain.gain.setTargetAtTime(1, currentTime, 0.005);
-            this._gateOpen = true;
+            self.gateGain.gain.cancelScheduledValues(currentTime);
+            self.gateGain.gain.setTargetAtTime(1, currentTime, 0.005);
+            self._gateOpen = true;
           }
-          this._lastGateTime = currentTime;
+          self._lastGateTime = currentTime;
         } else {
           // Input below threshold
-          if (this._gateOpen && (currentTime - this._lastGateTime) > 0.01) {
+          if (self._gateOpen && ((currentTime - self._lastGateTime) > 0.01)) {
             // Gate closing - use release time
-            this.gateGain.gain.cancelScheduledValues(currentTime);
-            this.gateGain.gain.setTargetAtTime(0, currentTime, releaseTime / 5);
-            this._gateOpen = false;
+            self.gateGain.gain.cancelScheduledValues(currentTime);
+            self.gateGain.gain.setTargetAtTime(0, currentTime, releaseTime / 5);
+            self._gateOpen = false;
           }
         }
       };

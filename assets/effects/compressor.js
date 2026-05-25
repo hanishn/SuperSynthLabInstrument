@@ -2,9 +2,9 @@
 // Dynamic range compressor with parallel compression support
 
 (function() {
-  const SL = window.SynthLab = window.SynthLab || {};
+  var SL = window.SynthLab = window.SynthLab || {};
   SL.effects = SL.effects || {};
-  const BaseEffect = SL.effects.BaseEffect;
+  var BaseEffect = SL.effects.BaseEffect;
 
   /**
    * CompressorEffect - Dynamic range compressor
@@ -60,38 +60,38 @@
      * Handle parameter updates
      */
     updateParam(name, value) {
-      const now = this.ctx.currentTime;
+      var now = this.ctx.currentTime;
 
       switch (name) {
         case 'threshold':
           // Clamp to -60 to 0 dB
-          const thresholdValue = Math.max(-60, Math.min(0, value));
+          var thresholdValue = Math.max(-60, Math.min(0, value));
           this.compressor.threshold.setTargetAtTime(thresholdValue, now, 0.01);
           break;
 
         case 'ratio':
           // Clamp to 1-20
-          const ratioValue = Math.max(1, Math.min(20, value));
+          var ratioValue = Math.max(1, Math.min(20, value));
           this.compressor.ratio.setTargetAtTime(ratioValue, now, 0.01);
           break;
 
         case 'attack':
           // Convert ms (0-100) to seconds (0-1)
-          const attackMs = Math.max(0, Math.min(100, value));
-          const attackSeconds = attackMs / 1000;
+          var attackMs = Math.max(0, Math.min(100, value));
+          var attackSeconds = attackMs / 1000;
           this.compressor.attack.setTargetAtTime(attackSeconds, now, 0.01);
           break;
 
         case 'release':
           // Convert ms (10-1000) to seconds (0.01-1)
-          const releaseMs = Math.max(10, Math.min(1000, value));
-          const releaseSeconds = releaseMs / 1000;
+          var releaseMs = Math.max(10, Math.min(1000, value));
+          var releaseSeconds = releaseMs / 1000;
           this.compressor.release.setTargetAtTime(releaseSeconds, now, 0.01);
           break;
 
         case 'knee':
           // Clamp to 0-40 dB
-          const kneeValue = Math.max(0, Math.min(40, value));
+          var kneeValue = Math.max(0, Math.min(40, value));
           this.compressor.knee.setTargetAtTime(kneeValue, now, 0.01);
           break;
       }

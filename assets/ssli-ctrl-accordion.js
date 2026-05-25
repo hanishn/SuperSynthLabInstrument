@@ -11,6 +11,9 @@
   // Constants
   // ============================================================
 
+  var NO_ACTIVE_KEY  = null;  /* sentinel: no active key/note in touch map */
+  var NO_ATTR        = null;  /* sentinel: getAttribute returned no value */
+
   var SEMITONES_PER_OCTAVE = 12;
   var OCTAVE_BASE_OFFSET = 1;
   var DEFAULT_VELOCITY = 100;
@@ -117,7 +120,7 @@
   var _docBassPointerUpHandler = null;
 
   // Bellows state
-  var _bellowsDragging = false;
+  var _isBellowsDragging = false;
   var _bellowsGain = BELLOWS_GAIN_DEFAULT;
   var _bellowsIndicatorEl = null;
   var _bellowsBarEl = null;
@@ -411,7 +414,7 @@
   function _bassReleasePointer(pointerId) {
     var touchId = (pointerId !== undefined) ? pointerId : 'mouse';
     var activeKey = _bassTouchMap[touchId];
-    var hasActive = ((activeKey !== undefined) && (activeKey !== null));
+    var hasActive = ((activeKey !== undefined) && (activeKey !== NO_ACTIVE_KEY));
     if (hasActive) {
       var parts = activeKey.split('-');
       var colIdx = parseInt(parts[0], 10);
@@ -468,7 +471,7 @@
 
   function _melodyNoteOff(btnIdx) {
     var midi = _melodyActiveNotes[btnIdx];
-    var hasNote = ((midi !== undefined) && (midi !== null));
+    var hasNote = ((midi !== undefined) && (midi !== NO_ACTIVE_KEY));
     if (hasNote) {
       if (_cachedNoteOff) {
         _cachedNoteOff(midi);
@@ -486,7 +489,7 @@
     var prevIdx = _melodyTouchMap[touchId];
     var isSameButton = (prevIdx === newBtnIdx);
     if (!isSameButton) {
-      var hasPrev = ((prevIdx !== undefined) && (prevIdx !== null));
+      var hasPrev = ((prevIdx !== undefined) && (prevIdx !== NO_ACTIVE_KEY));
       if (hasPrev) {
         _melodyNoteOff(prevIdx);
       }
@@ -517,7 +520,7 @@
     var btnIdx;
     for (btnIdx in _melodyActiveNotes) {
       var midiVal = _melodyActiveNotes[btnIdx];
-      var hasActiveNote = ((midiVal !== null) && (midiVal !== undefined));
+      var hasActiveNote = ((midiVal !== NO_ACTIVE_KEY) && (midiVal !== undefined));
       if (hasActiveNote) {
         if (_cachedNoteOff) {
           _cachedNoteOff(midiVal);
@@ -527,7 +530,7 @@
     _melodyActiveNotes = {};
     _melodyTouchMap = {};
 
-    _bellowsDragging = false;
+    _isBellowsDragging = false;
     if (_bellowsRampTimer) {
       clearInterval(_bellowsRampTimer);
       _bellowsRampTimer = null;
@@ -583,7 +586,7 @@
     _melodyActiveNotes = {};
     _melodyButtonEls = {};
     _melodyTouchMap = {};
-    _bellowsDragging = false;
+    _isBellowsDragging = false;
     _bellowsGain = BELLOWS_GAIN_DEFAULT;
 
     var onPhone = _isPhone();
@@ -677,7 +680,7 @@
             _bassTouchMap[touchId] = capturedKey;
             _bassNoteOn(capturedCol, capturedRow, ev);
             if (bassBtn.setPointerCapture && (typeof ev.pointerId !== 'undefined')) {
-              try { bassBtn.setPointerCapture(ev.pointerId); } catch (err) { /* best effort */ }
+              try { bassBtn.setPointerCapture(ev.pointerId); } catch (err) { /* pointer capture is best-effort */ }
             }
           });
           bassBtn.addEventListener('pointerup', function(ev) {
@@ -741,9 +744,9 @@
       e.preventDefault();
       var hasCapture = (bellows.setPointerCapture && (typeof e.pointerId !== 'undefined'));
       if (hasCapture) {
-        try { bellows.setPointerCapture(e.pointerId); } catch (err) { /* best effort */ }
+        try { bellows.setPointerCapture(e.pointerId); } catch (err) { /* pointer capture is best-effort */ }
       }
-      _bellowsDragging = true;
+      _isBellowsDragging = true;
       if (_bellowsRampTimer) {
         clearInterval(_bellowsRampTimer);
         _bellowsRampTimer = null;
@@ -752,18 +755,18 @@
     });
 
     bellows.addEventListener('pointermove', function(e) {
-      if (_bellowsDragging) {
+      if (_isBellowsDragging) {
         _bellowsUpdateFromPointer(e);
       }
     });
 
     bellows.addEventListener('pointerup', function() {
-      _bellowsDragging = false;
+      _isBellowsDragging = false;
       _bellowsStartReturnRamp();
     });
 
     bellows.addEventListener('pointercancel', function() {
-      _bellowsDragging = false;
+      _isBellowsDragging = false;
       _bellowsStartReturnRamp();
     });
 
@@ -815,7 +818,7 @@
             _melodyTouchMap[touchId] = capturedIdx;
             _melodyNoteOn(capturedIdx, capturedMidi, ev);
             if (melodyBtn.setPointerCapture && (typeof ev.pointerId !== 'undefined')) {
-              try { melodyBtn.setPointerCapture(ev.pointerId); } catch (err) { /* best effort */ }
+              try { melodyBtn.setPointerCapture(ev.pointerId); } catch (err) { /* pointer capture is best-effort */ }
             }
           });
           melodyBtn.addEventListener('pointermove', function(ev) {
@@ -824,7 +827,7 @@
             if (elemUnder) {
               var newIdx = elemUnder.getAttribute('data-btn-index');
               var newMidi = elemUnder.getAttribute('data-midi');
-              var isValidTarget = ((newIdx !== null) && (newMidi !== null));
+              var isValidTarget = ((newIdx !== NO_ATTR) && (newMidi !== NO_ATTR));
               if (isValidTarget) {
                 _melodyHandleGlissando(touchId, parseInt(newIdx, 10), parseInt(newMidi, 10), ev);
               }
@@ -834,7 +837,7 @@
             ev.preventDefault();
             var touchId = (ev.pointerId !== undefined) ? ev.pointerId : 'mouse';
             var activeIdx = _melodyTouchMap[touchId];
-            var hasActive = ((activeIdx !== undefined) && (activeIdx !== null));
+            var hasActive = ((activeIdx !== undefined) && (activeIdx !== NO_ACTIVE_KEY));
             if (hasActive) {
               _melodyNoteOff(activeIdx);
             }
@@ -843,7 +846,7 @@
           melodyBtn.addEventListener('pointercancel', function(ev) {
             var touchId = (ev.pointerId !== undefined) ? ev.pointerId : 'mouse';
             var activeIdx = _melodyTouchMap[touchId];
-            var hasActive = ((activeIdx !== undefined) && (activeIdx !== null));
+            var hasActive = ((activeIdx !== undefined) && (activeIdx !== NO_ACTIVE_KEY));
             if (hasActive) {
               _melodyNoteOff(activeIdx);
             }
@@ -927,12 +930,12 @@
         var mk;
         for (mk = 0; mk < melodyKeys.length; mk++) {
           var mVal = _melodyActiveNotes[melodyKeys[mk]];
-          var noteActive = ((mVal !== null) && (mVal !== undefined));
+          var noteActive = ((mVal !== NO_ACTIVE_KEY) && (mVal !== undefined));
           if (noteActive) {
             hasMelodyNotes = true;
           }
         }
-        var hasActivity = (hasBassNotes || hasMelodyNotes || _bellowsDragging);
+        var hasActivity = (hasBassNotes || hasMelodyNotes || _isBellowsDragging);
         var statusMsg = null;
         if (hasActivity) {
           statusMsg = 'accordion active';

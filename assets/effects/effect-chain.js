@@ -2,7 +2,9 @@
 // Handles arbitrary ordering and routing of effects
 
 (function() {
-  const SL = window.SynthLab = window.SynthLab || {};
+  var SL = window.SynthLab = window.SynthLab || {};
+
+  var NOT_FOUND = -1;
 
   /**
    * Base Effect class - all effects must extend this interface
@@ -48,8 +50,8 @@
       this.params.mix = mix;
       // Only apply mix gains if enabled; if disabled, keep bypass gains
       if (this.enabled) {
-        const wet = mix / 100;
-        const dry = 1 - wet;
+        var wet = mix / 100;
+        var dry = 1 - wet;
         this.dryGain.gain.setTargetAtTime(dry, this.ctx.currentTime, 0.01);
         this.wetGain.gain.setTargetAtTime(wet, this.ctx.currentTime, 0.01);
       }
@@ -75,7 +77,7 @@
      * Get all parameters as an object
      */
     getParams() {
-      return { ...this.params, enabled: this.enabled };
+      return Object.assign({}, this.params, { enabled: this.enabled });
     }
 
     /**
@@ -154,8 +156,8 @@
      */
     setMasterMix(mix) {
       this.masterMix = mix;
-      const wet = mix / 100;
-      const dry = 1 - wet;
+      var wet = mix / 100;
+      var dry = 1 - wet;
       this.dryGain.gain.setTargetAtTime(dry, this.ctx.currentTime, 0.01);
       this.wetGain.gain.setTargetAtTime(wet, this.ctx.currentTime, 0.01);
     }
@@ -190,10 +192,10 @@
       if (this.effects.has(name)) {
         return this.effects.get(name);
       }
-      const EffectClass = this.factories.get(name);
+      var EffectClass = this.factories.get(name);
       if (EffectClass) {
         try {
-          const effect = new EffectClass(this.ctx);
+          var effect = new EffectClass(this.ctx);
           this.effects.set(name, effect);
           return effect;
         } catch (e) {
@@ -208,7 +210,7 @@
      * Get all available effect names (both instantiated and factory-registered)
      */
     getAvailableEffects() {
-      const names = new Set([...this.effects.keys(), ...this.factories.keys()]);
+      var names = new Set(Array.from(this.effects.keys()).concat(Array.from(this.factories.keys())));
       return Array.from(names);
     }
 
@@ -217,7 +219,8 @@
      * @param {string[]} order - Array of effect names in desired order
      */
     setOrder(order) {
-      this.order = order.filter(name => this.effects.has(name) || this.factories.has(name));
+      var self = this;
+      this.order = order.filter(function(name) { return self.effects.has(name) || self.factories.has(name); });
       this.rebuildChain();
     }
 
@@ -226,7 +229,7 @@
      */
     addToChain(name) {
       if (!this.order.includes(name)) {
-        const effect = this._ensureEffect(name);
+        var effect = this._ensureEffect(name);
         if (effect) {
           this.order.push(name);
           this.rebuildChain();
@@ -238,8 +241,8 @@
      * Remove an effect from the chain (keeps it registered)
      */
     removeFromChain(name) {
-      const idx = this.order.indexOf(name);
-      if (idx !== -1) {
+      var idx = this.order.indexOf(name);
+      if (idx !== NOT_FOUND) {
         this.order.splice(idx, 1);
         this.rebuildChain();
       }
@@ -249,8 +252,8 @@
      * Move an effect to a new position in the chain
      */
     moveEffect(name, newIndex) {
-      const idx = this.order.indexOf(name);
-      if (idx !== -1) {
+      var idx = this.order.indexOf(name);
+      if (idx !== NOT_FOUND) {
         this.order.splice(idx, 1);
         this.order.splice(newIndex, 0, name);
         this.rebuildChain();
@@ -263,7 +266,7 @@
     rebuildChain() {
       // Disconnect input from effects chain (but keep dry path connected)
       this.input.disconnect();
-      this.effects.forEach(effect => {
+      this.effects.forEach(function(effect) {
         effect.output.disconnect();
       });
 
@@ -271,23 +274,23 @@
       this.input.connect(this.dryGain);
 
       // Get effects in order (all effects are in chain, enabled/disabled is per-effect)
-      const activeEffects = this.order
-        .map(name => this.effects.get(name))
-        .filter(effect => effect);
+      var self2 = this;
+      var activeEffects = this.order
+        .map(function(name) { return self2.effects.get(name); })
+        .filter(function(effect) { return effect; });
 
       if (activeEffects.length === 0) {
         // No effects: input connects directly to effectsOutput
         this.input.connect(this.effectsOutput);
-        return;
+      } else {
+        // Connect in series: input -> effect1 -> effect2 -> ... -> effectsOutput
+        var currentNode = this.input;
+        activeEffects.forEach(function(effect) {
+          currentNode.connect(effect.input);
+          currentNode = effect.output;
+        });
+        currentNode.connect(this.effectsOutput);
       }
-
-      // Connect in series: input -> effect1 -> effect2 -> ... -> effectsOutput
-      let currentNode = this.input;
-      activeEffects.forEach(effect => {
-        currentNode.connect(effect.input);
-        currentNode = effect.output;
-      });
-      currentNode.connect(this.effectsOutput);
 
     }
 
@@ -302,14 +305,14 @@
      * Get current chain order
      */
     getOrder() {
-      return [...this.order];
+      return this.order.slice();
     }
 
     /**
      * Get all registered effect names (includes factory-registered)
      */
     getRegisteredEffects() {
-      const names = new Set([...this.effects.keys(), ...this.factories.keys()]);
+      var names = new Set(Array.from(this.effects.keys()).concat(Array.from(this.factories.keys())));
       return Array.from(names);
     }
 
@@ -322,7 +325,7 @@
       this.dryGain.disconnect();
       this.wetGain.disconnect();
       this.effectsOutput.disconnect();
-      this.effects.forEach(effect => effect.dispose());
+      this.effects.forEach(function(effect) { effect.dispose(); });
       this.effects.clear();
       this.factories.clear();
       this.order = [];

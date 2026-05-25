@@ -213,12 +213,12 @@
     if (n.lfos) {
       var i = 0;
       for (i = 0; i < n.lfos.length; i++) {
-        try { n.lfos[i].stop(); } catch (e) { /* not started */ }
+        try { n.lfos[i].stop(); } catch (e) { /* oscillator may not have started yet */ }
         n.lfos[i].disconnect();
       }
     }
     if (n.noiseSource) {
-      try { n.noiseSource.stop(); } catch (e) { /* not started */ }
+      try { n.noiseSource.stop(); } catch (e) { /* oscillator may not have started yet */ }
       n.noiseSource.disconnect();
     }
     // Disconnect any node bag fields that have disconnect()
@@ -227,14 +227,14 @@
     for (k = 0; k < keys.length; k++) {
       var v = n[keys[k]];
       if (v && typeof v.disconnect === 'function') {
-        try { v.disconnect(); } catch (e) { /* ignore */ }
+        try { v.disconnect(); } catch (e) { /* node already disconnected */ }
       }
     }
     // Make sure tone nodes get disconnected too (they're not in charNodes but
     // they feed from the character block's output — we re-wire on build)
-    try { this.toneLow.disconnect(); } catch (e) { /* ignore */ }
-    try { this.toneHigh.disconnect(); } catch (e) { /* ignore */ }
-    try { this.driveTrim.disconnect(); } catch (e) { /* ignore */ }
+    try { this.toneLow.disconnect(); } catch (e) { /* node already disconnected */ }
+    try { this.toneHigh.disconnect(); } catch (e) { /* node already disconnected */ }
+    try { this.driveTrim.disconnect(); } catch (e) { /* node already disconnected */ }
 
     this.charNodes = {};
   };
@@ -725,26 +725,20 @@
         this.params.character = ch;
         this._buildCharacter();
       }
-      return;
-    }
+    } else {
+      var clamped = Math.max(PCT_MIN, Math.min(PCT_MAX, value));
 
-    var clamped = Math.max(PCT_MIN, Math.min(PCT_MAX, value));
-
-    if (name === 'drive') {
-      this.params.drive = clamped;
-      this.driveShaper.curve = this._buildDriveCurve();
-      return;
-    }
-    if (name === 'tone') {
-      this.params.tone = clamped;
-      this.toneLow.gain.setTargetAtTime(this._calcToneLowGainDb(), t, SMOOTH_TC);
-      this.toneHigh.gain.setTargetAtTime(this._calcToneHighGainDb(), t, SMOOTH_TC);
-      return;
-    }
-    if (name === 'rate' || name === 'depth') {
-      this.params[name] = clamped;
-      this._applyRateDepthToCharacter(t);
-      return;
+      if (name === 'drive') {
+        this.params.drive = clamped;
+        this.driveShaper.curve = this._buildDriveCurve();
+      } else if (name === 'tone') {
+        this.params.tone = clamped;
+        this.toneLow.gain.setTargetAtTime(this._calcToneLowGainDb(), t, SMOOTH_TC);
+        this.toneHigh.gain.setTargetAtTime(this._calcToneHighGainDb(), t, SMOOTH_TC);
+      } else if (name === 'rate' || name === 'depth') {
+        this.params[name] = clamped;
+        this._applyRateDepthToCharacter(t);
+      }
     }
   };
 
@@ -796,10 +790,10 @@
 
   HueShifterEffect.prototype.dispose = function() {
     this._disposeCharacter();
-    try { this.driveShaper.disconnect(); } catch (e) { /* ignore */ }
-    try { this.driveTrim.disconnect(); } catch (e) { /* ignore */ }
-    try { this.toneLow.disconnect(); } catch (e) { /* ignore */ }
-    try { this.toneHigh.disconnect(); } catch (e) { /* ignore */ }
+    try { this.driveShaper.disconnect(); } catch (e) { /* node already disconnected */ }
+    try { this.driveTrim.disconnect(); } catch (e) { /* node already disconnected */ }
+    try { this.toneLow.disconnect(); } catch (e) { /* node already disconnected */ }
+    try { this.toneHigh.disconnect(); } catch (e) { /* node already disconnected */ }
     BaseEffect.prototype.dispose.call(this);
   };
 

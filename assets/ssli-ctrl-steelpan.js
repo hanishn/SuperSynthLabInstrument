@@ -6,6 +6,11 @@
 
   var SL = window.SynthLab;
 
+  // Sentinel constants
+  var NO_SELECTION = null;
+  var NO_NODE = null;
+  var NO_TYPE = 'none';
+
   // ============================================================
   // Constants
   // ============================================================
@@ -113,7 +118,7 @@
 
   // Layout cache (for scale-change repositioning)
   var _cachedPanDiam = 0;
-  var _cachedIsPhone = false;
+  var _isCachedPhone = false;
 
   // ============================================================
   // Helpers
@@ -160,7 +165,7 @@
 
   function _triggerZone(key, midi, velocity, pointerEvent) {
     var existing = _ringingNotes[key];
-    var hadExisting = (existing !== undefined) && (existing !== null);
+    var hadExisting = (existing !== undefined) && (existing !== NO_NODE);
     if (hadExisting) {
       clearTimeout(existing.timeoutId);
       if (_currentNoteOff) {
@@ -206,9 +211,9 @@
     var foundZone = null;
     var zi, zone, rect, cx, cy, dx, dy, dist, radius, isHidden, isHit;
     for (zi = 0; zi < zones.length; zi++) {
-      if (foundZone === null) {
+      if (foundZone === NO_SELECTION) {
         zone = zones[zi];
-        isHidden = (zone.el.style.display === 'none');
+        isHidden = (zone.el.style.display === NO_TYPE);
         if (!isHidden) {
           rect = zone.el.getBoundingClientRect();
           cx = rect.left + (rect.width / 2);
@@ -229,10 +234,10 @@
 
   function _findZoneAtPoint(clientX, clientY) {
     var result = _hitTestRing(_innerZones, clientX, clientY);
-    if (result === null) {
+    if (result === NO_SELECTION) {
       result = _hitTestRing(_middleZones, clientX, clientY);
     }
-    if (result === null) {
+    if (result === NO_SELECTION) {
       result = _hitTestRing(_outerZones, clientX, clientY);
     }
     return result;
@@ -243,7 +248,7 @@
   // ============================================================
 
   function _flashZone(el) {
-    var hasEl = (el !== null) && (el !== undefined);
+    var hasEl = (el !== NO_SELECTION) && (el !== undefined);
     if (hasEl) {
       el.classList.add('steelpan-zone-active');
       setTimeout(function() {
@@ -261,7 +266,7 @@
     var isNotFull = (_activePointerCount < MAX_SIMULTANEOUS_TOUCHES);
     if (isNotFull) {
       var zone = _findZoneAtPoint(e.clientX, e.clientY);
-      var hasZone = (zone !== null);
+      var hasZone = (zone !== NO_SELECTION);
       if (hasZone) {
         _activePointers[e.pointerId] = { currentZoneKey: zone.key };
         _activePointerCount++;
@@ -273,10 +278,10 @@
 
   function _onPointerMove(e) {
     var ptr = _activePointers[e.pointerId];
-    var hasPtr = (ptr !== undefined) && (ptr !== null);
+    var hasPtr = (ptr !== undefined) && (ptr !== NO_NODE);
     if (hasPtr) {
       var zone = _findZoneAtPoint(e.clientX, e.clientY);
-      var hasZone = (zone !== null);
+      var hasZone = (zone !== NO_SELECTION);
       if (hasZone) {
         var isDifferent = (zone.key !== ptr.currentZoneKey);
         if (isDifferent) {
@@ -384,7 +389,7 @@
 
   function _repositionForScale() {
     var panDiam = _cachedPanDiam;
-    var isPhone = _cachedIsPhone;
+    var isPhone = _isCachedPhone;
     var panCenter = panDiam / 2;
     var panRadius = panDiam / 2;
     var activeCount = _activeRingCount();
@@ -588,7 +593,7 @@
     _baseOctave = (typeof opts.baseOctave === 'number') ? opts.baseOctave : DEFAULT_OCTAVE;
 
     var isPhone = _isPhoneLayout();
-    _cachedIsPhone = isPhone;
+    _isCachedPhone = isPhone;
 
     var containerW = container.clientWidth;
     var containerH = container.clientHeight;

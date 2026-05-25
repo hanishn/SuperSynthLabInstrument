@@ -6,10 +6,7 @@
 
   var SL = window.SynthLab;
 
-  if (!SL || !SL.audio) {
-    console.error('[mod-matrix] SynthLab.audio not available');
-    return;
-  }
+  if (SL && SL.audio) {
 
   // ============================================================
   // Constants
@@ -17,6 +14,8 @@
 
   var NUM_INSTRUMENTS = 5;
   var NUM_SLOTS = 8;
+
+  var NO_SELECTION = 'none';
 
   /** Available modulation sources */
   var MOD_SOURCES = [
@@ -109,9 +108,7 @@
    */
   function ensureModMatrixSettings(instId) {
     var instruments = SL.audio.getInstruments();
-    if (!instruments || !instruments[instId]) {
-      return;
-    }
+    if (instruments && instruments[instId]) {
     var settings = instruments[instId].settings;
     if (!settings.modMatrix) {
       settings.modMatrix = createDefaultSlots();
@@ -121,6 +118,7 @@
         settings.modMatrix.push(cloneSlot(DEFAULT_SLOT));
       }
     }
+    } // end if (instruments && instruments[instId])
   }
 
   /**
@@ -235,15 +233,11 @@
    * @param {Object} voice - Voice object from the voice pool
    */
   function applyModMatrixToVoice(instId, voice) {
-    if (!voice) {
-      return;
-    }
+    if (voice) {
 
     var slots = getModMatrixSettings(instId);
     var ctx = SL.audio.getCtx();
-    if (!ctx) {
-      return;
-    }
+    if (ctx) {
 
     if (!voice._modMatrixConnections) {
       voice._modMatrixConnections = [];
@@ -251,7 +245,9 @@
 
     for (var i = 0; i < slots.length; i++) {
       var slot = slots[i];
-      if (!slot.enabled || slot.source === 'none' || slot.destination === 'none' || slot.amount === 0) {
+      var isSlotDisabled = !slot.enabled || slot.source === NO_SELECTION;
+      var shouldSkipSlot = isSlotDisabled || slot.destination === NO_SELECTION || slot.amount === 0;
+      if (shouldSkipSlot) {
         continue;
       }
 
@@ -265,6 +261,8 @@
         applyScalarRoute(instId, voice, slot, depth);
       }
     }
+    } // end if (ctx)
+    } // end if (voice)
   }
 
   /**
@@ -280,9 +278,7 @@
    */
   function applyAudioRateRoute(instId, voice, slot, depth, ctx, slotIndex) {
     var sourceNode = getAudioSourceNode(instId, slot.source);
-    if (!sourceNode) {
-      return;
-    }
+    if (sourceNode) {
 
     // Create a per-route depth gain node
     var routeGain = ctx.createGain();
@@ -303,8 +299,9 @@
       });
     } else {
       // Clean up if no valid destination
-      try { routeGain.disconnect(); } catch (e) { /* ignore */ }
+      try { routeGain.disconnect(); } catch (e) { /* node already disconnected */ }
     }
+    } // end if (sourceNode)
   }
 
   /**
@@ -430,19 +427,22 @@
       // Connect to first oscillator's detune
       if (voice.oscillators && voice.oscillators.length > 0) {
         var oscEntry = voice.oscillators[0];
-        if (oscEntry && oscEntry.osc && oscEntry.osc.detune) {
+        var hasOscDetuneParam = oscEntry && oscEntry.osc && oscEntry.osc.detune;
+        if (hasOscDetuneParam) {
           return oscEntry.osc.detune;
         }
       }
     } else if (destId === 'filterCutoff') {
-      if (voice.filterChain && voice.filterChain.filters && voice.filterChain.filters.length > 0) {
+      var hasFilterChainForCutoff = voice.filterChain && voice.filterChain.filters && voice.filterChain.filters.length > 0;
+      if (hasFilterChainForCutoff) {
         var filter = voice.filterChain.filters[0];
         if (filter && filter.frequency) {
           return filter.frequency;
         }
       }
     } else if (destId === 'filterResonance') {
-      if (voice.filterChain && voice.filterChain.filters && voice.filterChain.filters.length > 0) {
+      var hasFilterChainForRes = voice.filterChain && voice.filterChain.filters && voice.filterChain.filters.length > 0;
+      if (hasFilterChainForRes) {
         var filter2 = voice.filterChain.filters[0];
         if (filter2 && filter2.Q) {
           return filter2.Q;
@@ -489,9 +489,7 @@
    */
   function applyScalarOffset(voice, destId, offset, instId) {
     var ctx = SL.audio.getCtx();
-    if (!ctx) {
-      return;
-    }
+    if (ctx) {
     var now = ctx.currentTime;
 
     if (destId === 'pitch') {
@@ -499,7 +497,8 @@
       if (voice.oscillators) {
         for (var i = 0; i < voice.oscillators.length; i++) {
           var oscEntry = voice.oscillators[i];
-          if (oscEntry && oscEntry.osc && oscEntry.osc.detune) {
+          var hasDetuneForOffset = oscEntry && oscEntry.osc && oscEntry.osc.detune;
+          if (hasDetuneForOffset) {
             var currentDetune = oscEntry.osc.detune.value;
             oscEntry.osc.detune.setValueAtTime(currentDetune + offset, now);
           }
@@ -532,6 +531,7 @@
       }
     }
     // pan, fmDepth, lfo rates: scalar offsets are less common, skip for now
+    } // end if (ctx)
   }
 
   /**
@@ -540,9 +540,7 @@
    * @param {Object} voice
    */
   function removeModMatrixFromVoice(instId, voice) {
-    if (!voice || !voice._modMatrixConnections) {
-      return;
-    }
+    if (voice && voice._modMatrixConnections) {
 
     for (var i = 0; i < voice._modMatrixConnections.length; i++) {
       var conn = voice._modMatrixConnections[i];
@@ -550,19 +548,16 @@
         if (conn.routeGain) {
           conn.routeGain.disconnect();
         }
-      } catch (e) {
-        // Already disconnected
-      }
+      } catch (e) { /* node already disconnected */ }
       try {
         if (conn.sourceNode && conn.routeGain) {
           conn.sourceNode.disconnect(conn.routeGain);
         }
-      } catch (e) {
-        // Already disconnected
-      }
+      } catch (e) { /* node already disconnected */ }
     }
 
     voice._modMatrixConnections = [];
+    } // end if (voice && voice._modMatrixConnections)
   }
 
   // ============================================================
@@ -575,9 +570,7 @@
    * @param {number} instId
    */
   function initModMatrix(instId) {
-    if (instId < 0 || instId >= NUM_INSTRUMENTS) {
-      return;
-    }
+    if (instId >= 0 && instId < NUM_INSTRUMENTS) {
 
     ensureModMatrixSettings(instId);
 
@@ -590,6 +583,7 @@
       lfoSources: {},
       envSource: null
     };
+    } // end if (instId >= 0 && instId < NUM_INSTRUMENTS)
   }
 
   /**
@@ -597,14 +591,10 @@
    * @param {number} instId
    */
   function destroyModMatrix(instId) {
-    if (instId < 0 || instId >= NUM_INSTRUMENTS) {
-      return;
-    }
+    if (instId >= 0 && instId < NUM_INSTRUMENTS) {
 
     var state = matrixNodes[instId];
-    if (!state) {
-      return;
-    }
+    if (state) {
 
     // Tear down LFO sources
     if (state.lfoSources) {
@@ -614,13 +604,13 @@
         if (entry) {
           try {
             if (entry.depthGain) { entry.depthGain.disconnect(); }
-          } catch (e) { /* ignore */ }
+          } catch (e) { /* node already disconnected */ }
           try {
             if (entry.source) {
               entry.source.disconnect();
               if (entry.source.stop) { entry.source.stop(); }
             }
-          } catch (e) { /* ignore */ }
+          } catch (e) { /* node already disconnected or stopped */ }
         }
       }
     }
@@ -630,10 +620,12 @@
       try {
         state.envSource.disconnect();
         if (state.envSource.stop) { state.envSource.stop(); }
-      } catch (e) { /* ignore */ }
+      } catch (e) { /* node already disconnected or stopped */ }
     }
 
     matrixNodes[instId] = null;
+    } // end if (state)
+    } // end if (instId >= 0 && instId < NUM_INSTRUMENTS)
   }
 
   /**
@@ -642,9 +634,7 @@
    */
   function rebuildModMatrixSources(instId) {
     var state = matrixNodes[instId];
-    if (!state) {
-      return;
-    }
+    if (state) {
 
     // Tear down existing LFO sources and let them be lazily recreated
     if (state.lfoSources) {
@@ -654,17 +644,18 @@
         if (entry) {
           try {
             if (entry.depthGain) { entry.depthGain.disconnect(); }
-          } catch (e) { /* ignore */ }
+          } catch (e) { /* node already disconnected */ }
           try {
             if (entry.source) {
               entry.source.disconnect();
               if (entry.source.stop) { entry.source.stop(); }
             }
-          } catch (e) { /* ignore */ }
+          } catch (e) { /* node already disconnected or stopped */ }
         }
       }
       state.lfoSources = {};
     }
+    } // end if (state)
   }
 
   // ============================================================
@@ -678,11 +669,10 @@
    * @param {number} value - 0..127
    */
   function setControllerValue(instId, controller, value) {
-    if (instId < 0 || instId >= NUM_INSTRUMENTS) {
-      return;
-    }
-    if (controllerState[instId]) {
-      controllerState[instId][controller] = value;
+    if (instId >= 0 && instId < NUM_INSTRUMENTS) {
+      if (controllerState[instId]) {
+        controllerState[instId][controller] = value;
+      }
     }
   }
 
@@ -694,18 +684,13 @@
    * @param {*} value
    */
   function updateModMatrixSlot(instId, slotIndex, param, value) {
-    if (instId < 0 || instId >= NUM_INSTRUMENTS) {
-      return;
-    }
-    if (slotIndex < 0 || slotIndex >= NUM_SLOTS) {
-      return;
-    }
+    var isValidModInstId = instId >= 0 && instId < NUM_INSTRUMENTS;
+    var isValidSlotIndex = slotIndex >= 0 && slotIndex < NUM_SLOTS;
+    if (isValidModInstId && isValidSlotIndex) {
 
     ensureModMatrixSettings(instId);
     var instruments = SL.audio.getInstruments();
-    if (!instruments || !instruments[instId]) {
-      return;
-    }
+    if (instruments && instruments[instId]) {
 
     var slots = instruments[instId].settings.modMatrix;
     slots[slotIndex][param] = value;
@@ -714,6 +699,8 @@
     if (param === 'source') {
       rebuildModMatrixSources(instId);
     }
+    } // end if (instruments && instruments[instId])
+    } // end if (instId && slotIndex range check)
   }
 
   // ============================================================
@@ -740,5 +727,7 @@
   SL.audio.destroyModMatrix = destroyModMatrix;
   SL.audio.applyModMatrixToVoice = applyModMatrixToVoice;
   SL.audio.removeModMatrixFromVoice = removeModMatrixFromVoice;
+
+  } // end if (SL && SL.audio)
 
 })();

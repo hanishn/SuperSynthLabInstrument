@@ -2,10 +2,14 @@
 // Handles effects tab UI, parameter controls, and chain reordering
 
 (function() {
-  const SL = window.SynthLab = window.SynthLab || {};
+  var SL = window.SynthLab = window.SynthLab || {};
+
+  // Sentinel constants
+  var NOT_FOUND = -1;
+  var MASTER_TARGET = -1;
 
   // Effect metadata for UI generation
-  const EFFECT_META = {
+  var EFFECT_META = {
     distortion: {
       name: 'Distortion',
       i18n: 'effect.distortion',
@@ -412,7 +416,12 @@
   };
 
   // Default chain order
-  const DEFAULT_CHAIN_ORDER = ['tape', 'softClip', 'distortion', 'bitcrush', 'lofi', 'hueShifter', 'driftscape', 'stutterstep', 'grainfield', 'spectralHold', 'halo', 'gate', 'pump', 'dimension', 'chorus', 'delay', 'flanger', 'phaser', 'ringMod', 'pitchShift', 'widener', 'gatedReverb', 'reverb', 'tremolo', 'filter', 'vocoder', 'compressor', 'eq'];
+  var DEFAULT_CHAIN_ORDER = [
+    'tape', 'softClip', 'distortion', 'bitcrush', 'lofi', 'hueShifter', 'driftscape', 'stutterstep',
+    'grainfield', 'spectralHold', 'halo', 'gate', 'pump', 'dimension', 'chorus', 'delay',
+    'flanger', 'phaser', 'ringMod', 'pitchShift', 'widener', 'gatedReverb', 'reverb',
+    'tremolo', 'filter', 'vocoder', 'compressor', 'eq'
+  ];
 
   // Map internal effectId to the en.json key under "effect.*"
   var EFFECT_I18N_KEY = {
@@ -474,8 +483,8 @@
   }
 
   // State
-  let draggedEffect = null;
-  let selectedTarget = 0;  // 0-3 = instrument, -1 = master
+  var draggedEffect = null;
+  var selectedTarget = 0;  // 0-3 = instrument, -1 = master
 
   /**
    * Get the chain order for the currently selected target
@@ -483,22 +492,24 @@
    */
   function getChainOrder() {
     if (SL.audio && SL.audio.getInstruments) {
-      if (selectedTarget === -1) {
+      if (selectedTarget === MASTER_TARGET) {
         // Master chain order — use its own order or default
-        const chain = getCurrentEffectChain();
+        var chain = getCurrentEffectChain();
         if (chain) {
-          const order = chain.getOrder();
+          var order = chain.getOrder();
           if (order.length > 0) return order;
         }
-        return [...DEFAULT_CHAIN_ORDER];
+        return DEFAULT_CHAIN_ORDER.slice();
       }
-      const insts = SL.audio.getInstruments();
-      if (insts[selectedTarget] && insts[selectedTarget].settings && insts[selectedTarget].settings.effects) {
-        const stored = insts[selectedTarget].settings.effects.chainOrder;
-        if (stored && stored.length > 0) return [...stored];
+      var insts = SL.audio.getInstruments();
+      var targetInstGet = insts[selectedTarget];
+      var hasGetEffectsSettings = targetInstGet && targetInstGet.settings && targetInstGet.settings.effects;
+      if (hasGetEffectsSettings) {
+        var stored = insts[selectedTarget].settings.effects.chainOrder;
+        if (stored && stored.length > 0) return stored.slice();
       }
     }
-    return [...DEFAULT_CHAIN_ORDER];
+    return DEFAULT_CHAIN_ORDER.slice();
   }
 
   /**
@@ -506,13 +517,17 @@
    * @param {string[]} order - The new chain order
    */
   function setChainOrder(order) {
-    if (SL.audio && SL.audio.getInstruments && selectedTarget >= 0) {
-      const insts = SL.audio.getInstruments();
-      if (insts[selectedTarget] && insts[selectedTarget].settings && insts[selectedTarget].settings.effects) {
-        insts[selectedTarget].settings.effects.chainOrder = [...order];
+    var hasInstrumentAccess = SL.audio && SL.audio.getInstruments;
+    var isTargetSelected = hasInstrumentAccess && selectedTarget >= 0;
+    if (isTargetSelected) {
+      var insts = SL.audio.getInstruments();
+      var targetInstSet = insts[selectedTarget];
+      var hasSetEffectsSettings = targetInstSet && targetInstSet.settings && targetInstSet.settings.effects;
+      if (hasSetEffectsSettings) {
+        insts[selectedTarget].settings.effects.chainOrder = order.slice();
       }
     }
-    const chain = getCurrentEffectChain();
+    var chain = getCurrentEffectChain();
     if (chain) {
       chain.setOrder(order);
     }
@@ -533,26 +548,24 @@
    * Initialize the effects UI
    */
   function init() {
-    const container = document.getElementById('effectsTabContent');
+    var container = document.getElementById('effectsTabContent');
     if (!container) {
       console.warn('Effects tab content container not found');
-      return;
+    } else {
+      // Build the UI
+      container.innerHTML = buildEffectsUI(); /* trusted: computed from internal state */
+
+      // Set up event listeners
+      setupEventListeners();
+
+      // Set initial panel order
+      reorderPanels();
+
+      // Initialize chain from audio engine if available
+      if (getCurrentEffectChain()) {
+        syncUIFromChain();
+      }
     }
-
-    // Build the UI
-    container.innerHTML = buildEffectsUI();
-
-    // Set up event listeners
-    setupEventListeners();
-
-    // Set initial panel order
-    reorderPanels();
-
-    // Initialize chain from audio engine if available
-    if (getCurrentEffectChain()) {
-      syncUIFromChain();
-    }
-
   }
 
   /**
@@ -560,72 +573,67 @@
    */
   function buildInstrumentTabs() {
     var instKeys = ['inst_1', 'inst_2', 'inst_3', 'inst_4'];
-    return `
-      <div class="effects-inst-tabs">
-        ${instKeys.map((key, i) => `
-          <button class="effects-inst-tab ${i === selectedTarget ? 'active' : ''}"
-                  data-target="${i}">
-            ${SL.t('instrument.' + key)}
-          </button>
-        `).join('')}
-        <button class="effects-inst-tab effects-master-tab ${selectedTarget === -1 ? 'active' : ''}"
-                data-target="-1">
-          ${SL.t('instrument.master')}
-        </button>
-      </div>
-    `;
+    var tabsHtml = '<div class="effects-inst-tabs">';
+    instKeys.forEach(function(key, i) {
+      var activeClass = (i === selectedTarget) ? 'active' : '';
+      tabsHtml += '<button class="effects-inst-tab ' + activeClass + '" data-target="' + i + '">' +
+                  SL.t('instrument.' + key) +
+                  '</button>';
+    });
+    var masterActiveClass = (selectedTarget === MASTER_TARGET) ? 'active' : '';
+    tabsHtml += '<button class="effects-inst-tab effects-master-tab ' + masterActiveClass + '" data-target="-1">' +
+                SL.t('instrument.master') +
+                '</button>';
+    tabsHtml += '</div>';
+    return tabsHtml;
   }
 
   /**
    * Build the complete effects UI HTML
    */
   function buildEffectsUI() {
-    const chainOrder = getChainOrder();
-    let html = `
-      ${buildInstrumentTabs()}
-      <div class="effects-master-section">
-        <span class="effects-master-label">${SL.t('ui.label.master_mix')}</span>
-        <input type="range" aria-label="Effects Master Mix" role="slider"
-               aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"
-               class="effects-master-slider" id="effectsMasterMix"
-               min="0" max="100" value="100" step="1">
-        <span class="effects-master-value" id="effectsMasterMixValue">100%</span>
-      </div>
-      <div class="effects-section-modal">
-        <div class="effects-chain-header">
-          <span class="effects-chain-title">${SL.t('ui.label.effect_chain')}</span>
-          <span class="effects-chain-hint">${SL.t('ui.hint.reorder_effects')}</span>
-        </div>
-        <div class="effects-chain-container" id="effectsChainContainer">
-    `;
+    var chainOrder = getChainOrder();
+    var html = buildInstrumentTabs() +
+      '<div class="effects-master-section">' +
+        '<span class="effects-master-label">' + SL.t('ui.label.master_mix') + '</span>' +
+        '<input type="range" aria-label="Effects Master Mix" role="slider"' +
+               ' aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"' +
+               ' class="effects-master-slider" id="effectsMasterMix"' +
+               ' min="0" max="100" value="100" step="1">' +
+        '<span class="effects-master-value" id="effectsMasterMixValue">100%</span>' +
+      '</div>' +
+      '<div class="effects-section-modal">' +
+        '<div class="effects-chain-header">' +
+          '<span class="effects-chain-title">' + SL.t('ui.label.effect_chain') + '</span>' +
+          '<span class="effects-chain-hint">' + SL.t('ui.hint.reorder_effects') + '</span>' +
+        '</div>' +
+        '<div class="effects-chain-container" id="effectsChainContainer">';
 
     // Build chain items
-    chainOrder.forEach((effectId, index) => {
-      const meta = EFFECT_META[effectId];
+    chainOrder.forEach(function(effectId, index) {
+      var meta = EFFECT_META[effectId];
       if (meta) {
         html += buildChainItem(effectId, meta, index);
       }
     });
 
-    html += `
-        </div>
-      </div>
-      <div class="effects-params-section">
-        <div class="effects-params-grid">
-    `;
+    html +=
+      '</div>' +
+      '</div>' +
+      '<div class="effects-params-section">' +
+        '<div class="effects-params-grid">';
 
     // Build parameter panels in chain order
-    chainOrder.forEach(effectId => {
-      const meta = EFFECT_META[effectId];
+    chainOrder.forEach(function(effectId) {
+      var meta = EFFECT_META[effectId];
       if (meta) {
         html += buildEffectPanel(effectId, meta);
       }
     });
 
-    html += `
-        </div>
-      </div>
-    `;
+    html +=
+      '</div>' +
+      '</div>';
 
     return html;
   }
@@ -635,17 +643,15 @@
    */
   function buildChainItem(effectId, meta, index) {
     var dn = _effectDisplayName(effectId);
-    return `
-      <div class="effect-chain-item" data-effect="${effectId}">
-        <button class="effect-chain-btn effect-move-left" data-effect="${effectId}" data-dir="left" aria-label="${SL.t('ui.button.move_left')} ${dn}">◀</button>
-        <span class="effect-chain-icon">${meta.icon}</span>
-        <span class="effect-chain-name">${dn}</span>
-        <label class="effect-chain-enable">
-          <input type="checkbox" class="effect-enable-cb" data-effect="${effectId}" aria-label="Enable ${dn}">
-        </label>
-        <button class="effect-chain-btn effect-move-right" data-effect="${effectId}" data-dir="right" aria-label="${SL.t('ui.button.move_right')} ${dn}">▶</button>
-      </div>
-    `;
+    return '<div class="effect-chain-item" data-effect="' + effectId + '">' +
+        '<button class="effect-chain-btn effect-move-left" data-effect="' + effectId + '" data-dir="left" aria-label="' + SL.t('ui.button.move_left') + ' ' + dn + '">◄</button>' +
+        '<span class="effect-chain-icon">' + meta.icon + '</span>' +
+        '<span class="effect-chain-name">' + dn + '</span>' +
+        '<label class="effect-chain-enable">' +
+          '<input type="checkbox" class="effect-enable-cb" data-effect="' + effectId + '" aria-label="Enable ' + dn + '">' +
+        '</label>' +
+        '<button class="effect-chain-btn effect-move-right" data-effect="' + effectId + '" data-dir="right" aria-label="' + SL.t('ui.button.move_right') + ' ' + dn + '">►</button>' +
+      '</div>';
   }
 
   /**
@@ -654,16 +660,15 @@
   function buildEffectPanel(effectId, meta) {
     var dn = _effectDisplayName(effectId);
     // Panels start hidden since effects start in bypass mode
-    let html = `
-      <div class="effect-panel hidden" data-effect="${effectId}">
-        <div class="effect-panel-header">
-          <span class="effect-panel-icon">${meta.icon}</span>
-          <span class="effect-panel-title">${dn}</span>
-        </div>
-        <div class="effect-panel-params">
-    `;
+    var html =
+      '<div class="effect-panel hidden" data-effect="' + effectId + '">' +
+        '<div class="effect-panel-header">' +
+          '<span class="effect-panel-icon">' + meta.icon + '</span>' +
+          '<span class="effect-panel-title">' + dn + '</span>' +
+        '</div>' +
+        '<div class="effect-panel-params">';
 
-    meta.params.forEach(param => {
+    meta.params.forEach(function(param) {
       if (param.type === 'select') {
         html += buildSelectParam(effectId, param);
       } else {
@@ -671,10 +676,9 @@
       }
     });
 
-    html += `
-        </div>
-      </div>
-    `;
+    html +=
+      '</div>' +
+      '</div>';
 
     return html;
   }
@@ -683,43 +687,41 @@
    * Build a slider parameter control
    */
   function buildSliderParam(effectId, param) {
-    const step = param.step || 1;
-    const displayValue = formatParamValue(param.default, param);
+    var step = param.step || 1;
+    var displayValue = formatParamValue(param.default, param);
 
     // Build showWhen data attribute if present
-    let showWhenAttr = '';
-    let hiddenClass = '';
+    var showWhenAttr = '';
+    var hiddenClass = '';
     if (param.showWhen) {
-      const showWhenJson = JSON.stringify(param.showWhen).replace(/"/g, '&quot;');
-      showWhenAttr = ` data-show-when="${showWhenJson}"`;
+      var showWhenJson = JSON.stringify(param.showWhen).replace(/"/g, '&quot;');
+      showWhenAttr = ' data-show-when="' + showWhenJson + '"';
       // Start hidden unless default matches
-      const conditionKey = Object.keys(param.showWhen)[0];
-      const conditionValue = param.showWhen[conditionKey];
-      const meta = EFFECT_META[effectId];
-      const conditionParam = meta.params.find(p => p.name === conditionKey);
+      var conditionKey = Object.keys(param.showWhen)[0];
+      var conditionValue = param.showWhen[conditionKey];
+      var meta = EFFECT_META[effectId];
+      var conditionParam = meta.params.find(function(p) { return p.name === conditionKey; });
       if (conditionParam && conditionParam.default !== conditionValue) {
         hiddenClass = ' hidden';
       }
     }
 
-    return `
-      <div class="effect-param-row${hiddenClass}"${showWhenAttr}>
-        <span class="effect-param-label">${param.label}</span>
-        <input type="range" aria-label="${param.label}"
-               role="slider"
-               aria-valuemin="${param.min}"
-               aria-valuemax="${param.max}"
-               aria-valuenow="${param.default}"
-               class="effect-param-slider"
-               data-effect="${effectId}"
-               data-param="${param.name}"
-               min="${param.min}"
-               max="${param.max}"
-               value="${param.default}"
-               step="${step}">
-        <span class="effect-param-value" data-effect="${effectId}" data-param="${param.name}">${displayValue}</span>
-      </div>
-    `;
+    return '<div class="effect-param-row' + hiddenClass + '"' + showWhenAttr + '>' +
+        '<span class="effect-param-label">' + param.label + '</span>' +
+        '<input type="range" aria-label="' + param.label + '"' +
+               ' role="slider"' +
+               ' aria-valuemin="' + param.min + '"' +
+               ' aria-valuemax="' + param.max + '"' +
+               ' aria-valuenow="' + param.default + '"' +
+               ' class="effect-param-slider"' +
+               ' data-effect="' + effectId + '"' +
+               ' data-param="' + param.name + '"' +
+               ' min="' + param.min + '"' +
+               ' max="' + param.max + '"' +
+               ' value="' + param.default + '"' +
+               ' step="' + step + '">' +
+        '<span class="effect-param-value" data-effect="' + effectId + '" data-param="' + param.name + '">' + displayValue + '</span>' +
+      '</div>';
   }
 
   /**
@@ -730,52 +732,50 @@
   };
 
   function buildSelectParam(effectId, param) {
-    let optionsHtml = param.options.map(opt => {
+    var optionsHtml = param.options.map(function(opt) {
       var displayLabel = _optionDisplayLabel(opt);
-      return `<option value="${opt}" ${opt === param.default ? 'selected' : ''}>${displayLabel}</option>`;
+      return '<option value="' + opt + '" ' + (opt === param.default ? 'selected' : '') + '>' + displayLabel + '</option>';
     }).join('');
 
     // Build showWhen data attribute if present
-    let showWhenAttr = '';
-    let hiddenClass = '';
+    var showWhenAttr = '';
+    var hiddenClass = '';
     if (param.showWhen) {
-      const showWhenJson = JSON.stringify(param.showWhen).replace(/"/g, '&quot;');
-      showWhenAttr = ` data-show-when="${showWhenJson}"`;
+      var showWhenJson = JSON.stringify(param.showWhen).replace(/"/g, '&quot;');
+      showWhenAttr = ' data-show-when="' + showWhenJson + '"';
       // Start hidden unless default matches
-      const conditionKey = Object.keys(param.showWhen)[0];
-      const conditionValue = param.showWhen[conditionKey];
-      const meta = EFFECT_META[effectId];
-      const conditionParam = meta.params.find(p => p.name === conditionKey);
+      var conditionKey = Object.keys(param.showWhen)[0];
+      var conditionValue = param.showWhen[conditionKey];
+      var meta = EFFECT_META[effectId];
+      var conditionParam = meta.params.find(function(p) { return p.name === conditionKey; });
       if (conditionParam && conditionParam.default !== conditionValue) {
         hiddenClass = ' hidden';
       }
     }
 
-    return `
-      <div class="effect-param-row${hiddenClass}"${showWhenAttr}>
-        <span class="effect-param-label">${param.label}</span>
-        <select class="effect-param-select" data-effect="${effectId}" data-param="${param.name}">
-          ${optionsHtml}
-        </select>
-      </div>
-    `;
+    return '<div class="effect-param-row' + hiddenClass + '"' + showWhenAttr + '>' +
+        '<span class="effect-param-label">' + param.label + '</span>' +
+        '<select class="effect-param-select" data-effect="' + effectId + '" data-param="' + param.name + '">' +
+          optionsHtml +
+        '</select>' +
+      '</div>';
   }
 
   /**
    * Update conditional parameter visibility based on current values
    */
   function updateConditionalParams(effectId, changedParam, newValue) {
-    const panel = document.querySelector(`.effect-panel[data-effect="${effectId}"]`);
+    var panel = document.querySelector('.effect-panel[data-effect="' + effectId + '"]');
     if (!panel) return;
 
     // Find all param rows with showWhen conditions
-    const conditionalRows = panel.querySelectorAll('[data-show-when]');
-    conditionalRows.forEach(row => {
+    var conditionalRows = panel.querySelectorAll('[data-show-when]');
+    conditionalRows.forEach(function(row) {
       try {
-        const showWhen = JSON.parse(row.dataset.showWhen);
+        var showWhen = JSON.parse(row.dataset.showWhen);
         // Check if this condition involves the changed param
         if (showWhen[changedParam] !== undefined) {
-          const shouldShow = showWhen[changedParam] === newValue;
+          var shouldShow = showWhen[changedParam] === newValue;
           row.classList.toggle('hidden', !shouldShow);
         }
       } catch (e) {
@@ -804,15 +804,15 @@
    * Handle instrument tab click
    */
   function handleInstTabClick(e) {
-    const target = parseInt(e.target.dataset.target);
+    var target = parseInt(e.target.dataset.target);
     if (isNaN(target)) return;
 
     selectedTarget = target;
 
     // Rebuild UI for the new target
-    const container = document.getElementById('effectsTabContent');
+    var container = document.getElementById('effectsTabContent');
     if (container) {
-      container.innerHTML = buildEffectsUI();
+      container.innerHTML = buildEffectsUI(); /* trusted: computed from internal state */
       setupEventListeners();
       reorderPanels();
       syncUIFromChain();
@@ -824,22 +824,22 @@
    * Set up all event listeners
    */
   function setupEventListeners() {
-    const container = document.getElementById('effectsChainContainer');
+    var container = document.getElementById('effectsChainContainer');
     if (!container) return;
 
     // Instrument tab clicks
-    document.querySelectorAll('.effects-inst-tab').forEach(tab => {
+    document.querySelectorAll('.effects-inst-tab').forEach(function(tab) {
       tab.addEventListener('click', handleInstTabClick);
     });
 
     // Master mix slider
-    const masterMixSlider = document.getElementById('effectsMasterMix');
-    const masterMixValue = document.getElementById('effectsMasterMixValue');
+    var masterMixSlider = document.getElementById('effectsMasterMix');
+    var masterMixValue = document.getElementById('effectsMasterMixValue');
     if (masterMixSlider) {
-      masterMixSlider.addEventListener('input', () => {
-        const value = parseInt(masterMixSlider.value);
+      masterMixSlider.addEventListener('input', function() {
+        var value = parseInt(masterMixSlider.value);
         if (masterMixValue) masterMixValue.textContent = value + '%';
-        const chain = getCurrentEffectChain();
+        var chain = getCurrentEffectChain();
         if (chain) {
           chain.setMasterMix(value);
         }
@@ -847,38 +847,38 @@
     }
 
     // Left/right move buttons
-    document.querySelectorAll('.effect-chain-btn').forEach(btn => {
+    document.querySelectorAll('.effect-chain-btn').forEach(function(btn) {
       btn.addEventListener('click', handleMoveClick);
     });
 
     // Enable/disable checkboxes
-    document.querySelectorAll('.effect-enable-cb').forEach(cb => {
+    document.querySelectorAll('.effect-enable-cb').forEach(function(cb) {
       cb.addEventListener('change', handleEnableChange);
     });
 
     // Parameter sliders
-    document.querySelectorAll('.effect-param-slider').forEach(slider => {
+    document.querySelectorAll('.effect-param-slider').forEach(function(slider) {
       slider.addEventListener('input', handleSliderChange);
     });
 
     // Parameter selects
-    document.querySelectorAll('.effect-param-select').forEach(select => {
+    document.querySelectorAll('.effect-param-select').forEach(function(select) {
       select.addEventListener('change', handleSelectChange);
     });
   }
 
   /**
-   * Handle move left/right button click
+   * Handle move left/right btn click
    */
   function handleMoveClick(e) {
-    const effectId = e.target.dataset.effect;
-    const direction = e.target.dataset.dir;
+    var effectId = e.target.dataset.effect;
+    var direction = e.target.dataset.dir;
 
-    const order = getChainOrder();
-    const currentIndex = order.indexOf(effectId);
-    if (currentIndex === -1) return;
+    var order = getChainOrder();
+    var currentIndex = order.indexOf(effectId);
+    if (currentIndex === NOT_FOUND) return;
 
-    let newIndex;
+    var newIndex;
     if (direction === 'left') {
       newIndex = Math.max(0, currentIndex - 1);
     } else {
@@ -898,9 +898,9 @@
    * Reorder effect panels to match chain order using CSS order
    */
   function reorderPanels() {
-    const chainOrder = getChainOrder();
-    chainOrder.forEach((effectId, index) => {
-      const panel = document.querySelector(`.effect-panel[data-effect="${effectId}"]`);
+    var chainOrder = getChainOrder();
+    chainOrder.forEach(function(effectId, index) {
+      var panel = document.querySelector('.effect-panel[data-effect="' + effectId + '"]');
       if (panel) {
         panel.style.order = index;
       }
@@ -911,35 +911,35 @@
    * Rebuild just the chain container UI
    */
   function rebuildChainUI() {
-    const container = document.getElementById('effectsChainContainer');
+    var container = document.getElementById('effectsChainContainer');
     if (!container) return;
 
-    const chainOrder = getChainOrder();
-    let html = '';
-    chainOrder.forEach((effectId, index) => {
-      const meta = EFFECT_META[effectId];
+    var chainOrder = getChainOrder();
+    var html = '';
+    chainOrder.forEach(function(effectId, index) {
+      var meta = EFFECT_META[effectId];
       if (meta) {
         html += buildChainItem(effectId, meta, index);
       }
     });
-    container.innerHTML = html;
+    container.innerHTML = html; /* trusted: computed from internal state */
 
     // Re-attach button listeners
-    document.querySelectorAll('.effect-chain-btn').forEach(btn => {
+    document.querySelectorAll('.effect-chain-btn').forEach(function(btn) {
       btn.addEventListener('click', handleMoveClick);
     });
 
     // Re-attach checkbox listeners and restore states
-    const chain = getCurrentEffectChain();
-    document.querySelectorAll('.effect-enable-cb').forEach(cb => {
+    var chain = getCurrentEffectChain();
+    document.querySelectorAll('.effect-enable-cb').forEach(function(cb) {
       cb.addEventListener('change', handleEnableChange);
       // Restore enabled state from effect
-      const effectId = cb.dataset.effect;
+      var effectId = cb.dataset.effect;
       if (chain) {
-        const effect = chain.getEffect(effectId);
+        var effect = chain.getEffect(effectId);
         if (effect) {
           cb.checked = effect.enabled;
-          const item = cb.closest('.effect-chain-item');
+          var item = cb.closest('.effect-chain-item');
           if (item) {
             item.classList.toggle('enabled', effect.enabled);
           }
@@ -952,25 +952,26 @@
    * Update chain order from current DOM arrangement (kept for compatibility)
    */
   function updateChainOrderFromDOM() {
-    const container = document.getElementById('effectsChainContainer');
-    const items = container.querySelectorAll('.effect-chain-item');
+    var container = document.getElementById('effectsChainContainer');
+    if (container) {
+      var items = container.querySelectorAll('.effect-chain-item');
 
-    const order = Array.from(items).map(item => item.dataset.effect);
-    setChainOrder(order);
-
+      var order = Array.from(items).map(function(item) { return item.dataset.effect; });
+      setChainOrder(order);
+    }
   }
 
   /**
    * Handle enable/disable checkbox change
    */
   function handleEnableChange(e) {
-    const effectId = e.target.dataset.effect;
-    const enabled = e.target.checked;
+    var effectId = e.target.dataset.effect;
+    var enabled = e.target.checked;
 
     // Update audio engine - add/remove from chain order AND set wet/dry
-    const chain = getCurrentEffectChain();
+    var chain = getCurrentEffectChain();
     if (chain) {
-      const effect = chain.getEffect(effectId);
+      var effect = chain.getEffect(effectId);
       if (effect) {
         if (enabled) {
           chain.addToChain(effectId);
@@ -983,8 +984,8 @@
     }
 
     // Update visual state
-    const chainItem = document.querySelector(`.effect-chain-item[data-effect="${effectId}"]`);
-    const panel = document.querySelector(`.effect-panel[data-effect="${effectId}"]`);
+    var chainItem = document.querySelector('.effect-chain-item[data-effect="' + effectId + '"]');
+    var panel = document.querySelector('.effect-panel[data-effect="' + effectId + '"]');
 
     if (chainItem) {
       chainItem.classList.toggle('enabled', enabled);
@@ -1001,14 +1002,14 @@
    * Handle slider parameter change
    */
   function handleSliderChange(e) {
-    const effectId = e.target.dataset.effect;
-    const paramName = e.target.dataset.param;
-    const value = parseFloat(e.target.value);
+    var effectId = e.target.dataset.effect;
+    var paramName = e.target.dataset.param;
+    var value = parseFloat(e.target.value);
 
     // Update display value
-    const meta = EFFECT_META[effectId];
-    const paramMeta = meta.params.find(p => p.name === paramName);
-    const valueDisplay = document.querySelector(`.effect-param-value[data-effect="${effectId}"][data-param="${paramName}"]`);
+    var meta = EFFECT_META[effectId];
+    var paramMeta = meta.params.find(function(p) { return p.name === paramName; });
+    var valueDisplay = document.querySelector('.effect-param-value[data-effect="' + effectId + '"][data-param="' + paramName + '"]');
 
     if (valueDisplay && paramMeta) {
       valueDisplay.textContent = formatParamValue(value, paramMeta);
@@ -1018,9 +1019,9 @@
     e.target.setAttribute('aria-valuenow', value);
 
     // Update audio engine
-    const chain = getCurrentEffectChain();
+    var chain = getCurrentEffectChain();
     if (chain) {
-      const effect = chain.getEffect(effectId);
+      var effect = chain.getEffect(effectId);
       if (effect) {
         effect.setParam(paramName, value);
       }
@@ -1031,17 +1032,17 @@
    * Handle select parameter change
    */
   function handleSelectChange(e) {
-    const effectId = e.target.dataset.effect;
-    const paramName = e.target.dataset.param;
-    const value = e.target.value;
+    var effectId = e.target.dataset.effect;
+    var paramName = e.target.dataset.param;
+    var value = e.target.value;
 
     // Update conditional parameter visibility
     updateConditionalParams(effectId, paramName, value);
 
     // Update audio engine
-    const chain = getCurrentEffectChain();
+    var chain = getCurrentEffectChain();
     if (chain) {
-      const effect = chain.getEffect(effectId);
+      var effect = chain.getEffect(effectId);
       if (effect) {
         effect.setParam(paramName, value);
       }
@@ -1052,47 +1053,47 @@
    * Sync UI state from audio engine chain
    */
   function syncUIFromChain() {
-    const chain = getCurrentEffectChain();
+    var chain = getCurrentEffectChain();
     if (!chain) return;
 
     // Sync enable states and parameters
-    chain.getRegisteredEffects().forEach(effectId => {
-      const effect = chain.getEffect(effectId);
+    chain.getRegisteredEffects().forEach(function(effectId) {
+      var effect = chain.getEffect(effectId);
       if (!effect) return;
 
-      const params = effect.getParams();
-      const isEnabled = params.enabled;
+      var params = effect.getParams();
+      var isEnabled = params.enabled;
 
       // Update enable checkbox
-      const enableCb = document.querySelector(`.effect-enable-cb[data-effect="${effectId}"]`);
+      var enableCb = document.querySelector('.effect-enable-cb[data-effect="' + effectId + '"]');
       if (enableCb) {
         enableCb.checked = isEnabled;
       }
 
       // Update chain item visual state
-      const chainItem = document.querySelector(`.effect-chain-item[data-effect="${effectId}"]`);
+      var chainItem = document.querySelector('.effect-chain-item[data-effect="' + effectId + '"]');
       if (chainItem) {
         chainItem.classList.toggle('enabled', isEnabled);
       }
 
       // Update panel visual state and visibility
-      const panel = document.querySelector(`.effect-panel[data-effect="${effectId}"]`);
+      var panel = document.querySelector('.effect-panel[data-effect="' + effectId + '"]');
       if (panel) {
         panel.classList.toggle('enabled', isEnabled);
         panel.classList.toggle('hidden', !isEnabled);
       }
 
       // Update parameter controls
-      Object.keys(params).forEach(paramName => {
+      Object.keys(params).forEach(function(paramName) {
         if (paramName === 'enabled') return;
 
-        const slider = document.querySelector(`.effect-param-slider[data-effect="${effectId}"][data-param="${paramName}"]`);
-        const select = document.querySelector(`.effect-param-select[data-effect="${effectId}"][data-param="${paramName}"]`);
+        var slider = document.querySelector('.effect-param-slider[data-effect="' + effectId + '"][data-param="' + paramName + '"]');
+        var select = document.querySelector('.effect-param-select[data-effect="' + effectId + '"][data-param="' + paramName + '"]');
 
         if (slider) {
           slider.value = params[paramName];
           // Trigger display update
-          const event = new Event('input', { bubbles: true });
+          var event = new Event('input', { bubbles: true });
           slider.dispatchEvent(event);
         }
         if (select) {
@@ -1110,9 +1111,9 @@
     if (target < -1 || target > 3) return;
     selectedTarget = target;
 
-    const container = document.getElementById('effectsTabContent');
+    var container = document.getElementById('effectsTabContent');
     if (container) {
-      container.innerHTML = buildEffectsUI();
+      container.innerHTML = buildEffectsUI(); /* trusted: computed from internal state */
       setupEventListeners();
       reorderPanels();
       syncUIFromChain();

@@ -23,20 +23,25 @@
 (function() {
   'use strict';
 
-  const SL = window.SynthLab;
+  var SL = window.SynthLab;
+
+  // Sentinel constants
+  var NO_NODE = null;
+  var NOT_FOUND = -1;
+  var MASTER_TARGET = -1;
 
   // ============================================================
   // Multi-Instrument Constants
   // ============================================================
 
   /** Number of independent instruments (0-3 = synth, 4 = loop) */
-  const NUM_INSTRUMENTS = 5;
+  var NUM_INSTRUMENTS = 5;
 
   /** Currently active instrument index (0-4) */
-  let currentInstrument = 0;
+  var currentInstrument = 0;
 
   /** Default settings for a new instrument */
-  const DEFAULT_INSTRUMENT_SETTINGS = {
+  var DEFAULT_INSTRUMENT_SETTINGS = {
     osc: [
       { wave: 'sine', oct: 0, detune: 0, level: 80, pulseWidth: 50, superSawSpread: 50 },
       { wave: 'sine', oct: 0, detune: 7, level: 60, pulseWidth: 50, superSawSpread: 50 },
@@ -293,7 +298,7 @@
     for (var i = 0; i < keys.length; i++) {
       var key = keys[i];
       var val = settings[key];
-      if (val === null || val === undefined) {
+      if (val === NO_NODE || val === undefined) {
         result[key] = val;
       } else if (Array.isArray(val)) {
         result[key] = _cloneArray(val);
@@ -311,7 +316,7 @@
     var out = new Array(arr.length);
     for (var i = 0; i < arr.length; i++) {
       var item = arr[i];
-      if (item === null || item === undefined) {
+      if (item === NO_NODE || item === undefined) {
         out[i] = item;
       } else if (Array.isArray(item)) {
         out[i] = _cloneArray(item);
@@ -325,11 +330,27 @@
   }
 
   /** Array of 5 instruments with independent settings (index 3 = sampler, index 4 = loop) */
-  const instruments = Array.from({ length: NUM_INSTRUMENTS }, function(_, i) {
+  var instruments = Array.from({ length: NUM_INSTRUMENTS }, function(_, i) {
+    var instName;
+    if (i === 3) {
+      instName = 'Sampler';
+    } else if (i === 4) {
+      instName = 'Loop';
+    } else {
+      instName = 'Instrument ' + (i + 1);
+    }
+    var instType;
+    if (i === 3) {
+      instType = 'sampler';
+    } else if (i === 4) {
+      instType = 'loop';
+    } else {
+      instType = 'subtractive';
+    }
     return {
       id: i,
-      name: (i === 3) ? 'Sampler' : (i === 4) ? 'Loop' : 'Instrument ' + (i + 1),
-      type: (i === 3) ? 'sampler' : (i === 4) ? 'loop' : 'subtractive',
+      name: instName,
+      type: instType,
       settings: cloneSettings(DEFAULT_INSTRUMENT_SETTINGS),
       activeOscillators: new Map(),
       playingNotes: new Set(),
@@ -344,7 +365,7 @@
 
   /**
    * Get instrument type
-   * @param {number} instId - Instrument index (defaults to current)
+   * @param {number} instId - Instrument idx (defaults to current)
    * @returns {string} 'subtractive', 'fm', 'sampler', 'physical', 'midiout', or 'loop'
    */
   function getInstrumentType(instId) {
@@ -352,13 +373,22 @@
     return instruments[instId]?.type || 'subtractive';
   }
 
+  // Valid instrument type identifiers (all supported engine types)
+  var VALID_INSTRUMENT_TYPES = {
+    'subtractive': 1, 'fm': 1, 'sampler': 1, 'physical': 1, 'additive': 1,
+    'granular': 1, 'vocoderSynth': 1, 'wavefolder': 1, 'formant': 1, 'modal': 1,
+    'wavetable': 1, 'phasedist': 1, 'chip': 1, 'superwave': 1, 'chord': 1,
+    'ringmod': 1, 'bytebeat': 1, 'vector': 1, 'drumsyn': 1, 'pulsar': 1,
+    'reed': 1, 'midiout': 1, 'loop': 1
+  };
+
   /**
    * Set instrument type
-   * @param {number} instId - Instrument index
+   * @param {number} instId - Instrument idx
    * @param {string} type - 'subtractive', 'fm', 'sampler', 'physical', 'midiout', or 'loop'
    */
   function setInstrumentType(instId, type) {
-    if (instruments[instId] && (type === 'subtractive' || type === 'fm' || type === 'sampler' || type === 'physical' || type === 'additive' || type === 'granular' || type === 'vocoderSynth' || type === 'wavefolder' || type === 'formant' || type === 'modal' || type === 'wavetable' || type === 'phasedist' || type === 'chip' || type === 'superwave' || type === 'chord' || type === 'ringmod' || type === 'bytebeat' || type === 'vector' || type === 'drumsyn' || type === 'pulsar' || type === 'reed' || type === 'midiout' || type === 'loop')) {
+    if (instruments[instId] && VALID_INSTRUMENT_TYPES[type]) {
       instruments[instId].type = type;
     }
   }
@@ -368,7 +398,7 @@
    */
   function getFMSettings(instId) {
     if (instId === undefined) instId = currentInstrument;
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return null;
     return inst.settings.fmSettings || DEFAULT_INSTRUMENT_SETTINGS.fmSettings;
   }
@@ -377,7 +407,7 @@
    * Set FM settings for an instrument
    */
   function setFMSettings(instId, settings) {
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return;
     inst.settings.fmSettings = Object.assign({}, inst.settings.fmSettings || {}, settings);
     if (SL.fm && SL.fm.setSettings) {
@@ -390,7 +420,7 @@
    */
   function getPhysicalSettings(instId) {
     if (instId === undefined) instId = currentInstrument;
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return null;
     return inst.settings.physicalSettings || DEFAULT_INSTRUMENT_SETTINGS.physicalSettings;
   }
@@ -399,7 +429,7 @@
    * Set physical modelling settings for an instrument
    */
   function setPhysicalSettings(instId, settings) {
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return;
     inst.settings.physicalSettings = Object.assign({}, inst.settings.physicalSettings || {}, settings);
     if (SL.physical && SL.physical.setSettings) {
@@ -412,7 +442,7 @@
    */
   function getGranularSettings(instId) {
     if (instId === undefined) instId = currentInstrument;
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return null;
     return inst.settings.granularSettings || DEFAULT_INSTRUMENT_SETTINGS.granularSettings;
   }
@@ -421,7 +451,7 @@
    * Set granular synthesis settings for an instrument
    */
   function setGranularSettings(instId, settings) {
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return;
     inst.settings.granularSettings = Object.assign({}, inst.settings.granularSettings || {}, settings);
     if (SL.granular && SL.granular.setSettings) {
@@ -434,7 +464,7 @@
    */
   function getVocoderSynthSettings(instId) {
     if (instId === undefined) instId = currentInstrument;
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return null;
     return inst.settings.vocoderSynthSettings || DEFAULT_INSTRUMENT_SETTINGS.vocoderSynthSettings;
   }
@@ -443,7 +473,7 @@
    * Set vocoder synth settings for an instrument
    */
   function setVocoderSynthSettings(instId, settings) {
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return;
     inst.settings.vocoderSynthSettings = Object.assign({}, inst.settings.vocoderSynthSettings || {}, settings);
     if (SL.vocoderSynth && SL.vocoderSynth.setSettings) {
@@ -456,7 +486,7 @@
    */
   function getWavefoldSettings(instId) {
     if (instId === undefined) instId = currentInstrument;
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return null;
     return inst.settings.wavefoldSettings || DEFAULT_INSTRUMENT_SETTINGS.wavefoldSettings;
   }
@@ -465,7 +495,7 @@
    * Set wavefolder settings for an instrument
    */
   function setWavefoldSettings(instId, settings) {
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return;
     inst.settings.wavefoldSettings = Object.assign({}, inst.settings.wavefoldSettings || {}, settings);
     if (SL.wavefolder && SL.wavefolder.setSettings) {
@@ -478,7 +508,7 @@
    */
   function getFormantSettings(instId) {
     if (instId === undefined) instId = currentInstrument;
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return null;
     return inst.settings.formantSettings || DEFAULT_INSTRUMENT_SETTINGS.formantSettings;
   }
@@ -487,7 +517,7 @@
    * Set formant settings for an instrument
    */
   function setFormantSettings(instId, settings) {
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return;
     inst.settings.formantSettings = Object.assign({}, inst.settings.formantSettings || {}, settings);
     if (SL.formant && SL.formant.setSettings) {
@@ -500,7 +530,7 @@
    */
   function getModalSettings(instId) {
     if (instId === undefined) instId = currentInstrument;
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return null;
     return inst.settings.modalSettings || DEFAULT_INSTRUMENT_SETTINGS.modalSettings;
   }
@@ -509,7 +539,7 @@
    * Set modal settings for an instrument
    */
   function setModalSettings(instId, settings) {
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return;
     inst.settings.modalSettings = Object.assign({}, inst.settings.modalSettings || {}, settings);
     if (SL.modal && SL.modal.setSettings) {
@@ -522,7 +552,7 @@
    */
   function getAdditiveSettings(instId) {
     if (instId === undefined) instId = currentInstrument;
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return null;
     return inst.settings.additiveSettings || DEFAULT_INSTRUMENT_SETTINGS.additiveSettings;
   }
@@ -531,7 +561,7 @@
    * Set additive synthesis settings for an instrument
    */
   function setAdditiveSettings(instId, settings) {
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return;
     inst.settings.additiveSettings = Object.assign({}, inst.settings.additiveSettings || {}, settings);
     if (SL.additive && SL.additive.setSettings) {
@@ -544,7 +574,7 @@
    */
   function getRingmodSettings(instId) {
     if (instId === undefined) instId = currentInstrument;
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return null;
     return inst.settings.ringmodSettings || DEFAULT_INSTRUMENT_SETTINGS.ringmodSettings;
   }
@@ -553,7 +583,7 @@
    * Set ring modulation settings for an instrument
    */
   function setRingmodSettings(instId, settings) {
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return;
     inst.settings.ringmodSettings = Object.assign({}, inst.settings.ringmodSettings || {}, settings);
     if (SL.ringmod && SL.ringmod.setSettings) {
@@ -566,7 +596,7 @@
    */
   function getChordEngineSettings(instId) {
     if (instId === undefined) instId = currentInstrument;
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return null;
     return inst.settings.chordSettings || DEFAULT_INSTRUMENT_SETTINGS.chordSettings;
   }
@@ -575,7 +605,7 @@
    * Set chord engine settings for an instrument
    */
   function setChordEngineSettings(instId, settings) {
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return;
     inst.settings.chordSettings = Object.assign({}, inst.settings.chordSettings || {}, settings);
     if (SL.chord && SL.chord.setSettings) {
@@ -588,7 +618,7 @@
    */
   function getSuperwaveSettings(instId) {
     if (instId === undefined) instId = currentInstrument;
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return null;
     return inst.settings.superwaveSettings || DEFAULT_INSTRUMENT_SETTINGS.superwaveSettings;
   }
@@ -597,7 +627,7 @@
    * Set superwave settings for an instrument
    */
   function setSuperwaveSettings(instId, settings) {
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return;
     inst.settings.superwaveSettings = Object.assign({}, inst.settings.superwaveSettings || {}, settings);
     if (SL.superwave && SL.superwave.setSettings) {
@@ -610,7 +640,7 @@
    */
   function getWavetableSettings(instId) {
     if (instId === undefined) instId = currentInstrument;
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return null;
     return inst.settings.wavetableSettings || DEFAULT_INSTRUMENT_SETTINGS.wavetableSettings;
   }
@@ -619,7 +649,7 @@
    * Set wavetable synth settings for an instrument
    */
   function setWavetableSettings(instId, settings) {
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return;
     inst.settings.wavetableSettings = Object.assign({}, inst.settings.wavetableSettings || {}, settings);
     if (SL.wavetableSynth && SL.wavetableSynth.setSettings) {
@@ -632,7 +662,7 @@
    */
   function getPhasedistSettings(instId) {
     if (instId === undefined) instId = currentInstrument;
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return null;
     return inst.settings.phasedistSettings || DEFAULT_INSTRUMENT_SETTINGS.phasedistSettings;
   }
@@ -641,7 +671,7 @@
    * Set phase distortion settings for an instrument
    */
   function setPhasedistSettings(instId, settings) {
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return;
     inst.settings.phasedistSettings = Object.assign({}, inst.settings.phasedistSettings || {}, settings);
     if (SL.phasedist && SL.phasedist.setSettings) {
@@ -654,7 +684,7 @@
    */
   function getChipSettings(instId) {
     if (instId === undefined) instId = currentInstrument;
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return null;
     return inst.settings.chipSettings || DEFAULT_INSTRUMENT_SETTINGS.chipSettings;
   }
@@ -663,7 +693,7 @@
    * Set chip synth settings for an instrument
    */
   function setChipSettings(instId, settings) {
-    const inst = instruments[instId];
+    var inst = instruments[instId];
     if (!inst) return;
     inst.settings.chipSettings = Object.assign({}, inst.settings.chipSettings || {}, settings);
     if (SL.chip && SL.chip.setSettings) {
@@ -810,19 +840,19 @@
   // ============================================================
 
   /** Web Audio context - lazily initialized */
-  let audioContext = null;
+  var audioContext = null;
 
   /** Effect chain instance (shared by all instruments) - kept for backwards compat */
-  let effectChain = null;
+  var effectChain = null;
 
   /** Master effect chain */
-  let masterChain = null;
+  var masterChain = null;
 
   /** Master merge node */
-  let masterMerge = null;
+  var masterMerge = null;
 
   /** Analyser node for visualization */
-  let analyserNode = null;
+  var analyserNode = null;
 
   // ============================================================
   // DOM Element Cache (hot-path optimization)
@@ -874,11 +904,11 @@
   // AudioWorklet Support
   // ============================================================
 
-  let workletSupported = false;
-  let workletInitializing = false;
+  var isWorkletSupported = false;
+  var isWorkletInitializing = false;
   var synthWorkletNodes = [null, null, null, null, null];
   var workletFilterNodes = [null, null, null, null, null];
-  let workletReadyPromise = null;
+  var workletReadyPromise = null;
 
   // Pre-fetched worklet Blob URLs — created at module load, ready before first gesture
   var _workletBlobUrls = {};
@@ -901,7 +931,7 @@
   _prefetchWorkletBlobs();
 
   /** Legacy: kept for backwards compatibility */
-  let masterOutput = null;
+  var masterOutput = null;
 
   // ============================================================
   // Multi-Instrument Access Helpers
@@ -928,7 +958,7 @@
   var LATENCY_MODE_PLAYBACK = 'playback';
   var LATENCY_MODE_MAX = 'max';
 
-  let _latencyMode = LATENCY_MODE_INTERACTIVE;
+  var _latencyMode = LATENCY_MODE_INTERACTIVE;
 
   /**
    * Get the stored latency mode
@@ -943,7 +973,8 @@
    * @param {string} mode - 'interactive', 'balanced', or 'playback'
    */
   function setLatencyMode(mode) {
-    if (mode === LATENCY_MODE_INTERACTIVE || mode === LATENCY_MODE_BALANCED || mode === LATENCY_MODE_PLAYBACK || mode === LATENCY_MODE_MAX) {
+    var isKnownLatencyMode = (mode === LATENCY_MODE_INTERACTIVE || mode === LATENCY_MODE_BALANCED || mode === LATENCY_MODE_PLAYBACK || mode === LATENCY_MODE_MAX);
+    if (isKnownLatencyMode) {
       _latencyMode = mode;
     }
   }
@@ -956,81 +987,80 @@
    * @param {string} newMode - 'interactive', 'balanced', 'playback', or 'max'
    */
   function switchLatencyMode(newMode) {
-    if (newMode !== LATENCY_MODE_INTERACTIVE && newMode !== LATENCY_MODE_BALANCED && newMode !== LATENCY_MODE_PLAYBACK && newMode !== LATENCY_MODE_MAX) {
-      return;
-    }
-    if (newMode === _latencyMode && audioContext) {
-      return;
-    }
+    var isValidMode = (newMode === LATENCY_MODE_INTERACTIVE || newMode === LATENCY_MODE_BALANCED || newMode === LATENCY_MODE_PLAYBACK || newMode === LATENCY_MODE_MAX);
+    if (isValidMode) {
+      if (!(newMode === _latencyMode && audioContext)) {
 
-    // 1. Stop all active notes
-    if (SL.audio && SL.audio.stopAllSustained) {
-      SL.audio.stopAllSustained();
-    }
-    workletAllNotesOff();
+        // 1. Stop all active notes
+        if (SL.audio && SL.audio.stopAllSustained) {
+          SL.audio.stopAllSustained();
+        }
+        workletAllNotesOff();
 
-    // 2. Disconnect and close old context
-    if (audioContext) {
-      // Disconnect worklet nodes
-      for (var wi = 0; wi < synthWorkletNodes.length; wi++) {
-        if (synthWorkletNodes[wi]) {
-          try { synthWorkletNodes[wi].disconnect(); } catch (e) { /* ignore */ }
-          synthWorkletNodes[wi] = null;
+        // 2. Disconnect and close old context
+        if (audioContext) {
+          // Disconnect worklet nodes
+          for (var wi = 0; wi < synthWorkletNodes.length; wi++) {
+            if (synthWorkletNodes[wi]) {
+              try { synthWorkletNodes[wi].disconnect(); } catch (e) { /* node already disconnected */ }
+              synthWorkletNodes[wi] = null;
+            }
+            if (workletFilterNodes[wi]) {
+              try { workletFilterNodes[wi].disconnect(); } catch (e) { /* node already disconnected */ }
+              workletFilterNodes[wi] = null;
+            }
+          }
+
+          // Disconnect instrument chains
+          for (var ii = 0; ii < instruments.length; ii++) {
+            var inst = instruments[ii];
+            if (inst.effectChain) {
+              try { inst.effectChain.output.disconnect(); } catch (e) { /* node already disconnected */ }
+            }
+            if (inst.masterOutput) {
+              try { inst.masterOutput.disconnect(); } catch (e) { /* node already disconnected */ }
+            }
+            if (inst.dcBlockerNode) {
+              try { inst.dcBlockerNode.disconnect(); } catch (e) { /* node already disconnected */ }
+            }
+            if (inst.expressionFilterNode) {
+              try { inst.expressionFilterNode.disconnect(); } catch (e) { /* node already disconnected */ }
+              inst.expressionFilterNode = null;
+            }
+            if (inst.expressionGainNode) {
+              try { inst.expressionGainNode.disconnect(); } catch (e) { /* node already disconnected */ }
+              inst.expressionGainNode = null;
+            }
+            if (inst.volumeNode) {
+              try { inst.volumeNode.disconnect(); } catch (e) { /* node already disconnected */ }
+            }
+            if (inst.panNode) {
+              try { inst.panNode.disconnect(); } catch (e) { /* node already disconnected */ }
+            }
+            // Clear per-instrument analyser
+            inst._analyserNode = null;
+          }
+
+          // Close old context
+          try { audioContext.close(); } catch (e) { /* audio context may already be closed */ }
+          audioContext = null;
+          analyserNode = null;
+          masterMerge = null;
+          masterChain = null;
+          masterOutput = null;
+          effectChain = null;
+          isWorkletSupported = false;
+          isWorkletInitializing = false;
+          workletReadyPromise = null;
         }
-        if (workletFilterNodes[wi]) {
-          try { workletFilterNodes[wi].disconnect(); } catch (e) { /* ignore */ }
-          workletFilterNodes[wi] = null;
-        }
+
+        // 3. Set new mode
+        _latencyMode = newMode;
+
+        // 4. Reinitialize: getCtx() will create a new AudioContext with the new latencyHint
+        initEffectChain();
       }
-
-      // Disconnect instrument chains
-      for (var ii = 0; ii < instruments.length; ii++) {
-        var inst = instruments[ii];
-        if (inst.effectChain) {
-          try { inst.effectChain.output.disconnect(); } catch (e) { /* ignore */ }
-        }
-        if (inst.masterOutput) {
-          try { inst.masterOutput.disconnect(); } catch (e) { /* ignore */ }
-        }
-        if (inst.dcBlockerNode) {
-          try { inst.dcBlockerNode.disconnect(); } catch (e) { /* ignore */ }
-        }
-        if (inst.expressionFilterNode) {
-          try { inst.expressionFilterNode.disconnect(); } catch (e) { /* ignore */ }
-          inst.expressionFilterNode = null;
-        }
-        if (inst.expressionGainNode) {
-          try { inst.expressionGainNode.disconnect(); } catch (e) { /* ignore */ }
-          inst.expressionGainNode = null;
-        }
-        if (inst.volumeNode) {
-          try { inst.volumeNode.disconnect(); } catch (e) { /* ignore */ }
-        }
-        if (inst.panNode) {
-          try { inst.panNode.disconnect(); } catch (e) { /* ignore */ }
-        }
-        // Clear per-instrument analyser
-        inst._analyserNode = null;
-      }
-
-      // Close old context
-      try { audioContext.close(); } catch (e) { /* ignore */ }
-      audioContext = null;
-      analyserNode = null;
-      masterMerge = null;
-      masterChain = null;
-      masterOutput = null;
-      effectChain = null;
-      workletSupported = false;
-      workletInitializing = false;
-      workletReadyPromise = null;
     }
-
-    // 3. Set new mode
-    _latencyMode = newMode;
-
-    // 4. Reinitialize: getCtx() will create a new AudioContext with the new latencyHint
-    initEffectChain();
   }
 
   /**
@@ -1073,8 +1103,8 @@
       // Wavetable init is handled by initEffectChain -> split module
     }
     if (audioContext.state === 'suspended') {
-      audioContext.resume().then(() => {
-      }).catch(e => {
+      audioContext.resume().then(function() {
+      }).catch(function(e) {
         console.error('[AUDIO] AudioContext resume failed:', e);
       });
     }
@@ -1085,14 +1115,14 @@
    * Get the final output destination
    */
   function getFinalDestination() {
-    const inst = instruments[currentInstrument];
+    var inst = instruments[currentInstrument];
     if (inst && inst.masterOutput) {
       return inst.masterOutput;
     }
     if (effectChain) {
       return effectChain.input;
     }
-    const ctx = getCtx();
+    var ctx = getCtx();
     return ctx.destination;
   }
 
@@ -1103,27 +1133,26 @@
   // ============================================================
 
   /** Whether the AudioContext was suspended by the visibility handler */
-  var _suspendedByVisibility = false;
+  var _isSuspendedByVisibility = false;
 
   function _onVisibilityChange() {
-    if (!audioContext) {
-      return;
-    }
-    if (document.hidden) {
-      // Page going to background — suspend to save resources
-      if (audioContext.state === 'running') {
-        _suspendedByVisibility = true;
-        audioContext.suspend().catch(function(e) {
-          console.warn('[AUDIO] Visibility suspend failed:', e);
-        });
-      }
-    } else {
-      // Page returning to foreground — resume if we suspended it
-      if (_suspendedByVisibility && audioContext.state === 'suspended') {
-        _suspendedByVisibility = false;
-        audioContext.resume().catch(function(e) {
-          console.error('[AUDIO] Visibility resume failed:', e);
-        });
+    if (audioContext) {
+      if (document.hidden) {
+        // Page going to background — suspend to save resources
+        if (audioContext.state === 'running') {
+          _isSuspendedByVisibility = true;
+          audioContext.suspend().catch(function(e) {
+            console.warn('[AUDIO] Visibility suspend failed:', e);
+          });
+        }
+      } else {
+        // Page returning to foreground — resume if we suspended it
+        if (_isSuspendedByVisibility && audioContext.state === 'suspended') {
+          _isSuspendedByVisibility = false;
+          audioContext.resume().catch(function(e) {
+            console.error('[AUDIO] Visibility resume failed:', e);
+          });
+        }
       }
     }
   }
@@ -1138,7 +1167,7 @@
 
   var IDLE_SUSPEND_TIMEOUT_MS = 120000;
   var _idleSuspendTimer = null;
-  var _suspendedByIdle = false;
+  var _isSuspendedByIdle = false;
 
   /**
    * Reset the idle suspend timer. Call on every note-on event.
@@ -1149,8 +1178,10 @@
       _idleSuspendTimer = null;
     }
     // Resume if we had auto-suspended
-    if (_suspendedByIdle && audioContext && audioContext.state === 'suspended') {
-      _suspendedByIdle = false;
+    var canResumeIdle = audioContext && audioContext.state === 'suspended';
+    var shouldResumeAfterIdle = _isSuspendedByIdle && canResumeIdle;
+    if (shouldResumeAfterIdle) {
+      _isSuspendedByIdle = false;
       audioContext.resume().catch(function(e) {
         console.warn('[AUDIO] Idle resume failed:', e);
       });
@@ -1159,16 +1190,16 @@
     _idleSuspendTimer = setTimeout(function() {
       if (audioContext && audioContext.state === 'running') {
         // Check no notes are currently active
-        var anyActive = false;
+        var isAnyActive = false;
         for (var ci = 0; ci < instruments.length; ci++) {
           if (instruments[ci].playingNotes && instruments[ci].playingNotes.size > 0) {
-            anyActive = true;
+            isAnyActive = true;
             break;
           }
         }
         var sequencerPlaying = (SL.screenAcid && SL.screenAcid._isPlaying && SL.screenAcid._isPlaying());
-        if (!anyActive && !sequencerPlaying) {
-          _suspendedByIdle = true;
+        if (!isAnyActive && !sequencerPlaying) {
+          _isSuspendedByIdle = true;
           audioContext.suspend().catch(function(e) {
             console.warn('[AUDIO] Idle auto-suspend failed:', e);
           });
@@ -1220,9 +1251,9 @@
   }
 
   function registerFactoriesForChain(chain) {
-    const effectClasses = getEffectClasses();
-    Object.keys(effectClasses).forEach(name => {
-      const EffectClass = effectClasses[name];
+    var effectClasses = getEffectClasses();
+    Object.keys(effectClasses).forEach(function(name) {
+      var EffectClass = effectClasses[name];
       if (EffectClass) {
         chain.registerFactory(name, EffectClass);
       }
@@ -1233,14 +1264,14 @@
    * Initialize the per-instrument effect chain system
    */
   function initEffectChain() {
-    const ctx = getCtx();
+    var ctx = getCtx();
 
     initDomCache();
 
     masterMerge = ctx.createGain();
     masterMerge.gain.value = 1.0;
 
-    instruments.forEach((inst, i) => {
+    instruments.forEach(function(inst, i) {
       inst.effectChain = new SL.effects.EffectChain(ctx);
       registerFactoriesForChain(inst.effectChain);
 
@@ -1334,49 +1365,47 @@
     brickwallLimiter.release.value = BRICKWALL_RELEASE_SEC;
 
     // Clip indicator state — UI can read SL.audio.isClipping
-    var _clipActive = false;
+    var _isClipActive = false;
     var _clipTimerId = null;
     var CLIP_INDICATOR_HOLD_MS = 300;
 
     var _clipPollAnimId = null;
     function _pollClipIndicator() {
       _clipPollAnimId = requestAnimationFrame(_pollClipIndicator);
-      if (!brickwallLimiter) {
-        return;
-      }
-      var isSuspended = (ctx && ctx.state === 'suspended');
-      if (!SL._tabVisible || isSuspended) {
-        return;
-      }
-      var reduction = brickwallLimiter.reduction; // negative dB value
-      var wasClipping = _clipActive;
-      if (reduction < -CLIP_DETECTION_THRESHOLD_DB) {
-        _clipActive = true;
-        if (_clipTimerId) {
-          clearTimeout(_clipTimerId);
-        }
-        _clipTimerId = setTimeout(function() {
-          _clipActive = false;
-          _clipTimerId = null;
-          var clipEl = document.getElementById('sslClipIndicator');
-          if (clipEl) {
-            clipEl.style.display = 'none';
+      if (brickwallLimiter) {
+        var isSuspended = (ctx && ctx.state === 'suspended');
+        if (SL._tabVisible && !isSuspended) {
+          var reduction = brickwallLimiter.reduction; // negative dB value
+          var wasClipping = _isClipActive;
+          if (reduction < -CLIP_DETECTION_THRESHOLD_DB) {
+            _isClipActive = true;
+            if (_clipTimerId) {
+              clearTimeout(_clipTimerId);
+            }
+            _clipTimerId = setTimeout(function() {
+              _isClipActive = false;
+              _clipTimerId = null;
+              var clipEl = document.getElementById('sslClipIndicator');
+              if (clipEl) {
+                clipEl.style.display = 'none';
+              }
+              // Notify via callback instead of direct DOM manipulation
+              if (SL.audio && SL.audio.onLimiterEngage) {
+                SL.audio.onLimiterEngage(false);
+              }
+            }, CLIP_INDICATOR_HOLD_MS);
           }
-          // Notify via callback instead of direct DOM manipulation
-          if (SL.audio && SL.audio.onLimiterEngage) {
-            SL.audio.onLimiterEngage(false);
+          // Show clip indicator when newly clipping
+          if (_isClipActive && !wasClipping) {
+            var clipEl = document.getElementById('sslClipIndicator');
+            if (clipEl) {
+              clipEl.style.display = 'inline-block';
+            }
+            // Notify via callback instead of direct DOM manipulation
+            if (SL.audio && SL.audio.onLimiterEngage) {
+              SL.audio.onLimiterEngage(true);
+            }
           }
-        }, CLIP_INDICATOR_HOLD_MS);
-      }
-      // Show clip indicator when newly clipping
-      if (_clipActive && !wasClipping) {
-        var clipEl = document.getElementById('sslClipIndicator');
-        if (clipEl) {
-          clipEl.style.display = 'inline-block';
-        }
-        // Notify via callback instead of direct DOM manipulation
-        if (SL.audio && SL.audio.onLimiterEngage) {
-          SL.audio.onLimiterEngage(true);
         }
       }
     }
@@ -1388,7 +1417,7 @@
     var NORMAL_VOLUME_GAIN = 1.0;
     var safeVolumeNode = ctx.createGain();
     safeVolumeNode.gain.value = NORMAL_VOLUME_GAIN;
-    var _safeVolumeActive = false;
+    var _isSafeVolumeActive = false;
 
     // Hard clip safety net — absolute last resort, clamps to [-1, 1]
     var hardClipShaper = ctx.createWaveShaper();
@@ -1436,8 +1465,9 @@
     SL.audio.effectChain = effectChain;
 
     // Initialize AudioWorklet (async, non-blocking)
-    initSynthWorklet().catch(e => {
-      console.warn('[AUDIO] AudioWorklet init failed (fallback to band-limited):', e.message || e);
+    initSynthWorklet().catch(function(e) {
+      var msg = e['message'] || e;
+      console.warn('[AUDIO] AudioWorklet init failed (fallback to band-limited):', msg);
     });
   }
 
@@ -1448,75 +1478,72 @@
   async function initSynthWorklet() {
     if (!audioContext || !audioContext.audioWorklet) {
       console.warn('AudioWorklet not supported in this browser');
-      workletSupported = false;
-      return;
-    }
+      isWorkletSupported = false;
+    } else {
+      if (!(isWorkletInitializing || synthWorkletNodes[0])) {
+        isWorkletInitializing = true;
+        workletReadyPromise = new Promise(async function(resolve, reject) {
+          try {
+            var synthWorkletUrl = _workletBlobUrls['synth-worklet.js'] || 'assets/synth-worklet.js';
+            await audioContext.audioWorklet.addModule(synthWorkletUrl);
 
-    if (workletInitializing || synthWorkletNodes[0]) {
+            var readyCount = 0;
+            for (var i = 0; i < 4; i++) {
+              synthWorkletNodes[i] = new AudioWorkletNode(audioContext, 'synth-worklet', {
+                numberOfInputs: 0,
+                numberOfOutputs: 1,
+                outputChannelCount: [1]
+              });
+              if (instruments[i] && instruments[i].masterOutput) {
+                // Insert a persistent filter between the worklet and masterOutput
+                // so subtractive filter controls affect worklet synthesis
+                workletFilterNodes[i] = audioContext.createBiquadFilter();
+                workletFilterNodes[i].type = 'lowpass';
+                workletFilterNodes[i].frequency.value = 20000;
+                workletFilterNodes[i].Q.value = 0.707;
+                synthWorkletNodes[i].connect(workletFilterNodes[i]);
+                workletFilterNodes[i].connect(instruments[i].masterOutput);
+              }
+
+              synthWorkletNodes[i].port.onmessage = (function(idx) {
+                return function(event) {
+                  var data = event.data;
+                  if (data.type === 'ready') {
+                    readyCount++;
+                    if (readyCount >= 4) {
+                      isWorkletSupported = true;
+                      isWorkletInitializing = false;
+                      resolve(true);
+                    }
+                  }
+                };
+              })(i);
+
+              synthWorkletNodes[i].onprocessorerror = (function(idx) {
+                return function(event) {
+                  console.error('AudioWorklet processor error (instrument ' + (idx + 1) + '):', event);
+                  isWorkletSupported = false;
+                  isWorkletInitializing = false;
+                  reject(event);
+                };
+              })(i);
+            }
+
+          } catch (error) {
+            console.error('Failed to initialize AudioWorklet:', error);
+            isWorkletSupported = false;
+            isWorkletInitializing = false;
+            reject(error);
+          }
+        });
+      }
+
       return workletReadyPromise;
     }
-
-    workletInitializing = true;
-    workletReadyPromise = new Promise(async (resolve, reject) => {
-      try {
-        var synthWorkletUrl = _workletBlobUrls['synth-worklet.js'] || 'assets/synth-worklet.js';
-        await audioContext.audioWorklet.addModule(synthWorkletUrl);
-
-        var readyCount = 0;
-        for (var i = 0; i < 4; i++) {
-          synthWorkletNodes[i] = new AudioWorkletNode(audioContext, 'synth-worklet', {
-            numberOfInputs: 0,
-            numberOfOutputs: 1,
-            outputChannelCount: [1]
-          });
-          if (instruments[i] && instruments[i].masterOutput) {
-            // Insert a persistent filter between the worklet and masterOutput
-            // so subtractive filter controls affect worklet synthesis
-            workletFilterNodes[i] = audioContext.createBiquadFilter();
-            workletFilterNodes[i].type = 'lowpass';
-            workletFilterNodes[i].frequency.value = 20000;
-            workletFilterNodes[i].Q.value = 0.707;
-            synthWorkletNodes[i].connect(workletFilterNodes[i]);
-            workletFilterNodes[i].connect(instruments[i].masterOutput);
-          }
-
-          synthWorkletNodes[i].port.onmessage = (function(idx) {
-            return function(event) {
-              var data = event.data;
-              if (data.type === 'ready') {
-                readyCount++;
-                if (readyCount >= 4) {
-                  workletSupported = true;
-                  workletInitializing = false;
-                  resolve(true);
-                }
-              }
-            };
-          })(i);
-
-          synthWorkletNodes[i].onprocessorerror = (function(idx) {
-            return function(event) {
-              console.error('AudioWorklet processor error (instrument ' + (idx + 1) + '):', event);
-              workletSupported = false;
-              workletInitializing = false;
-              reject(event);
-            };
-          })(i);
-        }
-
-      } catch (error) {
-        console.error('Failed to initialize AudioWorklet:', error);
-        workletSupported = false;
-        workletInitializing = false;
-        reject(error);
-      }
-    });
-
-    return workletReadyPromise;
   }
 
   function isWorkletAvailable() {
-    return workletSupported && synthWorkletNodes[0] !== null;
+    return isWorkletSupported && synthWorkletNodes[0] !== NO_NODE;
   }
 
   function workletNoteOn(midi, dur, oscSettings, adsr, refHz, instId, extraParams) {
@@ -1592,16 +1619,16 @@
   }
 
   function maxH(f) {
-    const sr = SL.SR || 44100;
+    var sr = SL.SR || 44100;
     return Math.floor((sr / 2) / f);
   }
 
   function freqToNote(freq) {
-    const A4 = 440;
-    const semitones = 12 * Math.log2(freq / A4);
-    const midiNote = Math.round(69 + semitones);
-    const octave = Math.floor(midiNote / 12) - 1;
-    const noteIndex = ((midiNote % 12) + 12) % 12;
+    var A4 = 440;
+    var semitones = 12 * Math.log2(freq / A4);
+    var midiNote = Math.round(69 + semitones);
+    var octave = Math.floor(midiNote / 12) - 1;
+    var noteIndex = ((midiNote % 12) + 12) % 12;
     return SL.NOTE_NAMES[noteIndex] + octave;
   }
 
@@ -1613,7 +1640,7 @@
     var note = match[1];
     var octave = parseInt(match[2]);
     var noteIndex = SL.NOTE_NAMES.indexOf(note);
-    if (noteIndex === -1) {
+    if (noteIndex === NOT_FOUND) {
       return 440;
     }
     var midiNote = (octave + 1) * 12 + noteIndex;
@@ -1628,12 +1655,12 @@
   // ============================================================
 
   function sliderToTime(sliderValue, sliderMax, timeMax) {
-    const normalized = sliderValue / sliderMax;
+    var normalized = sliderValue / sliderMax;
     return timeMax * Math.pow(normalized, 2);
   }
 
   function timeToSlider(timeMs, sliderMax, timeMax) {
-    const normalized = Math.sqrt(timeMs / timeMax);
+    var normalized = Math.sqrt(timeMs / timeMax);
     return normalized * sliderMax;
   }
 
@@ -1789,21 +1816,20 @@
       instId = currentInstrument;
     }
     var filterNode = workletFilterNodes[instId];
-    if (!filterNode) {
-      return;
-    }
-    var fs = getFilterSettings();
-    var now = audioContext ? audioContext.currentTime : 0;
-    if (!fs.enabled) {
-      filterNode.type = 'lowpass';
-      filterNode.frequency.setTargetAtTime(20000, now, FILTER_CUTOFF_SMOOTHING);
-      filterNode.Q.setTargetAtTime(0.707, now, FILTER_Q_SMOOTHING);
-    } else {
-      filterNode.type = fs.type || 'lowpass';
-      var clampedFreq = Math.max(20, Math.min(20000, fs.frequency || 20000));
-      var clampedQ = Math.max(0.1, Math.min(30, fs.resonance || 1));
-      filterNode.frequency.setTargetAtTime(clampedFreq, now, FILTER_CUTOFF_SMOOTHING);
-      filterNode.Q.setTargetAtTime(clampedQ, now, FILTER_Q_SMOOTHING);
+    if (filterNode) {
+      var fs = getFilterSettings();
+      var now = audioContext ? audioContext.currentTime : 0;
+      if (!fs.enabled) {
+        filterNode.type = 'lowpass';
+        filterNode.frequency.setTargetAtTime(20000, now, FILTER_CUTOFF_SMOOTHING);
+        filterNode.Q.setTargetAtTime(0.707, now, FILTER_Q_SMOOTHING);
+      } else {
+        filterNode.type = fs.type || 'lowpass';
+        var clampedFreq = Math.max(20, Math.min(20000, fs.frequency || 20000));
+        var clampedQ = Math.max(0.1, Math.min(30, fs.resonance || 1));
+        filterNode.frequency.setTargetAtTime(clampedFreq, now, FILTER_CUTOFF_SMOOTHING);
+        filterNode.Q.setTargetAtTime(clampedQ, now, FILTER_Q_SMOOTHING);
+      }
     }
   }
 
@@ -1812,10 +1838,10 @@
   // ============================================================
 
   var EXPRESSIVE_CUTOFF_SMOOTHING = 0.02;
-  var _expressiveCutoffActive = false;
+  var _isExpressiveCutoffActive = false;
 
   function setExpressiveCutoff(freqHz) {
-    _expressiveCutoffActive = true;
+    _isExpressiveCutoffActive = true;
     var clampedFreq = Math.max(20, Math.min(20000, freqHz));
     var now = audioContext ? audioContext.currentTime : 0;
     var instId = currentInstrument;
@@ -1827,8 +1853,8 @@
   }
 
   function clearExpressiveCutoff() {
-    if (_expressiveCutoffActive) {
-      _expressiveCutoffActive = false;
+    if (_isExpressiveCutoffActive) {
+      _isExpressiveCutoffActive = false;
       updateWorkletFilter(currentInstrument);
     }
   }
@@ -1978,7 +2004,7 @@
       SL.audio.saveInstrumentSettings(currentInstrument);
     }
 
-    const oldInstId = currentInstrument;
+    var oldInstId = currentInstrument;
     currentInstrument = newInstId;
 
     masterOutput = instruments[currentInstrument].masterOutput;
@@ -2041,12 +2067,12 @@
   }
 
   function getEffectChainForTarget(target) {
-    if (target === -1) return masterChain;
+    if (target === MASTER_TARGET) return masterChain;
     return getInstrumentChain(target);
   }
 
   function getAllInstrumentChains() {
-    return instruments.map(inst => inst.effectChain);
+    return instruments.map(function(inst) { return inst.effectChain; });
   }
 
   // ============================================================
@@ -2214,14 +2240,14 @@
     },
 
     // Analyser for visualization
-    getAnalyser: () => analyserNode,
+    getAnalyser: function() { return analyserNode; },
 
     // Brickwall limiter clip indicator (read-only)
-    get isClipping() { return _clipActive; },
+    get isClipping() { return _isClipActive; },
 
     // Safe-volume mode for Kids/Calm screens
     setSafeVolume: function(enabled) {
-      _safeVolumeActive = !!enabled;
+      _isSafeVolumeActive = Boolean(enabled);
       if (safeVolumeNode) {
         safeVolumeNode.gain.setTargetAtTime(
           enabled ? SAFE_VOLUME_GAIN : NORMAL_VOLUME_GAIN,
@@ -2230,7 +2256,7 @@
         );
       }
     },
-    get isSafeVolumeActive() { return _safeVolumeActive; },
+    get isSafeVolumeActive() { return _isSafeVolumeActive; },
 
     // AudioWorklet synthesis
     initSynthWorklet: initSynthWorklet,

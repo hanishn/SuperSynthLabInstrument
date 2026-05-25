@@ -23,6 +23,12 @@
   // NES/GB duty cycle options: 12.5%, 25%, 50%, 75%
   var DUTY_PRESETS = [0.125, 0.25, 0.5, 0.75];
 
+  // Pulse waveform types (all variants that use duty-cycle based generation)
+  var PULSE_WAVEFORMS = { 'pulse1': 1, 'pulse2': 1, 'pulse': 1 };
+
+  // Valid chip mode identifiers
+  var VALID_CHIP_MODES = { 'sid': 1, 'nes': 1, 'gameboy': 1, 'genesis': 1 };
+
   // YM2612 FM algorithms (which ops are carriers vs modulators)
   // Each algorithm: array of 4 entries, one per operator
   // true = carrier (output), false = modulator
@@ -87,7 +93,7 @@
   // ============================================================
 
   var audioContext = null;
-  var engineReady = false;
+  var isEngineReady = false;
 
   var scriptNodes = [null, null, null, null];
   var fallbackVoicesByInst = [[], [], [], []];
@@ -475,7 +481,7 @@
 
   ChipVoice.prototype.generateNES = function() {
     var sample = 0;
-    if (this.waveform === 'pulse1' || this.waveform === 'pulse2' || this.waveform === 'pulse') {
+    if (PULSE_WAVEFORMS[this.waveform]) {
       var dutyIdx = 2; // default 50%
       if (this.dutyCycle <= 0.15) {
         dutyIdx = 0; // 12.5%
@@ -513,7 +519,7 @@
 
   ChipVoice.prototype.generateGameBoy = function() {
     var sample = 0;
-    if (this.waveform === 'pulse1' || this.waveform === 'pulse2' || this.waveform === 'pulse') {
+    if (PULSE_WAVEFORMS[this.waveform]) {
       var dutyIdx = 2; // default 50%
       if (this.dutyCycle <= 0.15) {
         dutyIdx = 0;
@@ -699,7 +705,7 @@
     var bufSize = (SL.audio && SL.audio.getScriptProcessorBufferSize) ? SL.audio.getScriptProcessorBufferSize() : 1024;
 
     for (var i = 0; i < 4; i++) {
-      fallbackVoicesByInst[i] = [];
+      fallbackVoicesByInst[i].length = 0;
       for (var v = 0; v < MAX_VOICES_PER_INSTRUMENT; v++) {
         fallbackVoicesByInst[i].push(new ChipVoice(sr));
       }
@@ -739,7 +745,7 @@
       })(idx);
     }
 
-    engineReady = true;
+    isEngineReady = true;
     return Promise.resolve(true);
   }
 
@@ -766,53 +772,49 @@
       instId = 0;
     }
     var filterNode = chipFilterNodes[instId];
-    if (!filterNode) {
-      return;
-    }
-
-    var filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
-    if (!filterSettings || !filterSettings.enabled) {
-      filterNode.type = 'lowpass';
-      filterNode.frequency.value = 20000;
-      filterNode.Q.value = 0.707;
-    } else {
-      filterNode.type = filterSettings.type || 'lowpass';
-      filterNode.frequency.value = Math.max(20, Math.min(20000, filterSettings.frequency || 20000));
-      filterNode.Q.value = Math.max(0.1, Math.min(30, filterSettings.resonance || 1));
+    if (filterNode) {
+      var filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
+      if (!filterSettings || !filterSettings.enabled) {
+        filterNode.type = 'lowpass';
+        filterNode.frequency.value = 20000;
+        filterNode.Q.value = 0.707;
+      } else {
+        filterNode.type = filterSettings.type || 'lowpass';
+        filterNode.frequency.value = Math.max(20, Math.min(20000, filterSettings.frequency || 20000));
+        filterNode.Q.value = Math.max(0.1, Math.min(30, filterSettings.resonance || 1));
+      }
     }
   }
 
   function connectToOutput(instId) {
-    if (!scriptNodes[instId]) {
-      return;
-    }
-
-    if (connectedInsts[instId]) {
-      updateFilter(instId);
-    } else {
-      var instruments = SL.audio && SL.audio.getInstruments ? SL.audio.getInstruments() : null;
-      var inst = instruments ? instruments[instId] : null;
-      var destination;
-
-      if (inst && inst.masterOutput) {
-        destination = inst.masterOutput;
-      } else if (audioContext) {
-        destination = audioContext.destination;
+    if (scriptNodes[instId]) {
+      if (connectedInsts[instId]) {
+        updateFilter(instId);
       } else {
-        return;
+        var instruments = SL.audio && SL.audio.getInstruments ? SL.audio.getInstruments() : null;
+        var inst = instruments ? instruments[instId] : null;
+        var destination;
+
+        if (inst && inst.masterOutput) {
+          destination = inst.masterOutput;
+        } else if (audioContext) {
+          destination = audioContext.destination;
+        }
+
+        if (destination) {
+          var filterNode = getOrCreateFilterNode(instId);
+          updateFilter(instId);
+
+          if (filterNode) {
+            scriptNodes[instId].connect(filterNode);
+            filterNode.connect(destination);
+          } else {
+            scriptNodes[instId].connect(destination);
+          }
+
+          connectedInsts[instId] = true;
+        }
       }
-
-      var filterNode = getOrCreateFilterNode(instId);
-      updateFilter(instId);
-
-      if (filterNode) {
-        scriptNodes[instId].connect(filterNode);
-        filterNode.connect(destination);
-      } else {
-        scriptNodes[instId].connect(destination);
-      }
-
-      connectedInsts[instId] = true;
     }
   }
 
@@ -925,7 +927,7 @@
 
   function setChipMode(instId, chip) {
     var settings = getOrCreateSettings(instId);
-    if (chip === 'sid' || chip === 'nes' || chip === 'gameboy' || chip === 'genesis') {
+    if (VALID_CHIP_MODES[chip]) {
       settings.chip = chip;
       // Set default bit depths per chip
       if (chip === 'sid') {
@@ -995,7 +997,7 @@
   }
 
   function isReady() {
-    return engineReady;
+    return isEngineReady;
   }
 
   // ============================================================

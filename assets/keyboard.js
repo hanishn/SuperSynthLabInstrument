@@ -1,31 +1,36 @@
 // Synth Lab - Keyboard Module
 (function() {
-  const SL = window.SynthLab;
+  var SL = window.SynthLab;
 
   // Local references to constants
-  const NOTES = SL.NOTES;
-  const DOT_CLASS = SL.DOT_CLASS;
-  const OCT_CLASS = SL.OCT_CLASS;
+  var NOTES = SL.NOTES;
+  var DOT_CLASS = SL.DOT_CLASS;
+  var OCT_CLASS = SL.OCT_CLASS;
 
   /**
    * Get the current scale notes based on root and mode selection
    * @returns {number[]} Array of pitch classes (0-11) in the current scale
    */
   function getScaleNotes() {
-    const rootEl = document.getElementById('rootNote');
-    const modeEl = document.getElementById('mode');
-    const root = parseInt(rootEl.value);
-    const m = SL.MODES[modeEl.value];
-    return m.scale.map(s => (root + s) % 12);
+    var rootEl = document.getElementById('rootNote');
+    var modeEl = document.getElementById('mode');
+    if (rootEl) {
+      if (modeEl) {
+        var root = parseInt(rootEl.value);
+        var m = SL.MODES[modeEl.value];
+        return m.scale.map(function(s) { return (root + s) % 12; });
+      }
+    }
+    return [];
   }
 
   /**
    * Update the octave range display
    */
   function updateOctRange() {
-    const octRange = document.getElementById('octRange');
-    const baseOct = SL.ui ? SL.ui.getBaseOctave() : 4;
-    octRange.textContent = 'C' + baseOct + '-C' + (baseOct + 3);
+    var octRange = document.getElementById('octRange');
+    var baseOct = SL.ui ? SL.ui.getBaseOctave() : 4;
+    if (octRange) { octRange.textContent = 'C' + baseOct + '-C' + (baseOct + 3); }
   }
 
   /**
@@ -46,21 +51,22 @@
    */
   function updateNoteReadout(midi) {
     var noteReadout = document.getElementById('noteReadout');
-    if (!noteReadout) {
-      // SSLI uses 'ssliNoteReadout' instead — skip gracefully
-      return;
-    }
-    var name = midiToName(midi);
-    var freq = SL.audio.m2f(midi).toFixed(1);
-    var centStr = '';
-    if (SL.tuning && SL.tuning.getCentOffset && SL.tuning.getCurrentSystem && SL.tuning.getCurrentSystem() !== 'equal') {
-      var cents = SL.tuning.getCentOffset(midi);
-      if (cents !== 0) {
-        var sign = cents > 0 ? '+' : '';
-        centStr = ' ' + sign + cents.toFixed(1) + '\u00A2';
+    if (noteReadout) {
+      var name = midiToName(midi);
+      var freq = SL.audio.m2f(midi).toFixed(1);
+      var centStr = '';
+      var hasTuningOffset = SL.tuning && SL.tuning.getCentOffset;
+      var isNonEqualTuning = hasTuningOffset && SL.tuning.getCurrentSystem && SL.tuning.getCurrentSystem() !== 'equal';
+      if (isNonEqualTuning) {
+        var cents = SL.tuning.getCentOffset(midi);
+        if (cents !== 0) {
+          var sign = cents > 0 ? '+' : '';
+          centStr = ' ' + sign + cents.toFixed(1) + '\u00A2';
+        }
       }
+      noteReadout.textContent = name + centStr + ' (' + freq + ' Hz)';
     }
-    noteReadout.textContent = name + centStr + ' (' + freq + ' Hz)';
+    // else: SSLI uses ssliNoteReadout instead - skip gracefully
   }
 
   /**
@@ -68,33 +74,34 @@
    * Skips if current instrument is a sampler (drum pad mode)
    */
   function buildKeyboard() {
-    // If current instrument is sampler/percussion, show drum pads instead
-    if (SL.drumPads && SL.drumPads.isDrumPadMode()) {
-      return;
-    }
     var currentInst = SL.audio && SL.audio.getCurrentInstrument ? SL.audio.getCurrentInstrument() : 0;
     var instType = SL.audio && SL.audio.getInstrumentType ? SL.audio.getInstrumentType(currentInst) : 'subtractive';
-    if (instType === 'sampler' && SL.drumPads) {
+    // If current instrument is sampler/percussion, show drum pads instead
+    if (SL.drumPads && SL.drumPads.isDrumPadMode()) {
+      // drum pad mode - no keyboard to build
+    } else if (instType === 'sampler' && SL.drumPads) {
       SL.drumPads.buildDrumPads();
-      return;
-    }
+    } else {
 
-    const kbEl = document.getElementById('keyboard');
-    kbEl.innerHTML = '';
+    var kbEl = document.getElementById('keyboard');
+    if (kbEl) { kbEl.innerHTML = ''; }
 
-    const scaleNotes = getScaleNotes();
-    const baseOct = SL.ui ? SL.ui.getBaseOctave() : 4;
-    const startMidi = (baseOct + 1) * 12;
-    const endMidi = (baseOct + 4) * 12;
+    var scaleNotes = getScaleNotes();
+    var baseOct = SL.ui ? SL.ui.getBaseOctave() : 4;
+    var startMidi = (baseOct + 1) * 12;
+    var endMidi = (baseOct + 4) * 12;
 
-    for (let i = startMidi; i <= endMidi; i++) {
-      const pc = i % 12;
-      const oct = Math.floor(i / 12) - 1;
-      const isBlack = [1, 3, 6, 8, 10].includes(pc);
-      const inKey = scaleNotes.includes(pc);
+    var frag = document.createDocumentFragment();
+    for (var i = startMidi; i <= endMidi; i++) {
+      var pc = i % 12;
+      var oct = Math.floor(i / 12) - 1;
+      var isBlack = [1, 3, 6, 8, 10].includes(pc);
+      var inKey = scaleNotes.includes(pc);
 
-      const key = document.createElement('div');
-      key.className = 'key ' + (isBlack ? 'black' : 'white') + (inKey ? '' : ' out-key');
+      var keyColorClass = isBlack ? 'black' : 'white';
+      var keyInKeyClass = inKey ? '' : ' out-key';
+      var key = document.createElement('div');
+      key.className = 'key ' + keyColorClass + keyInKeyClass;
       key.dataset.note = i;
       key.setAttribute('role', 'button');
       key.setAttribute('tabindex', '0');
@@ -103,34 +110,34 @@
       key.setAttribute('aria-pressed', 'false');
 
       // Create color dot for pitch class with note letter (colorblind accessibility)
-      const dot = document.createElement('div');
+      var dot = document.createElement('div');
       dot.className = 'note-dot ' + DOT_CLASS[pc];
       dot.textContent = NOTES[pc].charAt(0);
       key.appendChild(dot);
 
       // Create octave stripe
-      const stripe = document.createElement('div');
+      var stripe = document.createElement('div');
       stripe.className = 'oct-stripe ' + (OCT_CLASS[oct] || '');
       key.appendChild(stripe);
 
       // Create label
-      const lbl = document.createElement('span');
+      var lbl = document.createElement('span');
       lbl.textContent = NOTES[pc] + oct;
       key.appendChild(lbl);
 
       // Event listeners for playing notes
-      key.addEventListener('mousedown', e => {
+      key.addEventListener('mousedown', function(e) {
         e.preventDefault();
         key.setAttribute('aria-pressed', 'true');
         SL.audio.startSustainedNote(i);
       });
-      key.addEventListener('mouseup', () => {
+      key.addEventListener('mouseup', function() {
         key.setAttribute('aria-pressed', 'false');
         SL.audio.stopSustainedNote(i);
       });
       // Only stop on mouseleave if mouse button is NOT held down
       // This allows dragging to mixer modal while holding a note
-      key.addEventListener('mouseleave', (e) => {
+      key.addEventListener('mouseleave', function(e) {
         if (e.buttons === 0) {
           key.setAttribute('aria-pressed', 'false');
           SL.audio.stopSustainedNote(i);
@@ -138,34 +145,35 @@
       });
 
       // Touch support for mobile
-      key.addEventListener('touchstart', (e) => {
+      key.addEventListener('touchstart', function(e) {
         e.preventDefault();
         key.setAttribute('aria-pressed', 'true');
         SL.audio.startSustainedNote(i);
       });
-      key.addEventListener('touchend', (e) => {
+      key.addEventListener('touchend', function(e) {
         e.preventDefault();
         key.setAttribute('aria-pressed', 'false');
         SL.audio.stopSustainedNote(i);
       });
-      key.addEventListener('touchcancel', () => {
+      key.addEventListener('touchcancel', function() {
         key.setAttribute('aria-pressed', 'false');
         SL.audio.stopSustainedNote(i);
       });
 
       // Drag support for sequencer
       key.draggable = true;
-      key.addEventListener('dragstart', e => {
-        const dragData = { midi: i, name: midiToName(i) };
+      key.addEventListener('dragstart', function(e) {
+        var dragData = { midi: i, name: midiToName(i) };
         e.dataTransfer.setData('text/plain', JSON.stringify(dragData));
         SL.currentDragData = dragData;  // Store globally for dragover access
       });
-      key.addEventListener('dragend', () => {
+      key.addEventListener('dragend', function() {
         SL.currentDragData = null;  // Clear global drag data
       });
 
-      kbEl.appendChild(key);
+      frag.appendChild(key);
     }
+    kbEl.appendChild(frag);
 
     updateOctRange();
 
@@ -173,6 +181,7 @@
     if (SL.audio && SL.audio.invalidateKeyCache) {
       SL.audio.invalidateKeyCache();
     }
+    } // end else (build keyboard)
   }
 
   // Export to SynthLab namespace

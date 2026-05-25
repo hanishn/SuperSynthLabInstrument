@@ -32,6 +32,9 @@
   var ADSR_MODE_SINGLE = 'single';
   var ADSR_MODE_DUAL = 'dual';
 
+  // State change keys that require control rebuild
+  var STATE_CHANGE_REBUILD_KEYS = { 'preset': 1, 'instrument': 1, 'shape': 1 };
+
   var ADSR_CANVAS_HEIGHT = 28;
   var ADSR_CURVE_PADDING = 4;
   var ADSR_SUSTAIN_WIDTH_RATIO = 0.2;  // fraction of width for sustain hold
@@ -100,9 +103,9 @@
   // State
   // ============================================================
 
-  var _initialized = false;
-  var _active = false;
-  var _selfNotifying = false;  // guard: prevent rebuild loop when our own sliders fire state.notify
+  var isScreenInitialized = false;
+  var isScreenActive = false;
+  var isSelfNotifying = false;  // guard: prevent rebuild loop when our own sliders fire state.notify
   var _screenEl = null;
   var _adsrMode = ADSR_MODE_SINGLE;
 
@@ -188,11 +191,11 @@
   }
 
   function _notifyChange() {
-    _selfNotifying = true;
+    isSelfNotifying = true;
     if (SL.state && SL.state.notify) {
       SL.state.notify('shape');
     }
-    _selfNotifying = false;
+    isSelfNotifying = false;
     _refreshAdsrCurves();
   }
 
@@ -207,9 +210,7 @@
    * @param {string} strokeColor - Line color
    */
   function _drawAdsrCurve(canvas, adsr, strokeColor) {
-    if (!canvas) {
-      return;
-    }
+    if (canvas) {
     var ctx = canvas.getContext('2d');
     var w = canvas.width;
     var h = canvas.height;
@@ -287,6 +288,7 @@
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
     ctx.stroke();
+    } // end if (canvas)
   }
 
   /**
@@ -294,9 +296,7 @@
    */
   function _refreshAdsrCurves() {
     var settings = _getSettings();
-    if (!settings) {
-      return;
-    }
+    if (settings) {
     if (_ampAdsrCanvas) {
       _syncCanvasWidth(_ampAdsrCanvas);
       _drawAdsrCurve(_ampAdsrCanvas, settings.adsr, ADSR_STROKE_COLOR);
@@ -305,6 +305,7 @@
       _syncCanvasWidth(_filterAdsrCanvas);
       _drawAdsrCurve(_filterAdsrCanvas, settings.filterEnv, '#f77f00');
     }
+    } // end if (settings)
   }
 
   /**
@@ -321,12 +322,11 @@
   }
 
   function _syncCanvasWidth(canvas) {
-    if (!canvas) {
-      return;
-    }
-    var displayWidth = canvas.clientWidth;
-    if (displayWidth > 0 && canvas.width !== displayWidth) {
-      canvas.width = displayWidth;
+    if (canvas) {
+      var displayWidth = canvas.clientWidth;
+      if (displayWidth > 0 && canvas.width !== displayWidth) {
+        canvas.width = displayWidth;
+      }
     }
   }
 
@@ -408,7 +408,8 @@
           s.filterEnv.a = v;
         } else {
           s.adsr.a = v;
-          if (_adsrMode === ADSR_MODE_SINGLE && s.filterEnv && s.filterEnv.link) {
+          var isLinkedSingleMode = (_adsrMode === ADSR_MODE_SINGLE) && s.filterEnv && s.filterEnv.link;
+          if (isLinkedSingleMode) {
             s.filterEnv.a = v;
           }
         }
@@ -424,7 +425,8 @@
           s.filterEnv.d = v;
         } else {
           s.adsr.d = v;
-          if (_adsrMode === ADSR_MODE_SINGLE && s.filterEnv && s.filterEnv.link) {
+          var isLinkedSingleMode = (_adsrMode === ADSR_MODE_SINGLE) && s.filterEnv && s.filterEnv.link;
+          if (isLinkedSingleMode) {
             s.filterEnv.d = v;
           }
         }
@@ -442,7 +444,8 @@
           s.filterEnv.s = v;
         } else {
           s.adsr.s = v;
-          if (_adsrMode === ADSR_MODE_SINGLE && s.filterEnv && s.filterEnv.link) {
+          var isLinkedSingleMode = (_adsrMode === ADSR_MODE_SINGLE) && s.filterEnv && s.filterEnv.link;
+          if (isLinkedSingleMode) {
             s.filterEnv.s = v;
           }
         }
@@ -458,7 +461,8 @@
           s.filterEnv.r = v;
         } else {
           s.adsr.r = v;
-          if (_adsrMode === ADSR_MODE_SINGLE && s.filterEnv && s.filterEnv.link) {
+          var isLinkedSingleMode = (_adsrMode === ADSR_MODE_SINGLE) && s.filterEnv && s.filterEnv.link;
+          if (isLinkedSingleMode) {
             s.filterEnv.r = v;
           }
         }
@@ -505,7 +509,7 @@
     enableCb.type = 'checkbox';
     enableCb.className = 'ssli-shape-checkbox';
     enableCb.checked = filter.enabled;
-    enableCb.setAttribute('aria-label', 'Enable Filter');
+    enableCb.setAttribute('aria-label', SL.t('shape_screen.enable_filter'));
     enableCb.title = TIP_FILTER_ENABLE;
     enableCb.addEventListener('change', function() {
       var s = _getSettings();
@@ -518,7 +522,7 @@
 
     var typeSelect = document.createElement('select');
     typeSelect.className = 'ssli-sound-select ssli-shape-filter-type-select';
-    typeSelect.setAttribute('aria-label', 'Filter Type');
+    typeSelect.setAttribute('aria-label', SL.t('shape_screen.filter_type'));
     typeSelect.title = TIP_FILTER_TYPE;
     for (var i = 0; i < FILTER_TYPES.length; i++) {
       var opt = document.createElement('option');
@@ -528,7 +532,9 @@
     }
     var currentTypeIdx = 0;
     for (var t = 0; t < FILTER_TYPES.length; t++) {
-      if (FILTER_TYPES[t].val === filter.type && FILTER_TYPES[t].slope === (filter.slope || 24)) {
+      var isFilterTypeMatch = FILTER_TYPES[t].val === filter.type;
+      var isFilterSlopeMatch = isFilterTypeMatch && FILTER_TYPES[t].slope === (filter.slope || 24);
+      if (isFilterSlopeMatch) {
         currentTypeIdx = t;
         break;
       }
@@ -549,7 +555,7 @@
     var modelSelect = document.createElement('select');
     modelSelect.className = 'ssli-sound-select ssli-shape-filter-model-select';
     modelSelect.title = TIP_FILTER_MODEL;
-    modelSelect.setAttribute('aria-label', 'Filter Model');
+    modelSelect.setAttribute('aria-label', SL.t('shape_screen.filter_model'));
     for (var m = 0; m < FILTER_MODELS.length; m++) {
       var mOpt = document.createElement('option');
       mOpt.value = FILTER_MODELS[m].val;
@@ -767,9 +773,7 @@
 
   function _buildScreen() {
     _screenEl = document.getElementById('ssli-screen-shape');
-    if (!_screenEl) {
-      return;
-    }
+    if (_screenEl) {
     _screenEl.innerHTML = '';
 
     var container = document.createElement('div');
@@ -781,7 +785,9 @@
 
     // Determine initial mode from settings
     var settings = _getSettings();
-    if (settings && settings.filterEnv && settings.filterEnv.enabled && !settings.filterEnv.link) {
+    var hasFilterEnv = settings && settings.filterEnv;
+    var isDualEnvMode = hasFilterEnv && settings.filterEnv.enabled && !settings.filterEnv.link;
+    if (isDualEnvMode) {
       _adsrMode = ADSR_MODE_DUAL;
     } else {
       _adsrMode = ADSR_MODE_SINGLE;
@@ -848,6 +854,7 @@
 
     // Set initial visibility
     _updateAdsrVisibility();
+    } // end if (_screenEl)
   }
 
   // ============================================================
@@ -855,33 +862,31 @@
   // ============================================================
 
   function _onStateChange(what) {
-    if (!_active) {
-      return;
-    }
-    var isSelfTriggeredShape = (what === 'shape' && _selfNotifying);
-    if (!isSelfTriggeredShape && (what === 'preset' || what === 'instrument' || what === 'shape')) {
-      _rebuildControls();
+    if (isScreenActive) {
+      var isSelfTriggeredShape = (what === 'shape' && isSelfNotifying);
+      if (!isSelfTriggeredShape && STATE_CHANGE_REBUILD_KEYS[what]) {
+        _rebuildControls();
+      }
     }
   }
 
   function _rebuildControls() {
-    if (!_initialized) {
-      return;
+    if (isScreenInitialized) {
+      _buildScreen();
+      _refreshAdsrCurves();
     }
-    _buildScreen();
-    _refreshAdsrCurves();
   }
 
   function activate() {
-    _active = true;
-    if (!_initialized) {
+    isScreenActive = true;
+    if (!isScreenInitialized) {
       _buildScreen();
-      _initialized = true;
+      isScreenInitialized = true;
 
       // Re-translate all visible text when the UI language changes
       if (SL.localization && SL.localization.onLanguageChange) {
         SL.localization.onLanguageChange(function() {
-          if (_active) {
+          if (isScreenActive) {
             _buildScreen();
             _refreshAdsrCurves();
           }
@@ -895,7 +900,7 @@
   }
 
   function deactivate() {
-    _active = false;
+    isScreenActive = false;
     SL.state.removeListener(_onStateChange);
   }
 

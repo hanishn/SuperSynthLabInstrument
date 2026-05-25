@@ -264,32 +264,30 @@
     } else {
       el = _fieldEls[zoneIdx];
     }
-    if (!el) {
-      return;
+    if (el) {
+      el.classList.add('handpan-zone-hit');
+      setTimeout(function() {
+        el.classList.remove('handpan-zone-hit');
+      }, HIT_FLASH_DURATION_MS);
     }
-    el.classList.add('handpan-zone-hit');
-    setTimeout(function() {
-      el.classList.remove('handpan-zone-hit');
-    }, HIT_FLASH_DURATION_MS);
   }
 
   function _spawnRipple(clientX, clientY) {
-    if (!_panEl) {
-      return;
+    if (_panEl) {
+      var rect = _panEl.getBoundingClientRect();
+      var localX = clientX - rect.left;
+      var localY = clientY - rect.top;
+      var ripple = document.createElement('div');
+      ripple.className = 'handpan-ripple';
+      ripple.style.left = localX + 'px';
+      ripple.style.top = localY + 'px';
+      _panEl.appendChild(ripple);
+      setTimeout(function() {
+        if (ripple.parentNode) {
+          ripple.parentNode.removeChild(ripple);
+        }
+      }, RIPPLE_DURATION_MS + 50);
     }
-    var rect = _panEl.getBoundingClientRect();
-    var localX = clientX - rect.left;
-    var localY = clientY - rect.top;
-    var ripple = document.createElement('div');
-    ripple.className = 'handpan-ripple';
-    ripple.style.left = localX + 'px';
-    ripple.style.top = localY + 'px';
-    _panEl.appendChild(ripple);
-    setTimeout(function() {
-      if (ripple.parentNode) {
-        ripple.parentNode.removeChild(ripple);
-      }
-    }, RIPPLE_DURATION_MS + 50);
   }
 
   function _updateNoteReadout(noteName) {
@@ -334,14 +332,9 @@
     e.preventDefault();
 
     var tooManyTouches = (_activePointerCount() >= MAX_SIMULTANEOUS_TOUCHES);
-    if (tooManyTouches) {
-      return;
-    }
-
-    var hit = _hitTest(e.clientX, e.clientY);
-    if (!hit.zoneType) {
-      return;
-    }
+    if (!tooManyTouches) {
+      var hit = _hitTest(e.clientX, e.clientY);
+      if (hit.zoneType) {
 
     var scaleIdx;
     if (hit.zoneType === 'ding') {
@@ -382,6 +375,8 @@
     _flashZone(hit.zoneType, hit.zoneIdx);
     _spawnRipple(e.clientX, e.clientY);
     _updateNoteReadout(_midiToName(midi));
+      } // end if (hit.zoneType)
+    } // end if (!tooManyTouches)
   }
 
   function _onPointerUp(e) {
@@ -464,7 +459,7 @@
 
     var scaleSelect = document.createElement('select');
     scaleSelect.className = 'handpan-select';
-    scaleSelect.setAttribute('aria-label', 'Handpan Scale');
+    scaleSelect.setAttribute('aria-label', SL.t('handpan.scale_select'));
     for (var si = 0; si < SCALE_COUNT; si++) {
       var sopt = document.createElement('option');
       sopt.value = String(si);
@@ -504,7 +499,7 @@
     var octDown = document.createElement('button');
     octDown.className = 'handpan-oct-btn';
     octDown.textContent = SL.t('handpan.oct_down');
-    octDown.setAttribute('aria-label', 'Octave Down');
+    octDown.setAttribute('aria-label', SL.t('handpan.oct_down_aria'));
     octDown.addEventListener('pointerdown', function(e) {
       e.stopPropagation();
     });
@@ -525,7 +520,7 @@
     var octUp = document.createElement('button');
     octUp.className = 'handpan-oct-btn';
     octUp.textContent = SL.t('handpan.oct_up');
-    octUp.setAttribute('aria-label', 'Octave Up');
+    octUp.setAttribute('aria-label', SL.t('handpan.oct_up_aria'));
     octUp.addEventListener('pointerdown', function(e) {
       e.stopPropagation();
     });
@@ -612,23 +607,20 @@
   // ============================================================
 
   function _layoutPan(isPhone, topBarH) {
-    if (!_panEl || !_panEl.parentNode) {
-      return;
-    }
-    var playfield = _panEl.parentNode;
-    var containerW = playfield.clientWidth;
-    var containerH = playfield.clientHeight;
+    if (_panEl && _panEl.parentNode) {
+      var playfield = _panEl.parentNode;
+      var containerW = playfield.clientWidth;
+      var containerH = playfield.clientHeight;
 
-    var hasZeroDimensions = (containerW === 0) || (containerH === 0);
-    if (hasZeroDimensions) {
-      // Container not yet laid out — retry after next frame
-      var retryIsPhone = isPhone;
-      var retryTopBarH = topBarH;
-      requestAnimationFrame(function() {
-        _layoutPan(retryIsPhone, retryTopBarH);
-      });
-      return;
-    }
+      var hasZeroDimensions = ((containerW === 0) || (containerH === 0));
+      if (hasZeroDimensions) {
+        // Container not yet laid out — retry after next frame
+        var retryIsPhone = isPhone;
+        var retryTopBarH = topBarH;
+        requestAnimationFrame(function() {
+          _layoutPan(retryIsPhone, retryTopBarH);
+        });
+      } else {
 
     var maxByWidth = containerW - (PADDING_PX * 2);
     var maxByHeight = containerH - (PADDING_PX * 2);
@@ -687,29 +679,30 @@
 
     // Recalculate field centers on scroll/resize
     _updateFieldCentersFromDOM();
+      } // end else (!hasZeroDimensions)
+    } // end if (_panEl && _panEl.parentNode)
   }
 
   function _updateFieldCentersFromDOM() {
-    if (!_panEl) {
-      return;
-    }
-    var panRect = _panEl.getBoundingClientRect();
-    var panR = panRect.width / 2;
-    var panCx = panRect.left + panR;
-    var panCy = panRect.top + panR;
-    var fieldCenterR = panRect.width * FIELD_CENTER_RADIUS_RATIO;
+    if (_panEl) {
+      var panRect = _panEl.getBoundingClientRect();
+      var panR = panRect.width / 2;
+      var panCx = panRect.left + panR;
+      var panCy = panRect.top + panR;
+      var fieldCenterR = panRect.width * FIELD_CENTER_RADIUS_RATIO;
 
-    for (var fi = 0; fi < TONE_FIELD_COUNT; fi++) {
-      var angleDeg = FIELD_ANGLES_DEG[fi];
-      var angleRad = angleDeg * DEG_TO_RAD;
-      _fieldCenters[fi] = {
-        x: panCx + (fieldCenterR * Math.sin(angleRad)),
-        y: panCy - (fieldCenterR * Math.cos(angleRad))
-      };
+      for (var fi = 0; fi < TONE_FIELD_COUNT; fi++) {
+        var angleDeg = FIELD_ANGLES_DEG[fi];
+        var angleRad = angleDeg * DEG_TO_RAD;
+        _fieldCenters[fi] = {
+          x: panCx + (fieldCenterR * Math.sin(angleRad)),
+          y: panCy - (fieldCenterR * Math.cos(angleRad))
+        };
+      }
+      _panRadius = panR;
+      _dingRadius = _dingEl ? (_dingEl.offsetWidth / 2) : 0;
+      _fieldRadius = (_fieldEls.length > 0) ? (_fieldEls[0].offsetWidth / 2) : 0;
     }
-    _panRadius = panR;
-    _dingRadius = _dingEl ? (_dingEl.offsetWidth / 2) : 0;
-    _fieldRadius = (_fieldEls.length > 0) ? (_fieldEls[0].offsetWidth / 2) : 0;
   }
 
   // ============================================================

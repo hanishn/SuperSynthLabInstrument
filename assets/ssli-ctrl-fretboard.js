@@ -14,6 +14,12 @@
   var CHORD_NAME = SL.CHORD_NAME;
   var NUMS = SL.NUMS;
 
+  // Sentinel constants
+  var NOT_FOUND = -1;
+  var NO_TIMER = null;
+  var FRET_MUTED = -1;
+  var NO_CHORD_DEGREE = -1;
+
   // ============================================================
   // Constants
   // ============================================================
@@ -75,7 +81,7 @@
   var _fretStrumModeIdx = 0;
   var _fretStrumDirection = 1;
   var _fretStrumDelayMs = STRUM_DELAY_DEFAULT_MS;
-  var _fretRestrumEnabled = false;
+  var _isFretRestrumEnabled = false;
   var _fretRestrumMs = RESTRUM_DEFAULT_MS;
   var _fretRestrumIntervalId = null;
   var _fretStrumTimeouts = [];
@@ -174,7 +180,7 @@
   var _fretGeo = null;
   var _frettedPositions = {};
   var _mutedStrings = {};
-  var _safetyHandlersInstalled = false;
+  var _hasSafetyHandlersInstalled = false;
   var _currentBendCents = 0;
 
   // Touch tracking for fret-zone slur/slide gestures.
@@ -184,17 +190,17 @@
   var CENTS_PER_SEMITONE = 100;
 
   // Mouse state for strum zone
-  var _mouseDownInStrumZone = false;
+  var _isMouseDownInStrumZone = false;
   var _mouseStrumStartY = 0;
   var _mouseStrumStartTime = 0;
   var _mouseStrumStringsCrossed = [];
   var _mouseStrumStartRow = -1;
 
   // Mouse state for fret zone
-  var _mouseDownInFretZone = false;
+  var _isMouseDownInFretZone = false;
   var _mouseFretRow = -1;
   var _mouseFretStartFret = -1;
-  var _mouseFretSliding = false;
+  var _isMouseFretSliding = false;
 
   // Touch tracking for strum zone
   var _strumZoneTouches = {};
@@ -283,8 +289,8 @@
 
   function _resetAllState() {
     _stringStates = {};
-    _mouseDownInStrumZone = false;
-    _mouseDownInFretZone = false;
+    _isMouseDownInStrumZone = false;
+    _isMouseDownInFretZone = false;
     _mouseStrumStringsCrossed = [];
     _strumZoneTouches = {};
     _fretZoneTouches = {};
@@ -338,7 +344,7 @@
   }
 
   function _isInStrumZone(clientX) {
-    var result = false;
+    var isResult = false;
     if (_fretGeo) {
       var relativeX = clientX - _fretGeo.boardLeft;
       // Use the precomputed strum-zone X from build (accounts for chord-panel
@@ -347,9 +353,9 @@
       // containerWidth, which was 140 px wider than the real board when the
       // chord panel is present — shifting detection past the rightmost fret
       // column so touches on fret 15 never reached the strum handler.
-      result = (relativeX >= _fretGeo.strumZoneStartX);
+      isResult = (relativeX >= _fretGeo.strumZoneStartX);
     }
-    return result;
+    return isResult;
   }
 
   // ============================================================
@@ -357,7 +363,8 @@
   // ============================================================
 
   function _triggerStringVibration(row) {
-    if (_fretGeo && _fretGeo.stringLines && _fretGeo.stringLines[row]) {
+    var hasStringRow = _fretGeo && _fretGeo.stringLines && _fretGeo.stringLines[row];
+    if (hasStringRow) {
       var lines = _fretGeo.stringLines[row];
       var lineIndex;
       for (lineIndex = 0; lineIndex < lines.length; lineIndex++) {
@@ -375,7 +382,8 @@
   }
 
   function _stopStringVibration(row) {
-    if (_fretGeo && _fretGeo.stringLines && _fretGeo.stringLines[row]) {
+    var hasStringRow = _fretGeo && _fretGeo.stringLines && _fretGeo.stringLines[row];
+    if (hasStringRow) {
       var lines = _fretGeo.stringLines[row];
       var lineIndex;
       for (lineIndex = 0; lineIndex < lines.length; lineIndex++) {
@@ -385,7 +393,8 @@
   }
 
   function _fretDeflectString(row, bendCents) {
-    if (_fretGeo && _fretGeo.stringLines && _fretGeo.stringLines[row]) {
+    var hasStringRow = _fretGeo && _fretGeo.stringLines && _fretGeo.stringLines[row];
+    if (hasStringRow) {
       var lines = _fretGeo.stringLines[row];
       var deflect = (bendCents / MAX_BEND_CENTS) * MAX_FRET_DEFLECT_PX;
       var tension = Math.abs(bendCents) / MAX_BEND_CENTS;
@@ -398,7 +407,8 @@
   }
 
   function _fretResetStringDeflection(row) {
-    if (_fretGeo && _fretGeo.stringLines && _fretGeo.stringLines[row]) {
+    var hasStringRow = _fretGeo && _fretGeo.stringLines && _fretGeo.stringLines[row];
+    if (hasStringRow) {
       var lines = _fretGeo.stringLines[row];
       var lineIndex;
       for (lineIndex = 0; lineIndex < lines.length; lineIndex++) {
@@ -427,7 +437,7 @@
   }
 
   function _isStringMuted(row) {
-    return !!_mutedStrings[row];
+    return Boolean(_mutedStrings[row]);
   }
 
   function _setFrettedPosition(row, fret) {
@@ -471,8 +481,8 @@
       var labelIndex;
       for (labelIndex = 0; labelIndex < openLabels.length; labelIndex++) {
         var labelRow = parseInt(openLabels[labelIndex].getAttribute('data-string'), 10);
-        var hasFret = !!_frettedPositions[labelRow];
-        var isMuted = !!_mutedStrings[labelRow];
+        var hasFret = Boolean(_frettedPositions[labelRow]);
+        var isMuted = Boolean(_mutedStrings[labelRow]);
         openLabels[labelIndex].classList.toggle('ctrl-fret-open-active', !hasFret && !isMuted);
         openLabels[labelIndex].classList.toggle('ctrl-fret-muted', isMuted);
       }
@@ -540,7 +550,9 @@
       (function(capturedRow, capturedMidi) {
         setTimeout(function() {
           var currentState = _stringStates[capturedRow];
-          if (currentState && currentState.active && (currentState.midi === capturedMidi)) {
+          var isStringStillActive = currentState && currentState.active;
+          var isMatchingMidi = isStringStillActive && (currentState.midi === capturedMidi);
+          if (isMatchingMidi) {
             _releaseString(capturedRow);
           }
         }, NOTE_SUSTAIN_MS);
@@ -586,7 +598,7 @@
     var st;
     for (st = 0; st < _fretStrumTimeouts.length; st++) { clearTimeout(_fretStrumTimeouts[st]); }
     _fretStrumTimeouts = [];
-    if (_fretRestrumIntervalId !== null) { clearInterval(_fretRestrumIntervalId); _fretRestrumIntervalId = null; }
+    if (_fretRestrumIntervalId !== NO_TIMER) { clearInterval(_fretRestrumIntervalId); _fretRestrumIntervalId = null; }
   }
 
   function _fireStrumPattern(minRow, maxRow) {
@@ -676,8 +688,8 @@
     _fireStrumPattern(minRow, maxRow);
 
     /* Restrum: repeat at interval while holding */
-    if (_fretRestrumIntervalId !== null) { clearInterval(_fretRestrumIntervalId); _fretRestrumIntervalId = null; }
-    if (_fretRestrumEnabled) {
+    if (_fretRestrumIntervalId !== NO_TIMER) { clearInterval(_fretRestrumIntervalId); _fretRestrumIntervalId = null; }
+    if (_isFretRestrumEnabled) {
       _fretRestrumIntervalId = setInterval(function() {
         _fireStrumPattern(minRow, maxRow);
       }, _fretRestrumMs);
@@ -715,17 +727,17 @@
   // ============================================================
 
   function _installSafetyHandlers() {
-    if (!_safetyHandlersInstalled) {
-      _safetyHandlersInstalled = true;
+    if (!_hasSafetyHandlersInstalled) {
+      _hasSafetyHandlersInstalled = true;
 
       document.addEventListener('mouseup', function() {
-        if (_mouseFretSliding) {
+        if (_isMouseFretSliding) {
           _doResetPitchBend();
           _fretResetStringDeflection(_mouseFretRow);
         }
-        _mouseDownInStrumZone = false;
-        _mouseDownInFretZone = false;
-        _mouseFretSliding = false;
+        _isMouseDownInStrumZone = false;
+        _isMouseDownInFretZone = false;
+        _isMouseFretSliding = false;
         _clearFretStrumTimeouts();
         _releaseAllStrings();
       });
@@ -797,16 +809,16 @@
       var inStrumZone = _isInStrumZone(ev.clientX);
 
       if (inStrumZone) {
-        _mouseDownInStrumZone = true;
-        _mouseDownInFretZone = false;
+        _isMouseDownInStrumZone = true;
+        _isMouseDownInFretZone = false;
         _mouseStrumStartY = ev.clientY;
         _mouseStrumStartTime = Date.now();
         _mouseStrumStartRow = row;
         _mouseStrumStringsCrossed = [row];
         _playStringAtCurrentFret(row);
       } else {
-        _mouseDownInFretZone = true;
-        _mouseDownInStrumZone = false;
+        _isMouseDownInFretZone = true;
+        _isMouseDownInStrumZone = false;
         var fret = _fretAtX(ev.clientX);
         var existing = _frettedPositions[row];
 
@@ -820,14 +832,14 @@
         _mouseFretRow = row;
         _mouseFretStartFret = fret;
         var mouseStringState = _stringStates[row];
-        _mouseFretSliding = (mouseStringState && mouseStringState.active);
+        _isMouseFretSliding = (mouseStringState && mouseStringState.active);
       }
     });
 
     board.addEventListener('mousemove', function(ev) {
       // Slur/slide: when mouse is down in fret zone on a sounding string,
       // apply continuous pitch bend based on fractional fret position.
-      if (_mouseDownInFretZone && _mouseFretSliding) {
+      if (_isMouseDownInFretZone && _isMouseFretSliding) {
         var slideFrac = _fractionalFretAtX(ev.clientX);
         _slideToFractionalFret(_mouseFretRow, slideFrac);
 
@@ -838,7 +850,7 @@
         }
       }
 
-      if (_mouseDownInStrumZone) {
+      if (_isMouseDownInStrumZone) {
         var row = _fretStringAtY(ev.clientY);
         var elapsed = Date.now() - _mouseStrumStartTime;
 
@@ -866,23 +878,23 @@
     });
 
     board.addEventListener('mouseup', function() {
-      if (_mouseFretSliding) {
+      if (_isMouseFretSliding) {
         _doResetPitchBend();
         _fretResetStringDeflection(_mouseFretRow);
       }
-      _mouseDownInStrumZone = false;
-      _mouseDownInFretZone = false;
-      _mouseFretSliding = false;
+      _isMouseDownInStrumZone = false;
+      _isMouseDownInFretZone = false;
+      _isMouseFretSliding = false;
     });
 
     board.addEventListener('mouseleave', function() {
-      if (_mouseFretSliding) {
+      if (_isMouseFretSliding) {
         _doResetPitchBend();
         _fretResetStringDeflection(_mouseFretRow);
       }
-      _mouseDownInStrumZone = false;
-      _mouseDownInFretZone = false;
-      _mouseFretSliding = false;
+      _isMouseDownInStrumZone = false;
+      _isMouseDownInFretZone = false;
+      _isMouseFretSliding = false;
     });
 
     // --- TOUCH EVENTS ---
@@ -1085,7 +1097,7 @@
       for (fretSearch = 0; fretSearch <= MAX_FRET_SEARCH; fretSearch++) {
         var notePc = (openNote + fretSearch) % SEMITONES_PER_OCTAVE;
         if (notePc < 0) { notePc += SEMITONES_PER_OCTAVE; }
-        if (chordPitchClasses.indexOf(notePc) !== -1) {
+        if (chordPitchClasses.indexOf(notePc) !== NOT_FOUND) {
           // Score: prefer lower frets; prefer root on lowest strings
           var score = fretSearch;
           if ((stringIdx === 0) && (notePc !== rootPc)) {
@@ -1116,7 +1128,9 @@
       // Try to mute the strings causing the span issue (from lowest)
       var adjustIdx;
       for (adjustIdx = 0; adjustIdx < frets.length; adjustIdx++) {
-        if ((frets[adjustIdx] > 0) && ((frets[adjustIdx] === minFret) || (frets[adjustIdx] === maxFret))) {
+        var isFretted = frets[adjustIdx] > 0;
+        var isSpanFret = isFretted && ((frets[adjustIdx] === minFret) || (frets[adjustIdx] === maxFret));
+        if (isSpanFret) {
           var wouldBeMin = 999;
           var wouldBeMax = 0;
           var checkIdx;
@@ -1206,7 +1220,7 @@
       for (stringIndex = 0; stringIndex < frets.length; stringIndex++) {
         var fret = frets[stringIndex];
         var visualRow = _fretGeo.numStrings - 1 - stringIndex;
-        if (fret === -1) {
+        if (fret === FRET_MUTED) {
           _mutedStrings[visualRow] = true;
         } else if (fret > 0) {
           _frettedPositions[visualRow] = { fret: fret, midi: _fretMidiForRowFret(visualRow, fret) };
@@ -1223,7 +1237,7 @@
   // ============================================================
 
   function _clearFretPopupDismissTimer() {
-    if (_fretPopupDismissTimerId !== null) {
+    if (_fretPopupDismissTimerId !== NO_TIMER) {
       clearTimeout(_fretPopupDismissTimerId);
       _fretPopupDismissTimerId = null;
     }
@@ -1545,13 +1559,13 @@
     // Restrum toggle
     var restrumBtn = document.createElement('button');
     restrumBtn.className = 'ssli-fret-chord-btn';
-    restrumBtn.textContent = _fretRestrumEnabled ? 'Repeat' : 'Once';
-    restrumBtn.style.borderColor = _fretRestrumEnabled ? 'var(--ssli-accent)' : '';
+    restrumBtn.textContent = _isFretRestrumEnabled ? 'Repeat' : 'Once';
+    restrumBtn.style.borderColor = _isFretRestrumEnabled ? 'var(--ssli-accent)' : '';
     restrumBtn.addEventListener('click', function(ev) {
       ev.stopPropagation();
-      _fretRestrumEnabled = !_fretRestrumEnabled;
-      restrumBtn.textContent = _fretRestrumEnabled ? 'Repeat' : 'Once';
-      restrumBtn.style.borderColor = _fretRestrumEnabled ? 'var(--ssli-accent)' : '';
+      _isFretRestrumEnabled = !_isFretRestrumEnabled;
+      restrumBtn.textContent = _isFretRestrumEnabled ? 'Repeat' : 'Once';
+      restrumBtn.style.borderColor = _isFretRestrumEnabled ? 'var(--ssli-accent)' : '';
     });
     row1.appendChild(restrumBtn);
 
@@ -1599,7 +1613,7 @@
   function _buildOpenChordButton(container, config) {
     var openBtn = document.createElement('button');
     openBtn.className = 'ssli-fret-chord-btn ssli-fret-chord-open';
-    if (config.activeChordDegree === -1) {
+    if (config.activeChordDegree === NO_CHORD_DEGREE) {
       openBtn.classList.add('ssli-fret-chord-active');
     }
     openBtn.textContent = SL.t('fretboard.open_btn');
@@ -1616,6 +1630,10 @@
       openBtn.classList.add('ssli-fret-chord-active');
     });
     return openBtn;
+  }
+
+  function _makeCourseLineList() {
+    return [];
   }
 
   // ============================================================
@@ -1812,6 +1830,7 @@
 
     // Strings and fret positions
     var noteNames = SL.useFlatNaming(config.rootPc) ? NOTES_FLAT : NOTES;
+    var boardFrag = document.createDocumentFragment();
     var rowIndex;
     for (rowIndex = 0; rowIndex < numStrings; rowIndex++) {
       var currentStringIndex = numStrings - 1 - rowIndex;
@@ -1819,7 +1838,7 @@
       var stringY = stringYPositions[rowIndex];
 
       // Course lines (1, 2, or 3 lines per course)
-      var courseLines = [];
+      var courseLines = _makeCourseLineList();
       var courseOffset;
       var courseSpread = 3; // pixels between course lines
       var courseStart = -(courses - 1) * courseSpread / 2;
@@ -1842,7 +1861,7 @@
         // narrow viewports.
         stringLine.style.width = (boardWidth - openLabelWidthPx) + 'px';
         stringLine.style.height = thickness + 'px';
-        board.appendChild(stringLine);
+        boardFrag.appendChild(stringLine);
         courseLines.push(stringLine);
       }
       stringLines[rowIndex] = courseLines;
@@ -1853,7 +1872,7 @@
       openLabel.setAttribute('data-string', rowIndex);
       openLabel.style.top = (stringY - 14) + 'px';
       openLabel.textContent = noteNames[openMidi % SEMITONES_PER_OCTAVE] + (Math.floor(openMidi / SEMITONES_PER_OCTAVE) - 1);
-      board.appendChild(openLabel);
+      boardFrag.appendChild(openLabel);
 
       // Fret positions
       var fretIndex;
@@ -1876,11 +1895,13 @@
         noteLabel.textContent = noteNames[pitchClass];
         fretElement.appendChild(noteLabel);
 
-        board.appendChild(fretElement);
+        boardFrag.appendChild(fretElement);
       }
     }
+    board.appendChild(boardFrag);
 
     // Fret lines (vertical)
+    var fretLineFrag = document.createDocumentFragment();
     var fretLineIndex;
     for (fretLineIndex = 1; fretLineIndex <= fretCount; fretLineIndex++) {
       var fretLine = document.createElement('div');
@@ -1888,8 +1909,9 @@
       fretLine.style.left = (openLabelWidthPx + fretLineIndex * fretWidth - 1) + 'px';
       fretLine.style.top = headerHeight + 'px';
       fretLine.style.height = stringAreaHeight + 'px';
-      board.appendChild(fretLine);
+      fretLineFrag.appendChild(fretLine);
     }
+    board.appendChild(fretLineFrag);
 
     // Strum zone overlay — starts immediately after the rightmost fret cell,
     // using the actual fretable width rather than containerWidth (which was
@@ -1905,14 +1927,16 @@
 
     /* Strum zone label removed — big strum button replaces it */
 
+    var strumFrag = document.createDocumentFragment();
     var strumIndicatorIndex;
     for (strumIndicatorIndex = 0; strumIndicatorIndex < numStrings; strumIndicatorIndex++) {
       var indicatorY = stringYPositions[strumIndicatorIndex] - headerHeight;
       var indicator = document.createElement('div');
       indicator.className = 'ctrl-strum-zone-string-indicator';
       indicator.style.top = (indicatorY - 3) + 'px';
-      strumZone.appendChild(indicator);
+      strumFrag.appendChild(indicator);
     }
+    strumZone.appendChild(strumFrag);
 
     board.appendChild(strumZone);
     boardRow.appendChild(board);
@@ -1924,7 +1948,7 @@
     bigStrumBtn.style.height = boardHeight + 'px';
     bigStrumBtn.style.flexShrink = '0';
     bigStrumBtn.innerHTML = SL.t('fretboard.strum_label');
-    bigStrumBtn.setAttribute('aria-label', 'Strum all strings');
+    bigStrumBtn.setAttribute('aria-label', SL.t('fretboard.strum_all'));
     bigStrumBtn.addEventListener('mousedown', function(ev) {
       ev.preventDefault();
       ev.stopPropagation();
@@ -2054,7 +2078,9 @@
         var row;
         var activeCount = 0;
         for (row in _stringStates) {
-          if (_stringStates.hasOwnProperty(row) && _stringStates[row] && _stringStates[row].active) {
+          var isOwnedActiveRow = _stringStates.hasOwnProperty(row) && _stringStates[row];
+          var isActiveString = isOwnedActiveRow && _stringStates[row].active;
+          if (isActiveString) {
             activeCount++;
           }
         }

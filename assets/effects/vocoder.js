@@ -2,8 +2,8 @@
 // Classic synthwave vocal processing using analysis/synthesis filter banks
 
 (function() {
-  const SL = window.SynthLab;
-  const BaseEffect = SL.effects.BaseEffect;
+  var SL = window.SynthLab;
+  var BaseEffect = SL.effects.BaseEffect;
 
   /**
    * VocoderEffect - Classic vocoder with configurable filter banks
@@ -68,7 +68,7 @@
      * Build the carrier signal (sawtooth oscillator + noise)
      */
     _buildCarrier() {
-      const ctx = this.ctx;
+      var ctx = this.ctx;
 
       // Create sawtooth oscillator as primary carrier
       this.carrierOscillator = ctx.createOscillator();
@@ -108,12 +108,12 @@
      * Create a buffer of white noise
      */
     _createNoiseBuffer() {
-      const ctx = this.ctx;
-      const bufferSize = ctx.sampleRate * 2; // 2 seconds of noise
-      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const data = buffer.getChannelData(0);
+      var ctx = this.ctx;
+      var bufferSize = ctx.sampleRate * 2; // 2 seconds of noise
+      var buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      var data = buffer.getChannelData(0);
 
-      for (let i = 0; i < bufferSize; i++) {
+      for (var i = 0; i < bufferSize; i++) {
         data[i] = Math.random() * 2 - 1;
       }
 
@@ -124,14 +124,14 @@
      * Calculate center frequencies for filter bands using logarithmic spacing
      */
     _calculateBandFrequencies(numBands) {
-      const frequencies = [];
-      const logMin = Math.log(this.minFreq);
-      const logMax = Math.log(this.maxFreq);
-      const logStep = (logMax - logMin) / numBands;
+      var frequencies = [];
+      var logMin = Math.log(this.minFreq);
+      var logMax = Math.log(this.maxFreq);
+      var logStep = (logMax - logMin) / numBands;
 
-      for (let i = 0; i < numBands; i++) {
+      for (var i = 0; i < numBands; i++) {
         // Center frequency for each band
-        const logFreq = logMin + (i + 0.5) * logStep;
+        var logFreq = logMin + (i + 0.5) * logStep;
         frequencies.push(Math.exp(logFreq));
       }
 
@@ -152,31 +152,31 @@
       // Clean up existing filters
       this._disposeFilterBanks();
 
-      const ctx = this.ctx;
-      const frequencies = this._calculateBandFrequencies(numBands);
+      var ctx = this.ctx;
+      var frequencies = this._calculateBandFrequencies(numBands);
 
       // Calculate Q based on band spacing for proper overlap
       // Q = centerFreq / bandwidth, we want slight overlap
-      const logMin = Math.log(this.minFreq);
-      const logMax = Math.log(this.maxFreq);
-      const bandwidth = (logMax - logMin) / numBands;
-      const baseQ = 1 / (Math.exp(bandwidth) - Math.exp(-bandwidth)) * 2;
+      var logMin = Math.log(this.minFreq);
+      var logMax = Math.log(this.maxFreq);
+      var bandwidth = (logMax - logMin) / numBands;
+      var baseQ = 1 / (Math.exp(bandwidth) - Math.exp(-bandwidth)) * 2;
 
       // Apply resonance parameter to Q
-      const resonanceMultiplier = 1 + (this.params.resonance / 100) * 4;
-      const filterQ = baseQ * resonanceMultiplier;
+      var resonanceMultiplier = 1 + (this.params.resonance / 100) * 4;
+      var filterQ = baseQ * resonanceMultiplier;
 
       // Attack and release time constants for envelope follower
-      const attackTime = this.params.attack / 1000;
-      const releaseTime = this.params.release / 1000;
+      var attackTime = this.params.attack / 1000;
+      var releaseTime = this.params.release / 1000;
 
-      for (let i = 0; i < numBands; i++) {
-        const centerFreq = frequencies[i];
-        const shiftedFreq = this._shiftFrequency(centerFreq, this.params.shift);
+      for (var i = 0; i < numBands; i++) {
+        var centerFreq = frequencies[i];
+        var shiftedFreq = this._shiftFrequency(centerFreq, this.params.shift);
 
         // === Analysis path (modulator/input signal) ===
         // Bandpass filter for analysis
-        const analysisFilter = ctx.createBiquadFilter();
+        var analysisFilter = ctx.createBiquadFilter();
         analysisFilter.type = 'bandpass';
         analysisFilter.frequency.value = centerFreq;
         analysisFilter.Q.value = filterQ;
@@ -187,17 +187,17 @@
 
         // === Envelope follower ===
         // Rectifier (using waveshaper for full-wave rectification)
-        const rectifier = ctx.createWaveShaper();
+        var rectifier = ctx.createWaveShaper();
         rectifier.curve = this._createRectifierCurve();
 
         // Lowpass filter to smooth the rectified signal (envelope extraction)
-        const envelopeLowpass = ctx.createBiquadFilter();
+        var envelopeLowpass = ctx.createBiquadFilter();
         envelopeLowpass.type = 'lowpass';
         envelopeLowpass.frequency.value = 1 / (2 * Math.PI * Math.max(attackTime, releaseTime));
         envelopeLowpass.Q.value = 0.5;
 
         // Envelope gain (will modulate the synthesis band)
-        const envelopeGain = ctx.createGain();
+        var envelopeGain = ctx.createGain();
         envelopeGain.gain.value = 0;
 
         // Connect envelope follower chain
@@ -215,7 +215,7 @@
 
         // === Synthesis path (carrier signal) ===
         // Bandpass filter for synthesis (at shifted frequency)
-        const synthesisFilter = ctx.createBiquadFilter();
+        var synthesisFilter = ctx.createBiquadFilter();
         synthesisFilter.type = 'bandpass';
         synthesisFilter.frequency.value = shiftedFreq;
         synthesisFilter.Q.value = filterQ;
@@ -238,10 +238,10 @@
      * Create a full-wave rectifier curve for envelope detection
      */
     _createRectifierCurve() {
-      const samples = 256;
-      const curve = new Float32Array(samples);
-      for (let i = 0; i < samples; i++) {
-        const x = (i / samples) * 2 - 1;
+      var samples = 256;
+      var curve = new Float32Array(samples);
+      for (var i = 0; i < samples; i++) {
+        var x = (i / samples) * 2 - 1;
         curve[i] = Math.abs(x);
       }
       return curve;
@@ -252,10 +252,10 @@
      * Uses AudioWorklet-free approach with gain node modulation
      */
     _connectEnvelopeModulation(envelopeLowpass, envelopeGain, bandIndex) {
-      const ctx = this.ctx;
+      var ctx = this.ctx;
 
       // Create a gain node that will scale the envelope signal
-      const envelopeScaler = ctx.createGain();
+      var envelopeScaler = ctx.createGain();
       envelopeScaler.gain.value = 4.0; // Amplify envelope signal
 
       // Connect envelope to the gain parameter of the synthesis output
@@ -271,19 +271,19 @@
      */
     _disposeFilterBanks() {
       // Disconnect analysis filters
-      this.analysisFilters.forEach(filter => {
+      this.analysisFilters.forEach(function(filter) {
         filter.disconnect();
       });
       this.analysisFilters = [];
 
       // Disconnect synthesis filters
-      this.synthesisFilters.forEach(filter => {
+      this.synthesisFilters.forEach(function(filter) {
         filter.disconnect();
       });
       this.synthesisFilters = [];
 
       // Disconnect envelope followers
-      this.envelopeFollowers.forEach(env => {
+      this.envelopeFollowers.forEach(function(env) {
         env.rectifier.disconnect();
         env.lowpass.disconnect();
         env.gain.disconnect();
@@ -298,23 +298,23 @@
      * Update all filter Q values based on resonance
      */
     _updateResonance() {
-      const numBands = this.analysisFilters.length;
+      var numBands = this.analysisFilters.length;
       if (numBands === 0) return;
 
-      const logMin = Math.log(this.minFreq);
-      const logMax = Math.log(this.maxFreq);
-      const bandwidth = (logMax - logMin) / numBands;
-      const baseQ = 1 / (Math.exp(bandwidth) - Math.exp(-bandwidth)) * 2;
-      const resonanceMultiplier = 1 + (this.params.resonance / 100) * 4;
-      const filterQ = baseQ * resonanceMultiplier;
+      var logMin = Math.log(this.minFreq);
+      var logMax = Math.log(this.maxFreq);
+      var bandwidth = (logMax - logMin) / numBands;
+      var baseQ = 1 / (Math.exp(bandwidth) - Math.exp(-bandwidth)) * 2;
+      var resonanceMultiplier = 1 + (this.params.resonance / 100) * 4;
+      var filterQ = baseQ * resonanceMultiplier;
 
-      const currentTime = this.ctx.currentTime;
+      var currentTime = this.ctx.currentTime;
 
-      this.analysisFilters.forEach(filter => {
+      this.analysisFilters.forEach(function(filter) {
         filter.Q.setTargetAtTime(filterQ, currentTime, 0.01);
       });
 
-      this.synthesisFilters.forEach(filter => {
+      this.synthesisFilters.forEach(function(filter) {
         filter.Q.setTargetAtTime(filterQ, currentTime, 0.01);
       });
     }
@@ -323,12 +323,13 @@
      * Update synthesis filter frequencies based on shift parameter
      */
     _updateShift() {
-      const currentTime = this.ctx.currentTime;
+      var currentTime = this.ctx.currentTime;
+      var self = this;
 
-      this.envelopeFollowers.forEach((env, i) => {
-        const shiftedFreq = this._shiftFrequency(env.centerFreq, this.params.shift);
+      this.envelopeFollowers.forEach(function(env, i) {
+        var shiftedFreq = self._shiftFrequency(env.centerFreq, self.params.shift);
         env.shiftedFreq = shiftedFreq;
-        this.synthesisFilters[i].frequency.setTargetAtTime(shiftedFreq, currentTime, 0.01);
+        self.synthesisFilters[i].frequency.setTargetAtTime(shiftedFreq, currentTime, 0.01);
       });
     }
 
@@ -336,12 +337,12 @@
      * Update envelope follower timing
      */
     _updateEnvelopeTiming() {
-      const attackTime = this.params.attack / 1000;
-      const releaseTime = this.params.release / 1000;
-      const cutoff = 1 / (2 * Math.PI * Math.max(attackTime, releaseTime));
-      const currentTime = this.ctx.currentTime;
+      var attackTime = this.params.attack / 1000;
+      var releaseTime = this.params.release / 1000;
+      var cutoff = 1 / (2 * Math.PI * Math.max(attackTime, releaseTime));
+      var currentTime = this.ctx.currentTime;
 
-      this.envelopeFollowers.forEach(env => {
+      this.envelopeFollowers.forEach(function(env) {
         env.lowpass.frequency.setTargetAtTime(cutoff, currentTime, 0.01);
       });
     }
@@ -350,12 +351,12 @@
      * Handle parameter updates
      */
     updateParam(name, value) {
-      const currentTime = this.ctx.currentTime;
+      var currentTime = this.ctx.currentTime;
 
       switch (name) {
         case 'bands':
           // Number of frequency bands (8-32)
-          const newBands = Math.max(8, Math.min(32, Math.round(value)));
+          var newBands = Math.max(8, Math.min(32, Math.round(value)));
           if (newBands !== this.params.bands) {
             this.params.bands = newBands;
             this._buildFilterBanks(newBands);
@@ -405,16 +406,12 @@
       // Stop and disconnect carrier sources
       try {
         this.carrierOscillator.stop();
-      } catch (e) {
-        // Oscillator might not have started
-      }
+      } catch (e) { /* oscillator may not have started yet */ }
       this.carrierOscillator.disconnect();
 
       try {
         this.noiseSource.stop();
-      } catch (e) {
-        // Noise source might not have started
-      }
+      } catch (e) { /* noise source may not have started yet */ }
       this.noiseSource.disconnect();
 
       this.oscGain.disconnect();

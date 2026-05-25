@@ -105,15 +105,15 @@ class DX7Envelope {
         this.finished = true;
         this.level = 0;
       }
-      return;
+    } else {
+      // Advance through attack/decay stages, hold at sustain (stage 2)
+      if (this.stage < 2) {
+        this.stage++;
+        this.cachedTarget = this.dx7LevelToLinear(this.levels[this.stage]);
+        this.cachedIncrement = this.dx7RateToIncrement(this.rates[this.stage]);
+      }
+      // Stage 2 = sustain, hold here until keyOff
     }
-    // Advance through attack/decay stages, hold at sustain (stage 2)
-    if (this.stage < 2) {
-      this.stage++;
-      this.cachedTarget = this.dx7LevelToLinear(this.levels[this.stage]);
-      this.cachedIncrement = this.dx7RateToIncrement(this.rates[this.stage]);
-    }
-    // Stage 2 = sustain, hold here until keyOff
   }
 
   isFinished() {
@@ -402,7 +402,7 @@ class FMVoice {
   compileModRoutes() {
     var algo = this.cachedAlgo;
     if (!algo) return;
-    for (var i = 0; i < 6; i++) this.opModSources[i] = [];
+    for (var i = 0; i < 6; i++) this.opModSources[i].length = 0;
     var mods = algo.modulations;
     for (var m = 0; m < mods.length; m++) {
       this.opModSources[mods[m][1]].push(mods[m][0]);
@@ -594,7 +594,8 @@ class FMWorkletProcessor extends AudioWorkletProcessor {
   stopNote(midiNote, instId) {
     for (var i = 0; i < this.maxVoices; i++) {
       var v = this.voices[i];
-      if (v.active && v.midiNote === midiNote && v.instId === instId) {
+      var isMatchingActiveVoice = v.active && v.midiNote === midiNote && v.instId === instId;
+      if (isMatchingActiveVoice) {
         v.noteOff();
       }
     }
@@ -676,12 +677,12 @@ class FMWorkletProcessor extends AudioWorkletProcessor {
     for (var vi = 0; vi < aviLen; vi++) {
       var voice = voices[avi[vi]];
       if (voice.active) {
-        var allDone = true;
+        var isAllDone = true;
         var ops = voice.operators;
         for (var j = 0; j < 6; j++) {
-          if (!ops[j].isFinished()) { allDone = false; break; }
+          if (!ops[j].isFinished()) { isAllDone = false; break; }
         }
-        if (allDone) {
+        if (isAllDone) {
           voice.active = false;
           this.activeCount--;
         } else {

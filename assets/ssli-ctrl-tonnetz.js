@@ -137,32 +137,30 @@
   // ============================================================
 
   function _activateCell(idx, pointerEvent) {
-    if ((idx < 0) || (idx >= _hexCells.length)) {
-      return;
+    if (!((idx < 0) || (idx >= _hexCells.length))) {
+      var midi = _hexMidi[idx];
+      var cell = _hexCells[idx];
+      if (_noteOnFn) {
+        var velocity = pointerEvent ? SL.velocityFromPressure(pointerEvent, DEFAULT_VELOCITY) : DEFAULT_VELOCITY;
+        _noteOnFn(midi, velocity);
+      }
+      cell.classList.add('tonnetz-active');
+      cell.style.transform = 'scale(' + ACTIVE_SCALE_FACTOR + ')';
+      _showTriangles(idx);
     }
-    var midi = _hexMidi[idx];
-    var cell = _hexCells[idx];
-    if (_noteOnFn) {
-      var velocity = pointerEvent ? SL.velocityFromPressure(pointerEvent, DEFAULT_VELOCITY) : DEFAULT_VELOCITY;
-      _noteOnFn(midi, velocity);
-    }
-    cell.classList.add('tonnetz-active');
-    cell.style.transform = 'scale(' + ACTIVE_SCALE_FACTOR + ')';
-    _showTriangles(idx);
   }
 
   function _deactivateCell(idx) {
-    if ((idx < 0) || (idx >= _hexCells.length)) {
-      return;
+    if (!((idx < 0) || (idx >= _hexCells.length))) {
+      var midi = _hexMidi[idx];
+      var cell = _hexCells[idx];
+      if (_noteOffFn) {
+        _noteOffFn(midi);
+      }
+      cell.classList.remove('tonnetz-active');
+      cell.style.transform = '';
+      _clearTriangles();
     }
-    var midi = _hexMidi[idx];
-    var cell = _hexCells[idx];
-    if (_noteOffFn) {
-      _noteOffFn(midi);
-    }
-    cell.classList.remove('tonnetz-active');
-    cell.style.transform = '';
-    _clearTriangles();
   }
 
   function _switchCell(oldIdx, newIdx, pointerId, pointerEvent) {
@@ -202,9 +200,7 @@
 
   function _showTriangles(idx) {
     _clearTriangles();
-    if (!_gridEl) {
-      return;
-    }
+    if (_gridEl) {
     var cr = _colRowFromIndex(idx);
     var col = cr.col;
     var row = cr.row;
@@ -226,48 +222,46 @@
       var idxLowerLeft = _cellIndex(col, row - 1);
       _drawTriangleOverlay(idx, idxLeft, idxLowerLeft, MINOR_TRIANGLE_COLOR);
     }
+    } // end if (_gridEl)
   }
 
   function _drawTriangleOverlay(idx0, idx1, idx2, color) {
-    if (!_gridEl) {
-      return;
-    }
+    if (_gridEl) {
     var gridRect = _gridEl.getBoundingClientRect();
     var c0 = _hexCenters[idx0];
     var c1 = _hexCenters[idx1];
     var c2 = _hexCenters[idx2];
     var allValid = (c0 !== undefined) && (c1 !== undefined) && (c2 !== undefined);
-    if (!allValid) {
-      return;
+    if (allValid) {
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'tonnetz-triangle-overlay');
+      svg.style.position = 'absolute';
+      svg.style.left = '0';
+      svg.style.top = '0';
+      svg.style.width = '100%';
+      svg.style.height = '100%';
+      svg.style.pointerEvents = 'none';
+      svg.style.zIndex = '5';
+
+      var poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      var gx = gridRect.left;
+      var gy = gridRect.top;
+      var p0x = c0.x - gx;
+      var p0y = c0.y - gy;
+      var p1x = c1.x - gx;
+      var p1y = c1.y - gy;
+      var p2x = c2.x - gx;
+      var p2y = c2.y - gy;
+      var points = p0x + ',' + p0y + ' ' + p1x + ',' + p1y + ' ' + p2x + ',' + p2y;
+      poly.setAttribute('points', points);
+      poly.setAttribute('fill', color);
+      poly.setAttribute('stroke', 'none');
+
+      svg.appendChild(poly);
+      _gridEl.appendChild(svg);
+      _triangleOverlays.push(svg);
     }
-
-    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('class', 'tonnetz-triangle-overlay');
-    svg.style.position = 'absolute';
-    svg.style.left = '0';
-    svg.style.top = '0';
-    svg.style.width = '100%';
-    svg.style.height = '100%';
-    svg.style.pointerEvents = 'none';
-    svg.style.zIndex = '5';
-
-    var poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-    var gx = gridRect.left;
-    var gy = gridRect.top;
-    var p0x = c0.x - gx;
-    var p0y = c0.y - gy;
-    var p1x = c1.x - gx;
-    var p1y = c1.y - gy;
-    var p2x = c2.x - gx;
-    var p2y = c2.y - gy;
-    var points = p0x + ',' + p0y + ' ' + p1x + ',' + p1y + ' ' + p2x + ',' + p2y;
-    poly.setAttribute('points', points);
-    poly.setAttribute('fill', color);
-    poly.setAttribute('stroke', 'none');
-
-    svg.appendChild(poly);
-    _gridEl.appendChild(svg);
-    _triangleOverlays.push(svg);
+    } // end if (_gridEl)
   }
 
   function _clearTriangles() {
@@ -289,48 +283,42 @@
     e.preventDefault();
     var activeCount = Object.keys(_activePointers).length;
     var isAtLimit = (activeCount >= MAX_SIMULTANEOUS_TOUCHES);
-    if (isAtLimit) {
-      return;
+    if (!isAtLimit) {
+      var pid = e.pointerId !== undefined ? e.pointerId : 'mouse';
+      var idx = _findCellAtPoint(e.clientX, e.clientY);
+      if (idx >= 0) {
+        _activePointers[pid] = idx;
+        _activateCell(idx, e);
+      }
     }
-    var pid = e.pointerId !== undefined ? e.pointerId : 'mouse';
-    var idx = _findCellAtPoint(e.clientX, e.clientY);
-    if (idx < 0) {
-      return;
-    }
-    _activePointers[pid] = idx;
-    _activateCell(idx, e);
   }
 
   function _onPointerMove(e) {
     e.preventDefault();
     var pid = e.pointerId !== undefined ? e.pointerId : 'mouse';
     var hasPointer = _activePointers.hasOwnProperty(pid);
-    if (!hasPointer) {
-      return;
+    if (hasPointer) {
+      var oldIdx = _activePointers[pid];
+      var newIdx = _findCellAtPoint(e.clientX, e.clientY);
+      if (newIdx >= 0) {
+        var isSameCell = (newIdx === oldIdx);
+        if (!isSameCell) {
+          _activePointers[pid] = newIdx;
+          _switchCell(oldIdx, newIdx, pid, e);
+        }
+      }
     }
-    var oldIdx = _activePointers[pid];
-    var newIdx = _findCellAtPoint(e.clientX, e.clientY);
-    if (newIdx < 0) {
-      return;
-    }
-    var isSameCell = (newIdx === oldIdx);
-    if (isSameCell) {
-      return;
-    }
-    _activePointers[pid] = newIdx;
-    _switchCell(oldIdx, newIdx, pid, e);
   }
 
   function _onPointerUp(e) {
     e.preventDefault();
     var pid = e.pointerId !== undefined ? e.pointerId : 'mouse';
     var hasPointer = _activePointers.hasOwnProperty(pid);
-    if (!hasPointer) {
-      return;
+    if (hasPointer) {
+      var idx = _activePointers[pid];
+      delete _activePointers[pid];
+      _deactivateCell(idx);
     }
-    var idx = _activePointers[pid];
-    delete _activePointers[pid];
-    _deactivateCell(idx);
   }
 
   function _onPointerCancel(e) {
@@ -543,14 +531,13 @@
   }
 
   function _rebuildGrid(wrapper, fontSize) {
-    if (!_gridEl) {
-      return;
+    if (_gridEl) {
+      _releaseAll();
+      _buildHexCells(_gridEl, fontSize);
+      requestAnimationFrame(function() {
+        _updateHexCenters();
+      });
     }
-    _releaseAll();
-    _buildHexCells(_gridEl, fontSize);
-    requestAnimationFrame(function() {
-      _updateHexCenters();
-    });
   }
 
   // ============================================================
@@ -562,7 +549,9 @@
     var i;
     for (i = 0; i < pids.length; i++) {
       var idx = _activePointers[pids[i]];
-      if ((idx >= 0) && (idx < _hexCells.length) && (_hexCells[idx])) {
+      var isValidTonnetzIdx = (idx >= 0) && (idx < _hexCells.length);
+      var hasTonnetzCell = isValidTonnetzIdx && (_hexCells[idx]);
+      if (hasTonnetzCell) {
         if (_noteOffFn) {
           _noteOffFn(_hexMidi[idx]);
         }

@@ -11,6 +11,9 @@
 
   var SL = window.SynthLab = window.SynthLab || {};
 
+  // Sentinel constants
+  var NO_NODE = null;
+
   // ============================================================
   // Name Sanitization (Task 2)
   // ============================================================
@@ -35,7 +38,7 @@
    * @returns {string} Safe-to-innerHTML preset name.
    */
   function escapeName(s) {
-    var str = (s === null || s === undefined) ? '' : String(s);
+    var str = (s === NO_NODE || s === undefined) ? '' : String(s);
     str = str.replace(RE_CONTROL, '');
     str = str.replace(RE_DIRECTION_OVERRIDES, '');
     str = str.replace(RE_HTML, function(ch) { return HTML_ESCAPES[ch]; });
@@ -79,7 +82,7 @@
   // Deep-ish clone for getState snapshot (JSON round-trip drops functions
   // but settings are pure data, which is what we want).
   function _snapshot(obj) {
-    if (obj === null || obj === undefined) {
+    if (obj === NO_NODE || obj === undefined) {
       return null;
     }
     try {
@@ -89,10 +92,25 @@
     }
   }
 
+  function _makeIntermediateNode() {
+    return {};
+  }
+  function _emptyList() {
+    return [];
+  }
+  function _makePresetEntry(name, eng, cat) {
+    return { name: name, engine: eng, category: cat };
+  }
+  function _makePresetCopy() {
+    return {};
+  }
+
   // Dotted-path setter. Writes into `target` by walking keys; creates
   // intermediate objects only if they already exist as objects/arrays.
   function _setByPath(target, path, value) {
-    if (!target || typeof path !== 'string' || path.length === 0) {
+    var hasNoTarget = !target || typeof path !== 'string';
+    var isInvalidPath = hasNoTarget || path.length === 0;
+    if (isInvalidPath) {
       return false;
     }
     var parts = path.split('.');
@@ -100,8 +118,8 @@
     var i;
     for (i = 0; i < parts.length - 1; i++) {
       var key = parts[i];
-      if (node[key] === null || node[key] === undefined) {
-        node[key] = {};
+      if (node[key] === NO_NODE || node[key] === undefined) {
+        node[key] = _makeIntermediateNode();
       }
       if (typeof node[key] !== 'object') {
         return false;
@@ -124,14 +142,12 @@
     for (i = 0; i < safeListeners.length; i++) {
       try {
         safeListeners[i](path, value);
-      } catch (e) {
-        // Swallow listener errors — never break the setter for a bad cb.
-      }
+      } catch (e) { /* listener errors are swallowed; never break the setter for a bad callback */ }
     }
   }
 
   /**
-   * Register a callback invoked on every setParam write.
+   * Register a cb invoked on every setParam write.
    * @param {function(string, *)} cb - Receives (path, newValue).
    * @returns {function()} Unregister function.
    */
@@ -181,16 +197,16 @@
     var pi;
     for (ei = 0; ei < engines.length; ei++) {
       var eng = engines[ei];
-      var cats = (p.getCategoriesForEngine ? p.getCategoriesForEngine(eng) : []) || [];
+      var cats = (p.getCategoriesForEngine ? p.getCategoriesForEngine(eng) : _emptyList()) || _emptyList();
       for (ci = 0; ci < cats.length; ci++) {
         var cat = cats[ci];
-        var list = (p.getPresetsForEngineCategory ? p.getPresetsForEngineCategory(eng, cat) : []) || [];
+        var list = (p.getPresetsForEngineCategory ? p.getPresetsForEngineCategory(eng, cat) : _emptyList()) || _emptyList();
         for (pi = 0; pi < list.length; pi++) {
-          out.push({
-            name: list[pi] && list[pi].name ? String(list[pi].name) : '',
-            engine: eng,
-            category: cat
-          });
+          out.push(_makePresetEntry(
+            list[pi] && list[pi].name ? String(list[pi].name) : '',
+            eng,
+            cat
+          ));
         }
       }
     }
@@ -214,15 +230,15 @@
     var pi;
     for (ei = 0; ei < engines.length; ei++) {
       var eng = engines[ei];
-      var cats = (p.getCategoriesForEngine ? p.getCategoriesForEngine(eng) : []) || [];
+      var cats = (p.getCategoriesForEngine ? p.getCategoriesForEngine(eng) : _emptyList()) || _emptyList();
       for (ci = 0; ci < cats.length; ci++) {
-        var list = (p.getPresetsForEngineCategory ? p.getPresetsForEngineCategory(eng, cats[ci]) : []) || [];
+        var list = (p.getPresetsForEngineCategory ? p.getPresetsForEngineCategory(eng, cats[ci]) : _emptyList()) || _emptyList();
         for (pi = 0; pi < list.length; pi++) {
           if (list[pi] && list[pi].name === name) {
             var preset = list[pi];
             // Ensure preset carries engine tag for apply dispatch.
             if (!preset.engine && p.engineNameToType) {
-              preset = {};
+              preset = _makePresetCopy();
               var src = list[pi];
               for (var k in src) {
                 if (Object.prototype.hasOwnProperty.call(src, k)) {
@@ -254,7 +270,8 @@
    * @param {number} [durationMs] - Note length in milliseconds.
    */
   function playNote(midi, velocity, durationMs) {
-    if (typeof midi !== 'number' || midi < MIN_MIDI || midi > MAX_MIDI) {
+    var isPlayNoteOutOfRange = typeof midi !== 'number' || midi < MIN_MIDI || midi > MAX_MIDI;
+    if (isPlayNoteOutOfRange) {
       return false;
     }
     var durSec = (typeof durationMs === 'number' && durationMs > 0)
@@ -272,7 +289,8 @@
    * @param {number} midi - MIDI note number (0-127).
    */
   function stopNote(midi) {
-    if (typeof midi !== 'number' || midi < MIN_MIDI || midi > MAX_MIDI) {
+    var isStopNoteOutOfRange = typeof midi !== 'number' || midi < MIN_MIDI || midi > MAX_MIDI;
+    if (isStopNoteOutOfRange) {
       return false;
     }
     if (SL.audio && SL.audio.stopSustainedNote) {
@@ -290,14 +308,14 @@
    */
   function setParam(path, value) {
     var settings = _getCurrentSettings();
-    var ok = false;
+    var isOk = false;
     if (settings) {
-      ok = _setByPath(settings, path, value);
+      isOk = _setByPath(settings, path, value);
     }
-    if (ok) {
+    if (isOk) {
       _fireParamChange(path, value);
     }
-    return ok;
+    return isOk;
   }
 
   /**
@@ -350,16 +368,12 @@
             var parsed = JSON.parse(val);
             _sanitizeUserPresetArray(parsed);
             val = JSON.stringify(parsed);
-          } catch (e) {
-            // If payload isn't JSON, fall through unchanged.
-          }
+          } catch (e) { /* payload is not valid JSON; fall through unchanged */ }
         }
         return _origSetItem.call(window.localStorage, key, val);
       };
     }
-  } catch (eLs) {
-    // localStorage may throw in private-browsing contexts; ignore.
-  }
+  } catch (eLs) { /* localStorage may throw in private-browsing contexts */ }
 
   // ============================================================
   // Attach facade

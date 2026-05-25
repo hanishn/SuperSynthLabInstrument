@@ -109,46 +109,48 @@
      * Start the level detection loop using requestAnimationFrame
      */
     startLevelDetection() {
-      const SAFETY_TIMEOUT_SEC = 0.5; // Force gate open if stuck closed this long after enable
+      var SAFETY_TIMEOUT_SEC = 0.5; // Force gate open if stuck closed this long after enable
 
-      const detect = () => {
-        if (!this.isRunning) return;
+      var self = this;
+      var detect = function() {
+        if (!self.isRunning) return;
 
-        this.animationFrame = requestAnimationFrame(detect);
+        self.animationFrame = requestAnimationFrame(detect);
 
         // NOTE: tab visibility check intentionally removed — gate must function
         // regardless of tab visibility to prevent permanent audio blockage.
 
         // Get current audio level
-        this.analyser.getFloatTimeDomainData(this.analyserBuffer);
+        self.analyser.getFloatTimeDomainData(self.analyserBuffer);
 
         // Calculate RMS level
-        let sum = 0;
-        for (let i = 0; i < this.analyserBuffer.length; i++) {
-          sum += this.analyserBuffer[i] * this.analyserBuffer[i];
+        var sum = 0;
+        for (var i = 0; i < self.analyserBuffer.length; i++) {
+          sum += self.analyserBuffer[i] * self.analyserBuffer[i];
         }
-        const rms = Math.sqrt(sum / this.analyserBuffer.length);
+        var rms = Math.sqrt(sum / self.analyserBuffer.length);
 
         // Convert to dB
-        const hasSignal = (rms > 0);
-        const levelDb = hasSignal ? (20 * Math.log10(rms)) : -Infinity;
+        var hasSignal = (rms > 0);
+        var levelDb = hasSignal ? (20 * Math.log10(rms)) : -Infinity;
 
         // Safety mechanism: if gate has been enabled for longer than SAFETY_TIMEOUT_SEC
         // and gain is still at minimum, force it open to prevent permanent lock.
-        const rangeDb = this.params.range;
-        const minGain = Math.pow(10, rangeDb / 20);
-        const timeSinceEnable = this.ctx.currentTime - this.enabledAtTime;
-        const gainIsAtMin = (this.gateGain.gain.value <= (minGain + 0.001));
-        const pastSafetyTimeout = (timeSinceEnable > SAFETY_TIMEOUT_SEC);
+        var rangeDb = self.params.range;
+        var minGain = Math.pow(10, rangeDb / 20);
+        var timeSinceEnable = self.ctx.currentTime - self.enabledAtTime;
+        var gainIsAtMin = (self.gateGain.gain.value <= (minGain + 0.001));
+        var pastSafetyTimeout = (timeSinceEnable > SAFETY_TIMEOUT_SEC);
 
-        if (pastSafetyTimeout && gainIsAtMin && (!this.isOpen)) {
-          this.isOpen = true;
-          this.targetGain = 1.0;
-          this.gateGain.gain.cancelScheduledValues(this.ctx.currentTime);
-          this.gateGain.gain.setTargetAtTime(1.0, this.ctx.currentTime, 0.005);
+        var shouldForceOpen = (pastSafetyTimeout && gainIsAtMin) && (!self.isOpen);
+        if (shouldForceOpen) {
+          self.isOpen = true;
+          self.targetGain = 1.0;
+          self.gateGain.gain.cancelScheduledValues(self.ctx.currentTime);
+          self.gateGain.gain.setTargetAtTime(1.0, self.ctx.currentTime, 0.005);
         } else {
           // Normal gate logic
-          this.processGate(levelDb);
+          self.processGate(levelDb);
         }
       };
 
@@ -162,7 +164,7 @@
      */
     _isSurfaceBlacklisted() {
       var surface = (SL.screenPlay && SL.screenPlay.getSurface) ? SL.screenPlay.getSurface() : '';
-      return !!GATE_BLACKLISTED_SURFACES[surface];
+      return Boolean(GATE_BLACKLISTED_SURFACES[surface]);
     }
 
     /**
@@ -181,48 +183,47 @@
           this.gateGain.gain.setTargetAtTime(1.0, this.ctx.currentTime, 0.005);
         }
         this.holdActive = false;
-        return;
-      }
-
-      const now = this.ctx.currentTime;
-      const threshold = this.params.threshold;
-      const attackTime = this.params.attack / 1000;  // Convert ms to seconds
-      const HOLD_TIME_SEC = this.params.hold / 1000; // Convert ms to seconds
-      const releaseTime = this.params.release / 1000; // Convert ms to seconds
-      const rangeDb = this.params.range;
-
-      // Calculate the minimum gain from range (in linear scale)
-      const minGain = Math.pow(10, rangeDb / 20);
-
-      if (levelDb >= threshold) {
-        // Signal above threshold - open the gate
-        this.holdActive = false;
-
-        if (!this.isOpen) {
-          // Gate is opening
-          this.isOpen = true;
-          this.targetGain = 1.0;
-          this.gateGain.gain.cancelScheduledValues(now);
-          this.gateGain.gain.setTargetAtTime(1.0, now, attackTime / 3);
-        }
       } else {
-        // Signal below threshold
-        if (this.isOpen && !this.holdActive) {
-          // Begin hold period using AudioContext.currentTime
-          this.holdActive = true;
-          this.holdStartTime = now;
-        }
+        var now = this.ctx.currentTime;
+        var threshold = this.params.threshold;
+        var attackTime = this.params.attack / 1000;  // Convert ms to seconds
+        var HOLD_TIME_SEC = this.params.hold / 1000; // Convert ms to seconds
+        var releaseTime = this.params.release / 1000; // Convert ms to seconds
+        var rangeDb = this.params.range;
 
-        // Check if hold period has elapsed
-        if (this.holdActive) {
-          const holdElapsed = now - this.holdStartTime;
-          if (holdElapsed >= HOLD_TIME_SEC) {
-            // Hold period complete — close the gate
-            this.holdActive = false;
-            this.isOpen = false;
-            this.targetGain = minGain;
+        // Calculate the minimum gain from range (in linear scale)
+        var minGain = Math.pow(10, rangeDb / 20);
+
+        if (levelDb >= threshold) {
+          // Signal above threshold - open the gate
+          this.holdActive = false;
+
+          if (!this.isOpen) {
+            // Gate is opening
+            this.isOpen = true;
+            this.targetGain = 1.0;
             this.gateGain.gain.cancelScheduledValues(now);
-            this.gateGain.gain.setTargetAtTime(minGain, now, releaseTime / 3);
+            this.gateGain.gain.setTargetAtTime(1.0, now, attackTime / 3);
+          }
+        } else {
+          // Signal below threshold
+          if (this.isOpen && !this.holdActive) {
+            // Begin hold period using AudioContext.currentTime
+            this.holdActive = true;
+            this.holdStartTime = now;
+          }
+
+          // Check if hold period has elapsed
+          if (this.holdActive) {
+            var holdElapsed = now - this.holdStartTime;
+            if (holdElapsed >= HOLD_TIME_SEC) {
+              // Hold period complete — close the gate
+              this.holdActive = false;
+              this.isOpen = false;
+              this.targetGain = minGain;
+              this.gateGain.gain.cancelScheduledValues(now);
+              this.gateGain.gain.setTargetAtTime(minGain, now, releaseTime / 3);
+            }
           }
         }
       }
@@ -258,7 +259,7 @@
           this.params.range = Math.max(-80, Math.min(0, value));
           // Update current gate position if closed
           if (!this.isOpen) {
-            const minGain = Math.pow(10, this.params.range / 20);
+            var minGain = Math.pow(10, this.params.range / 20);
             this.gateGain.gain.setTargetAtTime(minGain, this.ctx.currentTime, 0.01);
           }
           break;

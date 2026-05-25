@@ -716,7 +716,9 @@ class BlowModel {
     var sample = this.dcBlocker.process(boreOut) * this.outputGain;
 
     // Silence detection
-    if (!this.blowing && this.breathEnvelope < 0.001 && Math.abs(sample) < 0.00005) {
+    var isWorkletBreathStopped = !this.blowing && this.breathEnvelope < 0.001;
+    var isWorkletSilentAfterBlow = isWorkletBreathStopped && Math.abs(sample) < 0.00005;
+    if (isWorkletSilentAfterBlow) {
       this.silenceCounter++;
       if (this.silenceCounter > this.sampleRate * 0.2) {
         this.active = false;
@@ -912,7 +914,9 @@ class StrikeModel {
     }
 
     // Silence detection
-    if (this.exciteRemaining <= 0 && this.decayCounter > this.sampleRate * 0.5 && Math.abs(output) < 0.00001) {
+    var isWorkletStrikeFinished = this.exciteRemaining <= 0 && this.decayCounter > this.sampleRate * 0.5;
+    var isWorkletStrikeSilent = isWorkletStrikeFinished && Math.abs(output) < 0.00001;
+    if (isWorkletStrikeSilent) {
       this.active = false;
       return 0;
     }
@@ -1089,7 +1093,8 @@ class PhysicalModelProcessor extends AudioWorkletProcessor {
   stopNote(midiNote, instId) {
     for (var i = 0; i < this.maxVoices; i++) {
       var v = this.voices[i];
-      if (v.active && v.midiNote === midiNote && v.instId === instId) {
+      var isWorkletMatchingVoice = v.active && v.midiNote === midiNote && v.instId === instId;
+      if (isWorkletMatchingVoice) {
         v.noteOff();
       }
     }

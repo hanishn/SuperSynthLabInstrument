@@ -1,19 +1,21 @@
 // Synth Lab - UI State Module
 (function() {
-  const SL = window.SynthLab;
+  var SL = window.SynthLab;
+
+  var NO_NOTE_FREQ = null;
 
   // State variables
-  let baseOctave = 4;
-  let currentNoteDisplay = '';
+  var baseOctave = 4;
+  var currentNoteDisplay = '';
 
   // DOM references (populated in init)
-  let rootEl, modeEl, waveEl, methodEl, refHzEl, isoLayoutEl, instrumentSelectEl;
-  let kbEl, isoEl, seqKeysEl, seqEl, noteReadout, octRange;
-  let durPicker, noteMenu, chordMenu;
-  let orgFunc, orgDeg, orgProg, orgPal;
+  var rootEl, modeEl, waveEl, methodEl, refHzEl, isoLayoutEl, instrumentSelectEl;
+  var kbEl, isoEl, seqKeysEl, seqEl, noteReadout, octRange;
+  var durPicker, noteMenu, chordMenu;
+  var orgFunc, orgDeg, orgProg, orgPal;
 
   /**
-   * Cache all DOM element references
+   * Cache all DOM el references
    */
   function cacheElements() {
     rootEl = document.getElementById('rootNote');
@@ -49,7 +51,7 @@
     var octUpEl = document.getElementById('octUp');
 
     if (octDownEl) {
-      octDownEl.addEventListener('click', () => {
+      octDownEl.addEventListener('click', function() {
         if (baseOctave > 0) {
           baseOctave--;
           rebuildAll();
@@ -58,7 +60,7 @@
     }
 
     if (octUpEl) {
-      octUpEl.addEventListener('click', () => {
+      octUpEl.addEventListener('click', function() {
         if (baseOctave < 5) {
           baseOctave++;
           rebuildAll();
@@ -83,7 +85,7 @@
    */
   function setupScaleListeners() {
     if (rootEl) {
-      rootEl.addEventListener('change', () => {
+      rootEl.addEventListener('change', function() {
         SL.keyboard.buildKeyboard();
         SL.isomorphic.buildIso();
         SL.chords.buildChords();
@@ -94,7 +96,7 @@
     }
 
     if (modeEl) {
-      modeEl.addEventListener('change', () => {
+      modeEl.addEventListener('change', function() {
         SL.keyboard.buildKeyboard();
         SL.isomorphic.buildIso();
         SL.chords.buildChords();
@@ -105,7 +107,7 @@
     }
 
     if (isoLayoutEl) {
-      isoLayoutEl.addEventListener('change', () => {
+      isoLayoutEl.addEventListener('change', function() {
         SL.isomorphic.buildIso();
       });
     }
@@ -116,14 +118,10 @@
    * Handles switching between 5 independent instruments (4 synth + 1 loop)
    */
   function setupInstrumentSelector() {
-    if (!instrumentSelectEl) {
-      console.warn('Instrument selector not found');
-      return;
-    }
-
-    instrumentSelectEl.addEventListener('change', () => {
-      const newInst = parseInt(instrumentSelectEl.value);
-      const oldInst = SL.audio.getCurrentInstrument();
+    if (instrumentSelectEl) {
+    instrumentSelectEl.addEventListener('change', function() {
+      var newInst = parseInt(instrumentSelectEl.value);
+      var oldInst = SL.audio.getCurrentInstrument();
 
       if (newInst === oldInst) return;
 
@@ -174,6 +172,9 @@
       // Notify other screens of instrument change
       if (SL.state) { SL.state.notify('instrument'); }
     });
+    } else {
+      console.warn('Instrument selector not found');
+    }
   }
 
   /**
@@ -181,18 +182,18 @@
    * Called when switching instruments to reflect the new instrument's state
    */
   function updateUIFromInstrument() {
-    const settings = SL.audio.getInstrumentSettings();
+    var settings = SL.audio.getInstrumentSettings();
     if (!settings) return;
 
     // Update oscillator controls (inline)
-    [1, 2, 3].forEach((n, i) => {
-      const os = settings.osc[i];
-      const wave = document.querySelector('.osc-wave[data-osc="' + n + '"]');
-      const oct = document.querySelector('.osc-oct[data-osc="' + n + '"]');
-      const det = document.querySelector('.osc-detune[data-osc="' + n + '"]');
-      const detVal = document.querySelector('.osc-detune-val[data-osc="' + n + '"]');
-      const lvl = document.querySelector('.osc-level[data-osc="' + n + '"]');
-      const lvlVal = document.querySelector('.osc-level-val[data-osc="' + n + '"]');
+    [1, 2, 3].forEach(function(n, i) {
+      var os = settings.osc[i];
+      var wave = document.querySelector('.osc-wave[data-osc="' + n + '"]');
+      var oct = document.querySelector('.osc-oct[data-osc="' + n + '"]');
+      var det = document.querySelector('.osc-detune[data-osc="' + n + '"]');
+      var detVal = document.querySelector('.osc-detune-val[data-osc="' + n + '"]');
+      var lvl = document.querySelector('.osc-level[data-osc="' + n + '"]');
+      var lvlVal = document.querySelector('.osc-level-val[data-osc="' + n + '"]');
 
       if (wave) wave.value = os.wave;
       if (oct) oct.value = os.oct.toString();
@@ -203,14 +204,14 @@
     });
 
     // Update ADSR controls (inline)
-    const adsrA = document.getElementById('adsrA');
-    const adsrD = document.getElementById('adsrD');
-    const adsrS = document.getElementById('adsrS');
-    const adsrR = document.getElementById('adsrR');
-    const valA = document.getElementById('valA');
-    const valD = document.getElementById('valD');
-    const valS = document.getElementById('valS');
-    const valR = document.getElementById('valR');
+    var adsrA = document.getElementById('adsrA');
+    var adsrD = document.getElementById('adsrD');
+    var adsrS = document.getElementById('adsrS');
+    var adsrR = document.getElementById('adsrR');
+    var valA = document.getElementById('valA');
+    var valD = document.getElementById('valD');
+    var valS = document.getElementById('valS');
+    var valR = document.getElementById('valR');
 
     if (adsrA) { adsrA.value = settings.adsr.a; if (valA) valA.textContent = formatADSRTime('A', settings.adsr.a) + 'ms'; }
     if (adsrD) { adsrD.value = settings.adsr.d; if (valD) valD.textContent = formatADSRTime('D', settings.adsr.d) + 'ms'; }
@@ -219,12 +220,12 @@
 
     // Update filter controls (inline hidden controls)
     // Note: settings store slider values directly (0-1000 for freq, 0-100 for Q)
-    const filterEnabled = document.getElementById('filterEnabled');
-    const filterType = document.getElementById('filterType');
-    const filterFreq = document.getElementById('filterFreq');
-    const filterQ = document.getElementById('filterQ');
-    const filterKeyTrack = document.getElementById('filterKeyTrack');
-    const filterModel = document.getElementById('filterModel');
+    var filterEnabled = document.getElementById('filterEnabled');
+    var filterType = document.getElementById('filterType');
+    var filterFreq = document.getElementById('filterFreq');
+    var filterQ = document.getElementById('filterQ');
+    var filterKeyTrack = document.getElementById('filterKeyTrack');
+    var filterModel = document.getElementById('filterModel');
 
     if (filterEnabled) filterEnabled.checked = settings.filter.enabled;
     if (filterType) filterType.value = settings.filter.type;
@@ -234,24 +235,24 @@
     if (filterModel) filterModel.value = settings.filter.model;
 
     // Update filter slope radio
-    const slopeRadio = document.querySelector('input[name="filterSlope"][value="' + settings.filter.slope + '"]');
+    var slopeRadio = document.querySelector('input[name="filterSlope"][value="' + settings.filter.slope + '"]');
     if (slopeRadio) slopeRadio.checked = true;
 
     // Update noise controls (inline hidden)
-    const noiseType = document.getElementById('noiseType');
-    const noiseLevel = document.getElementById('noiseLevel');
+    var noiseType = document.getElementById('noiseType');
+    var noiseLevel = document.getElementById('noiseLevel');
 
     if (noiseType) noiseType.value = settings.noise.type;
     if (noiseLevel) noiseLevel.value = settings.noise.level;
 
     // Update filter envelope controls (inline hidden)
-    const filterEnvEnabled = document.getElementById('filterEnvEnabled');
-    const filterEnvAmount = document.getElementById('filterEnvAmount');
-    const filterEnvA = document.getElementById('filterEnvA');
-    const filterEnvD = document.getElementById('filterEnvD');
-    const filterEnvS = document.getElementById('filterEnvS');
-    const filterEnvR = document.getElementById('filterEnvR');
-    const filterEnvLinkToAmp = document.getElementById('filterEnvLinkToAmp');
+    var filterEnvEnabled = document.getElementById('filterEnvEnabled');
+    var filterEnvAmount = document.getElementById('filterEnvAmount');
+    var filterEnvA = document.getElementById('filterEnvA');
+    var filterEnvD = document.getElementById('filterEnvD');
+    var filterEnvS = document.getElementById('filterEnvS');
+    var filterEnvR = document.getElementById('filterEnvR');
+    var filterEnvLinkToAmp = document.getElementById('filterEnvLinkToAmp');
 
     if (filterEnvEnabled) filterEnvEnabled.checked = settings.filterEnv.enabled;
     if (filterEnvAmount) filterEnvAmount.value = settings.filterEnv.amount;
@@ -279,7 +280,7 @@
       return Math.round(sliderValue);  // Fallback to raw value
     }
 
-    let timeMs;
+    var timeMs;
     if (param === 'A' || param === 'D') {
       timeMs = SL.audio.sliderToTime(sliderValue, 500, 500);
     } else if (param === 'R') {
@@ -303,7 +304,7 @@
       return Math.round(sliderValue);  // Fallback to raw value
     }
 
-    let timeMs;
+    var timeMs;
     if (param === 'A' || param === 'D') {
       timeMs = SL.audio.sliderToTime(sliderValue, 2000, 2000);
     } else if (param === 'R') {
@@ -319,15 +320,17 @@
    * Set up ADSR envelope slider listeners
    */
   function setupADSRListeners() {
-    ['A', 'D', 'S', 'R'].forEach(p => {
-      const sl = document.getElementById('adsr' + p);
-      const val = document.getElementById('val' + p);
+    ['A', 'D', 'S', 'R'].forEach(function(p) {
+      var sl = document.getElementById('adsr' + p);
+      var val = document.getElementById('val' + p);
       if (sl && val) {
-        sl.addEventListener('input', () => {
-          if (p === 'S') {
-            val.textContent = sl.value + '%';  // Sustain is percentage
-          } else {
-            val.textContent = formatADSRTime(p, parseFloat(sl.value)) + 'ms';
+        sl.addEventListener('input', function() {
+          if (val) {
+            if (p === 'S') {
+              val.textContent = sl.value + '%';  // Sustain is percentage
+            } else {
+              val.textContent = formatADSRTime(p, parseFloat(sl.value)) + 'ms';
+            }
           }
         });
       }
@@ -339,31 +342,35 @@
    * Also triggers audio refresh when controls change
    */
   function setupOscMixerListeners() {
-    [1, 2, 3].forEach(n => {
-      const wave = document.querySelector('.osc-wave[data-osc="' + n + '"]');
-      const oct = document.querySelector('.osc-oct[data-osc="' + n + '"]');
-      const det = document.querySelector('.osc-detune[data-osc="' + n + '"]');
-      const detVal = document.querySelector('.osc-detune-val[data-osc="' + n + '"]');
-      const lvl = document.querySelector('.osc-level[data-osc="' + n + '"]');
-      const lvlVal = document.querySelector('.osc-level-val[data-osc="' + n + '"]');
+    [1, 2, 3].forEach(function(n) {
+      var wave = document.querySelector('.osc-wave[data-osc="' + n + '"]');
+      var oct = document.querySelector('.osc-oct[data-osc="' + n + '"]');
+      var det = document.querySelector('.osc-detune[data-osc="' + n + '"]');
+      var detVal = document.querySelector('.osc-detune-val[data-osc="' + n + '"]');
+      var lvl = document.querySelector('.osc-level[data-osc="' + n + '"]');
+      var lvlVal = document.querySelector('.osc-level-val[data-osc="' + n + '"]');
 
       // Wave and octave changes trigger audio refresh
-      if (wave) wave.addEventListener('change', () => {
+      if (wave) wave.addEventListener('change', function() {
         if (SL.audio && SL.audio.refreshActiveOscillators) SL.audio.refreshActiveOscillators();
       });
-      if (oct) oct.addEventListener('change', () => {
+      if (oct) oct.addEventListener('change', function() {
         if (SL.audio && SL.audio.refreshActiveOscillators) SL.audio.refreshActiveOscillators();
       });
 
       // Detune and level update display and trigger audio refresh
-      det.addEventListener('input', () => {
-        detVal.textContent = det.value;
-        if (SL.audio && SL.audio.refreshActiveOscillators) SL.audio.refreshActiveOscillators();
-      });
-      lvl.addEventListener('input', () => {
-        lvlVal.textContent = lvl.value;
-        if (SL.audio && SL.audio.refreshActiveOscillators) SL.audio.refreshActiveOscillators();
-      });
+      if (det) {
+        det.addEventListener('input', function() {
+          if (detVal) { detVal.textContent = det.value; }
+          if (SL.audio && SL.audio.refreshActiveOscillators) SL.audio.refreshActiveOscillators();
+        });
+      }
+      if (lvl) {
+        lvl.addEventListener('input', function() {
+          if (lvlVal) { lvlVal.textContent = lvl.value; }
+          if (SL.audio && SL.audio.refreshActiveOscillators) SL.audio.refreshActiveOscillators();
+        });
+      }
     });
   }
 
@@ -384,14 +391,14 @@
     // Menu dismissal is handled by sequencer.setupEventListeners()
 
     // Stop all sustained notes on mouseup, BUT NOT when clicking in the mixer modal
-    document.addEventListener('mouseup', (e) => {
+    document.addEventListener('mouseup', function(e) {
       // Don't stop notes if clicking inside the mixer modal
-      const mixerModal = document.getElementById('mixerModal');
-      if (mixerModal && mixerModal.contains(e.target)) {
-        return;
-      }
-      if (SL.audio && SL.audio.stopAllSustained) {
-        SL.audio.stopAllSustained();
+      var mixerModal = document.getElementById('mixerModal');
+      var isInsideMixer = (mixerModal && mixerModal.contains(e.target));
+      if (!isInsideMixer) {
+        if (SL.audio && SL.audio.stopAllSustained) {
+          SL.audio.stopAllSustained();
+        }
       }
     });
   }
@@ -406,18 +413,18 @@
   }
 
   // State returned by mixer modal setup (for updateTypeToggleState access)
-  let mixerModalState = null;
+  var mixerModalState = null;
 
   /**
    * Set up Clear Instrument / Clear All buttons
    */
   function setupClearButtons() {
-    const clearBtn = document.getElementById('clearInstBtn');
-    const clearAllBtn = document.getElementById('clearAllInstBtn');
+    var clearBtn = document.getElementById('clearInstBtn');
+    var clearAllBtn = document.getElementById('clearAllInstBtn');
 
     if (clearBtn) {
-      clearBtn.addEventListener('click', () => {
-        const instId = SL.audio.getCurrentInstrument();
+      clearBtn.addEventListener('click', function() {
+        var instId = SL.audio.getCurrentInstrument();
         if (SL.audio.clearInstrument) {
           SL.audio.clearInstrument(instId);
         }
@@ -425,7 +432,7 @@
     }
 
     if (clearAllBtn) {
-      clearAllBtn.addEventListener('click', () => {
+      clearAllBtn.addEventListener('click', function() {
         if (SL.audio.clearAllInstruments) {
           SL.audio.clearAllInstruments();
         }
@@ -578,9 +585,9 @@
     // This will be called on first user interaction when audio context is created
     if (SL.audio && SL.audio.initEffectChain) {
       // Defer until audio context exists
-      const originalGetCtx = SL.audio.getCtx;
+      var originalGetCtx = SL.audio.getCtx;
       if (originalGetCtx) {
-        const doInitEffects = function() {
+        var doInitEffects = function() {
           if (!SL.audio.effectChain) {
             SL.audio.initEffectChain();
             if (SL.effectsUI && SL.effectsUI.init) {
@@ -588,8 +595,8 @@
             }
           }
         };
-        const checkAndInitEffects = function() {
-          const ctx = originalGetCtx();
+        var checkAndInitEffects = function() {
+          var ctx = originalGetCtx();
           if (ctx && !SL.audio.effectChain) {
             if (ctx.state === 'running') {
               doInitEffects();
@@ -609,10 +616,11 @@
     }
 
     // Set initial scroll position for sequencer
-    document.querySelector('.seq-wrapper').scrollTop = 216;
+    var seqWrapper = document.querySelector('.seq-wrapper');
+    if (seqWrapper) { seqWrapper.scrollTop = 216; }
 
     // Initial note readout
-    noteReadout.textContent = '\u2014';
+    noteReadout.textContent = SL.t('ui.em_dash');
 
     // Wrap classic screen DOM into quad layout
     _wrapClassicInQuads();
@@ -624,14 +632,9 @@
    */
   function _wrapClassicInQuads() {
     var classicEl = document.getElementById('screen-classic');
-    if (!classicEl || !SL.quad) {
-      return;
-    }
-
-    var containerEl = classicEl.querySelector('.container');
-    if (!containerEl) {
-      return;
-    }
+    if (classicEl && SL.quad) {
+      var containerEl = classicEl.querySelector('.container');
+      if (containerEl) {
 
     // Collect existing sections before moving them
     var headerEl = containerEl.querySelector('.header');
@@ -689,6 +692,8 @@
     // Register and activate (classic is always the default screen)
     SL.quad.register('classic', { quads: [q1, q2, q3], labels: ['Keyboard', 'Controls', 'Sequencer'] });
     SL.quad.activate('classic');
+      } // end if (containerEl)
+    } // end if (classicEl && SL.quad)
   }
 
   /**
@@ -697,49 +702,45 @@
    * @param {number|null} noteFreq - Frequency of the note being played, or null to clear
    */
   function updateKeyTrackedFreqDisplay(noteFreq) {
-    const display = document.getElementById('filterKeyTrackedFreq-val-modal');
-    if (!display) {
-      return;
-    }
-
-    if (noteFreq === null) {
-      // Don't clear immediately - leave last value or show base cutoff
-      const filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
-      if (filterSettings && filterSettings.keyTrack > 0) {
-        // Show that it's waiting for a note
-        display.textContent = SL.t('ui.label.play_a_note');
-      } else {
-        // No key tracking, show same as cutoff
-        if (filterSettings) {
-          if (filterSettings.frequency >= 1000) {
-            display.textContent = (filterSettings.frequency / 1000).toFixed(2) + ' kHz';
-          } else {
-            display.textContent = Math.round(filterSettings.frequency) + ' Hz';
-          }
+    var display = document.getElementById('filterKeyTrackedFreq-val-modal');
+    if (display) {
+      if (noteFreq === NO_NOTE_FREQ) {
+        // Don't clear immediately - leave last value or show base cutoff
+        var filterSettingsNull = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
+        if (filterSettingsNull && filterSettingsNull.keyTrack > 0) {
+          // Show that it's waiting for a note
+          display.textContent = SL.t('ui.label.play_a_note');
         } else {
+          // No key tracking, show same as cutoff
+          if (filterSettingsNull) {
+            if (filterSettingsNull.frequency >= 1000) {
+              display.textContent = (filterSettingsNull.frequency / 1000).toFixed(2) + ' kHz';
+            } else {
+              display.textContent = Math.round(filterSettingsNull.frequency) + ' Hz';
+            }
+          } else {
+            display.textContent = '--';
+          }
+        }
+      } else {
+        // Get current filter settings
+        var filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
+        if (!filterSettings) {
           display.textContent = '--';
+        } else {
+          // Calculate the key-tracked cutoff frequency
+          var keyTrackedFreq = SL.audio && SL.audio.calcKeyTrackedFreq
+            ? SL.audio.calcKeyTrackedFreq(filterSettings.frequency, noteFreq, filterSettings.keyTrack)
+            : filterSettings.frequency;
+
+          // Format the display
+          if (keyTrackedFreq >= 1000) {
+            display.textContent = (keyTrackedFreq / 1000).toFixed(2) + ' kHz';
+          } else {
+            display.textContent = Math.round(keyTrackedFreq) + ' Hz';
+          }
         }
       }
-      return;
-    }
-
-    // Get current filter settings
-    const filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
-    if (!filterSettings) {
-      display.textContent = '--';
-      return;
-    }
-
-    // Calculate the key-tracked cutoff frequency
-    const keyTrackedFreq = SL.audio && SL.audio.calcKeyTrackedFreq
-      ? SL.audio.calcKeyTrackedFreq(filterSettings.frequency, noteFreq, filterSettings.keyTrack)
-      : filterSettings.frequency;
-
-    // Format the display
-    if (keyTrackedFreq >= 1000) {
-      display.textContent = (keyTrackedFreq / 1000).toFixed(2) + ' kHz';
-    } else {
-      display.textContent = Math.round(keyTrackedFreq) + ' Hz';
     }
   }
 
@@ -752,12 +753,10 @@
   var _undoBtn = null;
 
   function _createUndoBtn() {
-    if (_undoBtn) {
-      return;
-    }
+    if (!_undoBtn) {
     _undoBtn = document.createElement('button');
     _undoBtn.className = 'ssl-undo-btn';
-    _undoBtn.title = 'Undo (Ctrl+Z)';
+    _undoBtn.title = SL.t('ui.undo_title');
     _undoBtn.setAttribute('aria-label', 'Undo');
     _undoBtn.innerHTML = '&#x21A9;';
     _undoBtn.disabled = true;
@@ -765,11 +764,14 @@
     document.body.appendChild(_undoBtn);
 
     document.addEventListener('keydown', function(e) {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      var isUndoKey = (e.ctrlKey || e.metaKey) && e.key === 'z';
+      var isUndoShortcut = isUndoKey && !e.shiftKey;
+      if (isUndoShortcut) {
         e.preventDefault();
         undoAction();
       }
     });
+    } // end if (!_undoBtn)
   }
 
   function pushUndo(entry) {
@@ -784,9 +786,7 @@
   }
 
   function undoAction() {
-    if (_undoStack.length === 0) {
-      return;
-    }
+    if (_undoStack.length > 0) {
     var entry = _undoStack.pop();
 
     if (entry.type === 'preset' && entry.data) {
@@ -814,6 +814,7 @@
     if (_undoBtn) {
       _undoBtn.disabled = (_undoStack.length === 0);
     }
+    } // end if (_undoStack.length > 0)
   }
 
   // ============================================================
@@ -824,41 +825,39 @@
   var _refToneBtn = null;
 
   function _createRefToneBtn() {
-    if (!refHzEl || !refHzEl.parentNode) {
-      return;
+    if (refHzEl && refHzEl.parentNode) {
+      _refToneBtn = document.createElement('button');
+      _refToneBtn.className = 'rhy-scr-btn';
+      _refToneBtn.textContent = SL.t('sound_screen.play_ref_tone');
+      _refToneBtn.title = SL.t('ui.ref_tone_title');
+      _refToneBtn.style.cssText = 'margin-left:6px;padding:2px 8px;font-size:11px;';
+      _refToneBtn.addEventListener('click', function() {
+        _toggleRefTone();
+      });
+      refHzEl.parentNode.insertBefore(_refToneBtn, refHzEl.nextSibling);
     }
-    _refToneBtn = document.createElement('button');
-    _refToneBtn.className = 'rhy-scr-btn';
-    _refToneBtn.textContent = SL.t('sound_screen.play_ref_tone');
-    _refToneBtn.title = 'Toggle reference tone at current refHz frequency';
-    _refToneBtn.style.cssText = 'margin-left:6px;padding:2px 8px;font-size:11px;';
-    _refToneBtn.addEventListener('click', function() {
-      _toggleRefTone();
-    });
-    refHzEl.parentNode.insertBefore(_refToneBtn, refHzEl.nextSibling);
   }
 
   function _toggleRefTone() {
     if (_refToneOsc) {
       _stopRefTone();
-      return;
-    }
-    var ctx = SL.audio && SL.audio.getCtx ? SL.audio.getCtx() : null;
-    if (!ctx) {
-      return;
-    }
-    var freq = parseFloat(refHzEl.value) || 440;
-    _refToneGain = ctx.createGain();
-    _refToneGain.gain.value = 0.15;
-    _refToneGain.connect(ctx.destination);
-    _refToneOsc = ctx.createOscillator();
-    _refToneOsc.type = 'sine';
-    _refToneOsc.frequency.value = freq;
-    _refToneOsc.connect(_refToneGain);
-    _refToneOsc.start();
-    if (_refToneBtn) {
-      _refToneBtn.classList.add('active');
-      _refToneBtn.textContent = SL.t('sound_screen.stop_ref_tone');
+    } else {
+      var ctx = SL.audio && SL.audio.getCtx ? SL.audio.getCtx() : null;
+      if (ctx) {
+        var freq = parseFloat(refHzEl.value) || 440;
+        _refToneGain = ctx.createGain();
+        _refToneGain.gain.value = 0.15;
+        _refToneGain.connect(ctx.destination);
+        _refToneOsc = ctx.createOscillator();
+        _refToneOsc.type = 'sine';
+        _refToneOsc.frequency.value = freq;
+        _refToneOsc.connect(_refToneGain);
+        _refToneOsc.start();
+        if (_refToneBtn) {
+          _refToneBtn.classList.add('active');
+          _refToneBtn.textContent = SL.t('sound_screen.stop_ref_tone');
+        }
+      }
     }
   }
 
@@ -889,17 +888,19 @@
   // Export to SynthLab namespace
   SL.ui = {
     init: init,
-    getBaseOctave: () => baseOctave,
-    setBaseOctave: (v) => { baseOctave = v; },
-    getCurrentNoteDisplay: () => currentNoteDisplay,
-    setCurrentNoteDisplay: (v) => { currentNoteDisplay = v; },
+    getBaseOctave: function() { return baseOctave; },
+    setBaseOctave: function(v) { baseOctave = v; },
+    getCurrentNoteDisplay: function() { return currentNoteDisplay; },
+    setCurrentNoteDisplay: function(v) { currentNoteDisplay = v; },
     // DOM element getters for other modules
-    getElements: () => ({
-      rootEl, modeEl, waveEl, methodEl, refHzEl, isoLayoutEl,
-      kbEl, isoEl, seqKeysEl, seqEl, noteReadout, octRange,
-      durPicker, noteMenu, chordMenu,
-      orgFunc, orgDeg, orgProg, orgPal
-    }),
+    getElements: function() {
+      return {
+        rootEl: rootEl, modeEl: modeEl, waveEl: waveEl, methodEl: methodEl, refHzEl: refHzEl, isoLayoutEl: isoLayoutEl,
+        kbEl: kbEl, isoEl: isoEl, seqKeysEl: seqKeysEl, seqEl: seqEl, noteReadout: noteReadout, octRange: octRange,
+        durPicker: durPicker, noteMenu: noteMenu, chordMenu: chordMenu,
+        orgFunc: orgFunc, orgDeg: orgDeg, orgProg: orgProg, orgPal: orgPal
+      };
+    },
     rebuildAll: rebuildAll,
     updateKeyTrackedFreqDisplay: updateKeyTrackedFreqDisplay,
     updateUIFromInstrument: updateUIFromInstrument,

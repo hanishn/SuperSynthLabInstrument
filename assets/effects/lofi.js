@@ -346,6 +346,7 @@
     // Legacy alias mapping
     var paramName = name;
     var paramValue = value;
+    var wasEarlyHandled = false;
     if (name === 'amount') {
       paramName = 'mix';
     } else if (name === 'filterFreq') {
@@ -356,9 +357,10 @@
       // Not remapped to stereo width (would surprise users);
       // store for roundtripping but no audible action.
       this.params.filterWidth = value;
-      return;
+      wasEarlyHandled = true;
     }
 
+    if (!wasEarlyHandled) {
     var clamped = Math.max(0, Math.min(100, paramValue));
 
     switch (paramName) {
@@ -396,6 +398,7 @@
         break;
       default:
         break;
+    }
     }
   };
 

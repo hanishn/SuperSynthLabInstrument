@@ -252,7 +252,7 @@
     sliderDiv.appendChild(trackWrapper);
     parent.appendChild(sliderDiv);
 
-    var _dragging = false;
+    var _isDragging = false;
 
     function _updateFromPointer(e) {
       var rect = trackWrapper.getBoundingClientRect();
@@ -272,21 +272,21 @@
     trackWrapper.addEventListener('pointerdown', function(e) {
       e.preventDefault();
       if (trackWrapper.setPointerCapture && typeof e.pointerId !== 'undefined') {
-        try { trackWrapper.setPointerCapture(e.pointerId); } catch (err) { /* best effort */ }
+        try { trackWrapper.setPointerCapture(e.pointerId); } catch (err) { /* pointer capture is best-effort */ }
       }
-      _dragging = true;
+      _isDragging = true;
       _updateFromPointer(e);
     });
     trackWrapper.addEventListener('pointermove', function(e) {
-      if (!_dragging) { return; }
+      if (!_isDragging) { return; }
       _updateFromPointer(e);
     });
     trackWrapper.addEventListener('pointerup', function() {
-      _dragging = false;
+      _isDragging = false;
       if (SL.sliderOverlay) { SL.sliderOverlay.hide(); }
     });
     trackWrapper.addEventListener('pointercancel', function() {
-      _dragging = false;
+      _isDragging = false;
       if (SL.sliderOverlay) { SL.sliderOverlay.hide(); }
     });
 
@@ -374,6 +374,7 @@
     var stringArea = document.createElement('div');
     stringArea.className = 'ssli-tanpura-string-area';
 
+    var frag = document.createDocumentFragment();
     var si;
     for (si = 0; si < STRING_COUNT; si++) {
       var col = document.createElement('div');
@@ -414,9 +415,10 @@
         });
       })(si);
 
-      stringArea.appendChild(col);
+      frag.appendChild(col);
       _stringColEls.push(col);
     }
+    stringArea.appendChild(frag);
 
     body.appendChild(stringArea);
 

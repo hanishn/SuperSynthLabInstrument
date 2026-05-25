@@ -34,8 +34,8 @@
   // State
   // ============================================================
 
-  var _initialized = false;
-  var _active = false;
+  var isScreenInitialized = false;
+  var isScreenActive = false;
   var _screenEl = null;
 
   // DOM caches
@@ -111,11 +111,10 @@
   }
 
   function _updateMonitorDisplay() {
-    if (!_monitorLog) {
-      return;
+    if (_monitorLog) {
+      _monitorLog.textContent = _monitorMessages.join('\n');
+      _monitorLog.scrollTop = _monitorLog.scrollHeight;
     }
-    _monitorLog.textContent = _monitorMessages.join('\n');
-    _monitorLog.scrollTop = _monitorLog.scrollHeight;
   }
 
   function _clearMonitor() {
@@ -163,32 +162,29 @@
 
   function _interceptMidiInput(event) {
     var data = event.data;
-    if (!data || data.length < 2) {
-      return;
-    }
+    if (data && data.length >= 2) {
+      var status = data[0] & 0xF0;
+      var channel = data[0] & 0x0F;
+      var byte1 = data[1];
+      var byte2 = data.length > 2 ? data[2] : 0;
 
-    var status = data[0] & 0xF0;
-    var channel = data[0] & 0x0F;
-    var byte1 = data[1];
-    var byte2 = data.length > 2 ? data[2] : 0;
+      // Channel filter
+      var passesChannelFilter = (_inputChannel === CHANNEL_ALL || (channel + 1) === _inputChannel);
+      if (passesChannelFilter) {
 
-    // Channel filter
-    if (_inputChannel !== CHANNEL_ALL && (channel + 1) !== _inputChannel) {
-      return;
-    }
-
-    // Flash activity LED
-    _flashInputLed();
+      // Flash activity LED
+      _flashInputLed();
 
     // Determine message type for monitor
     var type = 'Unknown';
+    var isNoteOffMessage = (status === STATUS_NOTE_OFF) || ((status === STATUS_NOTE_ON) && (byte2 === 0));
     if (status === STATUS_NOTE_ON && byte2 > 0) {
       type = 'NoteOn';
       // Route to keyboard
       if (SL.screenPlay && SL.screenPlay.noteOn) {
         SL.screenPlay.noteOn(byte1, byte2);
       }
-    } else if (status === STATUS_NOTE_OFF || (status === STATUS_NOTE_ON && byte2 === 0)) {
+    } else if (isNoteOffMessage) {
       type = 'NoteOff';
       if (SL.screenPlay && SL.screenPlay.noteOff) {
         SL.screenPlay.noteOff(byte1);
@@ -206,7 +202,9 @@
     }
 
     // Add to monitor
-    _addMonitorMessage(_formatMidiMessage('IN', channel, type, byte1, byte2));
+      _addMonitorMessage(_formatMidiMessage('IN', channel, type, byte1, byte2));
+      } // end if (passesChannelFilter)
+    } // end if (data && data.length >= 2)
   }
 
   // ============================================================
@@ -217,9 +215,7 @@
     if (!navigator.requestMIDIAccess) {
       _addMonitorMessage('[SYS] Web MIDI API not available');
       _updateConnectionStatus();
-      return;
-    }
-
+    } else {
     navigator.requestMIDIAccess({ sysex: false }).then(
       function(access) {
         _populateDeviceSelects(access);
@@ -227,10 +223,12 @@
         _updateConnectionStatus();
       },
       function(err) {
-        _addMonitorMessage('[SYS] MIDI access denied: ' + err.message);
+        var msg = err['message'] || String(err);
+        _addMonitorMessage('[SYS] MIDI access denied: ' + msg);
         _updateConnectionStatus();
       }
     );
+    } // end else (navigator.requestMIDIAccess available)
   }
 
   function _populateDeviceSelects(access) {
@@ -276,25 +274,23 @@
   }
 
   function _onInputDeviceChange() {
-    if (!_inputSelect) {
-      return;
+    if (_inputSelect) {
+      var deviceId = _inputSelect.value;
+      if (SL.midi && SL.midi.selectInput) {
+        SL.midi.selectInput(deviceId);
+      }
+      _updateConnectionStatus();
     }
-    var deviceId = _inputSelect.value;
-    if (SL.midi && SL.midi.selectInput) {
-      SL.midi.selectInput(deviceId);
-    }
-    _updateConnectionStatus();
   }
 
   function _onOutputDeviceChange() {
-    if (!_outputSelect) {
-      return;
+    if (_outputSelect) {
+      var deviceId = _outputSelect.value;
+      if (SL.midi && SL.midi.selectOutput) {
+        SL.midi.selectOutput(deviceId);
+      }
+      _updateConnectionStatus();
     }
-    var deviceId = _outputSelect.value;
-    if (SL.midi && SL.midi.selectOutput) {
-      SL.midi.selectOutput(deviceId);
-    }
-    _updateConnectionStatus();
   }
 
   function _updateConnectionStatus() {
@@ -355,16 +351,14 @@
 
   function _buildScreen() {
     _screenEl = document.getElementById('ssli-screen-midi');
-    if (!_screenEl) {
-      return;
-    }
+    if (_screenEl) {
     _screenEl.innerHTML = '';
 
     var container = document.createElement('div');
     container.className = 'ssli-midi-container';
 
     // F3-05: Show browser compatibility notice if Web MIDI API is unavailable
-    var midiApiAvailable = !!(navigator.requestMIDIAccess);
+    var midiApiAvailable = Boolean(navigator.requestMIDIAccess);
     if (!midiApiAvailable) {
       var unavailNotice = document.createElement('div');
       unavailNotice.className = 'ssli-midi-unavailable';
@@ -397,7 +391,7 @@
 
     _inputStatusDot = document.createElement('span');
     _inputStatusDot.className = 'ssli-midi-status-dot disconnected';
-    _inputStatusDot.title = 'Connection status';
+    _inputStatusDot.title = SL.t('screen.midi.connectionStatus');
     scanRow.appendChild(_inputStatusDot);
 
     _inputActivityLed = document.createElement('span');
@@ -415,7 +409,7 @@
     inputDevLabel.textContent = SL.t('midi.device');
     _inputSelect = document.createElement('select');
     _inputSelect.className = 'ssli-sound-select';
-    _inputSelect.setAttribute('aria-label', 'MIDI Input Device');
+    _inputSelect.setAttribute('aria-label', SL.t('screen.midi.inputDevice'));
     var noneOpt = document.createElement('option');
     noneOpt.value = '';
     noneOpt.textContent = SL.t('midi.none');
@@ -433,7 +427,7 @@
     inputChLabel.textContent = SL.t('midi.channel');
     _inputChannelSelect = document.createElement('select');
     _inputChannelSelect.className = 'ssli-sound-select ssli-midi-channel-select';
-    _inputChannelSelect.setAttribute('aria-label', 'MIDI Input Channel');
+    _inputChannelSelect.setAttribute('aria-label', SL.t('screen.midi.inputChannel'));
     var allOpt = document.createElement('option');
     allOpt.value = String(CHANNEL_ALL);
     allOpt.textContent = SL.t('midi.all_channels');
@@ -446,7 +440,9 @@
     }
     _inputChannelSelect.addEventListener('change', function() {
       _inputChannel = parseInt(_inputChannelSelect.value, 10);
-      if (SL.midi && SL.midi.setMidiConfig && _inputChannel !== CHANNEL_ALL) {
+      var canSetMidiConfig = SL.midi && SL.midi.setMidiConfig;
+      var shouldSetChannelConfig = canSetMidiConfig && _inputChannel !== CHANNEL_ALL;
+      if (shouldSetChannelConfig) {
         SL.midi.setMidiConfig(0, { channel: _inputChannel - 1 });
       }
     });
@@ -473,7 +469,7 @@
     outputDevLabel.textContent = SL.t('midi.device');
     _outputSelect = document.createElement('select');
     _outputSelect.className = 'ssli-sound-select';
-    _outputSelect.setAttribute('aria-label', 'MIDI Output Device');
+    _outputSelect.setAttribute('aria-label', SL.t('screen.midi.outputDevice'));
     var noneOptOut = document.createElement('option');
     noneOptOut.value = '';
     noneOptOut.textContent = SL.t('midi.none');
@@ -482,7 +478,7 @@
 
     _outputStatusDot = document.createElement('span');
     _outputStatusDot.className = 'ssli-midi-status-dot disconnected';
-    _outputStatusDot.title = 'Connection status';
+    _outputStatusDot.title = SL.t('screen.midi.connectionStatus');
 
     _outputActivityLed = document.createElement('span');
     _outputActivityLed.className = 'ssli-midi-activity-led';
@@ -502,7 +498,7 @@
     outputChLabel.textContent = SL.t('midi.channel');
     _outputChannelSelect = document.createElement('select');
     _outputChannelSelect.className = 'ssli-sound-select ssli-midi-channel-select';
-    _outputChannelSelect.setAttribute('aria-label', 'MIDI Output Channel');
+    _outputChannelSelect.setAttribute('aria-label', SL.t('screen.midi.outputChannel'));
     for (var outCh = CHANNEL_MIN; outCh <= CHANNEL_MAX; outCh++) {
       var outChOpt = document.createElement('option');
       outChOpt.value = String(outCh);
@@ -549,7 +545,7 @@
 
     _monitorLog = document.createElement('pre');
     _monitorLog.className = 'ssli-midi-monitor-log';
-    _monitorLog.setAttribute('aria-label', 'MIDI message log');
+    _monitorLog.setAttribute('aria-label', SL.t('screen.midi.messageLog'));
     _monitorLog.setAttribute('aria-live', 'polite');
     monitorSection.appendChild(_monitorLog);
 
@@ -561,7 +557,9 @@
     _updateConnectionStatus();
 
     // Populate from existing SL.midi devices if already scanned
-    if (SL.midi && SL.midi.isEnabled && SL.midi.isEnabled()) {
+    var hasMidiEnabled = SL.midi && SL.midi.isEnabled;
+    var isMidiEnabled = hasMidiEnabled && SL.midi.isEnabled();
+    if (isMidiEnabled) {
       var inputs = SL.midi.getInputDevices();
       for (var ii = 0; ii < inputs.length; ii++) {
         var inOpt = document.createElement('option');
@@ -578,6 +576,7 @@
       }
       _updateConnectionStatus();
     }
+    } // end if (_screenEl)
   }
 
   // ============================================================
@@ -585,15 +584,15 @@
   // ============================================================
 
   function activate() {
-    _active = true;
-    if (!_initialized) {
+    isScreenActive = true;
+    if (!isScreenInitialized) {
       _buildScreen();
-      _initialized = true;
+      isScreenInitialized = true;
 
       // Re-translate all visible text when the UI language changes
       if (SL.localization && SL.localization.onLanguageChange) {
         SL.localization.onLanguageChange(function() {
-          if (_active) {
+          if (isScreenActive) {
             _buildScreen();
             _updateMonitorDisplay();
           }
@@ -603,7 +602,7 @@
   }
 
   function deactivate() {
-    _active = false;
+    isScreenActive = false;
     // E-01: Stop test note if playing
     if (_testNoteTimer) {
       clearTimeout(_testNoteTimer);

@@ -6,73 +6,73 @@
 (function() {
   'use strict';
 
-  const SL = window.SynthLab;
+  var SL = window.SynthLab;
 
   // Canvas references
-  let scopeCanvas, scopeCtx;
-  let spectrumCanvas, spectrumCtx;
+  var scopeCanvas, scopeCtx;
+  var spectrumCanvas, spectrumCtx;
 
   // Animation
-  let animationId = null;
-  let isVisible = false;
+  var animationId = null;
+  var isVisible = false;
 
   // Analyser settings
-  const FFT_SIZE = 2048;
-  const SMOOTHING = 0.8;
+  var FFT_SIZE = 2048;
+  var SMOOTHING = 0.8;
 
   // Buffers (pre-allocated)
-  let timeDomainData;
-  let frequencyData;
-  let floatTimeDomainData;
+  var timeDomainData;
+  var frequencyData;
+  var floatTimeDomainData;
 
   // Windowing state
-  let currentWindowFunction = 'rectangular';
-  let spectrumMode = 'standard'; // 'standard' or 'windowed'
+  var currentWindowFunction = 'rectangular';
+  var spectrumMode = 'standard'; // 'standard' or 'windowed'
 
   // Pre-computed window coefficients (computed once when window changes)
-  let windowCoefficients = null;
+  var windowCoefficients = null;
 
   // Pre-allocated scratch buffers for windowed FFT (avoid per-frame allocation)
-  let _scratchReal = null;
-  let _scratchImag = null;
-  let _scratchMagnitudes = null;
+  var _scratchReal = null;
+  var _scratchImag = null;
+  var _scratchMagnitudes = null;
 
   // Pre-computed spectrum bar colors (avoid string allocation in hot loop)
-  const SPECTRUM_BAR_COUNT = 64;
-  const spectrumColors = new Array(SPECTRUM_BAR_COUNT);
-  for (let i = 0; i < SPECTRUM_BAR_COUNT; i++) {
-    const hue = (i / SPECTRUM_BAR_COUNT) * 60 + 280;
+  var SPECTRUM_BAR_COUNT = 64;
+  var spectrumColors = new Array(SPECTRUM_BAR_COUNT);
+  for (var i = 0; i < SPECTRUM_BAR_COUNT; i++) {
+    var hue = (i / SPECTRUM_BAR_COUNT) * 60 + 280;
     spectrumColors[i] = 'hsl(' + hue + ', 80%, 60%)';
   }
 
   // Peak detection colors
   // V-07: Changed from red to warm orange for colorblind safety
-  const PEAK_COLOR = '#ff9f43';
-  const PEAK_LABEL_COLOR = '#ffcc00';
+  var PEAK_COLOR = '#ff9f43';
+  var PEAK_LABEL_COLOR = '#ffcc00';
 
   // ===== Window Functions =====
 
   function computeWindowCoefficients(name, N) {
-    const coeffs = new Float32Array(N);
+    var coeffs = new Float32Array(N);
     if (name === 'rectangular') {
-      for (let n = 0; n < N; n++) {
+      for (var n = 0; n < N; n++) {
         coeffs[n] = 1.0;
       }
     } else if (name === 'hann') {
-      for (let n = 0; n < N; n++) {
+      for (var n = 0; n < N; n++) {
         coeffs[n] = 0.5 * (1.0 - Math.cos(2.0 * Math.PI * n / (N - 1)));
       }
     } else if (name === 'hamming') {
-      for (let n = 0; n < N; n++) {
+      for (var n = 0; n < N; n++) {
         coeffs[n] = 0.54 - 0.46 * Math.cos(2.0 * Math.PI * n / (N - 1));
       }
     } else if (name === 'blackman') {
-      for (let n = 0; n < N; n++) {
+      for (var n = 0; n < N; n++) {
         coeffs[n] = 0.42 - 0.5 * Math.cos(2.0 * Math.PI * n / (N - 1))
                    + 0.08 * Math.cos(4.0 * Math.PI * n / (N - 1));
       }
     } else if (name === 'blackman-harris') {
-      for (let n = 0; n < N; n++) {
+      for (var n = 0; n < N; n++) {
         coeffs[n] = 0.35875
                    - 0.48829 * Math.cos(2.0 * Math.PI * n / (N - 1))
                    + 0.14128 * Math.cos(4.0 * Math.PI * n / (N - 1))
@@ -80,7 +80,7 @@
       }
     } else {
       // Default to rectangular
-      for (let n = 0; n < N; n++) {
+      for (var n = 0; n < N; n++) {
         coeffs[n] = 1.0;
       }
     }
@@ -90,22 +90,22 @@
   // ===== Cooley-Tukey FFT (radix-2, in-place) =====
 
   function fft(realIn, imagIn) {
-    const N = realIn.length;
-    const real = new Float32Array(realIn);
-    const imag = new Float32Array(imagIn);
+    var N = realIn.length;
+    var real = new Float32Array(realIn);
+    var imag = new Float32Array(imagIn);
 
     // Bit-reversal permutation
-    let j = 0;
-    for (let i = 0; i < N - 1; i++) {
+    var j = 0;
+    for (var i = 0; i < N - 1; i++) {
       if (i < j) {
-        let tmpR = real[i];
-        let tmpI = imag[i];
+        var tmpR = real[i];
+        var tmpI = imag[i];
         real[i] = real[j];
         imag[i] = imag[j];
         real[j] = tmpR;
         imag[j] = tmpI;
       }
-      let m = N >> 1;
+      var m = N >> 1;
       while (m >= 1 && j >= m) {
         j -= m;
         m >>= 1;
@@ -114,18 +114,18 @@
     }
 
     // Cooley-Tukey butterfly
-    for (let size = 2; size <= N; size *= 2) {
-      const halfSize = size >> 1;
-      const angleStep = -2.0 * Math.PI / size;
-      for (let i = 0; i < N; i += size) {
-        for (let k = 0; k < halfSize; k++) {
-          const angle = angleStep * k;
-          const wr = Math.cos(angle);
-          const wi = Math.sin(angle);
-          const idx1 = i + k;
-          const idx2 = i + k + halfSize;
-          const tR = wr * real[idx2] - wi * imag[idx2];
-          const tI = wr * imag[idx2] + wi * real[idx2];
+    for (var size = 2; size <= N; size *= 2) {
+      var halfSize = size >> 1;
+      var angleStep = -2.0 * Math.PI / size;
+      for (var i = 0; i < N; i += size) {
+        for (var k = 0; k < halfSize; k++) {
+          var angle = angleStep * k;
+          var wr = Math.cos(angle);
+          var wi = Math.sin(angle);
+          var idx1 = i + k;
+          var idx2 = i + k + halfSize;
+          var tR = wr * real[idx2] - wi * imag[idx2];
+          var tI = wr * imag[idx2] + wi * real[idx2];
           real[idx2] = real[idx1] - tR;
           imag[idx2] = imag[idx1] - tI;
           real[idx1] = real[idx1] + tR;
@@ -140,26 +140,26 @@
   // Compute magnitude spectrum in dB from windowed time-domain data
   // Uses pre-allocated scratch buffers to avoid per-frame allocation
   function computeWindowedSpectrum(samples, windowCoeffs) {
-    const N = samples.length;
+    var N = samples.length;
 
     // Reuse pre-allocated buffers (fall back to new allocation if not ready)
-    const realIn = (_scratchReal && _scratchReal.length === N) ? _scratchReal : new Float32Array(N);
-    const imagIn = (_scratchImag && _scratchImag.length === N) ? _scratchImag : new Float32Array(N);
+    var realIn = (_scratchReal && _scratchReal.length === N) ? _scratchReal : new Float32Array(N);
+    var imagIn = (_scratchImag && _scratchImag.length === N) ? _scratchImag : new Float32Array(N);
 
     // Apply window and zero imaginary part
-    for (let i = 0; i < N; i++) {
+    for (var i = 0; i < N; i++) {
       realIn[i] = samples[i] * windowCoeffs[i];
       imagIn[i] = 0;
     }
 
     // FFT
-    const result = fft(realIn, imagIn);
+    var result = fft(realIn, imagIn);
 
     // Compute magnitude in dB (only first half — positive frequencies)
-    const halfN = N >> 1;
-    const magnitudes = (_scratchMagnitudes && _scratchMagnitudes.length === halfN) ? _scratchMagnitudes : new Float32Array(halfN);
-    for (let i = 0; i < halfN; i++) {
-      const mag = Math.sqrt(result.real[i] * result.real[i] + result.imag[i] * result.imag[i]) / N;
+    var halfN = N >> 1;
+    var magnitudes = (_scratchMagnitudes && _scratchMagnitudes.length === halfN) ? _scratchMagnitudes : new Float32Array(halfN);
+    for (var i = 0; i < halfN; i++) {
+      var mag = Math.sqrt(result.real[i] * result.real[i] + result.imag[i] * result.imag[i]) / N;
       // Convert to dB, floor at -100 dB
       if (mag > 0) {
         magnitudes[i] = 20.0 * Math.log10(mag);
@@ -173,14 +173,14 @@
   // ===== Peak Detection =====
 
   function detectPeaks(magnitudes, sampleRate) {
-    const peaks = [];
-    const halfN = magnitudes.length;
-    const binWidth = sampleRate / (halfN * 2);
-    const threshold = -60; // dB threshold for peak detection
+    var peaks = [];
+    var halfN = magnitudes.length;
+    var binWidth = sampleRate / (halfN * 2);
+    var threshold = -60; // dB threshold for peak detection
 
     // Find local maxima above threshold
-    for (let i = 2; i < halfN - 2; i++) {
-      const val = magnitudes[i];
+    for (var i = 2; i < halfN - 2; i++) {
+      var val = magnitudes[i];
       if (val > threshold
           && val > magnitudes[i - 1]
           && val > magnitudes[i - 2]
@@ -213,7 +213,8 @@
     scopeCanvas = document.getElementById('scopeCanvas');
     spectrumCanvas = document.getElementById('spectrumCanvas');
 
-    if (!scopeCanvas || !spectrumCanvas) return;
+    if (scopeCanvas) {
+      if (spectrumCanvas) {
 
     scopeCtx = scopeCanvas.getContext('2d');
     spectrumCtx = spectrumCanvas.getContext('2d');
@@ -235,15 +236,15 @@
     _scratchMagnitudes = new Float32Array(FFT_SIZE >> 1);
 
     // Setup toggle button
-    const toggleBtn = document.getElementById('analyzerToggle');
-    const panel = document.getElementById('analyzerPanel');
-    const closeBtn = document.getElementById('analyzerClose');
+    var toggleBtn = document.getElementById('analyzerToggle');
+    var panel = document.getElementById('analyzerPanel');
+    var closeBtn = document.getElementById('analyzerClose');
 
-    toggleBtn?.addEventListener('click', () => toggle());
-    closeBtn?.addEventListener('click', () => hide());
+    toggleBtn?.addEventListener('click', function() { toggle(); });
+    closeBtn?.addEventListener('click', function() { hide(); });
 
     // Window function selector
-    const windowSelect = document.getElementById('analyzerWindowSelect');
+    var windowSelect = document.getElementById('analyzerWindowSelect');
     if (windowSelect) {
       windowSelect.addEventListener('change', function() {
         setWindowFunction(windowSelect.value);
@@ -251,7 +252,7 @@
     }
 
     // Spectrum mode toggle
-    const modeToggle = document.getElementById('analyzerModeToggle');
+    var modeToggle = document.getElementById('analyzerModeToggle');
     if (modeToggle) {
       modeToggle.addEventListener('click', function() {
         if (spectrumMode === 'standard') {
@@ -267,20 +268,22 @@
     }
 
     // Click outside to close (optional)
-    panel?.addEventListener('click', (e) => {
-      if (e.target === panel) hide();
+    panel?.addEventListener('click', function(e) {
+      if (e.target === panel) { hide(); }
     });
 
     window.addEventListener('resize', resizeCanvases);
 
+      } // end if (spectrumCanvas)
+    } // end if (scopeCanvas)
   }
 
   function resizeCanvases() {
     if (!scopeCanvas || !spectrumCanvas) return;
 
     // Match display size to CSS size
-    const scopeRect = scopeCanvas.getBoundingClientRect();
-    const spectrumRect = spectrumCanvas.getBoundingClientRect();
+    var scopeRect = scopeCanvas.getBoundingClientRect();
+    var spectrumRect = spectrumCanvas.getBoundingClientRect();
 
     // Reset transforms before resizing
     scopeCtx?.resetTransform?.();
@@ -297,7 +300,7 @@
   }
 
   function show() {
-    const panel = document.getElementById('analyzerPanel');
+    var panel = document.getElementById('analyzerPanel');
     panel?.classList.remove('hidden');
     isVisible = true;
     resizeCanvases(); // Resize after showing since dimensions may have changed
@@ -305,7 +308,7 @@
   }
 
   function hide() {
-    const panel = document.getElementById('analyzerPanel');
+    var panel = document.getElementById('analyzerPanel');
     panel?.classList.add('hidden');
     isVisible = false;
     stopAnimation();
@@ -334,7 +337,7 @@
 
     if (!SL._tabVisible) return;
 
-    const analyser = SL.audio?.getAnalyser?.();
+    var analyser = SL.audio?.getAnalyser?.();
     if (analyser) {
       drawOscilloscope(analyser);
       if (spectrumMode === 'windowed') {
@@ -349,10 +352,10 @@
     if (!timeDomainData) { return; }
     analyser.getByteTimeDomainData(timeDomainData);
 
-    const canvas = scopeCanvas;
-    const ctx = scopeCtx;
-    const width = canvas.width / window.devicePixelRatio;
-    const height = canvas.height / window.devicePixelRatio;
+    var canvas = scopeCanvas;
+    var ctx = scopeCtx;
+    var width = canvas.width / window.devicePixelRatio;
+    var height = canvas.height / window.devicePixelRatio;
 
     // Clear
     ctx.fillStyle = '#1a1a2e';
@@ -371,12 +374,12 @@
     ctx.lineWidth = 2;
     ctx.beginPath();
 
-    const sliceWidth = width / timeDomainData.length;
-    let x = 0;
+    var sliceWidth = width / timeDomainData.length;
+    var x = 0;
 
-    for (let i = 0; i < timeDomainData.length; i++) {
-      const v = timeDomainData[i] / 128.0;
-      const y = (v * height) / 2;
+    for (var i = 0; i < timeDomainData.length; i++) {
+      var v = timeDomainData[i] / 128.0;
+      var y = (v * height) / 2;
 
       if (i === 0) {
         ctx.moveTo(x, y);
@@ -393,31 +396,31 @@
     if (!frequencyData) { return; }
     analyser.getByteFrequencyData(frequencyData);
 
-    const canvas = spectrumCanvas;
-    const ctx = spectrumCtx;
-    const width = canvas.width / window.devicePixelRatio;
-    const height = canvas.height / window.devicePixelRatio;
+    var canvas = spectrumCanvas;
+    var ctx = spectrumCtx;
+    var width = canvas.width / window.devicePixelRatio;
+    var height = canvas.height / window.devicePixelRatio;
 
     // Clear
     ctx.fillStyle = '#1a1a2e';
     ctx.fillRect(0, 0, width, height);
 
     // Frequency bars
-    const barCount = SPECTRUM_BAR_COUNT;
-    const barWidth = width / barCount - 1;
-    const step = Math.floor(frequencyData.length / barCount);
+    var barCount = SPECTRUM_BAR_COUNT;
+    var barWidth = width / barCount - 1;
+    var step = Math.floor(frequencyData.length / barCount);
 
-    for (let i = 0; i < barCount; i++) {
+    for (var i = 0; i < barCount; i++) {
       // Average multiple bins for each bar
-      let sum = 0;
-      for (let j = 0; j < step; j++) {
+      var sum = 0;
+      for (var j = 0; j < step; j++) {
         sum += frequencyData[i * step + j];
       }
-      const value = sum / step;
+      var value = sum / step;
 
-      const barHeight = (value / 255) * height;
-      const x = i * (barWidth + 1);
-      const y = height - barHeight;
+      var barHeight = (value / 255) * height;
+      var x = i * (barWidth + 1);
+      var y = height - barHeight;
 
       // Gradient color based on frequency (pre-computed)
       ctx.fillStyle = spectrumColors[i];
@@ -439,38 +442,38 @@
     } else {
       // Fallback: convert byte data to float
       analyser.getByteTimeDomainData(timeDomainData);
-      for (let i = 0; i < FFT_SIZE; i++) {
+      for (var i = 0; i < FFT_SIZE; i++) {
         floatTimeDomainData[i] = (timeDomainData[i] - 128) / 128.0;
       }
     }
 
-    const canvas = spectrumCanvas;
-    const ctx = spectrumCtx;
-    const width = canvas.width / window.devicePixelRatio;
-    const height = canvas.height / window.devicePixelRatio;
+    var canvas = spectrumCanvas;
+    var ctx = spectrumCtx;
+    var width = canvas.width / window.devicePixelRatio;
+    var height = canvas.height / window.devicePixelRatio;
 
     // Clear
     ctx.fillStyle = '#1a1a2e';
     ctx.fillRect(0, 0, width, height);
 
     // Compute windowed FFT magnitude spectrum (dB)
-    const magnitudes = computeWindowedSpectrum(floatTimeDomainData, windowCoefficients);
-    const halfN = magnitudes.length;
+    var magnitudes = computeWindowedSpectrum(floatTimeDomainData, windowCoefficients);
+    var halfN = magnitudes.length;
 
     // dB range for display
-    const dbMin = -100;
-    const dbMax = 0;
-    const dbRange = dbMax - dbMin;
+    var dbMin = -100;
+    var dbMax = 0;
+    var dbRange = dbMax - dbMin;
 
     // Draw spectrum as filled line graph
     ctx.beginPath();
     ctx.moveTo(0, height);
 
-    for (let i = 0; i < halfN; i++) {
-      const xPos = (i / halfN) * width;
-      const dbVal = Math.max(dbMin, Math.min(dbMax, magnitudes[i]));
-      const yNorm = (dbVal - dbMin) / dbRange; // 0..1
-      const yPos = height - yNorm * height;
+    for (var i = 0; i < halfN; i++) {
+      var xPos = (i / halfN) * width;
+      var dbVal = Math.max(dbMin, Math.min(dbMax, magnitudes[i]));
+      var yNorm = (dbVal - dbMin) / dbRange; // 0..1
+      var yPos = height - yNorm * height;
       ctx.lineTo(xPos, yPos);
     }
 
@@ -478,7 +481,7 @@
     ctx.closePath();
 
     // Gradient fill
-    const gradient = ctx.createLinearGradient(0, 0, width, 0);
+    var gradient = ctx.createLinearGradient(0, 0, width, 0);
     gradient.addColorStop(0, 'rgba(114, 9, 183, 0.4)');
     gradient.addColorStop(0.5, 'rgba(76, 201, 240, 0.4)');
     gradient.addColorStop(1, 'rgba(247, 37, 133, 0.4)');
@@ -487,11 +490,11 @@
 
     // Stroke the line on top
     ctx.beginPath();
-    for (let i = 0; i < halfN; i++) {
-      const xPos = (i / halfN) * width;
-      const dbVal = Math.max(dbMin, Math.min(dbMax, magnitudes[i]));
-      const yNorm = (dbVal - dbMin) / dbRange;
-      const yPos = height - yNorm * height;
+    for (var i = 0; i < halfN; i++) {
+      var xPos = (i / halfN) * width;
+      var dbVal = Math.max(dbMin, Math.min(dbMax, magnitudes[i]));
+      var yNorm = (dbVal - dbMin) / dbRange;
+      var yPos = height - yNorm * height;
       if (i === 0) {
         ctx.moveTo(xPos, yPos);
       } else {
@@ -503,17 +506,17 @@
     ctx.stroke();
 
     // Peak detection
-    const sampleRate = SL.audio?.getContext?.()?.sampleRate || 44100;
-    const peaks = detectPeaks(magnitudes, sampleRate);
+    var sampleRate = SL.audio?.getContext?.()?.sampleRate || 44100;
+    var peaks = detectPeaks(magnitudes, sampleRate);
 
     // Draw peak markers
     ctx.font = '9px monospace';
-    for (let p = 0; p < peaks.length; p++) {
-      const peak = peaks[p];
-      const xPos = (peak.bin / halfN) * width;
-      const dbVal = Math.max(dbMin, Math.min(dbMax, peak.magnitude));
-      const yNorm = (dbVal - dbMin) / dbRange;
-      const yPos = height - yNorm * height;
+    for (var p = 0; p < peaks.length; p++) {
+      var peak = peaks[p];
+      var xPos = (peak.bin / halfN) * width;
+      var dbVal = Math.max(dbMin, Math.min(dbMax, peak.magnitude));
+      var yNorm = (dbVal - dbMin) / dbRange;
+      var yPos = height - yNorm * height;
 
       // Peak dot
       ctx.beginPath();
@@ -523,11 +526,11 @@
 
       // Frequency label (only for top 4 peaks)
       if (p < 4) {
-        const label = formatFrequency(peak.frequency) + 'Hz';
+        var label = formatFrequency(peak.frequency) + 'Hz';
         ctx.fillStyle = PEAK_LABEL_COLOR;
         // Offset label to avoid overlap
-        const labelX = Math.min(xPos + 4, width - 40);
-        const labelY = Math.max(yPos - 6, 12);
+        var labelX = Math.min(xPos + 4, width - 40);
+        var labelY = Math.max(yPos - 6, 12);
         ctx.fillText(label, labelX, labelY);
       }
     }
@@ -548,28 +551,28 @@
     // Window function label
     ctx.fillStyle = '#4cc9f0';
     ctx.font = '9px monospace';
-    const windowLabel = currentWindowFunction.charAt(0).toUpperCase() + currentWindowFunction.slice(1);
+    var windowLabel = currentWindowFunction.charAt(0).toUpperCase() + currentWindowFunction.slice(1);
     ctx.fillText(windowLabel, width - ctx.measureText(windowLabel).width - 4, 10);
   }
 
   // ===== Public API =====
 
   function setWindowFunction(name) {
-    const valid = ['rectangular', 'hann', 'hamming', 'blackman', 'blackman-harris'];
+    var valid = ['rectangular', 'hann', 'hamming', 'blackman', 'blackman-harris'];
     if (valid.indexOf(name) === -1) {
       console.warn('Unknown window function: ' + name + '. Valid: ' + valid.join(', '));
-      return;
-    }
-    currentWindowFunction = name;
-    windowCoefficients = computeWindowCoefficients(name, FFT_SIZE);
+    } else {
+      currentWindowFunction = name;
+      windowCoefficients = computeWindowCoefficients(name, FFT_SIZE);
 
-    // If not already in windowed mode, switch to it (except rectangular)
-    if (name !== 'rectangular' && spectrumMode === 'standard') {
-      spectrumMode = 'windowed';
-      const modeToggle = document.getElementById('analyzerModeToggle');
-      if (modeToggle) {
-        modeToggle.textContent = SL.t('analyzer.mode_windowed');
-        modeToggle.classList.add('active');
+      // If not already in windowed mode, switch to it (except rectangular)
+      if (name !== 'rectangular' && spectrumMode === 'standard') {
+        spectrumMode = 'windowed';
+        var modeToggle = document.getElementById('analyzerModeToggle');
+        if (modeToggle) {
+          modeToggle.textContent = SL.t('analyzer.mode_windowed');
+          modeToggle.classList.add('active');
+        }
       }
     }
   }
@@ -581,19 +584,18 @@
   // Auto-show scope on first note played (Fix 24)
   // DISABLED on phone layouts — the analyzer <select> elements trigger
   // iOS full-screen picker wheels that cover the keyboard and block play.
-  var _autoShowDone = false;
+  var _hasAutoShowDone = false;
   function autoShowOnFirstNote() {
-    if (_autoShowDone || isVisible) {
-      return;
+    if (!_hasAutoShowDone && !isVisible) {
+      var layout = document.documentElement.getAttribute('data-layout');
+      var isPhone = (layout === 'phone' || layout === 'phone-land');
+      if (isPhone) {
+        _hasAutoShowDone = true;
+      } else {
+        _hasAutoShowDone = true;
+        show();
+      }
     }
-    var layout = document.documentElement.getAttribute('data-layout');
-    var isPhone = (layout === 'phone' || layout === 'phone-land');
-    if (isPhone) {
-      _autoShowDone = true;
-      return;
-    }
-    _autoShowDone = true;
-    show();
   }
 
   // Export
@@ -616,17 +618,19 @@
 
   var _pulseAnalyser = null;
   var _pulseData = null;
-  var _pulseRunning = false;
+  var _isPulseRunning = false;
 
   function _startBackgroundPulse() {
-    if (_pulseRunning) { return; }
-    _pulseRunning = true;
+    if (_isPulseRunning) { return; }
+    _isPulseRunning = true;
 
     function _pulseLoop() {
-      if (!_pulseRunning) { return; }
+      if (!_isPulseRunning) { return; }
       requestAnimationFrame(_pulseLoop);
 
-      if (!_pulseAnalyser && SL.audio && SL.audio.getAnalyser) {
+      var canGetAnalyser = SL.audio && SL.audio.getAnalyser;
+      var shouldInitAnalyser = !_pulseAnalyser && canGetAnalyser;
+      if (shouldInitAnalyser) {
         _pulseAnalyser = SL.audio.getAnalyser();
         if (_pulseAnalyser) {
           _pulseData = new Uint8Array(_pulseAnalyser.frequencyBinCount);
@@ -665,7 +669,7 @@
   document.addEventListener('visibilitychange', function() {
     if (document.hidden) {
       // Pause background pulse to save CPU
-      _pulseRunning = false;
+      _isPulseRunning = false;
       // Scope already skips via SL._tabVisible check
     } else {
       // Resume background pulse

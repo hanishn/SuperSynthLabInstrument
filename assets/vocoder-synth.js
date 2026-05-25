@@ -17,6 +17,9 @@
   var NUM_INSTRUMENTS = 4;
   var TWO_PI = 2 * Math.PI;
 
+  // Valid carrier waveform types
+  var VALID_CARRIER_WAVEFORMS = { 'saw': 1, 'square': 1, 'noise': 1, 'pulse': 1 };
+
   // Vowel formant definitions: [F1, F2, F3] frequencies in Hz
   // Based on typical male vocal formant data
   var VOWEL_FORMANTS = {
@@ -44,7 +47,7 @@
   // ============================================================
 
   var audioContext = null;
-  var engineReady = false;
+  var isEngineReady = false;
 
   // Per-instrument settings cache (instId -> settings object)
   var instrumentSettings = {};
@@ -522,7 +525,7 @@
 
     // Pre-allocate per-instrument voice pools (4 instruments, matching formant-engine)
     for (var i = 0; i < NUM_INSTRUMENTS; i++) {
-      voicesByInst[i] = [];
+      voicesByInst[i].length = 0;
       for (var v = 0; v < MAX_VOICES_PER_INSTRUMENT; v++) {
         voicesByInst[i].push(new VocoderVoice(sr));
       }
@@ -582,7 +585,7 @@
       })(idx);
     }
 
-    engineReady = true;
+    isEngineReady = true;
     return Promise.resolve(true);
   }
 
@@ -609,54 +612,50 @@
       instId = 0;
     }
     var filterNode = vocoderFilterNodes[instId];
-    if (!filterNode) {
-      return;
-    }
-
-    var filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
-    if (!filterSettings || !filterSettings.enabled) {
-      filterNode.type = 'lowpass';
-      filterNode.frequency.value = 20000;
-      filterNode.Q.value = 0.707;
-    } else {
-      filterNode.type = filterSettings.type || 'lowpass';
-      filterNode.frequency.value = Math.max(20, Math.min(20000, filterSettings.frequency || 20000));
-      filterNode.Q.value = Math.max(0.1, Math.min(30, filterSettings.resonance || 1));
+    if (filterNode) {
+      var filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
+      if (!filterSettings || !filterSettings.enabled) {
+        filterNode.type = 'lowpass';
+        filterNode.frequency.value = 20000;
+        filterNode.Q.value = 0.707;
+      } else {
+        filterNode.type = filterSettings.type || 'lowpass';
+        filterNode.frequency.value = Math.max(20, Math.min(20000, filterSettings.frequency || 20000));
+        filterNode.Q.value = Math.max(0.1, Math.min(30, filterSettings.resonance || 1));
+      }
     }
   }
 
   function connectToOutput(instId) {
     // If output node not created yet (engine not initialized), skip
-    if (!vocoderOutputNodes[instId]) {
-      return;
-    }
-
-    if (connectedInsts[instId]) {
-      updateFilter(instId);
-    } else {
-      var instruments = SL.audio && SL.audio.getInstruments ? SL.audio.getInstruments() : null;
-      var inst = instruments ? instruments[instId] : null;
-      var destination;
-
-      if (inst && inst.masterOutput) {
-        destination = inst.masterOutput;
-      } else if (audioContext) {
-        destination = audioContext.destination;
+    if (vocoderOutputNodes[instId]) {
+      if (connectedInsts[instId]) {
+        updateFilter(instId);
       } else {
-        return;
+        var instruments = SL.audio && SL.audio.getInstruments ? SL.audio.getInstruments() : null;
+        var inst = instruments ? instruments[instId] : null;
+        var destination;
+
+        if (inst && inst.masterOutput) {
+          destination = inst.masterOutput;
+        } else if (audioContext) {
+          destination = audioContext.destination;
+        }
+
+        if (destination) {
+          var filterNode = getOrCreateFilterNode(instId);
+          updateFilter(instId);
+
+          if (filterNode) {
+            vocoderOutputNodes[instId].connect(filterNode);
+            filterNode.connect(destination);
+          } else {
+            vocoderOutputNodes[instId].connect(destination);
+          }
+
+          connectedInsts[instId] = true;
+        }
       }
-
-      var filterNode = getOrCreateFilterNode(instId);
-      updateFilter(instId);
-
-      if (filterNode) {
-        vocoderOutputNodes[instId].connect(filterNode);
-        filterNode.connect(destination);
-      } else {
-        vocoderOutputNodes[instId].connect(destination);
-      }
-
-      connectedInsts[instId] = true;
     }
   }
 
@@ -749,7 +748,7 @@
 
   function setCarrierWaveform(instId, waveform) {
     var settings = getOrCreateSettings(instId);
-    if (waveform === 'saw' || waveform === 'square' || waveform === 'noise' || waveform === 'pulse') {
+    if (VALID_CARRIER_WAVEFORMS[waveform]) {
       settings.carrierWaveform = waveform;
     }
   }
@@ -768,7 +767,8 @@
 
   function setBandCount(instId, count) {
     var settings = getOrCreateSettings(instId);
-    if (count === 8 || count === 16 || count === 32) {
+    var isValidBandCount = count === 8 || count === 16 || count === 32;
+    if (isValidBandCount) {
       settings.bandCount = count;
     }
   }
@@ -816,7 +816,7 @@
   }
 
   function isReady() {
-    return engineReady;
+    return isEngineReady;
   }
 
   function getDefaultSettings() {

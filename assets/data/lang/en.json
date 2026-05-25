@@ -1,5 +1,10 @@
 {
-  "meta": { "code": "en", "name": "English", "nativeName": "English", "direction": "ltr" },
+  "meta": {
+    "code": "en",
+    "name": "English",
+    "nativeName": "English",
+    "direction": "ltr"
+  },
   "app": {
     "title": "Super Synth Lab - Instrument",
     "edition": "Public Build",
@@ -91,7 +96,10 @@
       "recording": "Recording",
       "playing": "Playing",
       "feedback_count": "feedback items collected"
-    }
+    },
+    "em_dash": "—",
+    "undo_title": "Undo (Ctrl+Z)",
+    "ref_tone_title": "Toggle reference tone at current refHz frequency"
   },
   "dialog": {
     "about": {
@@ -271,6 +279,14 @@
     "multitap": "Multitap",
     "ducking": "Ducking"
   },
+  "ctrl": {
+    "notesPerChord": "Notes per chord",
+    "strumPattern": "Strum pattern",
+    "rhythmPattern": "Rhythm pattern",
+    "strumSpeed": "Strum speed",
+    "restrumInterval": "Restrum interval",
+    "xyReadoutEmpty": "Touch to play"
+  },
   "delay_pattern": {
     "rhythmic": "Rhythmic",
     "golden": "Golden",
@@ -349,9 +365,23 @@
     "maqam_kurd": "Maqam Kurd"
   },
   "note": {
-    "c": "C", "cs": "C#", "d": "D", "ds": "D#", "e": "E", "f": "F",
-    "fs": "F#", "g": "G", "gs": "G#", "a": "A", "as": "A#", "b": "B",
-    "db": "Db", "eb": "Eb", "gb": "Gb", "ab": "Ab", "bb": "Bb"
+    "c": "C",
+    "cs": "C#",
+    "d": "D",
+    "ds": "D#",
+    "e": "E",
+    "f": "F",
+    "fs": "F#",
+    "g": "G",
+    "gs": "G#",
+    "a": "A",
+    "as": "A#",
+    "b": "B",
+    "db": "Db",
+    "eb": "Eb",
+    "gb": "Gb",
+    "ab": "Ab",
+    "bb": "Bb"
   },
   "accordion": {
     "mode_bass": "Bass",
@@ -489,6 +519,15 @@
     "filter_adsr": "Filter ADSR",
     "amp_filter_adsr": "Amp + Filter ADSR"
   },
+  "btn": {
+    "randomDice": "🎲",
+    "arrowDown": "▼",
+    "arrowUp": "▲",
+    "arrowLeft": "◀",
+    "arrowRight": "▶",
+    "minus": "−",
+    "plus": "+"
+  },
   "breathfinger": {
     "breath_label": "BREATH",
     "loud": "Loud",
@@ -553,7 +592,10 @@
     "title": "HANDPAN",
     "scale_label": "Scale",
     "oct_down": "Oct−",
-    "oct_up": "Oct+"
+    "oct_up": "Oct+",
+    "scale_select": "Handpan Scale",
+    "oct_down_aria": "Octave Down",
+    "oct_up_aria": "Octave Up"
   },
   "feedback": {
     "provide_on": "Provide Feedback on ",
@@ -569,7 +611,9 @@
     "kit_select_title": "Drum kit preset"
   },
   "isogrid": {
-    "layout_label": "Layout:"
+    "layout_label": "Layout:",
+    "hex_keyboard": "Isomorphic hex keyboard",
+    "grid_keyboard": "Isomorphic grid keyboard"
   },
   "fretboard": {
     "preset_title": "Physical plucked preset",
@@ -580,7 +624,8 @@
     "rhythm_pattern_title": "Rhythm pattern",
     "open_btn": "Open",
     "open_btn_title": "Open strings (no chord)",
-    "strum_label": "S<br>T<br>R<br>U<br>M"
+    "strum_label": "S<br>T<br>R<br>U<br>M",
+    "strum_all": "Strum all strings"
   },
   "mpe": {
     "slide_label": "Slide ↑",
@@ -594,7 +639,9 @@
     "mode_chromatic": "Chromatic"
   },
   "organ": {
-    "perc_prefix": "Perc: "
+    "perc_prefix": "Perc: ",
+    "preset_aria": "Registration Preset",
+    "perc_aria": "Percussion Toggle"
   },
   "tonnetz": {
     "layout_label": "LAYOUT",
@@ -673,7 +720,10 @@
     "cutoff": "Cutoff",
     "resonance": "Resonance",
     "key_track": "Key Track",
-    "portamento": "Portamento"
+    "portamento": "Portamento",
+    "enable_filter": "Enable Filter",
+    "filter_type": "Filter Type",
+    "filter_model": "Filter Model"
   },
   "waveform": {
     "sine": "Sine",
@@ -882,5 +932,59 @@
     "fm_depth": "FM Depth",
     "lfo1_rate": "LFO1 Rate",
     "lfo2_rate": "LFO2 Rate"
+  },
+  "mixer": {
+    "q_prefix": "Q: ",
+    "algo_prefix": "Algo "
+  },
+  "nav": {
+    "home_icon": "⌂",
+    "open_menu": "Open navigation menu",
+    "quad_switcher": "Quad switcher"
+  },
+  "mod_matrix": {
+    "header_source": "Source",
+    "header_destination": "Destination",
+    "header_amount": "Amount"
+  },
+  "screen": {
+    "effects": {
+      "enable": "Enable",
+      "open": "Open",
+      "parameters": "Parameters",
+      "arrowLeft": "◀",
+      "arrowRight": "▶",
+      "fxPresetCategory": "Effect Category",
+      "fxPreset": "Effect Preset"
+    },
+    "manager": {
+      "panicAllNotesOff": "Panic: All Notes Off",
+      "currentEngineAndPreset": "Current Engine and Preset",
+      "returnToLanding": "Return to Landing"
+    },
+    "midi": {
+      "connectionStatus": "Connection Status",
+      "inputDevice": "Input Device",
+      "inputChannel": "Input Channel",
+      "outputDevice": "Output Device",
+      "outputChannel": "Output Channel",
+      "messageLog": "Message Log"
+    },
+    "tweak": {
+      "notYetImplemented": "Not yet implemented",
+      "panelFor": "Panel for",
+      "jumpToShapeTitle": "Jump to Shape",
+      "unknownModel": "Unknown model",
+      "partial": "Partial",
+      "noFormulaList": "No formula list"
+    }
+  },
+  "tooltip": {
+    "randomPhraseInCategory": "Random phrase in category",
+    "octaveTapCycle": "Cycle octave on tap",
+    "accentLouder": "Accent: louder note",
+    "slideGlide": "Slide: glide to note",
+    "outputLimiter": "Output limiter",
+    "playTestTone": "Play test tone"
   }
 }

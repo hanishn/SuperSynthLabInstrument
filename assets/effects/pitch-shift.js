@@ -2,116 +2,115 @@
 // Creates octave effects and detuning using granular pitch shifting
 
 (function() {
-  const SL = window.SynthLab;
-  const BaseEffect = SL.effects.BaseEffect;
+  var SL = window.SynthLab;
+  var BaseEffect = SL.effects.BaseEffect;
 
   // AudioWorklet processor code for granular pitch shifting
-  const workletCode = `
-class PitchShiftProcessor extends AudioWorkletProcessor {
-  static get parameterDescriptors() {
-    return [
-      { name: 'pitchRatio', defaultValue: 1.0, minValue: 0.5, maxValue: 2.0 },
-      { name: 'windowSize', defaultValue: 0.1, minValue: 0.05, maxValue: 0.2 }
-    ];
-  }
-
-  constructor() {
-    super();
-    // Maximum buffer size for 200ms at up to 192kHz
-    this.maxBufferSize = 192000 * 0.2;
-    this.bufferL = new Float32Array(this.maxBufferSize);
-    this.bufferR = new Float32Array(this.maxBufferSize);
-    this.writePos = 0;
-
-    // Two read heads for crossfading
-    this.readPos1 = 0;
-    this.readPos2 = 0;
-    this.crossfadePos = 0;
-  }
-
-  process(inputs, outputs, parameters) {
-    const input = inputs[0];
-    const output = outputs[0];
-
-    if (!input || !input.length) {
-      return true;
-    }
-
-    const pitchRatio = parameters.pitchRatio[0];
-    const windowSize = parameters.windowSize[0];
-    const windowSamples = Math.floor(sampleRate * windowSize);
-
-    // Read speed relative to write speed determines pitch
-    // pitchRatio > 1 = higher pitch (read faster)
-    // pitchRatio < 1 = lower pitch (read slower)
-    const readSpeed = pitchRatio;
-
-    for (let channel = 0; channel < output.length; channel++) {
-      const inputChannel = input[channel] || input[0];
-      const outputChannel = output[channel];
-      const buffer = channel === 0 ? this.bufferL : this.bufferR;
-
-      if (!inputChannel || !outputChannel) continue;
-
-      for (let i = 0; i < outputChannel.length; i++) {
-        // Write input to circular buffer
-        buffer[this.writePos] = inputChannel[i];
-
-        // Calculate read positions with wrapping
-        const pos1 = this.readPos1 % this.maxBufferSize;
-        const pos2 = this.readPos2 % this.maxBufferSize;
-
-        // Linear interpolation for fractional positions
-        const pos1Floor = Math.floor(pos1);
-        const pos1Frac = pos1 - pos1Floor;
-        const pos1Next = (pos1Floor + 1) % this.maxBufferSize;
-
-        const pos2Floor = Math.floor(pos2);
-        const pos2Frac = pos2 - pos2Floor;
-        const pos2Next = (pos2Floor + 1) % this.maxBufferSize;
-
-        const sample1 = buffer[pos1Floor] * (1 - pos1Frac) + buffer[pos1Next] * pos1Frac;
-        const sample2 = buffer[pos2Floor] * (1 - pos2Frac) + buffer[pos2Next] * pos2Frac;
-
-        // Hann window crossfade
-        const crossfadePhase = this.crossfadePos / windowSamples;
-        const window1 = 0.5 * (1 - Math.cos(Math.PI * crossfadePhase));
-        const window2 = 0.5 * (1 - Math.cos(Math.PI * (crossfadePhase + 1)));
-
-        outputChannel[i] = sample1 * window1 + sample2 * window2;
-
-        // Update write position
-        if (channel === 0) {
-          this.writePos = (this.writePos + 1) % this.maxBufferSize;
-
-          // Update read positions
-          this.readPos1 = (this.readPos1 + readSpeed) % this.maxBufferSize;
-          this.readPos2 = (this.readPos2 + readSpeed) % this.maxBufferSize;
-
-          // Update crossfade position
-          this.crossfadePos++;
-
-          // Reset crossfade and resync read head when window completes
-          if (this.crossfadePos >= windowSamples) {
-            this.crossfadePos = 0;
-            // Swap and resync: move read head 2 to current write position
-            this.readPos2 = this.writePos - windowSamples * 0.5;
-            if (this.readPos2 < 0) this.readPos2 += this.maxBufferSize;
-          }
-
-          // At half window, resync read head 1
-          if (this.crossfadePos === Math.floor(windowSamples / 2)) {
-            this.readPos1 = this.writePos - windowSamples * 0.5;
-            if (this.readPos1 < 0) this.readPos1 += this.maxBufferSize;
-          }
-        }
-      }
-    }
-    return true;
-  }
-}
-registerProcessor('pitch-shift-processor', PitchShiftProcessor);
-`;
+  var workletCode =
+    'class PitchShiftProcessor extends AudioWorkletProcessor {\n' +
+    '  static get parameterDescriptors() {\n' +
+    '    return [\n' +
+    '      { name: \'pitchRatio\', defaultValue: 1.0, minValue: 0.5, maxValue: 2.0 },\n' +
+    '      { name: \'windowSize\', defaultValue: 0.1, minValue: 0.05, maxValue: 0.2 }\n' +
+    '    ];\n' +
+    '  }\n' +
+    '\n' +
+    '  constructor() {\n' +
+    '    super();\n' +
+    '    // Maximum buffer size for 200ms at up to 192kHz\n' +
+    '    this.maxBufferSize = 192000 * 0.2;\n' +
+    '    this.bufferL = new Float32Array(this.maxBufferSize);\n' +
+    '    this.bufferR = new Float32Array(this.maxBufferSize);\n' +
+    '    this.writePos = 0;\n' +
+    '\n' +
+    '    // Two read heads for crossfading\n' +
+    '    this.readPos1 = 0;\n' +
+    '    this.readPos2 = 0;\n' +
+    '    this.crossfadePos = 0;\n' +
+    '  }\n' +
+    '\n' +
+    '  process(inputs, outputs, parameters) {\n' +
+    '    var input = inputs[0];\n' +
+    '    var output = outputs[0];\n' +
+    '\n' +
+    '    if (!input || !input.length) {\n' +
+    '      return true;\n' +
+    '    }\n' +
+    '\n' +
+    '    var pitchRatio = parameters.pitchRatio[0];\n' +
+    '    var windowSize = parameters.windowSize[0];\n' +
+    '    var windowSamples = Math.floor(sampleRate * windowSize);\n' +
+    '\n' +
+    '    // Read speed relative to write speed determines pitch\n' +
+    '    // pitchRatio > 1 = higher pitch (read faster)\n' +
+    '    // pitchRatio < 1 = lower pitch (read slower)\n' +
+    '    var readSpeed = pitchRatio;\n' +
+    '\n' +
+    '    for (var channel = 0; channel < output.length; channel++) {\n' +
+    '      var inputChannel = input[channel] || input[0];\n' +
+    '      var outputChannel = output[channel];\n' +
+    '      var buffer = channel === 0 ? this.bufferL : this.bufferR;\n' +
+    '\n' +
+    '      if (!inputChannel || !outputChannel) continue;\n' +
+    '\n' +
+    '      for (var i = 0; i < outputChannel.length; i++) {\n' +
+    '        // Write input to circular buffer\n' +
+    '        buffer[this.writePos] = inputChannel[i];\n' +
+    '\n' +
+    '        // Calculate read positions with wrapping\n' +
+    '        var pos1 = this.readPos1 % this.maxBufferSize;\n' +
+    '        var pos2 = this.readPos2 % this.maxBufferSize;\n' +
+    '\n' +
+    '        // Linear interpolation for fractional positions\n' +
+    '        var pos1Floor = Math.floor(pos1);\n' +
+    '        var pos1Frac = pos1 - pos1Floor;\n' +
+    '        var pos1Next = (pos1Floor + 1) % this.maxBufferSize;\n' +
+    '\n' +
+    '        var pos2Floor = Math.floor(pos2);\n' +
+    '        var pos2Frac = pos2 - pos2Floor;\n' +
+    '        var pos2Next = (pos2Floor + 1) % this.maxBufferSize;\n' +
+    '\n' +
+    '        var sample1 = buffer[pos1Floor] * (1 - pos1Frac) + buffer[pos1Next] * pos1Frac;\n' +
+    '        var sample2 = buffer[pos2Floor] * (1 - pos2Frac) + buffer[pos2Next] * pos2Frac;\n' +
+    '\n' +
+    '        // Hann window crossfade\n' +
+    '        var crossfadePhase = this.crossfadePos / windowSamples;\n' +
+    '        var window1 = 0.5 * (1 - Math.cos(Math.PI * crossfadePhase));\n' +
+    '        var window2 = 0.5 * (1 - Math.cos(Math.PI * (crossfadePhase + 1)));\n' +
+    '\n' +
+    '        outputChannel[i] = sample1 * window1 + sample2 * window2;\n' +
+    '\n' +
+    '        // Update write position\n' +
+    '        if (channel === 0) {\n' +
+    '          this.writePos = (this.writePos + 1) % this.maxBufferSize;\n' +
+    '\n' +
+    '          // Update read positions\n' +
+    '          this.readPos1 = (this.readPos1 + readSpeed) % this.maxBufferSize;\n' +
+    '          this.readPos2 = (this.readPos2 + readSpeed) % this.maxBufferSize;\n' +
+    '\n' +
+    '          // Update crossfade position\n' +
+    '          this.crossfadePos++;\n' +
+    '\n' +
+    '          // Reset crossfade and resync read head when window completes\n' +
+    '          if (this.crossfadePos >= windowSamples) {\n' +
+    '            this.crossfadePos = 0;\n' +
+    '            // Swap and resync: move read head 2 to current write position\n' +
+    '            this.readPos2 = this.writePos - windowSamples * 0.5;\n' +
+    '            if (this.readPos2 < 0) this.readPos2 += this.maxBufferSize;\n' +
+    '          }\n' +
+    '\n' +
+    '          // At half window, resync read head 1\n' +
+    '          if (this.crossfadePos === Math.floor(windowSamples / 2)) {\n' +
+    '            this.readPos1 = this.writePos - windowSamples * 0.5;\n' +
+    '            if (this.readPos1 < 0) this.readPos1 += this.maxBufferSize;\n' +
+    '          }\n' +
+    '        }\n' +
+    '      }\n' +
+    '    }\n' +
+    '    return true;\n' +
+    '  }\n' +
+    '}\n' +
+    'registerProcessor(\'pitch-shift-processor\', PitchShiftProcessor);\n';
 
   /**
    * PitchShiftEffect - Granular pitch shifting for octave effects and detuning
@@ -147,8 +146,8 @@ registerProcessor('pitch-shift-processor', PitchShiftProcessor);
      * pitch = 2^(semitones/12 + cents/1200)
      */
     _calculatePitchRatio() {
-      const semitones = this.params.semitones;
-      const cents = this.params.cents;
+      var semitones = this.params.semitones;
+      var cents = this.params.cents;
       return Math.pow(2, semitones / 12 + cents / 1200);
     }
 
@@ -156,20 +155,23 @@ registerProcessor('pitch-shift-processor', PitchShiftProcessor);
      * Initialize audio processing - tries AudioWorklet first, falls back to ScriptProcessor
      */
     async _init() {
+      var hasInitSucceeded = false;
       // Try to use AudioWorklet (modern approach)
       if (this.ctx.audioWorklet) {
         try {
           await this._initWorklet();
           this.useWorklet = true;
-          return;
+          hasInitSucceeded = true;
         } catch (err) {
           console.warn('PitchShift: AudioWorklet not available, effect disabled', err);
         }
       }
 
-      // Skip ScriptProcessor fallback - at high sample rates (192kHz) it kills
-      // the AudioContext. Effect will pass through dry signal when disabled.
-      console.warn('PitchShift: No processing backend available (effect pass-through only)');
+      if (!hasInitSucceeded) {
+        // Skip ScriptProcessor fallback - at high sample rates (192kHz) it kills
+        // the AudioContext. Effect will pass through dry signal when disabled.
+        console.warn('PitchShift: No processing backend available (effect pass-through only)');
+      }
     }
 
     /**
@@ -177,8 +179,8 @@ registerProcessor('pitch-shift-processor', PitchShiftProcessor);
      */
     async _initWorklet() {
       // Create a Blob from the worklet code and get a URL
-      const blob = new Blob([workletCode], { type: 'application/javascript' });
-      const workletUrl = URL.createObjectURL(blob);
+      var blob = new Blob([workletCode], { type: 'application/javascript' });
+      var workletUrl = URL.createObjectURL(blob);
 
       try {
         // Register the worklet module
@@ -206,64 +208,64 @@ registerProcessor('pitch-shift-processor', PitchShiftProcessor);
      */
     _initScriptProcessor() {
       // Buffer size of 4096 is a good balance between latency and performance
-      const bufferSize = 4096;
+      var bufferSize = 4096;
       this.scriptNode = this.ctx.createScriptProcessor(bufferSize, 2, 2);
 
       // Maximum buffer size for 200ms at up to 192kHz
-      const maxBufferSize = 192000 * 0.2;
-      const bufferL = new Float32Array(maxBufferSize);
-      const bufferR = new Float32Array(maxBufferSize);
-      let writePos = 0;
-      let readPos1 = 0;
-      let readPos2 = maxBufferSize / 2; // Start half a window offset
-      let crossfadePos = 0;
+      var maxBufferSize = 192000 * 0.2;
+      var bufferL = new Float32Array(maxBufferSize);
+      var bufferR = new Float32Array(maxBufferSize);
+      var writePos = 0;
+      var readPos1 = 0;
+      var readPos2 = maxBufferSize / 2; // Start half a window offset
+      var crossfadePos = 0;
 
       // Reference to this for closure
-      const self = this;
+      var self = this;
 
-      this.scriptNode.onaudioprocess = (event) => {
-        const inputL = event.inputBuffer.getChannelData(0);
-        const inputR = event.inputBuffer.numberOfChannels > 1
+      this.scriptNode.onaudioprocess = function(event) {
+        var inputL = event.inputBuffer.getChannelData(0);
+        var inputR = event.inputBuffer.numberOfChannels > 1
           ? event.inputBuffer.getChannelData(1)
           : inputL;
-        const outputL = event.outputBuffer.getChannelData(0);
-        const outputR = event.outputBuffer.getChannelData(1);
+        var outputL = event.outputBuffer.getChannelData(0);
+        var outputR = event.outputBuffer.getChannelData(1);
 
-        const pitchRatio = self._calculatePitchRatio();
-        const windowMs = self.params.window;
-        const windowSamples = Math.floor(self.ctx.sampleRate * windowMs / 1000);
-        const readSpeed = pitchRatio;
+        var pitchRatio = self._calculatePitchRatio();
+        var windowMs = self.params.window;
+        var windowSamples = Math.floor(self.ctx.sampleRate * windowMs / 1000);
+        var readSpeed = pitchRatio;
 
-        for (let i = 0; i < inputL.length; i++) {
+        for (var i = 0; i < inputL.length; i++) {
           // Write input to circular buffers
           bufferL[writePos] = inputL[i];
           bufferR[writePos] = inputR[i];
 
           // Calculate read positions with wrapping
-          const pos1 = ((readPos1 % maxBufferSize) + maxBufferSize) % maxBufferSize;
-          const pos2 = ((readPos2 % maxBufferSize) + maxBufferSize) % maxBufferSize;
+          var pos1 = ((readPos1 % maxBufferSize) + maxBufferSize) % maxBufferSize;
+          var pos2 = ((readPos2 % maxBufferSize) + maxBufferSize) % maxBufferSize;
 
           // Linear interpolation for fractional positions
-          const pos1Floor = Math.floor(pos1);
-          const pos1Frac = pos1 - pos1Floor;
-          const pos1Next = (pos1Floor + 1) % maxBufferSize;
+          var pos1Floor = Math.floor(pos1);
+          var pos1Frac = pos1 - pos1Floor;
+          var pos1Next = (pos1Floor + 1) % maxBufferSize;
 
-          const pos2Floor = Math.floor(pos2);
-          const pos2Frac = pos2 - pos2Floor;
-          const pos2Next = (pos2Floor + 1) % maxBufferSize;
+          var pos2Floor = Math.floor(pos2);
+          var pos2Frac = pos2 - pos2Floor;
+          var pos2Next = (pos2Floor + 1) % maxBufferSize;
 
           // Interpolated samples for left channel
-          const sampleL1 = bufferL[pos1Floor] * (1 - pos1Frac) + bufferL[pos1Next] * pos1Frac;
-          const sampleL2 = bufferL[pos2Floor] * (1 - pos2Frac) + bufferL[pos2Next] * pos2Frac;
+          var sampleL1 = bufferL[pos1Floor] * (1 - pos1Frac) + bufferL[pos1Next] * pos1Frac;
+          var sampleL2 = bufferL[pos2Floor] * (1 - pos2Frac) + bufferL[pos2Next] * pos2Frac;
 
           // Interpolated samples for right channel
-          const sampleR1 = bufferR[pos1Floor] * (1 - pos1Frac) + bufferR[pos1Next] * pos1Frac;
-          const sampleR2 = bufferR[pos2Floor] * (1 - pos2Frac) + bufferR[pos2Next] * pos2Frac;
+          var sampleR1 = bufferR[pos1Floor] * (1 - pos1Frac) + bufferR[pos1Next] * pos1Frac;
+          var sampleR2 = bufferR[pos2Floor] * (1 - pos2Frac) + bufferR[pos2Next] * pos2Frac;
 
           // Hann window crossfade
-          const crossfadePhase = crossfadePos / windowSamples;
-          const window1 = 0.5 * (1 - Math.cos(2 * Math.PI * crossfadePhase));
-          const window2 = 0.5 * (1 - Math.cos(2 * Math.PI * (crossfadePhase + 0.5)));
+          var crossfadePhase = crossfadePos / windowSamples;
+          var window1 = 0.5 * (1 - Math.cos(2 * Math.PI * crossfadePhase));
+          var window2 = 0.5 * (1 - Math.cos(2 * Math.PI * (crossfadePhase + 0.5)));
 
           outputL[i] = sampleL1 * window1 + sampleL2 * window2;
           outputR[i] = sampleR1 * window1 + sampleR2 * window2;
@@ -309,16 +311,16 @@ registerProcessor('pitch-shift-processor', PitchShiftProcessor);
     _updateWorkletParams() {
       if (!this.workletNode) return;
 
-      const pitchRatioParam = this.workletNode.parameters.get('pitchRatio');
-      const windowSizeParam = this.workletNode.parameters.get('windowSize');
+      var pitchRatioParam = this.workletNode.parameters.get('pitchRatio');
+      var windowSizeParam = this.workletNode.parameters.get('windowSize');
 
       if (pitchRatioParam) {
-        const pitchRatio = this._calculatePitchRatio();
+        var pitchRatio = this._calculatePitchRatio();
         pitchRatioParam.setTargetAtTime(pitchRatio, this.ctx.currentTime, 0.01);
       }
       if (windowSizeParam) {
         // Convert ms to seconds
-        const windowSec = this.params.window / 1000;
+        var windowSec = this.params.window / 1000;
         windowSizeParam.setTargetAtTime(windowSec, this.ctx.currentTime, 0.01);
       }
     }

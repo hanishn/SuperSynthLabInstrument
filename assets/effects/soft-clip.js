@@ -2,11 +2,11 @@
 // Warm analog-style limiting/saturation for transparent dynamics control
 
 (function() {
-  const SL = window.SynthLab;
-  const BaseEffect = SL.effects.BaseEffect;
+  var SL = window.SynthLab;
+  var BaseEffect = SL.effects.BaseEffect;
 
   // Number of samples for waveshaper curves
-  const CURVE_SAMPLES = 44100;
+  var CURVE_SAMPLES = 44100;
 
   /**
    * Generate a soft clipping curve with adjustable knee
@@ -17,44 +17,44 @@
    * @param {number} ceiling - Output ceiling in dB (-6 to 0)
    */
   function generateSoftClipCurve(threshold, knee, ceiling) {
-    const curve = new Float32Array(CURVE_SAMPLES);
+    var curve = new Float32Array(CURVE_SAMPLES);
 
     // Convert dB values to linear
-    const thresholdLinear = Math.pow(10, threshold / 20);
-    const ceilingLinear = Math.pow(10, ceiling / 20);
+    var thresholdLinear = Math.pow(10, threshold / 20);
+    var ceilingLinear = Math.pow(10, ceiling / 20);
 
     // Knee width in linear scale (0 = hard knee, higher = softer)
-    const kneeWidth = (knee / 100) * thresholdLinear * 0.5;
+    var kneeWidth = (knee / 100) * thresholdLinear * 0.5;
 
-    for (let i = 0; i < CURVE_SAMPLES; i++) {
+    for (var i = 0; i < CURVE_SAMPLES; i++) {
       // Input value from -1 to 1
-      const x = (i * 2 / CURVE_SAMPLES) - 1;
-      const absX = Math.abs(x);
-      const sign = x >= 0 ? 1 : -1;
+      var x = (i * 2 / CURVE_SAMPLES) - 1;
+      var absX = Math.abs(x);
+      var sign = x >= 0 ? 1 : -1;
 
-      let y;
+      var y;
 
       if (absX <= thresholdLinear - kneeWidth) {
         // Below threshold: linear pass-through
         y = absX;
       } else if (absX <= thresholdLinear + kneeWidth && kneeWidth > 0) {
         // Knee region: smooth transition using quadratic interpolation
-        const kneeStart = thresholdLinear - kneeWidth;
-        const t = (absX - kneeStart) / (2 * kneeWidth);
+        var kneeStart = thresholdLinear - kneeWidth;
+        var t = (absX - kneeStart) / (2 * kneeWidth);
 
         // Quadratic blend from linear to compressed
-        const linearPart = absX;
-        const compressedPart = thresholdLinear + (absX - thresholdLinear) * 0.5;
+        var linearPart = absX;
+        var compressedPart = thresholdLinear + (absX - thresholdLinear) * 0.5;
         y = linearPart + (compressedPart - linearPart) * t * t;
       } else {
         // Above threshold: soft saturation using tanh
         // Scale input to drive the tanh harder for more compression
-        const excess = absX - thresholdLinear;
-        const driveAmount = 2 + (1 - thresholdLinear) * 3; // More drive for lower thresholds
+        var excess = absX - thresholdLinear;
+        var driveAmount = 2 + (1 - thresholdLinear) * 3; // More drive for lower thresholds
 
         // Tanh-based soft saturation
-        const saturated = Math.tanh(excess * driveAmount);
-        const headroom = ceilingLinear - thresholdLinear;
+        var saturated = Math.tanh(excess * driveAmount);
+        var headroom = ceilingLinear - thresholdLinear;
 
         // Map the saturated signal to the available headroom
         y = thresholdLinear + saturated * headroom;
@@ -116,7 +116,7 @@
      * Update the waveshaper curve based on current parameters
      */
     updateCurve() {
-      const curve = generateSoftClipCurve(
+      var curve = generateSoftClipCurve(
         this.params.threshold,
         this.params.knee,
         this.params.ceiling
@@ -130,12 +130,12 @@
     updateGains() {
       // Input gain: boost signal to hit the threshold appropriately
       // Lower thresholds need more input gain to maintain perceived loudness
-      const thresholdBoost = Math.pow(10, -this.params.threshold / 40);
+      var thresholdBoost = Math.pow(10, -this.params.threshold / 40);
       this.inputGain.gain.setTargetAtTime(thresholdBoost, this.ctx.currentTime, 0.01);
 
       // Output gain: compensate for limiting and apply makeup gain
       // This helps maintain consistent output level
-      const makeupGain = Math.pow(10, -this.params.ceiling / 20) * 0.9;
+      var makeupGain = Math.pow(10, -this.params.ceiling / 20) * 0.9;
       this.outputGain.gain.setTargetAtTime(makeupGain, this.ctx.currentTime, 0.01);
     }
 

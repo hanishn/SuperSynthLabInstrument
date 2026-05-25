@@ -28,9 +28,9 @@
   // State
   // ============================================================
 
-  var _ribbonActive = false;
+  var _isRibbonActive = false;
   var _ribbonCurrentMidi = -1;
-  var _ribbonFreeMode = false;
+  var _isRibbonFreeMode = false;
   var _ribbonTouches = {};
 
   // ============================================================
@@ -110,14 +110,14 @@
 
     var freeToggle = document.createElement('button');
     freeToggle.className = 'rhy-scr-btn';
-    freeToggle.textContent = _ribbonFreeMode ? SL.t('ribbon.mode_free') : SL.t('ribbon.mode_chromatic');
+    freeToggle.textContent = _isRibbonFreeMode ? SL.t('ribbon.mode_free') : SL.t('ribbon.mode_chromatic');
     freeToggle.title = SL.t('ribbon.free_toggle_title');
     freeToggle.classList.add('ssli-ribbon-free-toggle');
-    if (_ribbonFreeMode) { freeToggle.classList.add('active'); }
+    if (_isRibbonFreeMode) { freeToggle.classList.add('active'); }
     freeToggle.addEventListener('click', function() {
-      _ribbonFreeMode = !_ribbonFreeMode;
-      freeToggle.textContent = _ribbonFreeMode ? SL.t('ribbon.mode_free') : SL.t('ribbon.mode_chromatic');
-      if (_ribbonFreeMode) { freeToggle.classList.add('active'); }
+      _isRibbonFreeMode = !_isRibbonFreeMode;
+      freeToggle.textContent = _isRibbonFreeMode ? SL.t('ribbon.mode_free') : SL.t('ribbon.mode_chromatic');
+      if (_isRibbonFreeMode) { freeToggle.classList.add('active'); }
       else { freeToggle.classList.remove('active'); }
     });
     wrapper.appendChild(freeToggle);
@@ -203,7 +203,7 @@
       }
 
       function onStart(x, y, pointerEvent) {
-        _ribbonActive = true;
+        _isRibbonActive = true;
         // Resume AudioContext on user gesture before triggering noteOn
         if (SL.audio && SL.audio.getCtx) {
           var ctx = SL.audio.getCtx();
@@ -220,18 +220,28 @@
         updateCursor(x);
         var disp = document.getElementById('ribbonNoteDisplay');
         if (disp) {
-          if (_ribbonFreeMode) { disp.textContent = mFloat.toFixed(1); }
-          else { disp.textContent = _midiToName(m) + (bendCents > BEND_DISPLAY_THRESHOLD ? '+' : (bendCents < -BEND_DISPLAY_THRESHOLD ? '-' : '')); }
+          if (_isRibbonFreeMode) { disp.textContent = mFloat.toFixed(1); }
+          else {
+            var bendSuffix0;
+            if (bendCents > BEND_DISPLAY_THRESHOLD) {
+              bendSuffix0 = '+';
+            } else if (bendCents < -BEND_DISPLAY_THRESHOLD) {
+              bendSuffix0 = '-';
+            } else {
+              bendSuffix0 = '';
+            }
+            disp.textContent = _midiToName(m) + bendSuffix0;
+          }
         }
       }
 
       function onMove(x, y, pointerEvent) {
-        if (!_ribbonActive) { return; }
+        if (!_isRibbonActive) { return; }
         var mFloat = posToMidiFloat(x);
         var m = Math.round(mFloat);
         var disp = document.getElementById('ribbonNoteDisplay');
 
-        if (_ribbonFreeMode) {
+        if (_isRibbonFreeMode) {
           /* Issue 15: In Free/continuous mode, do NOT retrigger at semitone
              boundaries. Keep the original note and just bend continuously. */
           var totalBendCents = (mFloat - _ribbonCurrentMidi) * 100;
@@ -247,18 +257,28 @@
             noteOn(m, moveVel);
           }
           applyPitchBend(bendCents);
-          if (disp) { disp.textContent = _midiToName(m) + (bendCents > BEND_DISPLAY_THRESHOLD ? '+' : (bendCents < -BEND_DISPLAY_THRESHOLD ? '-' : '')); }
+          if (disp) {
+            var bendSuffix1;
+            if (bendCents > BEND_DISPLAY_THRESHOLD) {
+              bendSuffix1 = '+';
+            } else if (bendCents < -BEND_DISPLAY_THRESHOLD) {
+              bendSuffix1 = '-';
+            } else {
+              bendSuffix1 = '';
+            }
+            disp.textContent = _midiToName(m) + bendSuffix1;
+          }
         }
         applyBrightness(calcYFrac(y));
         updateCursor(x);
       }
 
       function onEnd() {
-        if (_ribbonActive) {
+        if (_isRibbonActive) {
           resetPitchBendFn();
           noteOff(_ribbonCurrentMidi);
           clearBrightness();
-          _ribbonActive = false;
+          _isRibbonActive = false;
           _ribbonCurrentMidi = -1;
           var cur = document.getElementById('ribbonCursor');
           if (cur) { cur.style.display = 'none'; }
@@ -271,7 +291,7 @@
         if (e.pointerType === 'touch') { return; }
         e.preventDefault();
         if (stripEl.setPointerCapture) {
-          try { stripEl.setPointerCapture(e.pointerId); } catch (err) { /* best effort */ }
+          try { stripEl.setPointerCapture(e.pointerId); } catch (err) { /* pointer capture is best-effort */ }
         }
         onStart(e.clientX, e.clientY, e);
       });
@@ -305,8 +325,18 @@
         _ribbonTouches[touchId] = { midi: m };
         var disp = document.getElementById('ribbonNoteDisplay');
         if (disp) {
-          if (_ribbonFreeMode) { disp.textContent = mFloat.toFixed(1); }
-          else { disp.textContent = _midiToName(m) + (bendCents > BEND_DISPLAY_THRESHOLD ? '+' : (bendCents < -BEND_DISPLAY_THRESHOLD ? '-' : '')); }
+          if (_isRibbonFreeMode) { disp.textContent = mFloat.toFixed(1); }
+          else {
+            var bendSuffix2;
+            if (bendCents > BEND_DISPLAY_THRESHOLD) {
+              bendSuffix2 = '+';
+            } else if (bendCents < -BEND_DISPLAY_THRESHOLD) {
+              bendSuffix2 = '-';
+            } else {
+              bendSuffix2 = '';
+            }
+            disp.textContent = _midiToName(m) + bendSuffix2;
+          }
         }
       }
       function touchMove(x, y, touchId, touchObj) {
@@ -315,7 +345,7 @@
         var mFloat = posToMidiFloat(x);
         var m = Math.round(mFloat);
         var disp = document.getElementById('ribbonNoteDisplay');
-        if (_ribbonFreeMode) {
+        if (_isRibbonFreeMode) {
           var totalBendCents = (mFloat - info.midi) * 100;
           applyPitchBend(totalBendCents);
           if (disp) { disp.textContent = mFloat.toFixed(1); }
@@ -329,7 +359,17 @@
             noteOn(m, touchMoveVel);
           }
           applyPitchBend(bendCents);
-          if (disp) { disp.textContent = _midiToName(m) + (bendCents > BEND_DISPLAY_THRESHOLD ? '+' : (bendCents < -BEND_DISPLAY_THRESHOLD ? '-' : '')); }
+          if (disp) {
+            var bendSuffix3;
+            if (bendCents > BEND_DISPLAY_THRESHOLD) {
+              bendSuffix3 = '+';
+            } else if (bendCents < -BEND_DISPLAY_THRESHOLD) {
+              bendSuffix3 = '-';
+            } else {
+              bendSuffix3 = '';
+            }
+            disp.textContent = _midiToName(m) + bendSuffix3;
+          }
         }
         applyBrightness(calcYFrac(y));
         updateCursor(x);
@@ -356,8 +396,8 @@
           var t = e.changedTouches[ci];
           touchStart(t.clientX, t.clientY, t.identifier, t);
         }
-        if (e.changedTouches.length > 0 && !_ribbonActive) {
-          _ribbonActive = true;
+        if (e.changedTouches.length > 0 && !_isRibbonActive) {
+          _isRibbonActive = true;
         }
       }, { passive: false });
       stripEl.addEventListener('touchmove', function(e) {
@@ -376,7 +416,7 @@
         }
         var remainingKeys = Object.keys(_ribbonTouches);
         if (remainingKeys.length === 0) {
-          _ribbonActive = false;
+          _isRibbonActive = false;
         }
       }, { passive: false });
       stripEl.addEventListener('touchcancel', function(e) {
@@ -386,7 +426,7 @@
         }
         var remainingKeys = Object.keys(_ribbonTouches);
         if (remainingKeys.length === 0) {
-          _ribbonActive = false;
+          _isRibbonActive = false;
         }
       });
     })(strip, startMidi, totalNotes);
@@ -399,10 +439,12 @@
   // ============================================================
 
   function _releaseRibbon() {
-    if (_ribbonActive) {
-      _ribbonActive = false;
+    if (_isRibbonActive) {
+      _isRibbonActive = false;
       // Release any held mouse note
-      if (_ribbonCurrentMidi >= 0 && SL.screenPlay && SL.screenPlay.noteOff) {
+      var hasHeldMouseNote = _ribbonCurrentMidi >= 0 && SL.screenPlay;
+      var canReleaseMouseNote = hasHeldMouseNote && SL.screenPlay.noteOff;
+      if (canReleaseMouseNote) {
         SL.screenPlay.noteOff(_ribbonCurrentMidi);
       }
       // Release any held touch notes
@@ -410,7 +452,9 @@
       var ti;
       for (ti = 0; ti < touchIds.length; ti++) {
         var info = _ribbonTouches[touchIds[ti]];
-        if (info && info.midi >= 0 && SL.screenPlay && SL.screenPlay.noteOff) {
+        var hasHeldTouchNote = info && info.midi >= 0;
+        var canReleaseTouchNote = hasHeldTouchNote && SL.screenPlay && SL.screenPlay.noteOff;
+        if (canReleaseTouchNote) {
           SL.screenPlay.noteOff(info.midi);
         }
       }
@@ -434,7 +478,7 @@
       'controllers',
       'ribbon.pointer',
       function() { _releaseRibbon(); },
-      function() { return _ribbonActive ? 'ribbon active' : null; }
+      function() { return _isRibbonActive ? 'ribbon active' : null; }
     );
   }
 

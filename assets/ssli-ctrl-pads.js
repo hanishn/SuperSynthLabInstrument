@@ -130,14 +130,13 @@
    */
   function _applyKitSettings(kitName) {
     var settings = KIT_SETTINGS[kitName];
-    if (!settings) {
-      return;
-    }
-    var instId = (SL.audio && SL.audio.getCurrentInstrument) ? SL.audio.getCurrentInstrument() : 0;
-    if (SL.audio && SL.audio.setDrumsynSettings) {
-      SL.audio.setDrumsynSettings(instId, settings);
-    } else if (SL.drumsyn && SL.drumsyn.setSettings) {
-      SL.drumsyn.setSettings(instId, settings);
+    if (settings) {
+      var instId = (SL.audio && SL.audio.getCurrentInstrument) ? SL.audio.getCurrentInstrument() : 0;
+      if (SL.audio && SL.audio.setDrumsynSettings) {
+        SL.audio.setDrumsynSettings(instId, settings);
+      } else if (SL.drumsyn && SL.drumsyn.setSettings) {
+        SL.drumsyn.setSettings(instId, settings);
+      }
     }
   }
 

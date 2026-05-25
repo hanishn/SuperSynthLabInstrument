@@ -6,6 +6,10 @@
 
   var SL = window.SynthLab;
 
+  // Sentinel constants
+  var NO_POINTER = null;
+  var NO_ZONE = null;
+
   // ============================================================
   // Constants
   // ============================================================
@@ -246,7 +250,7 @@
     var now = Date.now();
     var otherDrum = (currentDrum === 'dayan') ? 'bayan' : 'dayan';
     var timeDiff = Math.abs(_hitTimestamps[currentDrum] - _hitTimestamps[otherDrum]);
-    var otherActive = (_activeZones[otherDrum] !== null);
+    var otherActive = (_activeZones[otherDrum] !== NO_ZONE);
     var withinWindow = (timeDiff < COMBINED_STROKE_WINDOW_MS);
     if (otherActive && withinWindow) {
       var dayanName = _activeZones.dayan ? _activeZones.dayan.name : '';
@@ -346,7 +350,7 @@
     var velocity = _computeVelocity(e.pressure);
 
     var prevPointer = _activePointers[info.drum];
-    if (prevPointer !== null) {
+    if (prevPointer !== NO_POINTER) {
       _releasePointerForDrum(info.drum);
     }
 
@@ -375,7 +379,7 @@
   }
 
   function _onPointerMove(e) {
-    var isBayanActive = (_activePointers.bayan !== null) && (_activePointers.bayan === e.pointerId);
+    var isBayanActive = (_activePointers.bayan !== NO_POINTER) && (_activePointers.bayan === e.pointerId);
     if (!isBayanActive) { return; }
 
     var zone = _activeZones.bayan;
@@ -661,11 +665,14 @@
       'tabla.zones',
       function() { _releaseAll(); },
       function() {
-        var dayanActive = (_activePointers.dayan !== null);
-        var bayanActive = (_activePointers.bayan !== null);
+        var dayanActive = (_activePointers.dayan !== NO_POINTER);
+        var bayanActive = (_activePointers.bayan !== NO_POINTER);
         var status = null;
         if (dayanActive || bayanActive) {
-          status = (dayanActive ? 'dayan' : '') + (dayanActive && bayanActive ? '+' : '') + (bayanActive ? 'bayan' : '');
+          var dayanPart = dayanActive ? 'dayan' : '';
+          var separatorPart = (dayanActive && bayanActive) ? '+' : '';
+          var bayanPart = bayanActive ? 'bayan' : '';
+          status = dayanPart + separatorPart + bayanPart;
         }
         return status;
       }

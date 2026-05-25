@@ -29,6 +29,10 @@
     power:  [0, 7]
   };
 
+  // Valid voicing and waveform options
+  var VALID_VOICINGS = { 'close': 1, 'open': 1, 'drop2': 1, 'spread': 1 };
+  var VALID_SOURCE_WAVES = { 'sine': 1, 'saw': 1, 'square': 1, 'triangle': 1 };
+
   /** Default chord settings */
   var DEFAULT_CHORD_SETTINGS = {
     chordType: 'major',
@@ -44,7 +48,7 @@
   var audioContext = null;
   var scriptNodes = [null, null, null, null];
   var fallbackVoicesByInst = [[], [], [], []];
-  var engineReady = false;
+  var isEngineReady = false;
   var instrumentSettings = {};
   var chordFilterNodes = {};
   var connectedInsts = [false, false, false, false];
@@ -290,15 +294,15 @@
     }
 
     var sample = 0;
-    var anyActive = false;
+    var isAnyActive = false;
     for (var i = 0; i < this.activeSubCount; i++) {
       if (this.subVoices[i].active) {
         sample += this.subVoices[i].process();
-        anyActive = true;
+        isAnyActive = true;
       }
     }
 
-    if (!anyActive) {
+    if (!isAnyActive) {
       this.active = false;
     }
 
@@ -335,7 +339,7 @@
     var bufSize = (SL.audio && SL.audio.getScriptProcessorBufferSize) ? SL.audio.getScriptProcessorBufferSize() : 1024;
 
     for (var i = 0; i < 4; i++) {
-      fallbackVoicesByInst[i] = [];
+      fallbackVoicesByInst[i].length = 0;
       for (var v = 0; v < MAX_VOICES_PER_INSTRUMENT; v++) {
         fallbackVoicesByInst[i].push(new ChordVoice(sr));
       }
@@ -362,7 +366,7 @@
       })(idx);
     }
 
-    engineReady = true;
+    isEngineReady = true;
     return Promise.resolve(true);
   }
 
@@ -389,52 +393,49 @@
       instId = 0;
     }
     var filterNode = chordFilterNodes[instId];
-    if (!filterNode) {
-      return;
-    }
-    var filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
-    if (!filterSettings || !filterSettings.enabled) {
-      filterNode.type = 'lowpass';
-      filterNode.frequency.value = 20000;
-      filterNode.Q.value = 0.707;
-    } else {
-      filterNode.type = filterSettings.type || 'lowpass';
-      filterNode.frequency.value = Math.max(20, Math.min(20000, filterSettings.frequency || 20000));
-      filterNode.Q.value = Math.max(0.1, Math.min(30, filterSettings.resonance || 1));
+    if (filterNode) {
+      var filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
+      if (!filterSettings || !filterSettings.enabled) {
+        filterNode.type = 'lowpass';
+        filterNode.frequency.value = 20000;
+        filterNode.Q.value = 0.707;
+      } else {
+        filterNode.type = filterSettings.type || 'lowpass';
+        filterNode.frequency.value = Math.max(20, Math.min(20000, filterSettings.frequency || 20000));
+        filterNode.Q.value = Math.max(0.1, Math.min(30, filterSettings.resonance || 1));
+      }
     }
   }
 
   function connectToOutput(instId) {
-    if (!scriptNodes[instId]) {
-      return;
-    }
-
-    if (connectedInsts[instId]) {
-      updateFilter(instId);
-    } else {
-      var instruments = SL.audio && SL.audio.getInstruments ? SL.audio.getInstruments() : null;
-      var inst = instruments ? instruments[instId] : null;
-      var destination;
-
-      if (inst && inst.masterOutput) {
-        destination = inst.masterOutput;
-      } else if (audioContext) {
-        destination = audioContext.destination;
+    if (scriptNodes[instId]) {
+      if (connectedInsts[instId]) {
+        updateFilter(instId);
       } else {
-        return;
+        var instruments = SL.audio && SL.audio.getInstruments ? SL.audio.getInstruments() : null;
+        var inst = instruments ? instruments[instId] : null;
+        var destination;
+
+        if (inst && inst.masterOutput) {
+          destination = inst.masterOutput;
+        } else if (audioContext) {
+          destination = audioContext.destination;
+        }
+
+        if (destination) {
+          var filterNode = getOrCreateFilterNode(instId);
+          updateFilter(instId);
+
+          if (filterNode) {
+            scriptNodes[instId].connect(filterNode);
+            filterNode.connect(destination);
+          } else {
+            scriptNodes[instId].connect(destination);
+          }
+
+          connectedInsts[instId] = true;
+        }
       }
-
-      var filterNode = getOrCreateFilterNode(instId);
-      updateFilter(instId);
-
-      if (filterNode) {
-        scriptNodes[instId].connect(filterNode);
-        filterNode.connect(destination);
-      } else {
-        scriptNodes[instId].connect(destination);
-      }
-
-      connectedInsts[instId] = true;
     }
   }
 
@@ -541,7 +542,7 @@
 
   function setVoicing(instId, voicing) {
     var settings = getOrCreateSettings(instId);
-    if (voicing === 'close' || voicing === 'open' || voicing === 'drop2' || voicing === 'spread') {
+    if (VALID_VOICINGS[voicing]) {
       settings.voicing = voicing;
     }
   }
@@ -553,7 +554,7 @@
 
   function setSourceWave(instId, wave) {
     var settings = getOrCreateSettings(instId);
-    if (wave === 'sine' || wave === 'saw' || wave === 'square' || wave === 'triangle') {
+    if (VALID_SOURCE_WAVES[wave]) {
       settings.sourceWave = wave;
     }
   }
@@ -587,7 +588,7 @@
   }
 
   function isReady() {
-    return engineReady;
+    return isEngineReady;
   }
 
   function getDefaultSettings() {

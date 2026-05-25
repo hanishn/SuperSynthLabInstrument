@@ -55,9 +55,9 @@
   // State
   // ============================================================
 
-  var _active = false;
+  var _isActive = false;
   var _currentMidi = -1;
-  var _snapMode = false;
+  var _isSnapMode = false;
   var _currentNoteOff = null;
   var _padEl = null;
   var _cursorEl = null;
@@ -190,8 +190,8 @@
   // ============================================================
 
   function _releaseActivePointer() {
-    if (!_active) { return; }
-    _active = false;
+    if (!_isActive) { return; }
+    _isActive = false;
     if (_currentNoteOff && _currentMidi >= 0) {
       _currentNoteOff(_currentMidi);
     }
@@ -205,7 +205,7 @@
   }
 
   function _documentPointerUp() {
-    if (_active) {
+    if (_isActive) {
       _releaseActivePointer();
     }
   }
@@ -235,13 +235,13 @@
 
     var snapBtn = document.createElement('button');
     snapBtn.className = 'rhy-scr-btn ssli-ctrl-snap-toggle ssli-vowelpad-snap-btn';
-    snapBtn.textContent = _snapMode ? SL.t('vowelpad.snap') : SL.t('vowelpad.smooth');
+    snapBtn.textContent = _isSnapMode ? SL.t('vowelpad.snap') : SL.t('vowelpad.smooth');
     snapBtn.title = SL.t('vowelpad.snap_toggle_title');
-    if (!_snapMode) { snapBtn.classList.add('active'); }
+    if (!_isSnapMode) { snapBtn.classList.add('active'); }
     snapBtn.addEventListener('click', function() {
-      _snapMode = !_snapMode;
-      snapBtn.textContent = _snapMode ? SL.t('vowelpad.snap') : SL.t('vowelpad.smooth');
-      if (_snapMode) {
+      _isSnapMode = !_isSnapMode;
+      snapBtn.textContent = _isSnapMode ? SL.t('vowelpad.snap') : SL.t('vowelpad.smooth');
+      if (_isSnapMode) {
         snapBtn.classList.remove('active');
       } else {
         snapBtn.classList.add('active');
@@ -338,8 +338,8 @@
     // ---------- Event handling ----------
 
     function _beginTouch(clientX, clientY) {
-      if (_active) { return; }
-      _active = true;
+      if (_isActive) { return; }
+      _isActive = true;
 
       // Resume AudioContext on user gesture before triggering noteOn
       if (SL.audio && SL.audio.getCtx) {
@@ -357,7 +357,7 @@
     }
 
     function _moveTouch(clientX, clientY) {
-      if (!_active) { return; }
+      if (!_isActive) { return; }
       _applyAtCoords(clientX, clientY);
     }
 
@@ -371,7 +371,7 @@
       var yNorm = (rect.height > 0) ? (relY / rect.height) : 0.5;
 
       var effectiveX = xNorm;
-      if (_snapMode) {
+      if (_isSnapMode) {
         effectiveX = _snapToNearest(xNorm);
       }
 
@@ -404,7 +404,7 @@
     });
 
     padArea.addEventListener('mousemove', function(e) {
-      if (!_active) { return; }
+      if (!_isActive) { return; }
       _moveTouch(e.clientX, e.clientY);
     });
 
@@ -429,7 +429,7 @@
     padArea.addEventListener('touchmove', function(e) {
       e.preventDefault();
       e.stopPropagation();
-      if (!_active) { return; }
+      if (!_isActive) { return; }
       if (e.changedTouches.length > 0) {
         var t = e.changedTouches[0];
         _moveTouch(t.clientX, t.clientY);
@@ -469,7 +469,7 @@
       'voices',
       'vowelpad.pointer',
       function() { _releaseActivePointer(); },
-      function() { return _active ? 'pointer active' : null; }
+      function() { return _isActive ? 'pointer active' : null; }
     );
   }
 

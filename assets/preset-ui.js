@@ -13,35 +13,46 @@
     var presetRow = document.getElementById('presetSelectorRow');
     var categorySel = document.getElementById('presetCategory');
     var presetSel = document.getElementById('presetSelect');
-    if (!presetRow || !categorySel || !presetSel) return;
+    if (presetRow) {
+      if (categorySel) {
+        if (presetSel) {
+          var instType = SL.audio.getInstrumentType
+            ? SL.audio.getInstrumentType(SL.audio.getCurrentInstrument())
+            : 'subtractive';
 
-    var instType = SL.audio.getInstrumentType
-      ? SL.audio.getInstrumentType(SL.audio.getCurrentInstrument())
-      : 'subtractive';
+          if (instType === 'sampler') {
+            presetRow.style.display = 'none';
+          } else {
+            presetRow.style.display = '';
 
-    if (instType === 'sampler') {
-      presetRow.style.display = 'none';
-      return;
+            // Get categories for this instrument type
+            var categories = SL.presets && SL.presets.getCategories
+              ? SL.presets.getCategories(instType)
+              : [];
+
+            categorySel.textContent = '';
+            var catPlaceholderOpt = document.createElement('option');
+            catPlaceholderOpt.value = '';
+            catPlaceholderOpt.textContent = SL.t('ui.placeholder.category', '-- Category --');
+            categorySel.appendChild(catPlaceholderOpt);
+            categories.forEach(function(cat) {
+              var opt = document.createElement('option');
+              opt.value = cat;
+              opt.textContent = cat;
+              categorySel.appendChild(opt);
+            });
+
+            // Reset preset list
+            presetSel.textContent = '';
+            var presetPlaceholderOpt = document.createElement('option');
+            presetPlaceholderOpt.value = '';
+            presetPlaceholderOpt.textContent = SL.t('ui.placeholder.preset', '-- Select Preset --');
+            presetSel.appendChild(presetPlaceholderOpt);
+            lastPresetList = [];
+          }
+        }
+      }
     }
-
-    presetRow.style.display = '';
-
-    // Get categories for this instrument type
-    var categories = SL.presets && SL.presets.getCategories
-      ? SL.presets.getCategories(instType)
-      : [];
-
-    categorySel.innerHTML = '<option value="">' + SL.t('ui.placeholder.category', '-- Category --') + '</option>';
-    categories.forEach(function(cat) {
-      var opt = document.createElement('option');
-      opt.value = cat;
-      opt.textContent = cat;
-      categorySel.appendChild(opt);
-    });
-
-    // Reset preset list
-    presetSel.innerHTML = '<option value="">' + SL.t('ui.placeholder.preset', '-- Select Preset --') + '</option>';
-    lastPresetList = [];
   }
 
   function populatePresetList(category) {
@@ -56,7 +67,11 @@
       ? SL.presets.getPresetsByCategory(instType, category)
       : [];
 
-    presetSel.innerHTML = '<option value="">' + SL.t('ui.placeholder.preset', '-- Select Preset --') + '</option>';
+    presetSel.textContent = '';
+    var presetListPlaceholderOpt = document.createElement('option');
+    presetListPlaceholderOpt.value = '';
+    presetListPlaceholderOpt.textContent = SL.t('ui.placeholder.preset', '-- Select Preset --');
+    presetSel.appendChild(presetListPlaceholderOpt);
     lastPresetList.forEach(function(preset, idx) {
       var opt = document.createElement('option');
       opt.value = idx;
@@ -76,7 +91,13 @@
         if (cat) {
           populatePresetList(cat);
         } else {
-          if (presetSel) presetSel.innerHTML = '<option value="">' + SL.t('ui.placeholder.preset', '-- Select Preset --') + '</option>';
+          if (presetSel) {
+            presetSel.textContent = '';
+            var resetPlaceholderOpt = document.createElement('option');
+            resetPlaceholderOpt.value = '';
+            resetPlaceholderOpt.textContent = SL.t('ui.placeholder.preset', '-- Select Preset --');
+            presetSel.appendChild(resetPlaceholderOpt);
+          }
           lastPresetList = [];
         }
       });

@@ -121,16 +121,23 @@
 
   // ============ Hadamard 8x8 (unnormalized +/-1) ============
   // H_2 = [[1,1],[1,-1]]; H_{2n} = [[H_n, H_n],[H_n, -H_n]]
+  function _makeHadamardRow(size) {
+    return new Array(size);
+  }
+  function _makeHadamardMatrix(sz) {
+    var mat = [];
+    for (var r = 0; r < sz; r++) {
+      mat.push(_makeHadamardRow(sz));
+    }
+    return mat;
+  }
   function buildHadamard8() {
     var H1 = [[1]];
     var size = 1;
     var H = H1;
     while (size < N_LINES) {
       var newSize = size * 2;
-      var newH = [];
-      for (var r = 0; r < newSize; r++) {
-        newH.push(new Array(newSize));
-      }
+      var newH = _makeHadamardMatrix(newSize);
       for (var i = 0; i < size; i++) {
         for (var j = 0; j < size; j++) {
           var v = H[i][j];
@@ -246,7 +253,7 @@
     // into line j's input. Value = H[j][i] * HADAMARD_NORM * feedback_scalar.
     var fb = self._feedbackScalar();
     for (j = 0; j < N_LINES; j++) {
-      var row = new Array(N_LINES);
+      var row = _makeHadamardRow(N_LINES);
       for (i = 0; i < N_LINES; i++) {
         var mg = ctx.createGain();
         mg.gain.value = HADAMARD_8[j][i] * HADAMARD_NORM * fb;
@@ -311,9 +318,7 @@
       var phaseSecs = (MOD_PHASE_OFFSETS[i] / (2 * Math.PI)) / MOD_RATE_HZ;
       try {
         self.lfos[i].start(now + phaseSecs);
-      } catch (e) {
-        // start() may already have been called in some contexts
-      }
+      } catch (e) { /* LFO start() may already have been called */ }
     }
 
     // Apply initial mix via BaseEffect (which accepts 0-100)
@@ -429,8 +434,8 @@
     // rewire between its stable dampInputs/dampOutputs anchor gains.
     var a = this._onePoleA();
     for (var i = 0; i < N_LINES; i++) {
-      try { this.damps[i].disconnect(); } catch (e) { /* ignore */ }
-      try { this.dampInputs[i].disconnect(this.damps[i]); } catch (e) { /* ignore */ }
+      try { this.damps[i].disconnect(); } catch (e) { /* node already disconnected */ }
+      try { this.dampInputs[i].disconnect(this.damps[i]); } catch (e) { /* node already disconnected */ }
       var lpf = this.ctx.createIIRFilter([1 - a, 0], [1, -a]);
       this.dampInputs[i].connect(lpf);
       lpf.connect(this.dampOutputs[i]);
@@ -498,23 +503,23 @@
   HaloEffect.prototype.dispose = function() {
     var i, j;
     for (i = 0; i < N_LINES; i++) {
-      try { this.lfos[i].stop(); } catch (e) { /* may not have started */ }
-      try { this.lfos[i].disconnect(); } catch (e) { /* ignore */ }
-      try { this.lfoGains[i].disconnect(); } catch (e) { /* ignore */ }
-      try { this.inputGains[i].disconnect(); } catch (e) { /* ignore */ }
-      try { this.delays[i].disconnect(); } catch (e) { /* ignore */ }
-      try { this.damps[i].disconnect(); } catch (e) { /* ignore */ }
-      try { this.dampInputs[i].disconnect(); } catch (e) { /* ignore */ }
-      try { this.dampOutputs[i].disconnect(); } catch (e) { /* ignore */ }
-      try { this.tapGains[i].disconnect(); } catch (e) { /* ignore */ }
+      try { this.lfos[i].stop(); } catch (e) { /* LFO may not have started yet */ }
+      try { this.lfos[i].disconnect(); } catch (e) { /* node already disconnected */ }
+      try { this.lfoGains[i].disconnect(); } catch (e) { /* node already disconnected */ }
+      try { this.inputGains[i].disconnect(); } catch (e) { /* node already disconnected */ }
+      try { this.delays[i].disconnect(); } catch (e) { /* node already disconnected */ }
+      try { this.damps[i].disconnect(); } catch (e) { /* node already disconnected */ }
+      try { this.dampInputs[i].disconnect(); } catch (e) { /* node already disconnected */ }
+      try { this.dampOutputs[i].disconnect(); } catch (e) { /* node already disconnected */ }
+      try { this.tapGains[i].disconnect(); } catch (e) { /* node already disconnected */ }
       for (j = 0; j < N_LINES; j++) {
-        try { this.matrixGains[j][i].disconnect(); } catch (e) { /* ignore */ }
+        try { this.matrixGains[j][i].disconnect(); } catch (e) { /* node already disconnected */ }
       }
     }
-    try { this.preDelayNode.disconnect(); } catch (e) { /* ignore */ }
-    try { this.sumGain.disconnect(); } catch (e) { /* ignore */ }
-    try { this.tiltLow.disconnect(); } catch (e) { /* ignore */ }
-    try { this.tiltHigh.disconnect(); } catch (e) { /* ignore */ }
+    try { this.preDelayNode.disconnect(); } catch (e) { /* node already disconnected */ }
+    try { this.sumGain.disconnect(); } catch (e) { /* node already disconnected */ }
+    try { this.tiltLow.disconnect(); } catch (e) { /* node already disconnected */ }
+    try { this.tiltHigh.disconnect(); } catch (e) { /* node already disconnected */ }
 
     BaseEffect.prototype.dispose.call(this);
   };

@@ -26,6 +26,8 @@
 
   var SEMITONES_PER_OCTAVE = 12;
   var LONG_PRESS_MS = 500;
+
+  var NO_TIMER = null;
   var POPUP_AUTO_DISMISS_MS = 2000;
 
   // Variation types offered in the popup. 'root' replays the button's
@@ -75,12 +77,12 @@
   }
 
   function _pickNoteNames(rootPc) {
-    var useFlats = false;
+    var shouldUseFlats = false;
     if (typeof SL.useFlatNaming === 'function') {
-      useFlats = SL.useFlatNaming(rootPc);
+      shouldUseFlats = SL.useFlatNaming(rootPc);
     }
     var names;
-    if (useFlats) {
+    if (shouldUseFlats) {
       names = NOTES_FLAT;
     } else {
       names = NOTES;
@@ -97,7 +99,8 @@
     var chords = [];
     var MODES = SL.MODES;
     var modeData = MODES ? MODES[modeKey] : null;
-    if (modeData && modeData.scale && modeData.triads) {
+    var hasModeTriads = modeData && modeData.scale && modeData.triads;
+    if (hasModeTriads) {
       var scale = modeData.scale;
       var triads = modeData.triads;
       var degIdx;
@@ -137,7 +140,7 @@
   var _popupDismissTimerId = null;
 
   function _clearPopupDismissTimer() {
-    if (_popupDismissTimerId !== null) {
+    if (_popupDismissTimerId !== NO_TIMER) {
       clearTimeout(_popupDismissTimerId);
       _popupDismissTimerId = null;
     }

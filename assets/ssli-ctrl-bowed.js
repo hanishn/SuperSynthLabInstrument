@@ -9,6 +9,10 @@
   var SL = window.SynthLab;
   var NOTES = (SL && SL.NOTES) ? SL.NOTES : ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
+  // Sentinel constants
+  var NO_TOUCH = null;
+  var NO_ADSR = null;
+
   // ============================================================
   // Constants
   // ============================================================
@@ -109,8 +113,8 @@
 
   var _currentTuningIdx = 0;
   var _baseOctave = DEFAULT_BASE_OCTAVE;
-  var _autoExciteMode = false; // When true, touching pitch zone auto-triggers note
-  var _pluckMode = false;      // When true, bow zone fires instant plucks instead of sustained bow
+  var _isAutoExciteMode = false; // When true, touching pitch zone auto-triggers note
+  var _isPluckMode = false;      // When true, bow zone fires instant plucks instead of sustained bow
   var _stringMidis = [];       // base MIDI note per string (open string)
   var _stringEls = [];         // DOM lane elements per string
   var _wrapperEl = null;
@@ -369,7 +373,7 @@
     // This prevents orphaned bowing state when strum remapping races with startBow.
     var guardIdx;
     var incomingId = state.bowTouchId;
-    if (incomingId !== null) {
+    if (incomingId !== NO_TOUCH) {
       for (guardIdx = 0; guardIdx < _stringState.length; guardIdx++) {
         if ((guardIdx !== stringIdx) && (_stringState[guardIdx].bowTouchId === incomingId)) {
           _stopBow(guardIdx);
@@ -461,15 +465,15 @@
     _resetBowZoneVisual(stringIdx);
 
     // Clear cutoff if no strings active
-    var anyActive = false;
+    var isAnyActive = false;
     var si;
     for (si = 0; si < _stringState.length; si++) {
       if (_stringState[si].bowing) {
-        anyActive = true;
+        isAnyActive = true;
         break;
       }
     }
-    if (!anyActive) {
+    if (!isAnyActive) {
       if (SL.audio && SL.audio.clearExpressiveCutoff) {
         SL.audio.clearExpressiveCutoff();
       }
@@ -482,11 +486,14 @@
   // ---- Pluck ADSR save/restore ----
 
   function _setPluckEnvelope() {
-    if (SL.audio && SL.audio.getInstruments && SL.audio.getCurrentInstrument) {
+    var hasInstrumentQuery = SL.audio && SL.audio.getInstruments;
+    var canQueryCurrentInstrument = hasInstrumentQuery && SL.audio.getCurrentInstrument;
+    if (canQueryCurrentInstrument) {
       var instId = SL.audio.getCurrentInstrument();
       var insts = SL.audio.getInstruments();
       var inst = insts ? insts[instId] : null;
-      if (inst && inst.settings && inst.settings.adsr) {
+      var hasAdsrForBowedPluck = inst && inst.settings && inst.settings.adsr;
+      if (hasAdsrForBowedPluck) {
         var adsr = inst.settings.adsr;
         _savedPluckAdsrInst = instId;
         _savedPluckAdsr = { a: adsr.a, d: adsr.d, s: adsr.s, r: adsr.r };
@@ -499,11 +506,12 @@
   }
 
   function _restorePluckEnvelope() {
-    if ((_savedPluckAdsr !== null) && (_savedPluckAdsrInst >= 0)
+    if ((_savedPluckAdsr !== NO_ADSR) && (_savedPluckAdsrInst >= 0)
         && SL.audio && SL.audio.getInstruments) {
       var insts = SL.audio.getInstruments();
       var inst = insts ? insts[_savedPluckAdsrInst] : null;
-      if (inst && inst.settings && inst.settings.adsr) {
+      var hasAdsrForBowedRestore = inst && inst.settings && inst.settings.adsr;
+      if (hasAdsrForBowedRestore) {
         var adsr = inst.settings.adsr;
         adsr.a = _savedPluckAdsr.a;
         adsr.d = _savedPluckAdsr.d;
@@ -624,8 +632,8 @@
     for (si = 0; si < _stringState.length; si++) {
       var state = _stringState[si];
       var isBowing = state.bowing;
-      var hasBowTouch = (state.bowTouchId !== null);
-      var hasPitchAutoExcite = (_autoExciteMode && (state.pitchTouchId !== null));
+      var hasBowTouch = (state.bowTouchId !== NO_TOUCH);
+      var hasPitchAutoExcite = (_isAutoExciteMode && (state.pitchTouchId !== NO_TOUCH));
       var hasAnyActivatingTouch = hasBowTouch || hasPitchAutoExcite;
 
       if (isBowing && !hasAnyActivatingTouch) {
@@ -720,7 +728,7 @@
     // -- Same-string collision prevention --
     // If another touch already occupies this string+zone, release it first
     var existingId = _findExistingTouchOnStringZone(stringIdx, zone);
-    var collisionDetected = (existingId !== null) && (existingId !== id);
+    var collisionDetected = (existingId !== NO_TOUCH) && (existingId !== id);
     if (collisionDetected) {
       _forceReleaseTouch(existingId);
     }
@@ -744,7 +752,7 @@
         _setPitch(stringIdx, semiFrac);
       }
       // Auto-excite: trigger note on pitch touch if not already bowing
-      if (_autoExciteMode && !state.bowing) {
+      if (_isAutoExciteMode && !state.bowing) {
         var autoExciteVel = pointerEvent ? SL.velocityFromPressure(pointerEvent, VELOCITY_DEFAULT) : VELOCITY_DEFAULT;
         _startBow(stringIdx, autoExciteVel);
       }
@@ -757,7 +765,7 @@
       state.lastBowX = x;
       state.smoothedSpeed = 0;
 
-      if (_pluckMode) {
+      if (_isPluckMode) {
         // Pluck mode: instant pluck on pointerdown, no sustained bow
         var pluckVel = pointerEvent ? SL.velocityFromPressure(pointerEvent, VELOCITY_MAX) : VELOCITY_MAX;
         _pluckString(stringIdx, pluckVel);
@@ -825,7 +833,7 @@
             var sf = _pitchFracFromX(x, pz);
             _setPitch(newStringIdx, sf);
           }
-          if (_autoExciteMode && !newState.bowing) {
+          if (_isAutoExciteMode && !newState.bowing) {
             var moveExciteVel = pointerEvent ? SL.velocityFromPressure(pointerEvent, VELOCITY_DEFAULT) : VELOCITY_DEFAULT;
             _startBow(newStringIdx, moveExciteVel);
           }
@@ -837,7 +845,7 @@
           newState.lastBowX = x;
           newState.smoothedSpeed = 0;
 
-          if (_pluckMode) {
+          if (_isPluckMode) {
             // Strum in pluck mode = pluck each string as finger crosses
             _pluckString(newStringIdx, VELOCITY_MAX);
           } else {
@@ -850,8 +858,7 @@
         }
         _flashStrumVisual(newStringIdx);
       }
-      return;
-    }
+    } else {
 
     if (zone === 'pitch') {
       var pitchZone = _stringEls[stringIdx].querySelector('.bowed-pitch-zone');
@@ -861,7 +868,7 @@
       }
     } else {
       // Bow zone: only update dynamics if in sustained bow mode (not pluck)
-      if (!_pluckMode && state.bowing) {
+      if (!_isPluckMode && state.bowing) {
         var bowZone = _stringEls[stringIdx].querySelector('.bowed-bow-zone');
         if (bowZone) {
           var pressure = _bowPressureFromY(y, bowZone);
@@ -870,6 +877,7 @@
       }
       state.lastBowY = y;
     }
+    } // end else (not movedToNewString)
   }
 
   function _onPointerEnd(id) {
@@ -908,7 +916,9 @@
         }
 
         // Auto-excite: stop note when pitch zone released (if no bow touch active)
-        if (_autoExciteMode && state.bowing && !state.bowTouchId) {
+        var isAutoExciting = _isAutoExciteMode && state.bowing;
+        var shouldAutoStopBow = isAutoExciting && !state.bowTouchId;
+        if (shouldAutoStopBow) {
           _stopBow(stringIdx);
         }
       }
@@ -919,7 +929,7 @@
       if (state) {
         state.bowTouchId = null;
 
-        if (_pluckMode) {
+        if (_isPluckMode) {
           // In pluck mode, pointerup does nothing -- pluck is already decaying on its own
           // Just clear the touch ownership
         } else {
@@ -1060,29 +1070,29 @@
     // Mode toggle: Auto-Excite vs Manual Bow
     var modeBtn = document.createElement('button');
     modeBtn.className = 'bowed-oct-btn bowed-mode-btn';
-    modeBtn.textContent = _autoExciteMode ? SL.t('bowed.mode_touch') : SL.t('bowed.mode_bow');
+    modeBtn.textContent = _isAutoExciteMode ? SL.t('bowed.mode_touch') : SL.t('bowed.mode_bow');
     modeBtn.title = SL.t('bowed.mode_toggle_title');
     modeBtn.addEventListener('click', function() {
-      _autoExciteMode = !_autoExciteMode;
-      modeBtn.textContent = _autoExciteMode ? SL.t('bowed.mode_touch') : SL.t('bowed.mode_bow');
+      _isAutoExciteMode = !_isAutoExciteMode;
+      modeBtn.textContent = _isAutoExciteMode ? SL.t('bowed.mode_touch') : SL.t('bowed.mode_bow');
     });
     topbar.appendChild(modeBtn);
 
     // Pluck mode toggle: Bow vs Pluck in the bow zone
     var pluckBtn = document.createElement('button');
     pluckBtn.className = 'bowed-oct-btn bowed-pluck-btn';
-    pluckBtn.textContent = _pluckMode ? SL.t('bowed.mode_pluck') : SL.t('bowed.mode_sustain');
+    pluckBtn.textContent = _isPluckMode ? SL.t('bowed.mode_pluck') : SL.t('bowed.mode_sustain');
     pluckBtn.title = SL.t('bowed.pluck_toggle_title');
     pluckBtn.addEventListener('click', function() {
-      _pluckMode = !_pluckMode;
-      pluckBtn.textContent = _pluckMode ? SL.t('bowed.mode_pluck') : SL.t('bowed.mode_sustain');
-      if (_pluckMode) {
+      _isPluckMode = !_isPluckMode;
+      pluckBtn.textContent = _isPluckMode ? SL.t('bowed.mode_pluck') : SL.t('bowed.mode_sustain');
+      if (_isPluckMode) {
         pluckBtn.classList.add('bowed-pluck-active');
       } else {
         pluckBtn.classList.remove('bowed-pluck-active');
       }
     });
-    if (_pluckMode) {
+    if (_isPluckMode) {
       pluckBtn.classList.add('bowed-pluck-active');
     }
     topbar.appendChild(pluckBtn);
@@ -1111,6 +1121,7 @@
     area.innerHTML = '';
     _stringEls = [];
 
+    var frag = document.createDocumentFragment();
     var si;
     for (si = 0; si < _stringMidis.length; si++) {
       var midi = _stringMidis[si];
@@ -1215,9 +1226,10 @@
       numIndicator.textContent = String(_stringMidis.length - si);
       lane.appendChild(numIndicator);
 
-      area.appendChild(lane);
+      frag.appendChild(lane);
       _stringEls.push(lane);
     }
+    area.appendChild(frag);
   }
 
   function _rebuildStrings() {

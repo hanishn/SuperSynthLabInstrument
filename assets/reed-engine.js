@@ -41,7 +41,7 @@
   var audioContext = null;
   var scriptNodes = [null, null, null, null];
   var fallbackVoicesByInst = [[], [], [], []];
-  var engineReady = false;
+  var isEngineReady = false;
 
   // Per-instrument settings cache (instId -> settings object)
   var instrumentSettings = {};
@@ -535,7 +535,7 @@
     var sr = audioContext.sampleRate;
 
     for (var i = 0; i < 4; i++) {
-      fallbackVoicesByInst[i] = [];
+      fallbackVoicesByInst[i].length = 0;
       for (var v = 0; v < MAX_VOICES_PER_INSTRUMENT; v++) {
         fallbackVoicesByInst[i].push(new ReedVoice(sr));
       }
@@ -564,7 +564,7 @@
       })(i);
     }
 
-    engineReady = true;
+    isEngineReady = true;
     return Promise.resolve(true);
   }
 
@@ -590,41 +590,39 @@
   function updateFilter(instId) {
     var instruments = SL.audio && SL.audio.getInstruments ? SL.audio.getInstruments() : null;
     var inst = instruments ? instruments[instId] : null;
-    if (!inst) {
-      return;
-    }
+    if (inst) {
 
     var filterSettings = inst.filter || {};
     var filterNode = getOrCreateFilterNode(instId);
-    if (!filterNode) {
-      return;
-    }
+    if (filterNode) {
 
     filterNode.type = filterSettings.type || 'lowpass';
     filterNode.frequency.value = Math.max(20, Math.min(20000, filterSettings.frequency || 20000));
     filterNode.Q.value = Math.max(0.1, Math.min(30, filterSettings.resonance || 1));
+    } // end if (filterNode)
+    } // end if (inst)
   }
 
   function connectToOutput(instId) {
-    if (!scriptNodes[instId]) {
-      return;
-    }
+    if (scriptNodes[instId]) {
 
     if (connectedInsts[instId]) {
       updateFilter(instId);
     } else {
       var instruments = SL.audio && SL.audio.getInstruments ? SL.audio.getInstruments() : null;
       var inst = instruments ? instruments[instId] : null;
+      var isDestinationResolved = false;
       var destination;
 
       if (inst && inst.masterOutput) {
         destination = inst.masterOutput;
+        isDestinationResolved = true;
       } else if (audioContext) {
         destination = audioContext.destination;
-      } else {
-        return;
+        isDestinationResolved = true;
       }
 
+      if (isDestinationResolved) {
       var filterNode = getOrCreateFilterNode(instId);
       updateFilter(instId);
 
@@ -636,7 +634,9 @@
       }
 
       connectedInsts[instId] = true;
+      } // end if (isDestinationResolved)
     }
+    } // end if (scriptNodes[instId])
   }
 
   // ============================================================
@@ -786,7 +786,7 @@
   }
 
   function isReady() {
-    return engineReady;
+    return isEngineReady;
   }
 
   function getDefaultSettings() {

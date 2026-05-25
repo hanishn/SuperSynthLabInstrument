@@ -14,6 +14,8 @@
   var ISO_DEFAULT_INTERVAL = 5;
   var ISOGRID_DEFAULT_VELOCITY = 100;
 
+  var NO_NODE = null;
+
   var DEFAULT_CONTAINER_WIDTH = 800;
   var DEFAULT_CONTAINER_HEIGHT = 300;
   var GRID_GAP = 3;
@@ -152,7 +154,7 @@
   var _hexNoteOffFn = null;
 
   // Flag to ignore pointer events during layout rebuild
-  var _hexLayoutChanging = false;
+  var _isHexLayoutChanging = false;
 
   // Compute the 6 vertex positions of a pointy-top hex centered at (cx, cy).
   // Uses the actual hexWidth and hexHeight from grid geometry rather than
@@ -479,40 +481,36 @@
   // ============================================================
 
   function _hexPtrActivateCell(idx, pointerId, pointerEvent) {
-    if ((idx < 0) || (idx >= _hexPtrCells.length)) {
-      return;
+    if (!((idx < 0) || (idx >= _hexPtrCells.length))) {
+      var midi = _hexPtrMidi[idx];
+      var cell = _hexPtrCells[idx];
+      if (cell !== NO_NODE) {
+        if (_hexNoteOnFn) {
+          var vel = pointerEvent ? SL.velocityFromPressure(pointerEvent, DEFAULT_NOTE_VELOCITY) : DEFAULT_NOTE_VELOCITY;
+          _hexNoteOnFn(midi, vel);
+        }
+        cell.classList.add('hex-active');
+        cell.classList.add('iso-glow');
+        cell.style.transform = 'scale(' + ACTIVE_SCALE_FACTOR + ')';
+        _hexShowTriangles(idx, pointerId);
+      }
     }
-    var midi = _hexPtrMidi[idx];
-    var cell = _hexPtrCells[idx];
-    if (cell === null) {
-      return;
-    }
-    if (_hexNoteOnFn) {
-      var vel = pointerEvent ? SL.velocityFromPressure(pointerEvent, DEFAULT_NOTE_VELOCITY) : DEFAULT_NOTE_VELOCITY;
-      _hexNoteOnFn(midi, vel);
-    }
-    cell.classList.add('hex-active');
-    cell.classList.add('iso-glow');
-    cell.style.transform = 'scale(' + ACTIVE_SCALE_FACTOR + ')';
-    _hexShowTriangles(idx, pointerId);
   }
 
   function _hexPtrDeactivateCell(idx, pointerId) {
-    if ((idx < 0) || (idx >= _hexPtrCells.length)) {
-      return;
+    if (!((idx < 0) || (idx >= _hexPtrCells.length))) {
+      var midi = _hexPtrMidi[idx];
+      var cell = _hexPtrCells[idx];
+      if (cell !== NO_NODE) {
+        if (_hexNoteOffFn) {
+          _hexNoteOffFn(midi);
+        }
+        cell.classList.remove('hex-active');
+        cell.classList.remove('iso-glow');
+        cell.style.transform = '';
+        _hexClearTriangles(pointerId);
+      }
     }
-    var midi = _hexPtrMidi[idx];
-    var cell = _hexPtrCells[idx];
-    if (cell === null) {
-      return;
-    }
-    if (_hexNoteOffFn) {
-      _hexNoteOffFn(midi);
-    }
-    cell.classList.remove('hex-active');
-    cell.classList.remove('iso-glow');
-    cell.style.transform = '';
-    _hexClearTriangles(pointerId);
   }
 
   function _hexPtrSwitchCell(oldIdx, newIdx, pointerId, pointerEvent) {
@@ -559,9 +557,7 @@
   function _hexShowTriangles(idx, pointerId) {
     var pid = (pointerId !== undefined) ? pointerId : '_default';
     _hexClearTriangles(pid);
-    if (!_hexGridEl) {
-      return;
-    }
+    if (_hexGridEl) {
     if (!_triangleOverlays[pid]) {
       _triangleOverlays[pid] = [];
     }
@@ -606,60 +602,58 @@
         _hexDrawTriangleOverlay(idx, idxLeft, idxLowerLeft, MINOR_TRIANGLE_COLOR, pid);
       }
     }
+    } // end if (_hexGridEl)
   }
 
   function _hexDrawTriangleOverlay(idx0, idx1, idx2, color, pointerId) {
-    if (!_hexGridEl) {
-      return;
-    }
+    if (_hexGridEl) {
     var gridRect = _hexGridEl.getBoundingClientRect();
     var c0 = _hexPtrCenters[idx0];
     var c1 = _hexPtrCenters[idx1];
     var c2 = _hexPtrCenters[idx2];
     var allValid = (c0 !== undefined) && (c1 !== undefined) && (c2 !== undefined);
-    if (!allValid) {
-      return;
+    if (allValid) {
+      var gridW = _hexGridEl.offsetWidth || gridRect.width;
+      var gridH = _hexGridEl.offsetHeight || gridRect.height;
+
+      _triangleIdCounter = _triangleIdCounter + 1;
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'hex-triangle-overlay');
+      svg.setAttribute('data-tri-id', String(_triangleIdCounter));
+      svg.setAttribute('viewBox', '0 0 ' + gridW + ' ' + gridH);
+      svg.style.position = 'absolute';
+      svg.style.left = '0';
+      svg.style.top = '0';
+      svg.style.width = gridW + 'px';
+      svg.style.height = gridH + 'px';
+      svg.style.overflow = 'visible';
+      svg.style.pointerEvents = 'none';
+      svg.style.zIndex = '5';
+
+      var poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      var gx = gridRect.left;
+      var gy = gridRect.top;
+      var p0x = c0.x - gx;
+      var p0y = c0.y - gy;
+      var p1x = c1.x - gx;
+      var p1y = c1.y - gy;
+      var p2x = c2.x - gx;
+      var p2y = c2.y - gy;
+      var points = p0x + ',' + p0y + ' ' + p1x + ',' + p1y + ' ' + p2x + ',' + p2y;
+      poly.setAttribute('points', points);
+      poly.setAttribute('fill', color);
+      poly.setAttribute('stroke', color.replace('0.18', '0.45'));
+      poly.setAttribute('stroke-width', '1.5');
+
+      svg.appendChild(poly);
+      _hexGridEl.appendChild(svg);
+      var pid = (pointerId !== undefined) ? pointerId : '_default';
+      if (!_triangleOverlays[pid]) {
+        _triangleOverlays[pid] = [];
+      }
+      _triangleOverlays[pid].push(svg);
     }
-
-    var gridW = _hexGridEl.offsetWidth || gridRect.width;
-    var gridH = _hexGridEl.offsetHeight || gridRect.height;
-
-    _triangleIdCounter = _triangleIdCounter + 1;
-    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('class', 'hex-triangle-overlay');
-    svg.setAttribute('data-tri-id', String(_triangleIdCounter));
-    svg.setAttribute('viewBox', '0 0 ' + gridW + ' ' + gridH);
-    svg.style.position = 'absolute';
-    svg.style.left = '0';
-    svg.style.top = '0';
-    svg.style.width = gridW + 'px';
-    svg.style.height = gridH + 'px';
-    svg.style.overflow = 'visible';
-    svg.style.pointerEvents = 'none';
-    svg.style.zIndex = '5';
-
-    var poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-    var gx = gridRect.left;
-    var gy = gridRect.top;
-    var p0x = c0.x - gx;
-    var p0y = c0.y - gy;
-    var p1x = c1.x - gx;
-    var p1y = c1.y - gy;
-    var p2x = c2.x - gx;
-    var p2y = c2.y - gy;
-    var points = p0x + ',' + p0y + ' ' + p1x + ',' + p1y + ' ' + p2x + ',' + p2y;
-    poly.setAttribute('points', points);
-    poly.setAttribute('fill', color);
-    poly.setAttribute('stroke', color.replace('0.18', '0.45'));
-    poly.setAttribute('stroke-width', '1.5');
-
-    svg.appendChild(poly);
-    _hexGridEl.appendChild(svg);
-    var pid = (pointerId !== undefined) ? pointerId : '_default';
-    if (!_triangleOverlays[pid]) {
-      _triangleOverlays[pid] = [];
-    }
-    _triangleOverlays[pid].push(svg);
+    } // end if (_hexGridEl)
   }
 
   function _hexClearTriangles(pointerId) {
@@ -716,7 +710,7 @@
     if (listA.length !== listB.length) {
       return false;
     }
-    var allMatch = true;
+    var isAllMatch = true;
     var ai;
     for (ai = 0; ai < listA.length; ai++) {
       var found = false;
@@ -728,11 +722,11 @@
         }
       }
       if (!found) {
-        allMatch = false;
+        isAllMatch = false;
         break;
       }
     }
-    return allMatch;
+    return isAllMatch;
   }
 
   // Activate all MIDI notes in a list via pointer system (with glow + triangle)
@@ -798,7 +792,8 @@
   function _isHexCellTarget(el) {
     var node = el;
     var remaining = HEX_TARGET_WALK_LIMIT;
-    while (node && node !== _hexGridEl && remaining > 0) {
+    var isNodeInGrid = node && node !== _hexGridEl;
+    while (isNodeInGrid && remaining > 0) {
       if (node.classList && node.classList.contains('perf-iso-key')) {
         return true;
       }
@@ -810,12 +805,7 @@
 
   function _hexOnPointerDown(e) {
     e.preventDefault();
-    if (_hexLayoutChanging) {
-      return;
-    }
-    if (!_isHexCellTarget(e.target)) {
-      return;
-    }
+    if (!_isHexLayoutChanging && _isHexCellTarget(e.target)) {
     var activeCount = Object.keys(_activePointers).length;
     var isAtLimit = (activeCount >= MAX_SIMULTANEOUS_POINTERS);
     if (!isAtLimit) {
@@ -832,13 +822,12 @@
         }
       }
     }
+    } // end if (!_isHexLayoutChanging && _isHexCellTarget)
   }
 
   function _hexOnPointerMove(e) {
     e.preventDefault();
-    if (_hexLayoutChanging) {
-      return;
-    }
+    if (!_isHexLayoutChanging) {
     var pid = (e.pointerId !== undefined) ? e.pointerId : 'mouse';
     var hasPointer = _activePointerMidiLists.hasOwnProperty(pid);
     var isOverCell = _isHexCellTarget(e.target);
@@ -862,29 +851,29 @@
           var ai;
 
           for (di = 0; di < oldMidiList.length; di++) {
-            var foundInNew = false;
+            var hasFoundInNew = false;
             var ni;
             for (ni = 0; ni < newMidiList.length; ni++) {
               if (oldMidiList[di] === newMidiList[ni]) {
-                foundInNew = true;
+                hasFoundInNew = true;
                 break;
               }
             }
-            if (!foundInNew) {
+            if (!hasFoundInNew) {
               toDeactivate.push(oldMidiList[di]);
             }
           }
 
           for (ai = 0; ai < newMidiList.length; ai++) {
-            var foundInOld = false;
+            var hasFoundInOld = false;
             var oi;
             for (oi = 0; oi < oldMidiList.length; oi++) {
               if (newMidiList[ai] === oldMidiList[oi]) {
-                foundInOld = true;
+                hasFoundInOld = true;
                 break;
               }
             }
-            if (!foundInOld) {
+            if (!hasFoundInOld) {
               toActivate.push(newMidiList[ai]);
             }
           }
@@ -900,13 +889,12 @@
         }
       }
     }
+    } // end if (!_isHexLayoutChanging)
   }
 
   function _hexOnPointerUp(e) {
     e.preventDefault();
-    if (_hexLayoutChanging) {
-      return;
-    }
+    if (!_isHexLayoutChanging) {
     var pid = (e.pointerId !== undefined) ? e.pointerId : 'mouse';
     var hasPointer = _activePointerMidiLists.hasOwnProperty(pid);
     if (hasPointer) {
@@ -949,10 +937,11 @@
         }
       }
     }
+    } // end if (!_isHexLayoutChanging)
   }
 
   function _hexOnPointerCancel(e) {
-    // pointercancel must ALWAYS clean up regardless of _hexLayoutChanging,
+    // pointercancel must ALWAYS clean up regardless of _isHexLayoutChanging,
     // because the browser has forcibly ended this pointer -- if we skip
     // cleanup, the triangles and tracking for this pointer become orphaned.
     var pid = (e.pointerId !== undefined) ? e.pointerId : 'mouse';
@@ -1005,7 +994,9 @@
     var i;
     for (i = 0; i < pids.length; i++) {
       var idx = _activePointers[pids[i]];
-      if ((idx >= 0) && (idx < _hexPtrCells.length) && (_hexPtrCells[idx])) {
+      var isValidHexIdx = (idx >= 0) && (idx < _hexPtrCells.length);
+      var hasHexCell = isValidHexIdx && (_hexPtrCells[idx]);
+      if (hasHexCell) {
         if (_hexNoteOffFn) {
           _hexNoteOffFn(_hexPtrMidi[idx]);
         }
@@ -1183,23 +1174,22 @@
   // ============================================================
 
   function _hexRebuildCells() {
-    if (!_hexGridEl) {
-      return;
+    if (_hexGridEl) {
+      _isHexLayoutChanging = true;
+      // Clear ALL triangle overlays for ALL pointers before rebuild
+      _hexClearTriangles();
+      _activePointerMidiLists = {};
+      _triangleOverlays = {};
+      _hexReleaseAll();
+      _hexCells = [];
+      var isPhone = ((_currentContainer ? _currentContainer.clientWidth : DEFAULT_CONTAINER_WIDTH) < PHONE_WIDTH_THRESHOLD);
+      var fontSize = isPhone ? HEX_FONT_SIZE_PHONE : HEX_FONT_SIZE_DESKTOP;
+      _buildHexPtrCells(_hexGridEl, fontSize);
+      requestAnimationFrame(function() {
+        _hexUpdatePtrCenters();
+        _isHexLayoutChanging = false;
+      });
     }
-    _hexLayoutChanging = true;
-    // Clear ALL triangle overlays for ALL pointers before rebuild
-    _hexClearTriangles();
-    _activePointerMidiLists = {};
-    _triangleOverlays = {};
-    _hexReleaseAll();
-    _hexCells = [];
-    var isPhone = ((_currentContainer ? _currentContainer.clientWidth : DEFAULT_CONTAINER_WIDTH) < PHONE_WIDTH_THRESHOLD);
-    var fontSize = isPhone ? HEX_FONT_SIZE_PHONE : HEX_FONT_SIZE_DESKTOP;
-    _buildHexPtrCells(_hexGridEl, fontSize);
-    requestAnimationFrame(function() {
-      _hexUpdatePtrCenters();
-      _hexLayoutChanging = false;
-    });
   }
 
   // ============================================================
@@ -1364,7 +1354,7 @@
     _hexGridEl.style.padding = '0';
     _hexGridEl.style.touchAction = 'none';
     _hexGridEl.setAttribute('role', 'application');
-    _hexGridEl.setAttribute('aria-label', 'Isomorphic hex keyboard');
+    _hexGridEl.setAttribute('aria-label', SL.t('isogrid.hex_keyboard'));
     _hexGridEl.style.position = 'relative';
     _hexGridEl.style.width = actualHexGridW + 'px';
     _hexGridEl.style.height = availH + 'px';
@@ -1424,7 +1414,7 @@
     var target = el;
     while (target && (target !== boundary)) {
       var attr = target.getAttribute('data-midi');
-      if (attr !== null) {
+      if (attr !== NO_NODE) {
         return { midi: parseInt(attr, 10), el: target };
       }
       target = target.parentNode;
@@ -1532,14 +1522,14 @@
     });
 
     // Mouse support (single pointer, with pitch bend)
-    var _mouseDown = false;
+    var _isMouseDown = false;
     var _mouseMidi = -1;
     var _mouseStartX = 0;
     var _mouseEl = null;
 
     gridWrapper.addEventListener('mousedown', function(e) {
       e.preventDefault();
-      _mouseDown = true;
+      _isMouseDown = true;
       var hit = _findMidiTarget(
         document.elementFromPoint(e.clientX, e.clientY),
         gridWrapper
@@ -1555,7 +1545,7 @@
     });
 
     gridWrapper.addEventListener('mousemove', function(e) {
-      if (!_mouseDown || (_mouseMidi < 0)) { return; }
+      if (!_isMouseDown || (_mouseMidi < 0)) { return; }
       if (hasBend) {
         var dx = e.clientX - _mouseStartX;
         var bendCents = (dx / cellW) * CENTS_PER_SEMITONE;
@@ -1570,7 +1560,7 @@
         if (_mouseEl) { _mouseEl.classList.remove('iso-glow'); }
         if (hasBend && hasReset) { resetPitchBendFn(); }
       }
-      _mouseDown = false;
+      _isMouseDown = false;
       _mouseMidi = -1;
       _mouseEl = null;
     }
@@ -1617,7 +1607,7 @@
     }
 
     var preset = _currentRectPreset;
-    var isChromatic = !!(preset && preset.chromatic);
+    var isChromatic = Boolean(preset && preset.chromatic);
     var fixedCols = (preset && preset.fixedCols) ? preset.fixedCols : 0;
 
     var baseNote = (baseOctave + 1) * SEMITONES_PER_OCTAVE;
@@ -1685,7 +1675,7 @@
     grid.className = 'perf-iso-grid';
     grid.style.padding = '0';
     grid.setAttribute('role', 'application');
-    grid.setAttribute('aria-label', 'Isomorphic grid keyboard');
+    grid.setAttribute('aria-label', SL.t('isogrid.grid_keyboard'));
 
     if (isChromatic) {
       // Absolute-positioned cells (chromatic 12-col style)
@@ -1738,6 +1728,7 @@
       }
     } else {
       // Normal row-based layout with CSS flex/gap
+      var frag = document.createDocumentFragment();
       var rIdx2;
       for (rIdx2 = 0; rIdx2 < rows; rIdx2++) {
         var row = document.createElement('div');
@@ -1776,8 +1767,9 @@
 
           row.appendChild(keyEl2);
         }
-        grid.appendChild(row);
+        frag.appendChild(row);
       }
+      grid.appendChild(frag);
     }
 
     gridWrapper.appendChild(grid);

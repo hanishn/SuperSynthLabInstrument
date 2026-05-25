@@ -2,9 +2,9 @@
 // Creates amplitude modulation using an LFO connected to a GainNode
 
 (function() {
-  const SL = window.SynthLab = window.SynthLab || {};
+  var SL = window.SynthLab = window.SynthLab || {};
   SL.effects = SL.effects || {};
-  const BaseEffect = SL.effects.BaseEffect;
+  var BaseEffect = SL.effects.BaseEffect;
 
   /**
    * TremoloEffect - Amplitude modulation via LFO
@@ -71,7 +71,7 @@
      * LFO scale = depth/200
      */
     updateDepth(depth) {
-      const depthNormalized = depth / 100;
+      var depthNormalized = depth / 100;
       // LFO gain scales the oscillator output
       // Oscillator goes -1 to +1, we want the gain to vary by depthNormalized/2 around center
       this.lfoGain.gain.setTargetAtTime(depthNormalized / 2, this.ctx.currentTime, 0.01);
@@ -84,26 +84,26 @@
      * Handle parameter updates
      */
     updateParam(name, value) {
-      const currentTime = this.ctx.currentTime;
+      var currentTime = this.ctx.currentTime;
 
       switch (name) {
         case 'rate':
           // Clamp rate to valid range
-          const rate = Math.max(0.5, Math.min(20, value));
+          var rate = Math.max(0.5, Math.min(20, value));
           this.params.rate = rate;
           this.lfo.frequency.setTargetAtTime(rate, currentTime, 0.01);
           break;
 
         case 'depth':
           // Clamp depth to valid range
-          const depth = Math.max(0, Math.min(100, value));
+          var depth = Math.max(0, Math.min(100, value));
           this.params.depth = depth;
           this.updateDepth(depth);
           break;
 
         case 'shape':
           // Validate shape
-          const validShapes = ['sine', 'square', 'triangle'];
+          var validShapes = ['sine', 'square', 'triangle'];
           if (validShapes.includes(value)) {
             this.params.shape = value;
             this.lfo.type = value;
@@ -118,9 +118,7 @@
     dispose() {
       try {
         this.lfo.stop();
-      } catch (e) {
-        // LFO might not have started
-      }
+      } catch (e) { /* LFO may not have started yet */ }
       this.lfo.disconnect();
       this.lfoGain.disconnect();
       this.tremoloGain.disconnect();

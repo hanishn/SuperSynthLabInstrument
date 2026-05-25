@@ -4,35 +4,32 @@
 (function() {
   'use strict';
 
-  const SL = window.SynthLab;
+  var SL = window.SynthLab;
 
   // Wait for SL.audio to be available (created by audio-engine.js)
-  if (!SL || !SL.audio) {
-    console.error('[voice-pool] SynthLab.audio not available');
-    return;
-  }
+  if (SL && SL.audio) {
 
   // ============================================================
   // Voice Pool System
   // ============================================================
 
   /** Maximum voices per instrument */
-  const MAX_VOICES_PER_INSTRUMENT = 16;
+  var MAX_VOICES_PER_INSTRUMENT = 16;
 
   /** Total voice pool size (shared across all instruments) */
-  const VOICE_POOL_SIZE = MAX_VOICES_PER_INSTRUMENT * SL.audio.getNumInstruments();
+  var VOICE_POOL_SIZE = MAX_VOICES_PER_INSTRUMENT * SL.audio.getNumInstruments();
 
   /** Voice pool - pre-allocated voice structures */
-  let voicePool = [];
+  var voicePool = [];
 
   /** Free-list stack of available voice pool indices */
   var freeVoiceStack = [];
 
   /** Map of active voices by key (instrumentId:midiNote) */
-  const activeVoices = new Map();
+  var activeVoices = new Map();
 
   /** Voice pool statistics for monitoring */
-  const voicePoolStats = {
+  var voicePoolStats = {
     totalAllocated: 0,
     peakUsage: 0,
     steals: 0,
@@ -46,7 +43,7 @@
   /** Time-sorted release queue: { voice, releaseTime, fadeTime } */
   var _releaseQueue = [];
   /** Whether the RAF loop is currently running */
-  var _releaseRAFRunning = false;
+  var isReleaseRAFRunning = false;
   /** RAF handle for cancellation */
   var _releaseRAFHandle = 0;
 
@@ -56,9 +53,8 @@
    */
   function _processReleaseQueue() {
     if (_releaseQueue.length === 0) {
-      _releaseRAFRunning = false;
-      return;
-    }
+      isReleaseRAFRunning = false;
+    } else {
 
     var now = performance.now();
     var remaining = [];
@@ -74,16 +70,16 @@
         }
         if (voice.oscillators) {
           for (var j = 0; j < voice.oscillators.length; j++) {
-            try { if (voice.oscillators[j] && voice.oscillators[j].osc) { voice.oscillators[j].osc.disconnect(); } } catch (e) {}
+            try { if (voice.oscillators[j] && voice.oscillators[j].osc) { voice.oscillators[j].osc.disconnect(); } } catch (e) { /* node already disconnected */ }
           }
         }
         if (voice.filterChain && voice.filterChain.output) {
-          try { voice.filterChain.output.disconnect(); } catch (e) {}
+          try { voice.filterChain.output.disconnect(); } catch (e) { /* node already disconnected */ }
         }
         if (voice.filterChain && voice.filterChain.input) {
-          try { voice.filterChain.input.disconnect(); } catch (e) {}
+          try { voice.filterChain.input.disconnect(); } catch (e) { /* node already disconnected */ }
         }
-        voice.oscillators = [];
+        voice.oscillators.length = 0;
         voice.noiseNode = null;
         voice.filterChain = null;
         voice.filterSettings = null;
@@ -101,8 +97,10 @@
     if (_releaseQueue.length > 0) {
       _releaseRAFHandle = requestAnimationFrame(_processReleaseQueue);
     } else {
-      _releaseRAFRunning = false;
+      isReleaseRAFRunning = false;
     }
+
+    } // end else (_releaseQueue.length !== 0)
   }
 
   /**
@@ -113,20 +111,20 @@
   function _enqueueRelease(voice, fadeMs) {
     var releaseTime = performance.now() + fadeMs;
     // Insert sorted by releaseTime for efficient processing
-    var inserted = false;
+    var isInserted = false;
     for (var i = 0; i < _releaseQueue.length; i++) {
       if (releaseTime < _releaseQueue[i].releaseTime) {
         _releaseQueue.splice(i, 0, { voice: voice, releaseTime: releaseTime });
-        inserted = true;
+        isInserted = true;
         break;
       }
     }
-    if (!inserted) {
+    if (!isInserted) {
       _releaseQueue.push({ voice: voice, releaseTime: releaseTime });
     }
 
-    if (!_releaseRAFRunning) {
-      _releaseRAFRunning = true;
+    if (!isReleaseRAFRunning) {
+      isReleaseRAFRunning = true;
       _releaseRAFHandle = requestAnimationFrame(_processReleaseQueue);
     }
   }
@@ -137,7 +135,7 @@
    * @returns {Object} Voice structure
    */
   function createVoice(ctx) {
-    const voice = {
+    var voice = {
       id: voicePoolStats.created++,
       inUse: false,
       instrumentId: -1,
@@ -167,7 +165,7 @@
     };
 
     // Connect osc gains to master
-    voice.oscGains.forEach(g => g.connect(voice.masterGain));
+    voice.oscGains.forEach(function(g) { g.connect(voice.masterGain); });
 
     return voice;
   }
@@ -177,7 +175,7 @@
    * Called when audio context is first created
    */
   function initVoicePool() {
-    const ctx = SL.audio.getCtx();
+    var ctx = SL.audio.getCtx();
     voicePool = [];
     freeVoiceStack = [];
 
@@ -202,9 +200,9 @@
    */
   function acquireVoice(instrumentId, midiNote) {
     // First, check if this note is already playing (retrigger)
-    const key = instrumentId + ':' + midiNote;
+    var key = instrumentId + ':' + midiNote;
     if (activeVoices.has(key)) {
-      const existingVoice = activeVoices.get(key);
+      var existingVoice = activeVoices.get(key);
       releaseVoice(existingVoice, true); // Quick release for retrigger
     }
 
@@ -232,10 +230,10 @@
     voice.noiseNode = null;
 
     // Reset gain nodes
-    const ctx = SL.audio.getCtx();
+    var ctx = SL.audio.getCtx();
     voice.masterGain.gain.cancelScheduledValues(ctx.currentTime);
     voice.masterGain.gain.setValueAtTime(0, ctx.currentTime);
-    voice.oscGains.forEach(g => {
+    voice.oscGains.forEach(function(g) {
       g.gain.cancelScheduledValues(ctx.currentTime);
       g.gain.setValueAtTime(0, ctx.currentTime);
     });
@@ -261,17 +259,17 @@
    */
   function stealVoice(instrumentId) {
     // Find voices for this instrument first, then any voice
-    let candidates = [];
+    var candidates = [];
 
-    activeVoices.forEach((voice, key) => {
-      candidates.push({ voice, key, age: performance.now() - voice.startTime });
+    activeVoices.forEach(function(voice, key) {
+      candidates.push({ voice: voice, key: key, age: performance.now() - voice.startTime });
     });
 
     // Sort by age (oldest first) - could also consider amplitude
-    candidates.sort((a, b) => b.age - a.age);
+    candidates.sort(function(a, b) { return b.age - a.age; });
 
     if (candidates.length > 0) {
-      const stolen = candidates[0];
+      var stolen = candidates[0];
       releaseVoice(stolen.voice, true); // Quick release
       return stolen.voice;
     }
@@ -283,8 +281,8 @@
       return null;
     }
     console.warn('Voice pool exhausted, creating emergency voice');
-    const ctx = SL.audio.getCtx();
-    const newVoice = createVoice(ctx);
+    var ctx = SL.audio.getCtx();
+    var newVoice = createVoice(ctx);
     newVoice._poolIdx = voicePool.length;
     voicePool.push(newVoice);
     voicePoolStats.totalAllocated++;
@@ -335,7 +333,7 @@
     }
 
     // Stop all oscillators
-    voice.oscillators.forEach(o => {
+    voice.oscillators.forEach(function(o) {
       try {
         if (o.osc) o.osc.stop(stopTime);
       } catch (e) { /* already stopped */ }
@@ -349,7 +347,7 @@
     }
 
     // Remove from active map
-    const key = voice.instrumentId + ':' + voice.midiNote;
+    var key = voice.instrumentId + ':' + voice.midiNote;
     activeVoices.delete(key);
 
     // Decrement active node counter for diagnostics
@@ -365,11 +363,10 @@
    * @returns {Object} Pool stats
    */
   function getVoicePoolStats() {
-    return {
-      ...voicePoolStats,
+    return Object.assign({}, voicePoolStats, {
       currentlyActive: activeVoices.size,
-      available: voicePool.filter(v => !v.inUse).length
-    };
+      available: voicePool.filter(function(v) { return !v.inUse; }).length
+    });
   }
 
   // ============================================================
@@ -377,7 +374,7 @@
   // ============================================================
 
   /** Buffer size categories for pooling */
-  const BUFFER_SIZES = {
+  var BUFFER_SIZES = {
     small: 1024,      // ~23ms at 44100Hz
     medium: 4096,     // ~93ms at 44100Hz
     large: 16384,     // ~372ms at 44100Hz
@@ -385,10 +382,10 @@
   };
 
   /** Number of buffers to pre-allocate per size category */
-  const BUFFERS_PER_SIZE = 6;
+  var BUFFERS_PER_SIZE = 6;
 
   /** Buffer pools organized by size */
-  const bufferPools = {
+  var bufferPools = {
     small: [],
     medium: [],
     large: [],
@@ -396,7 +393,7 @@
   };
 
   /** Buffer pool statistics for monitoring */
-  const bufferPoolStats = {
+  var bufferPoolStats = {
     hits: 0,          // Successful pool acquisitions
     misses: 0,        // Had to create new buffer
     returns: 0,       // Successful returns to pool
@@ -405,28 +402,28 @@
   };
 
   /** Map to track buffer sizes for proper return to pool */
-  const bufferSizeMap = new WeakMap();
+  var bufferSizeMap = new WeakMap();
 
   /**
    * Initialize the buffer pool with pre-allocated Float32Arrays
    * Called during audio engine initialization
    */
   function initBufferPool() {
-    const startTime = performance.now();
+    var startTime = performance.now();
 
     // Pre-allocate buffers for each size category
-    Object.keys(BUFFER_SIZES).forEach(sizeKey => {
-      const size = BUFFER_SIZES[sizeKey];
+    Object.keys(BUFFER_SIZES).forEach(function(sizeKey) {
+      var size = BUFFER_SIZES[sizeKey];
       bufferPools[sizeKey] = [];
 
-      for (let i = 0; i < BUFFERS_PER_SIZE; i++) {
-        const buffer = new Float32Array(size);
+      for (var i = 0; i < BUFFERS_PER_SIZE; i++) {
+        var buffer = new Float32Array(size);
         bufferPools[sizeKey].push(buffer);
         bufferSizeMap.set(buffer, sizeKey);
       }
     });
 
-    const totalBuffers = Object.keys(BUFFER_SIZES).length * BUFFERS_PER_SIZE;
+    var totalBuffers = Object.keys(BUFFER_SIZES).length * BUFFERS_PER_SIZE;
   }
 
   /**
@@ -450,19 +447,19 @@
    * @returns {Float32Array} Buffer (may be larger than requested)
    */
   function acquireBuffer(minSize) {
-    const sizeKey = getBufferSizeCategory(minSize);
+    var sizeKey = getBufferSizeCategory(minSize);
 
     // If size is too large for pool, create a new buffer
     if (!sizeKey) {
       bufferPoolStats.misses++;
-      const buffer = new Float32Array(minSize);
+      var buffer = new Float32Array(minSize);
       // Don't track oversized buffers - they can't be returned
       return buffer;
     }
 
     // Try to get a buffer from the appropriate pool
     if (bufferPools[sizeKey].length > 0) {
-      const buffer = bufferPools[sizeKey].pop();
+      var buffer = bufferPools[sizeKey].pop();
       bufferPoolStats.hits++;
       bufferPoolStats.currentOut++;
       if (bufferPoolStats.currentOut > bufferPoolStats.peakOut) {
@@ -474,13 +471,13 @@
     }
 
     // No buffer available - try larger sizes
-    const sizeOrder = ['small', 'medium', 'large', 'xlarge'];
-    const startIdx = sizeOrder.indexOf(sizeKey) + 1;
+    var sizeOrder = ['small', 'medium', 'large', 'xlarge'];
+    var startIdx = sizeOrder.indexOf(sizeKey) + 1;
 
-    for (let i = startIdx; i < sizeOrder.length; i++) {
-      const largerKey = sizeOrder[i];
+    for (var i = startIdx; i < sizeOrder.length; i++) {
+      var largerKey = sizeOrder[i];
       if (bufferPools[largerKey].length > 0) {
-        const buffer = bufferPools[largerKey].pop();
+        var buffer = bufferPools[largerKey].pop();
         bufferPoolStats.hits++;
         bufferPoolStats.currentOut++;
         if (bufferPoolStats.currentOut > bufferPoolStats.peakOut) {
@@ -497,7 +494,7 @@
     if (bufferPoolStats.currentOut > bufferPoolStats.peakOut) {
       bufferPoolStats.peakOut = bufferPoolStats.currentOut;
     }
-    const newBuffer = new Float32Array(BUFFER_SIZES[sizeKey]);
+    var newBuffer = new Float32Array(BUFFER_SIZES[sizeKey]);
     bufferSizeMap.set(newBuffer, sizeKey);
     return newBuffer;
   }
@@ -508,18 +505,16 @@
    * @param {Float32Array} buffer - Buffer to return to pool
    */
   function releaseBuffer(buffer) {
-    if (!buffer) return;
-
-    const sizeKey = bufferSizeMap.get(buffer);
-    if (!sizeKey) {
-      // Oversized buffer or unknown - just let GC handle it
-      return;
+    if (buffer) {
+      var sizeKey = bufferSizeMap.get(buffer);
+      if (sizeKey) {
+        // Return to appropriate pool
+        bufferPools[sizeKey].push(buffer);
+        bufferPoolStats.returns++;
+        bufferPoolStats.currentOut = Math.max(0, bufferPoolStats.currentOut - 1);
+      }
+      // else: Oversized buffer or unknown - just let GC handle it
     }
-
-    // Return to appropriate pool
-    bufferPools[sizeKey].push(buffer);
-    bufferPoolStats.returns++;
-    bufferPoolStats.currentOut = Math.max(0, bufferPoolStats.currentOut - 1);
   }
 
   /**
@@ -527,21 +522,20 @@
    * @returns {Object} Pool statistics
    */
   function getBufferPoolStats() {
-    const poolSizes = {};
-    Object.keys(bufferPools).forEach(key => {
+    var poolSizes = {};
+    Object.keys(bufferPools).forEach(function(key) {
       poolSizes[key] = {
         available: bufferPools[key].length,
         bufferSize: BUFFER_SIZES[key]
       };
     });
 
-    return {
-      ...bufferPoolStats,
+    return Object.assign({}, bufferPoolStats, {
       pools: poolSizes,
       hitRate: bufferPoolStats.hits + bufferPoolStats.misses > 0
         ? (bufferPoolStats.hits / (bufferPoolStats.hits + bufferPoolStats.misses) * 100).toFixed(1) + '%'
         : 'N/A'
-    };
+    });
   }
 
   // ============================================================
@@ -557,5 +551,9 @@
   SL.audio.acquireBuffer = acquireBuffer;
   SL.audio.releaseBuffer = releaseBuffer;
   SL.audio.getBufferPoolStats = getBufferPoolStats;
+
+  } else {
+    console.error('[voice-pool] SynthLab.audio not available');
+  }
 
 })();

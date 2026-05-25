@@ -2,9 +2,9 @@
 // Creates metallic, robotic synthwave sounds by multiplying input signal with a carrier oscillator
 
 (function() {
-  const SL = window.SynthLab = window.SynthLab || {};
+  var SL = window.SynthLab = window.SynthLab || {};
   SL.effects = SL.effects || {};
-  const BaseEffect = SL.effects.BaseEffect;
+  var BaseEffect = SL.effects.BaseEffect;
 
   /**
    * RingModEffect - Ring modulation via carrier oscillator multiplication
@@ -81,9 +81,9 @@
      * At depth=100, the carrier frequency varies by +/- 50% of its base value
      */
     updateLfoDepth(depth) {
-      const depthNormalized = depth / 100;
+      var depthNormalized = depth / 100;
       // LFO modulates carrier frequency by up to 50% of the base frequency
-      const modulationRange = this.params.frequency * 0.5 * depthNormalized;
+      var modulationRange = this.params.frequency * 0.5 * depthNormalized;
       this.lfoGain.gain.setTargetAtTime(modulationRange, this.ctx.currentTime, 0.01);
     }
 
@@ -91,12 +91,12 @@
      * Handle parameter updates
      */
     updateParam(name, value) {
-      const currentTime = this.ctx.currentTime;
+      var currentTime = this.ctx.currentTime;
 
       switch (name) {
         case 'frequency':
           // Clamp frequency to valid range
-          const freq = Math.max(20, Math.min(2000, value));
+          var freq = Math.max(20, Math.min(2000, value));
           this.params.frequency = freq;
           this.carrier.frequency.setTargetAtTime(freq, currentTime, 0.01);
           // Update LFO depth since it's relative to carrier frequency
@@ -105,7 +105,7 @@
 
         case 'shape':
           // Validate shape
-          const validShapes = ['sine', 'square', 'triangle'];
+          var validShapes = ['sine', 'square', 'triangle'];
           if (validShapes.includes(value)) {
             this.params.shape = value;
             this.carrier.type = value;
@@ -114,14 +114,14 @@
 
         case 'lfoRate':
           // Clamp LFO rate to valid range
-          const rate = Math.max(0, Math.min(10, value));
+          var rate = Math.max(0, Math.min(10, value));
           this.params.lfoRate = rate;
           this.lfo.frequency.setTargetAtTime(rate, currentTime, 0.01);
           break;
 
         case 'lfoDepth':
           // Clamp LFO depth to valid range
-          const depth = Math.max(0, Math.min(100, value));
+          var depth = Math.max(0, Math.min(100, value));
           this.params.lfoDepth = depth;
           this.updateLfoDepth(depth);
           break;
@@ -135,9 +135,7 @@
       try {
         this.carrier.stop();
         this.lfo.stop();
-      } catch (e) {
-        // Oscillators might not have started
-      }
+      } catch (e) { /* oscillators may not have started yet */ }
       this.carrier.disconnect();
       this.carrierGain.disconnect();
       this.lfo.disconnect();

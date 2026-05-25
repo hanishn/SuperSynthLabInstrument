@@ -13,6 +13,8 @@
 
   var MAX_RESONATORS = 6;
 
+  var NO_BODY_TYPE = 'none';
+
   // Body model resonance frequency tables (Hz)
   // Each body has characteristic formant peaks
   var BODY_MODELS = {
@@ -41,7 +43,7 @@
   // ============================================================
 
   var audioContext = null;
-  var engineReady = false;
+  var isEngineReady = false;
 
   // Per-instrument state: instId -> { filters: [], dryGain, wetGain, mergeNode, inputNode, outputNode, settings }
   var instancesByInst = {};
@@ -157,72 +159,69 @@
    */
   function configureFilters(instId) {
     var instance = instancesByInst[instId];
-    if (!instance) {
-      return;
-    }
+    if (instance) {
+      var settings = instance.settings;
+      var bodyType = settings.bodyType || 'none';
+      var model = BODY_MODELS[bodyType];
 
-    var settings = instance.settings;
-    var bodyType = settings.bodyType || 'none';
-    var model = BODY_MODELS[bodyType];
-
-    if (!model || bodyType === 'none') {
-      // Bypass: full dry, no wet
-      instance.dryGain.gain.value = 1.0;
-      instance.wetGain.gain.value = 0.0;
-      return;
-    }
-
-    var resonanceAmount = Math.max(0, Math.min(100, settings.resonanceAmount)) / 100;
-    var brightness = Math.max(0, Math.min(100, settings.brightness)) / 100;
-    var bodySize = Math.max(0, Math.min(100, settings.bodySize)) / 100;
-
-    // Body size scales all frequencies: 0% = 2x freq (tiny), 50% = 1x, 100% = 0.5x (large)
-    var sizeScale = 1.0 / (0.5 + bodySize * 1.5);
-
-    // Mix: resonanceAmount controls dry/wet balance
-    instance.dryGain.gain.value = 1.0 - resonanceAmount * 0.5;
-    instance.wetGain.gain.value = resonanceAmount * 0.8;
-
-    var sr = audioContext.sampleRate;
-    var nyquist = sr / 2 - 100;
-
-    for (var i = 0; i < MAX_RESONATORS; i++) {
-      var baseFreq = model.freqs[i];
-      var gain = model.gains[i];
-      var q = model.qs[i];
-
-      if (baseFreq <= 0 || gain <= 0) {
-        // Inactive resonator: set very low gain and move freq out of the way
-        instance.filters[i].frequency.value = 20;
-        instance.filters[i].Q.value = 0.5;
-        instance.filters[i].gain.value = 0;
+      if (!model || bodyType === NO_BODY_TYPE) {
+        // Bypass: full dry, no wet
+        instance.dryGain.gain.value = 1.0;
+        instance.wetGain.gain.value = 0.0;
       } else {
-        var scaledFreq = baseFreq * sizeScale;
+        var resonanceAmount = Math.max(0, Math.min(100, settings.resonanceAmount)) / 100;
+        var brightness = Math.max(0, Math.min(100, settings.brightness)) / 100;
+        var bodySize = Math.max(0, Math.min(100, settings.bodySize)) / 100;
 
-        // Clamp to nyquist
-        if (scaledFreq > nyquist) {
-          scaledFreq = nyquist;
+        // Body size scales all frequencies: 0% = 2x freq (tiny), 50% = 1x, 100% = 0.5x (large)
+        var sizeScale = 1.0 / (0.5 + bodySize * 1.5);
+
+        // Mix: resonanceAmount controls dry/wet balance
+        instance.dryGain.gain.value = 1.0 - resonanceAmount * 0.5;
+        instance.wetGain.gain.value = resonanceAmount * 0.8;
+
+        var sr = audioContext.sampleRate;
+        var nyquist = sr / 2 - 100;
+
+        for (var i = 0; i < MAX_RESONATORS; i++) {
+          var baseFreq = model.freqs[i];
+          var gain = model.gains[i];
+          var q = model.qs[i];
+
+          if (baseFreq <= 0 || gain <= 0) {
+            // Inactive resonator: set very low gain and move freq out of the way
+            instance.filters[i].frequency.value = 20;
+            instance.filters[i].Q.value = 0.5;
+            instance.filters[i].gain.value = 0;
+          } else {
+            var scaledFreq = baseFreq * sizeScale;
+
+            // Clamp to nyquist
+            if (scaledFreq > nyquist) {
+              scaledFreq = nyquist;
+            }
+            if (scaledFreq < 20) {
+              scaledFreq = 20;
+            }
+
+            // Brightness affects Q and high-frequency gain rolloff
+            // High brightness = sharper resonances, less rolloff
+            // Low brightness = wider, duller resonances
+            var qScale = 0.5 + brightness * 1.0;
+            var gainScale = gain * (0.4 + brightness * 0.6);
+
+            // Higher partials roll off more with low brightness
+            var partialRolloff = Math.pow(0.3 + brightness * 0.7, i * 0.3);
+            gainScale = gainScale * partialRolloff;
+
+            instance.filters[i].frequency.value = scaledFreq;
+            instance.filters[i].Q.value = Math.max(0.5, q * qScale);
+            // BiquadFilter bandpass doesn't use gain param, but we scale via
+            // a per-filter approach. Since all filters go to mergeNode,
+            // we rely on Q and frequency to shape the response.
+            // The overall amplitude is controlled by wetGain.
+          }
         }
-        if (scaledFreq < 20) {
-          scaledFreq = 20;
-        }
-
-        // Brightness affects Q and high-frequency gain rolloff
-        // High brightness = sharper resonances, less rolloff
-        // Low brightness = wider, duller resonances
-        var qScale = 0.5 + brightness * 1.0;
-        var gainScale = gain * (0.4 + brightness * 0.6);
-
-        // Higher partials roll off more with low brightness
-        var partialRolloff = Math.pow(0.3 + brightness * 0.7, i * 0.3);
-        gainScale = gainScale * partialRolloff;
-
-        instance.filters[i].frequency.value = scaledFreq;
-        instance.filters[i].Q.value = Math.max(0.5, q * qScale);
-        // BiquadFilter bandpass doesn't use gain param, but we scale via
-        // a per-filter approach. Since all filters go to mergeNode,
-        // we rely on Q and frequency to shape the response.
-        // The overall amplitude is controlled by wetGain.
       }
     }
   }
@@ -235,13 +234,13 @@
     audioContext = ctx || (SL.audio && SL.audio.getCtx ? SL.audio.getCtx() : null);
     if (!audioContext) {
       console.error('[BODY-RESONANCE] No AudioContext available');
-      return;
+    } else {
+      isEngineReady = true;
     }
-    engineReady = true;
   }
 
   function isReady() {
-    return engineReady;
+    return isEngineReady;
   }
 
   /**

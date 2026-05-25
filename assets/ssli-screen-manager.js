@@ -4,6 +4,10 @@
 var SynthLab = window.SynthLab || {};
 var SL = SynthLab;
 
+// Lookup tables (hoisted to module scope for frequently-called handlers)
+var SSLI_SM_STATE_CHANGE_KEYS = { 'preset': 1, 'instrument': 1, 'surface': 1 };
+var SSLI_SM_INPUT_TAGS = { 'INPUT': 1, 'TEXTAREA': 1, 'SELECT': 1 };
+
 // ============================================================
 // Shared State Notification System (from SSLU)
 // ============================================================
@@ -54,8 +58,8 @@ SL.screens = (function () {
 
     var _currentScreen = DEFAULT_SCREEN;
     var _screenModules = {};
-    var _audioInitialized = false;
-    var _appVisible = false;
+    var isAudioInitialized = false;
+    var isAppVisible = false;
     var _wakeLockSentinel = null;
 
     // --------------------------------------------------------
@@ -119,9 +123,7 @@ SL.screens = (function () {
     function _saveScreen(screenId) {
         try {
             localStorage.setItem(STORAGE_KEY, screenId);
-        } catch (e) {
-            // localStorage may not be available
-        }
+        } catch (e) { /* localStorage may be unavailable */ }
     }
 
     function _loadScreen() {
@@ -135,16 +137,12 @@ SL.screens = (function () {
                     }
                 }
             }
-        } catch (e) {
-            // localStorage may not be available
-        }
+        } catch (e) { /* localStorage may be unavailable */ }
         return DEFAULT_SCREEN;
     }
 
     function switchTo(screenId) {
-        if (screenId === _currentScreen) {
-            return;
-        }
+        if (screenId !== _currentScreen) {
 
         // Ensure audio is initialized on first navigation
         _initAudioIfNeeded();
@@ -171,6 +169,7 @@ SL.screens = (function () {
                 console.error('[ssli-screen-manager] activate("' + screenId + '") threw:', activateErr);
             }
         }
+        } // end if (screenId !== _currentScreen)
     }
 
     function getCurrent() {
@@ -182,10 +181,8 @@ SL.screens = (function () {
     // --------------------------------------------------------
 
     function _initAudioIfNeeded() {
-        if (_audioInitialized) {
-            return;
-        }
-        _audioInitialized = true;
+        if (!isAudioInitialized) {
+        isAudioInitialized = true;
 
         try {
             // Create and resume AudioContext on this user gesture
@@ -200,7 +197,9 @@ SL.screens = (function () {
             }
 
             // Initialize the effect chain (audio routing) BEFORE engine inits.
-            if (SL.audio && SL.audio.initEffectChain && !SL.audio.effectChain) {
+            var canInitEffectChain = SL.audio && SL.audio.initEffectChain;
+            var shouldInitEffectChain = canInitEffectChain && !SL.audio.effectChain;
+            if (shouldInitEffectChain) {
                 SL.audio.initEffectChain();
                 if (SL.effectsUI && SL.effectsUI.init) {
                     SL.effectsUI.init();
@@ -218,7 +217,7 @@ SL.screens = (function () {
             ];
             for (var ei = 0; ei < ENGINES.length; ei++) {
                 if (SL[ENGINES[ei]] && SL[ENGINES[ei]].init) {
-                    try { SL[ENGINES[ei]].init(); } catch (engineErr) { /* will retry on demand */ }
+                    try { SL[ENGINES[ei]].init(); } catch (engineErr) { /* engine init failure is non-fatal; retried on first note */ }
                 }
             }
 
@@ -230,8 +229,10 @@ SL.screens = (function () {
                 var WORKLET_ENGINES = ['physical', 'fm', 'formant'];
                 for (var ri = 0; ri < ENGINES.length; ri++) {
                     var eng = SL[ENGINES[ri]];
-                    if (eng && eng.init && eng.isReady && !eng.isReady()) {
-                        try { eng.init(); } catch (retryErr) { /* best effort */ }
+                    var hasEngineInit = eng && eng.init && eng.isReady;
+                    var engineNeedsInit = hasEngineInit && !eng.isReady();
+                    if (engineNeedsInit) {
+                        try { eng.init(); } catch (retryErr) { /* best-effort retry; engine will init on first note if needed */ }
                     }
                 }
                 // Note: worklet engines (physical, FM, formant) have on-demand
@@ -247,16 +248,15 @@ SL.screens = (function () {
 
         // Re-acquire wake lock when page becomes visible again (e.g. tab switch)
         document.addEventListener('visibilitychange', function() {
-            if (document.visibilityState === 'visible' && _audioInitialized) {
+            if (document.visibilityState === 'visible' && isAudioInitialized) {
                 _acquireWakeLock();
             }
         });
+        } // end if (!isAudioInitialized)
     }
 
     function _acquireWakeLock() {
-        if (!('wakeLock' in navigator)) {
-            return;
-        }
+        if ('wakeLock' in navigator) {
         try {
             navigator.wakeLock.request('screen').then(function(sentinel) {
                 _wakeLockSentinel = sentinel;
@@ -269,6 +269,7 @@ SL.screens = (function () {
         } catch (wakeLockErr) {
             console.warn('[ssli] Wake lock not supported:', wakeLockErr.message);
         }
+        } // end if ('wakeLock' in navigator)
     }
 
     // --------------------------------------------------------
@@ -290,7 +291,7 @@ SL.screens = (function () {
         if (app) {
             app.style.display = '';
         }
-        _appVisible = true;
+        isAppVisible = true;
 
         // V-01: Mark body so CSS hides the SSLU hamburger button,
         // which overlaps SSLI nav at phone-landscape sizes.
@@ -324,16 +325,16 @@ SL.screens = (function () {
 
     function _checkOrientation() {
         var overlay = document.getElementById('ssli-rotate-overlay');
-        if (!overlay) {
-            return;
-        }
-        var isPhone = (window.innerWidth < PHONE_MAX_DIM && window.innerHeight < PHONE_MAX_OTHER_DIM) ||
-                      (window.innerHeight < PHONE_MAX_DIM && window.innerWidth < PHONE_MAX_OTHER_DIM);
-        var isPortrait = window.innerHeight > window.innerWidth;
-        if (isPhone && isPortrait && _appVisible) {
-            overlay.style.display = 'flex';
-        } else {
-            overlay.style.display = 'none';
+        if (overlay) {
+            var isPhone = ((window.innerWidth < PHONE_MAX_DIM && window.innerHeight < PHONE_MAX_OTHER_DIM) ||
+                          (window.innerHeight < PHONE_MAX_DIM && window.innerWidth < PHONE_MAX_OTHER_DIM));
+            var isPortrait = window.innerHeight > window.innerWidth;
+            var shouldShowRotateOverlay = isPhone && isPortrait && isAppVisible;
+            if (shouldShowRotateOverlay) {
+                overlay.style.display = 'flex';
+            } else {
+                overlay.style.display = 'none';
+            }
         }
     }
 
@@ -353,7 +354,9 @@ SL.screens = (function () {
         }
 
         // 3. Clear chord pad strum timeouts and restrum intervals
-        if (SL.controllers && SL.controllers.chordpads && SL.controllers.chordpads.clearStrumTimeouts) {
+        var canClearStrumTimeouts = SL.controllers && SL.controllers.chordpads;
+        var hasStrumClear = canClearStrumTimeouts && SL.controllers.chordpads.clearStrumTimeouts;
+        if (hasStrumClear) {
             SL.controllers.chordpads.clearStrumTimeouts();
         }
 
@@ -373,7 +376,7 @@ SL.screens = (function () {
             for (var ci = 0; ci < ctrlNames.length; ci++) {
                 var ctrl = SL.controllers[ctrlNames[ci]];
                 if (ctrl && ctrl.release) {
-                    try { ctrl.release(); } catch (releaseErr) { /* best effort */ }
+                    try { ctrl.release(); } catch (releaseErr) { /* release is best-effort; controller may already be detached */ }
                 }
             }
         }
@@ -417,27 +420,30 @@ SL.screens = (function () {
         // The old left-rail Panic nav item has been removed. This function
         // now builds a universal top-right PANIC overlay button instead.
         var app = document.getElementById(APP_ID);
-        if (!app) {
-            return;
-        }
-        if (document.getElementById(PANIC_OVERLAY_ID)) {
-            return;
-        }
+        var panicAlreadyExists = Boolean(document.getElementById(PANIC_OVERLAY_ID));
+        if (app && !panicAlreadyExists) {
         var btn = document.createElement('button');
         btn.id = PANIC_OVERLAY_ID;
         btn.className = 'ssli-panic-overlay-btn';
         btn.type = 'button';
-        btn.setAttribute('aria-label', 'PANIC - All Notes Off');
-        btn.title = 'PANIC - All Notes Off';
+        btn.setAttribute('aria-label', SL.t('screen.manager.panicAllNotesOff'));
+        btn.title = SL.t('screen.manager.panicAllNotesOff');
         // Warning glyph in warm amber (per CLAUDE.md "never use red text").
         // Red is reserved for border/glow only; glyph is high-contrast amber.
-        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 L22 21 L2 21 Z"/><line x1="12" y1="10" x2="12" y2="15"/><circle cx="12" cy="18" r="0.8" fill="currentColor"/></svg><span class="ssli-panic-overlay-label">' + SL.t('ui.button.panic_label') + '</span>';
+        btn.innerHTML = /* trusted: static SVG + i18n localized string */
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"' +
+            ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+            '<path d="M12 3 L22 21 L2 21 Z"/>' +
+            '<line x1="12" y1="10" x2="12" y2="15"/>' +
+            '<circle cx="12" cy="18" r="0.8" fill="currentColor"/>' +
+            '</svg>' +
+            '<span class="ssli-panic-overlay-label">' + SL.t('ui.button.panic_label') + '</span>';
         btn.addEventListener('click', function() {
-            var registryFired = false;
+            var isRegistryFired = false;
             if (SL.PanicRegistry && SL.PanicRegistry.executePanic) {
                 try {
                     SL.PanicRegistry.executePanic(false, false);
-                    registryFired = true;
+                    isRegistryFired = true;
                 } catch (regErr) {
                     console.warn('[panic-overlay] registry error:', regErr);
                 }
@@ -454,11 +460,12 @@ SL.screens = (function () {
             setTimeout(function() {
                 btn.classList.remove(PANIC_FLASH_CLASS);
             }, PANIC_FLASH_MS);
-            if (!registryFired) {
+            if (!isRegistryFired) {
                 console.warn('[panic-overlay] PanicRegistry unavailable — relied on legacy sweep only');
             }
         });
         app.appendChild(btn);
+        } // end if (app && !panicAlreadyExists)
     }
 
     // --------------------------------------------------------
@@ -501,7 +508,9 @@ SL.screens = (function () {
 
     function _resolveEngineLabel() {
         var label = 'SYNTH';
-        if (SL.audio && SL.audio.getCurrentInstrument && SL.audio.getInstrumentType) {
+        var hasEngineQuery = SL.audio && SL.audio.getCurrentInstrument;
+        var canGetEngineType = hasEngineQuery && SL.audio.getInstrumentType;
+        if (canGetEngineType) {
             var instId = SL.audio.getCurrentInstrument();
             var type = SL.audio.getInstrumentType(instId);
             if (type && ENGINE_DISPLAY[type]) {
@@ -516,7 +525,9 @@ SL.screens = (function () {
 
     function _resolvePresetName() {
         var name = 'Preset';
-        if (SL.audio && SL.audio.getInstruments && SL.audio.getCurrentInstrument) {
+        var canQueryPresetInstrument = SL.audio && SL.audio.getInstruments;
+        var hasPresetInstrumentQuery = canQueryPresetInstrument && SL.audio.getCurrentInstrument;
+        if (hasPresetInstrumentQuery) {
             var insts = SL.audio.getInstruments();
             var id = SL.audio.getCurrentInstrument();
             var inst = (insts && insts[id]) ? insts[id] : null;
@@ -565,7 +576,7 @@ SL.screens = (function () {
         bar.id = STAGE_BANNER_ID;
         bar.className = 'ssli-stage-banner';
         bar.setAttribute('aria-live', 'polite');
-        bar.setAttribute('aria-label', 'Current engine and preset');
+        bar.setAttribute('aria-label', SL.t('screen.manager.currentEngineAndPreset'));
         var engineEl = document.createElement('div');
         engineEl.className = 'ssli-stage-engine';
         engineEl.textContent = _resolveEngineLabel();
@@ -583,7 +594,7 @@ SL.screens = (function () {
         // React to state changes emitted by preset/instrument flows.
         if (SL.state && SL.state.onChange) {
             SL.state.onChange(function(what) {
-                if (what === 'preset' || what === 'instrument' || what === 'surface') {
+                if (SSLI_SM_STATE_CHANGE_KEYS[what]) {
                     _refreshStageBanner();
                 }
             });
@@ -599,28 +610,32 @@ SL.screens = (function () {
 
     function createHomeButton() {
         var nav = document.getElementById(NAV_ELEMENT_ID);
-        if (!nav) {
-            return;
+        if (nav) {
+            // Create home button
+            var homeBtn = document.createElement('button');
+            homeBtn.className = 'ssli-nav-home-btn';
+            homeBtn.type = 'button';
+            homeBtn.setAttribute('aria-label', SL.t('screen.manager.returnToLanding'));
+            homeBtn.title = SL.t('screen.manager.returnToLanding');
+            homeBtn.innerHTML = /* trusted: static SVG + i18n localized string */
+                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+                ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+                '<path d="M3 12l9-9 9 9"/>' +
+                '<path d="M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/>' +
+                '</svg>' +
+                '<span class="ssli-nav-label">' + SL.t('ui.button.home') + '</span>';
+            homeBtn.addEventListener('click', function() {
+                _returnToLanding();
+            });
+
+            // Create divider
+            var divider = document.createElement('div');
+            divider.className = 'ssli-nav-home-divider';
+
+            // Insert home button and divider at the top of the nav
+            nav.insertBefore(divider, nav.firstChild);
+            nav.insertBefore(homeBtn, nav.firstChild);
         }
-
-        // Create home button
-        var homeBtn = document.createElement('button');
-        homeBtn.className = 'ssli-nav-home-btn';
-        homeBtn.type = 'button';
-        homeBtn.setAttribute('aria-label', 'Return to landing page');
-        homeBtn.title = 'Return to landing page';
-        homeBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12l9-9 9 9"/><path d="M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/></svg><span class="ssli-nav-label">' + SL.t('ui.button.home') + '</span>';
-        homeBtn.addEventListener('click', function() {
-            _returnToLanding();
-        });
-
-        // Create divider
-        var divider = document.createElement('div');
-        divider.className = 'ssli-nav-home-divider';
-
-        // Insert home button and divider at the top of the nav
-        nav.insertBefore(divider, nav.firstChild);
-        nav.insertBefore(homeBtn, nav.firstChild);
     }
 
     function _returnToLanding() {
@@ -642,7 +657,7 @@ SL.screens = (function () {
         if (landing) {
             landing.style.display = '';
         }
-        _appVisible = false;
+        isAppVisible = false;
 
         // Remove body class that hides SSLU hamburger
         document.body.classList.remove('ssli-app-active');
@@ -658,12 +673,12 @@ SL.screens = (function () {
         // Inputs/textareas are excluded so they remain interactive if ever added.
         document.addEventListener('contextmenu', function(e) {
             var tag = e.target.tagName;
-            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') { return; }
+            if (SSLI_SM_INPUT_TAGS[tag]) { return; }
             e.preventDefault();
         });
         document.addEventListener('selectstart', function(e) {
             var tag = e.target.tagName;
-            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') { return; }
+            if (SSLI_SM_INPUT_TAGS[tag]) { return; }
             e.preventDefault();
         });
 
@@ -698,10 +713,12 @@ SL.screens = (function () {
         if (SL.midi && SL.midi.setup) { SL.midi.setup(); }
 
         // Register screen modules if they exist
+        function _screenIdToModName(screenId) {
+            return 'screen' + screenId.charAt(0).toUpperCase() + screenId.slice(1);
+        }
         for (var s = 0; s < SCREEN_IDS.length; s++) {
             var name = SCREEN_IDS[s];
-            // Convert to camelCase module name: 'play' -> 'screenPlay'
-            var modName = 'screen' + name.charAt(0).toUpperCase() + name.slice(1);
+            var modName = _screenIdToModName(name);
             if (SL[modName]) {
                 registerScreen(name, SL[modName]);
             }
@@ -727,7 +744,7 @@ SL.screens = (function () {
         createMuteButton: createMuteButton,
         createStageBanner: createStageBanner,
         enterApp: _enterApp,
-        isAudioInitialized: function() { return _audioInitialized; },
+        isAudioInitialized: function() { return isAudioInitialized; },
         panic: _performPanic
     };
 })();

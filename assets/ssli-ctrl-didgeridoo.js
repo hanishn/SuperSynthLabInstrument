@@ -95,7 +95,7 @@
   // State
   // ============================================================
 
-  var _droneActive = false;
+  var _isDroneActive = false;
   var _baseMidi = -1;
   var _currentMidi = -1;
   var _lastXFrac = 0.5;
@@ -167,7 +167,9 @@
     if (_glowOverlay) {
       var gainNorm = _clamp01((_lastGain - GAIN_MIN) / (GAIN_MAX - GAIN_MIN));
       var glowAlpha = GLOW_OPACITY_MIN + gainNorm * (GLOW_OPACITY_MAX - GLOW_OPACITY_MIN);
-      _glowOverlay.style.background = 'radial-gradient(ellipse at ' + relX + 'px ' + relY + 'px, rgba(' + CROSSHAIR_COLOR_R + ',' + CROSSHAIR_COLOR_G + ',' + CROSSHAIR_COLOR_B + ',' + glowAlpha + ') 0%, transparent 70%)';
+      _glowOverlay.style.background = 'radial-gradient(ellipse at ' + relX + 'px ' + relY + 'px, ' +
+          'rgba(' + CROSSHAIR_COLOR_R + ',' + CROSSHAIR_COLOR_G + ',' + CROSSHAIR_COLOR_B + ',' + glowAlpha + ')' +
+          ' 0%, transparent 70%)';
       _glowOverlay.style.display = 'block';
     }
   }
@@ -199,14 +201,16 @@
       _noteOnFn(midi);
     }
     _currentMidi = midi;
-    _droneActive = true;
+    _isDroneActive = true;
   }
 
   function _stopDrone() {
-    if (_droneActive && _noteOffFn && _currentMidi >= 0) {
+    var isDroneSounding = _isDroneActive && _currentMidi >= 0;
+    var canStopDrone = isDroneSounding && _noteOffFn;
+    if (canStopDrone) {
       _noteOffFn(_currentMidi);
     }
-    _droneActive = false;
+    _isDroneActive = false;
     _currentMidi = -1;
     _activeOvertone = -1;
     _latchedOvertone = -1;
@@ -241,7 +245,7 @@
   // ============================================================
 
   function _doArticulation(articId) {
-    if (!_droneActive) { return; }
+    if (!_isDroneActive) { return; }
 
     _cancelArticulations();
 
@@ -300,7 +304,7 @@
       var now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
       var elapsed = now - _pfAnimStart;
       var isExpired = (elapsed >= ARTIC_PF_DURATION_MS);
-      if (isExpired || !_droneActive) {
+      if (isExpired || !_isDroneActive) {
         if (_resetPitchBendFn) { _resetPitchBendFn(); }
         _pfAnimId = 0;
       } else {
@@ -318,7 +322,7 @@
   // ============================================================
 
   function _startOvertone(semitones) {
-    if (!_droneActive) { return; }
+    if (!_isDroneActive) { return; }
     if (_activeOvertone === semitones) { return; }
 
     if (_noteOffFn && _currentMidi >= 0) {
@@ -334,7 +338,7 @@
   }
 
   function _releaseOvertone() {
-    if (!_droneActive) { return; }
+    if (!_isDroneActive) { return; }
     var isOvertoneActive = (_activeOvertone >= 0);
     if (isOvertoneActive) {
       if (_noteOffFn && _currentMidi >= 0) {
@@ -358,7 +362,7 @@
   }
 
   function _documentPointerUp() {
-    if (_droneActive) {
+    if (_isDroneActive) {
       _stopDrone();
     }
   }
@@ -562,10 +566,10 @@
     }
 
     function _onPointerDown(e) {
-      if (_droneActive) { return; }
+      if (_isDroneActive) { return; }
       e.preventDefault();
       if (droneZone.setPointerCapture && typeof e.pointerId !== 'undefined') {
-        try { droneZone.setPointerCapture(e.pointerId); } catch (err) { /* best effort */ }
+        try { droneZone.setPointerCapture(e.pointerId); } catch (err) { /* pointer capture is best-effort */ }
       }
 
       _baseMidi = (baseOctave + OCTAVE_BASE_OFFSET) * SEMITONES_PER_OCTAVE;
@@ -578,12 +582,12 @@
     }
 
     function _onPointerMove(e) {
-      if (!_droneActive) { return; }
+      if (!_isDroneActive) { return; }
       _applyAtPointer(e);
     }
 
     function _onPointerUp(e) {
-      if (!_droneActive) { return; }
+      if (!_isDroneActive) { return; }
       droneZone.classList.remove('active');
       if (idleHint) { idleHint.style.display = ''; }
       _stopDrone();
@@ -594,7 +598,7 @@
     droneZone.addEventListener('pointerup', _onPointerUp);
     droneZone.addEventListener('pointercancel', function(e) {
       if (droneZone.setPointerCapture && typeof e.pointerId !== 'undefined') {
-        try { droneZone.setPointerCapture(e.pointerId); return; } catch (err) { /* fall through */ }
+        try { droneZone.setPointerCapture(e.pointerId); return; } catch (err) { /* capture failed; fall through to release handler */ }
       }
       droneZone.classList.remove('active');
       if (idleHint) { idleHint.style.display = ''; }
@@ -623,7 +627,7 @@
       'voices',
       'didgeridoo.drone',
       function() { _releaseAll(); },
-      function() { return _droneActive ? 'drone active' : null; }
+      function() { return _isDroneActive ? 'drone active' : null; }
     );
   }
 

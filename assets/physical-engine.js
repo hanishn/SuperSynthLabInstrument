@@ -46,13 +46,13 @@
 
   var audioContext = null;
   var physicalWorkletNodes = [null, null, null, null];
-  var workletReady = false;
-  var workletInitializing = false;
-  var workletReadyPromise = null;
+  var isWorkletReady = false;
+  var isWorkletInitializing = false;
+  var isWorkletReadyPromise = null;
 
   // ScriptProcessor fallback state
   var scriptNodes = [null, null, null, null];
-  var useFallback = false;
+  var shouldUseFallback = false;
 
   // Per-instrument settings cache (instId -> settings object)
   var instrumentSettings = {};
@@ -697,7 +697,9 @@
     sample = this.dcBlocker.process(sample);
     sample = sample * this.outputGain * this.releaseGain;
 
-    if (!this.blowing && this.breathEnvelope < 0.001 && Math.abs(sample) < 0.00005) {
+    var isBreathStopped = !this.blowing && this.breathEnvelope < 0.001;
+    var isSilentAfterBlow = isBreathStopped && Math.abs(sample) < 0.00005;
+    if (isSilentAfterBlow) {
       this.silenceCounter++;
       if (this.silenceCounter > this.sampleRate * 0.2) { this.active = false; return 0; }
     } else {
@@ -822,7 +824,9 @@
     if (output > 0.9 || output < -0.9) {
       output = output / (1.0 + Math.abs(output));
     }
-    if (this.exciteRemaining <= 0 && this.decayCounter > this.sampleRate * 0.5 && Math.abs(output) < 0.00001) { this.active = false; return 0; }
+    var isStrikeFinished = this.exciteRemaining <= 0 && this.decayCounter > this.sampleRate * 0.5;
+    var isStrikeSilent = isStrikeFinished && Math.abs(output) < 0.00001;
+    if (isStrikeSilent) { this.active = false; return 0; }
     return output;
   };
   FBStrikeModel.prototype.isFinished = function() { return !this.active; };
@@ -926,16 +930,16 @@
   }
 
   function initWorklet() {
-    if (workletReady) return Promise.resolve(true);
-    if (workletInitializing) return workletReadyPromise;
+    if (isWorkletReady) return Promise.resolve(true);
+    if (isWorkletInitializing) return isWorkletReadyPromise;
 
-    workletInitializing = true;
+    isWorkletInitializing = true;
 
-    workletReadyPromise = new Promise(function(resolve, reject) {
+    isWorkletReadyPromise = new Promise(function(resolve, reject) {
       var physWorkletUrl = (SL.audio.getWorkletBlobUrl && SL.audio.getWorkletBlobUrl('physical-worklet.js')) || 'assets/physical-worklet.js';
       audioContext.audioWorklet.addModule(physWorkletUrl).then(function() {
         var readyCount = 0;
-        var hadError = false;
+        var hasHadError = false;
 
         for (var i = 0; i < 4; i++) {
           (function(idx) {
@@ -950,19 +954,19 @@
               if (event.data.type === 'ready') {
                 readyCount++;
                 if (readyCount === 4) {
-                  workletReady = true;
-                  workletInitializing = false;
+                  isWorkletReady = true;
+                  isWorkletInitializing = false;
                   resolve(true);
                 }
               }
             };
 
             node.onprocessorerror = function(event) {
-              if (!hadError) {
-                hadError = true;
+              if (!hasHadError) {
+                hasHadError = true;
                 console.error('[PHYSICAL] AudioWorklet processor error (inst ' + idx + '):', event);
-                workletReady = false;
-                workletInitializing = false;
+                isWorkletReady = false;
+                isWorkletInitializing = false;
                 console.warn('[PHYSICAL] Falling back to ScriptProcessor');
                 initFallback().then(resolve).catch(reject);
               }
@@ -972,13 +976,13 @@
 
       }).catch(function(error) {
         console.error('[PHYSICAL] Failed to load physical worklet:', error);
-        workletInitializing = false;
+        isWorkletInitializing = false;
         console.warn('[PHYSICAL] Falling back to ScriptProcessor');
         initFallback().then(resolve).catch(reject);
       });
     });
 
-    return workletReadyPromise;
+    return isWorkletReadyPromise;
   }
 
   // ============================================================
@@ -988,13 +992,13 @@
   var fallbackVoicesByInst = [[], [], [], []];
 
   function initFallback() {
-    useFallback = true;
+    shouldUseFallback = true;
     var sr = audioContext.sampleRate;
     var bufSize = (SL.audio && SL.audio.getScriptProcessorBufferSize) ? SL.audio.getScriptProcessorBufferSize() : 1024;
 
     // Pre-allocate per-instrument voice pools (16 voices each)
     for (var i = 0; i < 4; i++) {
-      fallbackVoicesByInst[i] = [];
+      fallbackVoicesByInst[i].length = 0;
       for (var v = 0; v < 16; v++) {
         fallbackVoicesByInst[i].push(new FallbackVoice(sr));
       }
@@ -1051,27 +1055,25 @@
   function updateFilter(instId) {
     if (instId === undefined) instId = 0;
     var filterNode = physFilterNodes[instId];
-    if (!filterNode) return;
+    if (filterNode) {
 
     var filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
     if (!filterSettings || !filterSettings.enabled) {
       filterNode.type = 'lowpass';
       filterNode.frequency.value = 20000;
       filterNode.Q.value = 0.707;
-      return;
-    }
-
+    } else {
     filterNode.type = filterSettings.type || 'lowpass';
     filterNode.frequency.value = Math.max(20, Math.min(20000, filterSettings.frequency || 20000));
     filterNode.Q.value = Math.max(0.1, Math.min(30, filterSettings.resonance || 1));
+    }
+    } // end if (filterNode)
   }
 
   function connectToOutput(instId) {
     // If nodes not created yet (engine not initialized), skip
-    var nodeExists = (useFallback && scriptNodes[instId]) || (!useFallback && physicalWorkletNodes[instId]);
-    if (!nodeExists) {
-      return;
-    }
+    var nodeExists = (shouldUseFallback && scriptNodes[instId]) || (!shouldUseFallback && physicalWorkletNodes[instId]);
+    if (nodeExists) {
 
     // Each instrument's node is permanently connected once; no disconnect/reconnect needed
     if (connectedInsts[instId]) {
@@ -1079,20 +1081,23 @@
     } else {
       var instruments = SL.audio && SL.audio.getInstruments ? SL.audio.getInstruments() : null;
       var inst = instruments ? instruments[instId] : null;
+      var isDestinationResolved = false;
       var destination;
 
       if (inst && inst.masterOutput) {
         destination = inst.masterOutput;
+        isDestinationResolved = true;
       } else if (audioContext) {
         destination = audioContext.destination;
-      } else {
-        return;
+        isDestinationResolved = true;
       }
+
+      if (isDestinationResolved) {
 
       var filterNode = getOrCreateFilterNode(instId);
       updateFilter(instId);
 
-      if (useFallback && scriptNodes[instId]) {
+      if (shouldUseFallback && scriptNodes[instId]) {
         if (filterNode) {
           scriptNodes[instId].connect(filterNode);
           filterNode.connect(destination);
@@ -1109,7 +1114,9 @@
       }
 
       connectedInsts[instId] = true;
+      } // end if (isDestinationResolved)
     }
+    } // end if (nodeExists)
   }
 
   // ============================================================
@@ -1162,7 +1169,7 @@
       humanization: hum
     };
 
-    if (useFallback) {
+    if (shouldUseFallback) {
       var voices = fallbackVoicesByInst[instId];
       var voice = null;
       for (var i = 0; i < voices.length; i++) {
@@ -1189,7 +1196,7 @@
         voice = voices[bestStealIdx];
       }
       voice.noteOn(midi, velocity, noteFreq, voiceSettings);
-    } else if (physicalWorkletNodes[instId] && workletReady) {
+    } else if (physicalWorkletNodes[instId] && isWorkletReady) {
       physicalWorkletNodes[instId].port.postMessage({
         type: 'noteOn',
         midiNote: midi,
@@ -1203,7 +1210,7 @@
   function noteOff(midi, instId) {
     if (instId === undefined) instId = 0;
 
-    if (useFallback) {
+    if (shouldUseFallback) {
       var voices = fallbackVoicesByInst[instId];
       for (var i = 0; i < voices.length; i++) {
         var v = voices[i];
@@ -1211,7 +1218,7 @@
           v.noteOff();
         }
       }
-    } else if (physicalWorkletNodes[instId] && workletReady) {
+    } else if (physicalWorkletNodes[instId] && isWorkletReady) {
       physicalWorkletNodes[instId].port.postMessage({
         type: 'noteOff',
         midiNote: midi,
@@ -1234,7 +1241,7 @@
     settings[paramName] = value;
 
     // Update active voices
-    if (physicalWorkletNodes[instId] && workletReady) {
+    if (physicalWorkletNodes[instId] && isWorkletReady) {
       var params = {};
       params[paramName] = value;
       physicalWorkletNodes[instId].port.postMessage({
@@ -1258,7 +1265,7 @@
   // ============================================================
 
   function allNotesOff(instId) {
-    if (useFallback) {
+    if (shouldUseFallback) {
       if (instId !== undefined) {
         var voices = fallbackVoicesByInst[instId];
         for (var i = 0; i < voices.length; i++) {
@@ -1272,7 +1279,7 @@
           }
         }
       }
-    } else if (workletReady) {
+    } else if (isWorkletReady) {
       if (instId !== undefined) {
         if (physicalWorkletNodes[instId]) {
           physicalWorkletNodes[instId].port.postMessage({
@@ -1294,7 +1301,7 @@
   }
 
   function isReady() {
-    return workletReady || useFallback;
+    return isWorkletReady || shouldUseFallback;
   }
 
   function getDefaultSettings() {

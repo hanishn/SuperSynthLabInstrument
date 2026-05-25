@@ -4,6 +4,10 @@
 var SynthLab = window.SynthLab || {};
 var SL = SynthLab;
 
+// Sentinel constants
+var NOT_FOUND = -1;
+var NO_STORED_VALUE = null;
+
 // =============================================================================
 // Global Drag Data Store (browsers restrict reading dataTransfer in dragover)
 // =============================================================================
@@ -85,7 +89,7 @@ SynthLab.FLAT_KEY_ROOTS = [5, 10, 3, 8, 1, 6];
 
 /** Check if a root pitch class should use flat naming */
 SynthLab.useFlatNaming = function(rootPc) {
-  return SynthLab.FLAT_KEY_ROOTS.indexOf(rootPc) !== -1;
+  return SynthLab.FLAT_KEY_ROOTS.indexOf(rootPc) !== NOT_FOUND;
 };
 
 /** Get note name array for a given root pitch class */
@@ -347,12 +351,12 @@ try {
     var stored = localStorage.getItem('ssli-touch-velocity');
     if (stored === 'on') { SynthLab._touchSettings.enabled = true; }
     var storedSens = localStorage.getItem('ssli-touch-sensitivity');
-    if (storedSens !== null) { SynthLab._touchSettings.sensitivity = parseInt(storedSens, 10) || 25; }
+    if (storedSens !== NO_STORED_VALUE) { SynthLab._touchSettings.sensitivity = parseInt(storedSens, 10) || 25; }
     var storedMin = localStorage.getItem('ssli-touch-vel-min');
-    if (storedMin !== null) { SynthLab._touchSettings.velMin = parseInt(storedMin, 10) || 20; }
+    if (storedMin !== NO_STORED_VALUE) { SynthLab._touchSettings.velMin = parseInt(storedMin, 10) || 20; }
     var storedMax = localStorage.getItem('ssli-touch-vel-max');
-    if (storedMax !== null) { SynthLab._touchSettings.velMax = parseInt(storedMax, 10) || 127; }
-} catch (e) {}
+    if (storedMax !== NO_STORED_VALUE) { SynthLab._touchSettings.velMax = parseInt(storedMax, 10) || 127; }
+} catch (e) { /* localStorage may be unavailable in restricted contexts */ }
 
 // =============================================================================
 // Export to global namespace

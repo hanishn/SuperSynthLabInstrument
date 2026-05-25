@@ -9,8 +9,7 @@
 
   if (!SL || !SL.audio) {
     console.error('[lfo-engine] SynthLab.audio not available');
-    return;
-  }
+  } else {
 
   // ============================================================
   // Constants
@@ -18,6 +17,11 @@
 
   var NUM_INSTRUMENTS = 5;
   var NUM_LFOS = 2;
+
+  var NO_TARGET = 'none';
+
+  // LFO parameters that require a full node rebuild when changed
+  var LFO_REBUILD_PARAMS = { 'target': 1, 'enabled': 1, 'waveform': 1 };
 
   /** Default LFO settings */
   var DEFAULT_LFO = {
@@ -53,21 +57,20 @@
    */
   function ensureLFOSettings(instId) {
     var instruments = SL.audio.getInstruments();
-    if (!instruments || !instruments[instId]) {
-      return;
-    }
-    var settings = instruments[instId].settings;
-    if (!settings.lfo) {
-      settings.lfo = {
-        lfo1: cloneLFO(DEFAULT_LFO),
-        lfo2: cloneLFO(DEFAULT_LFO)
-      };
-    } else {
-      if (!settings.lfo.lfo1) {
-        settings.lfo.lfo1 = cloneLFO(DEFAULT_LFO);
-      }
-      if (!settings.lfo.lfo2) {
-        settings.lfo.lfo2 = cloneLFO(DEFAULT_LFO);
+    if (instruments && instruments[instId]) {
+      var settings = instruments[instId].settings;
+      if (!settings.lfo) {
+        settings.lfo = {
+          lfo1: cloneLFO(DEFAULT_LFO),
+          lfo2: cloneLFO(DEFAULT_LFO)
+        };
+      } else {
+        if (!settings.lfo.lfo1) {
+          settings.lfo.lfo1 = cloneLFO(DEFAULT_LFO);
+        }
+        if (!settings.lfo.lfo2) {
+          settings.lfo.lfo2 = cloneLFO(DEFAULT_LFO);
+        }
       }
     }
   }
@@ -172,43 +175,35 @@
    */
   function insertChainNodes(instId) {
     var instruments = SL.audio.getInstruments();
-    if (!instruments || !instruments[instId]) {
-      return;
+    if (instruments && instruments[instId]) {
+      var inst = instruments[instId];
+      var state = lfoNodes[instId];
+      if (state && !state.chainInserted) {
+        if (inst.volumeNode && inst.effectChain) {
+          var ctx = SL.audio.getCtx();
+          if (ctx) {
+            // Create shared tremolo gain (pass-through by default: gain = 1)
+            state.tremoloGain = ctx.createGain();
+            state.tremoloGain.gain.value = 1.0;
+
+            // Create shared pan node (pass-through by default: pan = 0)
+            state.panNode = ctx.createStereoPanner();
+            state.panNode.pan.value = 0;
+
+            // Disconnect volumeNode from effectChain and re-route
+            try {
+              inst.volumeNode.disconnect(inst.effectChain.input);
+            } catch (e) { /* node may not be connected yet */ }
+
+            inst.volumeNode.connect(state.tremoloGain);
+            state.tremoloGain.connect(state.panNode);
+            state.panNode.connect(inst.effectChain.input);
+
+            state.chainInserted = true;
+          }
+        }
+      }
     }
-    var inst = instruments[instId];
-    var state = lfoNodes[instId];
-    if (!state || state.chainInserted) {
-      return;
-    }
-    if (!inst.volumeNode || !inst.effectChain) {
-      return;
-    }
-
-    var ctx = SL.audio.getCtx();
-    if (!ctx) {
-      return;
-    }
-
-    // Create shared tremolo gain (pass-through by default: gain = 1)
-    state.tremoloGain = ctx.createGain();
-    state.tremoloGain.gain.value = 1.0;
-
-    // Create shared pan node (pass-through by default: pan = 0)
-    state.panNode = ctx.createStereoPanner();
-    state.panNode.pan.value = 0;
-
-    // Disconnect volumeNode from effectChain and re-route
-    try {
-      inst.volumeNode.disconnect(inst.effectChain.input);
-    } catch (e) {
-      // May not be connected yet, that's ok
-    }
-
-    inst.volumeNode.connect(state.tremoloGain);
-    state.tremoloGain.connect(state.panNode);
-    state.panNode.connect(inst.effectChain.input);
-
-    state.chainInserted = true;
   }
 
   /**
@@ -217,31 +212,26 @@
    */
   function removeChainNodes(instId) {
     var instruments = SL.audio.getInstruments();
-    if (!instruments || !instruments[instId]) {
-      return;
-    }
-    var inst = instruments[instId];
-    var state = lfoNodes[instId];
-    if (!state || !state.chainInserted) {
-      return;
-    }
+    if (instruments && instruments[instId]) {
+      var inst = instruments[instId];
+      var state = lfoNodes[instId];
+      if (state && state.chainInserted) {
+        try {
+          inst.volumeNode.disconnect(state.tremoloGain);
+          state.tremoloGain.disconnect(state.panNode);
+          state.panNode.disconnect(inst.effectChain.input);
+        } catch (e) { /* nodes may already be disconnected */ }
 
-    try {
-      inst.volumeNode.disconnect(state.tremoloGain);
-      state.tremoloGain.disconnect(state.panNode);
-      state.panNode.disconnect(inst.effectChain.input);
-    } catch (e) {
-      // Ignore disconnection errors
-    }
+        // Restore direct connection
+        if (inst.volumeNode && inst.effectChain) {
+          inst.volumeNode.connect(inst.effectChain.input);
+        }
 
-    // Restore direct connection
-    if (inst.volumeNode && inst.effectChain) {
-      inst.volumeNode.connect(inst.effectChain.input);
+        state.tremoloGain = null;
+        state.panNode = null;
+        state.chainInserted = false;
+      }
     }
-
-    state.tremoloGain = null;
-    state.panNode = null;
-    state.chainInserted = false;
   }
 
   // ============================================================
@@ -255,80 +245,76 @@
    */
   function buildLFONodes(instId, lfoNum) {
     var ctx = SL.audio.getCtx();
-    if (!ctx) {
-      return;
-    }
+    if (ctx) {
+      var settings = getLFOSettingsForNum(instId, lfoNum);
+      var state = lfoNodes[instId];
+      var key = 'lfo' + lfoNum;
 
-    var settings = getLFOSettingsForNum(instId, lfoNum);
-    var state = lfoNodes[instId];
-    var key = 'lfo' + lfoNum;
+      // Tear down existing nodes for this LFO
+      teardownLFONodes(instId, lfoNum);
 
-    // Tear down existing nodes for this LFO
-    teardownLFONodes(instId, lfoNum);
+      // If enabled and target is not none, build nodes
+      if (settings.enabled && settings.target !== NO_TARGET) {
+        var lfo = {};
+        lfo.target = settings.target;
+        lfo.depth = settings.depth;
+        lfo.rate = settings.rate;
+        lfo.waveform = settings.waveform;
 
-    // If not enabled or target is none, nothing to build
-    if (!settings.enabled || settings.target === 'none') {
-      return;
-    }
+        // Create the LFO source (oscillator or S&H)
+        var source = createLFOSource(ctx, settings.waveform, settings.rate);
+        lfo.source = source.node;
+        lfo.isSH = source.isSH;
 
-    var lfo = {};
-    lfo.target = settings.target;
-    lfo.depth = settings.depth;
-    lfo.rate = settings.rate;
-    lfo.waveform = settings.waveform;
+        // Create depth gain node
+        lfo.depthGain = ctx.createGain();
 
-    // Create the LFO source (oscillator or S&H)
-    var source = createLFOSource(ctx, settings.waveform, settings.rate);
-    lfo.source = source.node;
-    lfo.isSH = source.isSH;
+        // Connect source -> depthGain
+        lfo.source.connect(lfo.depthGain);
 
-    // Create depth gain node
-    lfo.depthGain = ctx.createGain();
+        // Configure depth based on target
+        if (settings.target === 'pitch') {
+          // Vibrato: depth in cents. Max 100 cents at 100% depth.
+          lfo.depthGain.gain.value = settings.depth * 1.0;
+        } else if (settings.target === 'filter') {
+          // Filter modulation: depth in Hz. Max 2000 Hz at 100% depth.
+          lfo.depthGain.gain.value = (settings.depth / 100) * 2000;
+        } else if (settings.target === 'amplitude') {
+          // Tremolo: depth 0-1. depth/100.
+          lfo.depthGain.gain.value = settings.depth / 100;
 
-    // Connect source -> depthGain
-    lfo.source.connect(lfo.depthGain);
+          // Ensure chain nodes are inserted
+          insertChainNodes(instId);
 
-    // Configure depth based on target
-    if (settings.target === 'pitch') {
-      // Vibrato: depth in cents. Max 100 cents at 100% depth.
-      lfo.depthGain.gain.value = settings.depth * 1.0;
-    } else if (settings.target === 'filter') {
-      // Filter modulation: depth in Hz. Max 2000 Hz at 100% depth.
-      lfo.depthGain.gain.value = (settings.depth / 100) * 2000;
-    } else if (settings.target === 'amplitude') {
-      // Tremolo: depth 0-1. depth/100.
-      lfo.depthGain.gain.value = settings.depth / 100;
+          // Connect LFO to tremolo gain's gain param
+          if (state.tremoloGain) {
+            lfo.depthGain.connect(state.tremoloGain.gain);
+          }
+        } else if (settings.target === 'pan') {
+          // Pan: depth -1 to 1. Map depth% to range.
+          lfo.depthGain.gain.value = settings.depth / 100;
 
-      // Ensure chain nodes are inserted
-      insertChainNodes(instId);
+          // Ensure chain nodes are inserted
+          insertChainNodes(instId);
 
-      // Connect LFO to tremolo gain's gain param
-      if (state.tremoloGain) {
-        lfo.depthGain.connect(state.tremoloGain.gain);
+          // Connect LFO to pan node's pan param
+          if (state.panNode) {
+            lfo.depthGain.connect(state.panNode.pan);
+          }
+        }
+
+        // For S&H, connect to a silent destination so ScriptProcessor stays alive
+        if (lfo.isSH) {
+          var silentGain = ctx.createGain();
+          silentGain.gain.value = 0;
+          silentGain.connect(ctx.destination);
+          lfo.source.connect(silentGain);
+          lfo.silentGain = silentGain;
+        }
+
+        state[key] = lfo;
       }
-    } else if (settings.target === 'pan') {
-      // Pan: depth -1 to 1. Map depth% to range.
-      lfo.depthGain.gain.value = settings.depth / 100;
-
-      // Ensure chain nodes are inserted
-      insertChainNodes(instId);
-
-      // Connect LFO to pan node's pan param
-      if (state.panNode) {
-        lfo.depthGain.connect(state.panNode.pan);
-      }
     }
-
-    // For S&H, connect to a silent destination so ScriptProcessor stays alive
-    if (lfo.isSH) {
-      var silentGain = ctx.createGain();
-      silentGain.gain.value = 0;
-      silentGain.connect(ctx.destination);
-      lfo.source.connect(silentGain);
-      lfo.silentGain = silentGain;
-    }
-
-    state[key] = lfo;
   }
 
   /**
@@ -338,42 +324,39 @@
    */
   function teardownLFONodes(instId, lfoNum) {
     var state = lfoNodes[instId];
-    if (!state) {
-      return;
+    if (state) {
+      var key = 'lfo' + lfoNum;
+      var lfo = state[key];
+      if (lfo) {
+        // Disconnect everything
+        try {
+          if (lfo.depthGain) {
+            lfo.depthGain.disconnect();
+          }
+        } catch (e) { /* node already disconnected or stopped */ }
+
+        try {
+          if (lfo.source) {
+            lfo.source.disconnect();
+            // Stop oscillator if it's an OscillatorNode
+            if (!lfo.isSH && lfo.source.stop) {
+              lfo.source.stop();
+            }
+          }
+        } catch (e) { /* node already disconnected or stopped */ }
+
+        try {
+          if (lfo.silentGain) {
+            lfo.silentGain.disconnect();
+          }
+        } catch (e) { /* node already disconnected or stopped */ }
+
+        state[key] = null;
+
+        // If neither LFO targets amplitude or pan, remove chain nodes
+        checkAndRemoveChainNodes(instId);
+      }
     }
-    var key = 'lfo' + lfoNum;
-    var lfo = state[key];
-    if (!lfo) {
-      return;
-    }
-
-    // Disconnect everything
-    try {
-      if (lfo.depthGain) {
-        lfo.depthGain.disconnect();
-      }
-    } catch (e) { /* ignore */ }
-
-    try {
-      if (lfo.source) {
-        lfo.source.disconnect();
-        // Stop oscillator if it's an OscillatorNode
-        if (!lfo.isSH && lfo.source.stop) {
-          lfo.source.stop();
-        }
-      }
-    } catch (e) { /* ignore */ }
-
-    try {
-      if (lfo.silentGain) {
-        lfo.silentGain.disconnect();
-      }
-    } catch (e) { /* ignore */ }
-
-    state[key] = null;
-
-    // If neither LFO targets amplitude or pan, remove chain nodes
-    checkAndRemoveChainNodes(instId);
   }
 
   /**
@@ -382,23 +365,23 @@
    */
   function checkAndRemoveChainNodes(instId) {
     var state = lfoNodes[instId];
-    if (!state || !state.chainInserted) {
-      return;
-    }
+    if (state && state.chainInserted) {
+      var isChainNeeded = false;
+      var lfo1 = state.lfo1;
+      var lfo2 = state.lfo2;
 
-    var needsChain = false;
-    var lfo1 = state.lfo1;
-    var lfo2 = state.lfo2;
+      var isLfo1AmpOrPan = lfo1 && (lfo1.target === 'amplitude' || lfo1.target === 'pan');
+      if (isLfo1AmpOrPan) {
+        isChainNeeded = true;
+      }
+      var isLfo2AmpOrPan = lfo2 && (lfo2.target === 'amplitude' || lfo2.target === 'pan');
+      if (isLfo2AmpOrPan) {
+        isChainNeeded = true;
+      }
 
-    if (lfo1 && (lfo1.target === 'amplitude' || lfo1.target === 'pan')) {
-      needsChain = true;
-    }
-    if (lfo2 && (lfo2.target === 'amplitude' || lfo2.target === 'pan')) {
-      needsChain = true;
-    }
-
-    if (!needsChain) {
-      removeChainNodes(instId);
+      if (!isChainNeeded) {
+        removeChainNodes(instId);
+      }
     }
   }
 
@@ -413,62 +396,56 @@
    * @param {Object} voice - Voice object from the voice pool
    */
   function applyLFOToVoice(instId, voice) {
-    if (!voice) {
-      return;
-    }
-    var state = lfoNodes[instId];
-    if (!state) {
-      return;
-    }
+    if (voice) {
+      var state = lfoNodes[instId];
+      if (state) {
+        // Track connections on the voice for later removal
+        if (!voice._lfoConnections) {
+          voice._lfoConnections = [];
+        }
 
-    // Track connections on the voice for later removal
-    if (!voice._lfoConnections) {
-      voice._lfoConnections = [];
-    }
+        for (var n = 1; n <= NUM_LFOS; n++) {
+          var key = 'lfo' + n;
+          var lfo = state[key];
+          if (!lfo) {
+            continue;
+          }
 
-    for (var n = 1; n <= NUM_LFOS; n++) {
-      var key = 'lfo' + n;
-      var lfo = state[key];
-      if (!lfo) {
-        continue;
-      }
-
-      if (lfo.target === 'pitch' && voice.oscillators) {
-        // Connect LFO depth gain to each oscillator's detune param
-        for (var i = 0; i < voice.oscillators.length; i++) {
-          var oscEntry = voice.oscillators[i];
-          if (oscEntry && oscEntry.osc && oscEntry.osc.detune) {
-            try {
-              lfo.depthGain.connect(oscEntry.osc.detune);
-              voice._lfoConnections.push({
-                source: lfo.depthGain,
-                dest: oscEntry.osc.detune,
-                lfoKey: key
-              });
-            } catch (e) {
-              // Oscillator may have been stopped/disposed
+          if (lfo.target === 'pitch' && voice.oscillators) {
+            // Connect LFO depth gain to each oscillator's detune param
+            for (var i = 0; i < voice.oscillators.length; i++) {
+              var oscEntry = voice.oscillators[i];
+              var hasOscDetune = oscEntry && oscEntry.osc && oscEntry.osc.detune;
+              if (hasOscDetune) {
+                try {
+                  lfo.depthGain.connect(oscEntry.osc.detune);
+                  voice._lfoConnections.push({
+                    source: lfo.depthGain,
+                    dest: oscEntry.osc.detune,
+                    lfoKey: key
+                  });
+                } catch (e) { /* oscillator may have been stopped or disposed */ }
+              }
+            }
+          } else if (lfo.target === 'filter' && voice.filterChain) {
+            // Connect LFO depth gain to the first filter's frequency param
+            if (voice.filterChain.filters && voice.filterChain.filters.length > 0) {
+              var filter = voice.filterChain.filters[0];
+              if (filter && filter.frequency) {
+                try {
+                  lfo.depthGain.connect(filter.frequency);
+                  voice._lfoConnections.push({
+                    source: lfo.depthGain,
+                    dest: filter.frequency,
+                    lfoKey: key
+                  });
+                } catch (e) { /* filter node may have been disposed */ }
+              }
             }
           }
-        }
-      } else if (lfo.target === 'filter' && voice.filterChain) {
-        // Connect LFO depth gain to the first filter's frequency param
-        if (voice.filterChain.filters && voice.filterChain.filters.length > 0) {
-          var filter = voice.filterChain.filters[0];
-          if (filter && filter.frequency) {
-            try {
-              lfo.depthGain.connect(filter.frequency);
-              voice._lfoConnections.push({
-                source: lfo.depthGain,
-                dest: filter.frequency,
-                lfoKey: key
-              });
-            } catch (e) {
-              // Filter may have been disposed
-            }
-          }
+          // amplitude and pan targets are handled via chain nodes, not per-voice
         }
       }
-      // amplitude and pan targets are handled via chain nodes, not per-voice
     }
   }
 
@@ -479,20 +456,16 @@
    * @param {Object} voice - Voice object from the voice pool
    */
   function removeLFOFromVoice(instId, voice) {
-    if (!voice || !voice._lfoConnections) {
-      return;
-    }
-
-    for (var i = 0; i < voice._lfoConnections.length; i++) {
-      var conn = voice._lfoConnections[i];
-      try {
-        conn.source.disconnect(conn.dest);
-      } catch (e) {
-        // Already disconnected or node disposed
+    if (voice && voice._lfoConnections) {
+      for (var i = 0; i < voice._lfoConnections.length; i++) {
+        var conn = voice._lfoConnections[i];
+        try {
+          conn.source.disconnect(conn.dest);
+        } catch (e) { /* node already disconnected or disposed */ }
       }
-    }
 
-    voice._lfoConnections = [];
+      voice._lfoConnections = [];
+    }
   }
 
   // ============================================================
@@ -505,28 +478,26 @@
    * @param {number} instId - Instrument index (0-4)
    */
   function initLFOForInstrument(instId) {
-    if (instId < 0 || instId >= NUM_INSTRUMENTS) {
-      return;
+    if (instId >= 0 && instId < NUM_INSTRUMENTS) {
+      ensureLFOSettings(instId);
+
+      // Clean up any existing state
+      if (lfoNodes[instId]) {
+        destroyLFO(instId);
+      }
+
+      lfoNodes[instId] = {
+        lfo1: null,
+        lfo2: null,
+        tremoloGain: null,
+        panNode: null,
+        chainInserted: false
+      };
+
+      // Build nodes for each LFO that is enabled
+      buildLFONodes(instId, 1);
+      buildLFONodes(instId, 2);
     }
-
-    ensureLFOSettings(instId);
-
-    // Clean up any existing state
-    if (lfoNodes[instId]) {
-      destroyLFO(instId);
-    }
-
-    lfoNodes[instId] = {
-      lfo1: null,
-      lfo2: null,
-      tremoloGain: null,
-      panNode: null,
-      chainInserted: false
-    };
-
-    // Build nodes for each LFO that is enabled
-    buildLFONodes(instId, 1);
-    buildLFONodes(instId, 2);
   }
 
   /**
@@ -537,61 +508,56 @@
    * @param {*} value - New value
    */
   function updateLFO(instId, lfoNum, param, value) {
-    if (instId < 0 || instId >= NUM_INSTRUMENTS) {
-      return;
-    }
-    if (lfoNum !== 1 && lfoNum !== 2) {
-      return;
-    }
+    if (instId >= 0 && instId < NUM_INSTRUMENTS) {
+      if (lfoNum === 1 || lfoNum === 2) {
+        ensureLFOSettings(instId);
+        var settings = getLFOSettingsForNum(instId, lfoNum);
+        settings[param] = value;
 
-    ensureLFOSettings(instId);
-    var settings = getLFOSettingsForNum(instId, lfoNum);
-    settings[param] = value;
-
-    // If LFO nodes haven't been initialized yet, init them
-    if (!lfoNodes[instId]) {
-      initLFOForInstrument(instId);
-      return;
-    }
-
-    var state = lfoNodes[instId];
-    var key = 'lfo' + lfoNum;
-    var lfo = state[key];
-
-    // For target, enabled, or waveform changes, rebuild the LFO nodes entirely
-    if (param === 'target' || param === 'enabled' || param === 'waveform') {
-      buildLFONodes(instId, lfoNum);
-      // Re-apply to any currently active voices
-      reapplyLFOToActiveVoices(instId);
-      return;
-    }
-
-    // Live parameter updates (rate, depth) without rebuilding
-    if (lfo) {
-      if (param === 'rate') {
-        if (lfo.isSH) {
-          // For S&H, update the samples-per-hold calculation
-          // Need to rebuild since ScriptProcessor doesn't support live rate changes easily
-          buildLFONodes(instId, lfoNum);
-          reapplyLFOToActiveVoices(instId);
+        // If LFO nodes haven't been initialized yet, init them
+        if (!lfoNodes[instId]) {
+          initLFOForInstrument(instId);
         } else {
-          // Standard oscillator: just update frequency
-          if (lfo.source && lfo.source.frequency) {
-            lfo.source.frequency.value = value;
-          }
-        }
-        lfo.rate = value;
-      } else if (param === 'depth') {
-        lfo.depth = value;
-        if (lfo.depthGain) {
-          if (lfo.target === 'pitch') {
-            lfo.depthGain.gain.value = value * 1.0;
-          } else if (lfo.target === 'filter') {
-            lfo.depthGain.gain.value = (value / 100) * 2000;
-          } else if (lfo.target === 'amplitude') {
-            lfo.depthGain.gain.value = value / 100;
-          } else if (lfo.target === 'pan') {
-            lfo.depthGain.gain.value = value / 100;
+          var state = lfoNodes[instId];
+          var key = 'lfo' + lfoNum;
+          var lfo = state[key];
+
+          // For target, enabled, or waveform changes, rebuild the LFO nodes entirely
+          if (LFO_REBUILD_PARAMS[param]) {
+            buildLFONodes(instId, lfoNum);
+            // Re-apply to any currently active voices
+            reapplyLFOToActiveVoices(instId);
+          } else {
+            // Live parameter updates (rate, depth) without rebuilding
+            if (lfo) {
+              if (param === 'rate') {
+                if (lfo.isSH) {
+                  // For S&H, update the samples-per-hold calculation
+                  // Need to rebuild since ScriptProcessor doesn't support live rate changes easily
+                  buildLFONodes(instId, lfoNum);
+                  reapplyLFOToActiveVoices(instId);
+                } else {
+                  // Standard oscillator: just update frequency
+                  if (lfo.source && lfo.source.frequency) {
+                    lfo.source.frequency.value = value;
+                  }
+                }
+                lfo.rate = value;
+              } else if (param === 'depth') {
+                lfo.depth = value;
+                if (lfo.depthGain) {
+                  if (lfo.target === 'pitch') {
+                    lfo.depthGain.gain.value = value * 1.0;
+                  } else if (lfo.target === 'filter') {
+                    lfo.depthGain.gain.value = (value / 100) * 2000;
+                  } else if (lfo.target === 'amplitude') {
+                    lfo.depthGain.gain.value = value / 100;
+                  } else if (lfo.target === 'pan') {
+                    lfo.depthGain.gain.value = value / 100;
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -605,23 +571,19 @@
    */
   function reapplyLFOToActiveVoices(instId) {
     var instruments = SL.audio.getInstruments();
-    if (!instruments || !instruments[instId]) {
-      return;
-    }
-
-    var activeOscs = instruments[instId].activeOscillators;
-    if (!activeOscs || activeOscs.size === 0) {
-      return;
-    }
-
-    activeOscs.forEach(function(node) {
-      if (node && node.voice) {
-        // Remove old connections first
-        removeLFOFromVoice(instId, node.voice);
-        // Re-apply
-        applyLFOToVoice(instId, node.voice);
+    if (instruments && instruments[instId]) {
+      var activeOscs = instruments[instId].activeOscillators;
+      if (activeOscs && activeOscs.size > 0) {
+        activeOscs.forEach(function(node) {
+          if (node && node.voice) {
+            // Remove old connections first
+            removeLFOFromVoice(instId, node.voice);
+            // Re-apply
+            applyLFOToVoice(instId, node.voice);
+          }
+        });
       }
-    });
+    }
   }
 
   /**
@@ -648,29 +610,26 @@
    * @param {Object} settings - Partial or full LFO settings
    */
   function setLFOSettings(instId, lfoNum, settings) {
-    if (instId < 0 || instId >= NUM_INSTRUMENTS) {
-      return;
-    }
-    if (lfoNum !== 1 && lfoNum !== 2) {
-      return;
-    }
+    if (instId >= 0 && instId < NUM_INSTRUMENTS) {
+      if (lfoNum === 1 || lfoNum === 2) {
+        ensureLFOSettings(instId);
+        var instruments = SL.audio.getInstruments();
+        var key = 'lfo' + lfoNum;
+        var current = instruments[instId].settings.lfo[key];
 
-    ensureLFOSettings(instId);
-    var instruments = SL.audio.getInstruments();
-    var key = 'lfo' + lfoNum;
-    var current = instruments[instId].settings.lfo[key];
+        // Merge settings
+        if (settings.hasOwnProperty('enabled')) { current.enabled = settings.enabled; }
+        if (settings.hasOwnProperty('rate')) { current.rate = settings.rate; }
+        if (settings.hasOwnProperty('depth')) { current.depth = settings.depth; }
+        if (settings.hasOwnProperty('waveform')) { current.waveform = settings.waveform; }
+        if (settings.hasOwnProperty('target')) { current.target = settings.target; }
 
-    // Merge settings
-    if (settings.hasOwnProperty('enabled')) { current.enabled = settings.enabled; }
-    if (settings.hasOwnProperty('rate')) { current.rate = settings.rate; }
-    if (settings.hasOwnProperty('depth')) { current.depth = settings.depth; }
-    if (settings.hasOwnProperty('waveform')) { current.waveform = settings.waveform; }
-    if (settings.hasOwnProperty('target')) { current.target = settings.target; }
-
-    // Rebuild the LFO nodes if initialized
-    if (lfoNodes[instId]) {
-      buildLFONodes(instId, lfoNum);
-      reapplyLFOToActiveVoices(instId);
+        // Rebuild the LFO nodes if initialized
+        if (lfoNodes[instId]) {
+          buildLFONodes(instId, lfoNum);
+          reapplyLFOToActiveVoices(instId);
+        }
+      }
     }
   }
 
@@ -679,25 +638,21 @@
    * @param {number} instId - Instrument index
    */
   function destroyLFO(instId) {
-    if (instId < 0 || instId >= NUM_INSTRUMENTS) {
-      return;
+    if (instId >= 0 && instId < NUM_INSTRUMENTS) {
+      var state = lfoNodes[instId];
+      if (state) {
+        // Tear down both LFOs
+        teardownLFONodes(instId, 1);
+        teardownLFONodes(instId, 2);
+
+        // Remove chain nodes if still inserted
+        if (state.chainInserted) {
+          removeChainNodes(instId);
+        }
+
+        lfoNodes[instId] = null;
+      }
     }
-
-    var state = lfoNodes[instId];
-    if (!state) {
-      return;
-    }
-
-    // Tear down both LFOs
-    teardownLFONodes(instId, 1);
-    teardownLFONodes(instId, 2);
-
-    // Remove chain nodes if still inserted
-    if (state.chainInserted) {
-      removeChainNodes(instId);
-    }
-
-    lfoNodes[instId] = null;
   }
 
   // ============================================================
@@ -713,14 +668,15 @@
    */
   function suspendLFONodes(instId) {
     var state = lfoNodes[instId];
-    if (!state) {
-      return;
-    }
-    for (var n = 1; n <= NUM_LFOS; n++) {
-      var lfo = state['lfo' + n];
-      if (lfo && lfo.source && lfo.depthGain && !lfo._suspended) {
-        try { lfo.source.disconnect(lfo.depthGain); } catch (e) { /* ignore */ }
-        lfo._suspended = true;
+    if (state) {
+      for (var n = 1; n <= NUM_LFOS; n++) {
+        var lfo = state['lfo' + n];
+        var isActiveLfo = lfo && lfo.source && lfo.depthGain;
+        var canSuspendLfo = isActiveLfo && !lfo._suspended;
+        if (canSuspendLfo) {
+          try { lfo.source.disconnect(lfo.depthGain); } catch (e) { /* node already disconnected or stopped */ }
+          lfo._suspended = true;
+        }
       }
     }
   }
@@ -730,14 +686,14 @@
    */
   function resumeLFONodes(instId) {
     var state = lfoNodes[instId];
-    if (!state) {
-      return;
-    }
-    for (var n = 1; n <= NUM_LFOS; n++) {
-      var lfo = state['lfo' + n];
-      if (lfo && lfo.source && lfo.depthGain && lfo._suspended) {
-        try { lfo.source.connect(lfo.depthGain); } catch (e) { /* ignore */ }
-        lfo._suspended = false;
+    if (state) {
+      for (var n = 1; n <= NUM_LFOS; n++) {
+        var lfo = state['lfo' + n];
+        var isSuspendedLfo = lfo && lfo.source && lfo.depthGain && lfo._suspended;
+        if (isSuspendedLfo) {
+          try { lfo.source.connect(lfo.depthGain); } catch (e) { /* node already disconnected or stopped */ }
+          lfo._suspended = false;
+        }
       }
     }
   }
@@ -746,13 +702,12 @@
    * Called on noteOn — track active voice and resume LFOs if needed.
    */
   function onVoiceStart(instId) {
-    if (instId < 0 || instId >= NUM_INSTRUMENTS) {
-      return;
-    }
-    var wasZero = (activeVoiceCounts[instId] === 0);
-    activeVoiceCounts[instId]++;
-    if (wasZero) {
-      resumeLFONodes(instId);
+    if (instId >= 0 && instId < NUM_INSTRUMENTS) {
+      var wasZero = (activeVoiceCounts[instId] === 0);
+      activeVoiceCounts[instId]++;
+      if (wasZero) {
+        resumeLFONodes(instId);
+      }
     }
   }
 
@@ -760,12 +715,11 @@
    * Called on noteOff — track active voice and suspend LFOs when idle.
    */
   function onVoiceEnd(instId) {
-    if (instId < 0 || instId >= NUM_INSTRUMENTS) {
-      return;
-    }
-    activeVoiceCounts[instId] = Math.max(0, activeVoiceCounts[instId] - 1);
-    if (activeVoiceCounts[instId] === 0) {
-      suspendLFONodes(instId);
+    if (instId >= 0 && instId < NUM_INSTRUMENTS) {
+      activeVoiceCounts[instId] = Math.max(0, activeVoiceCounts[instId] - 1);
+      if (activeVoiceCounts[instId] === 0) {
+        suspendLFONodes(instId);
+      }
     }
   }
 
@@ -785,5 +739,7 @@
 
   // Also expose the default settings for preset/save/load systems
   SL.audio._DEFAULT_LFO = DEFAULT_LFO;
+
+  } // end if (SL && SL.audio)
 
 })();

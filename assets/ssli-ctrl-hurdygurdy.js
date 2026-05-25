@@ -11,6 +11,8 @@
   // Constants
   // ============================================================
 
+  var NO_DRONE = null;  /* sentinel: no active drone note sounding */
+
   var SEMITONES_PER_OCTAVE = 12;
   var OCTAVE_BASE_OFFSET = 1;
 
@@ -117,7 +119,7 @@
   // State
   // ============================================================
 
-  var _crankActive = false;
+  var _isCrankActive = false;
   var _crankAngle = 0;
   var _crankSpeed = 0;
   var _crankSpeedSmoothed = 0;
@@ -130,9 +132,9 @@
   var _melodyKeyEls = [];
   var _activeMelodyIdx = -1;
 
-  var _drone1Active = false;
-  var _drone2Active = false;
-  var _drone3Active = false;
+  var _isDrone1Active = false;
+  var _isDrone2Active = false;
+  var _isDrone3Active = false;
   var _drone1Midi = -1;
   var _drone2Midi = -1;
   var _drone3Midi = -1;
@@ -140,7 +142,7 @@
   var _drone2SoundingId = null;
   var _drone3SoundingId = null;
 
-  var _buzzActive = false;
+  var _isBuzzActive = false;
   var _buzzPhase = 0;
   var _buzzAnimId = 0;
   var _buzzLastHitTime = 0;
@@ -221,7 +223,7 @@
 
   function _buzzTremoloTick() {
     var crankSounding = (_crankSpeedSmoothed >= CRANK_MIN_SPEED);
-    var shouldContinue = (_buzzActive && crankSounding);
+    var shouldContinue = (_isBuzzActive && crankSounding);
     if (shouldContinue) {
       _buzzPhase = _buzzPhase + (BUZZ_TREMOLO_RATE * (FRAME_MS / 1000) * Math.PI * 2);
       var tremoloGain = BUZZ_TREMOLO_DEPTH_MIN + (BUZZ_TREMOLO_DEPTH_RANGE * Math.sin(_buzzPhase));
@@ -397,9 +399,9 @@
     }
     if (_droneIndicatorEl) {
       var activeDrones = [];
-      if (_drone1Active) { activeDrones.push('Tonic'); }
-      if (_drone2Active) { activeDrones.push('Fifth'); }
-      if (_drone3Active) { activeDrones.push('Octave'); }
+      if (_isDrone1Active) { activeDrones.push('Tonic'); }
+      if (_isDrone2Active) { activeDrones.push('Fifth'); }
+      if (_isDrone3Active) { activeDrones.push('Octave'); }
       var indicatorText = (activeDrones.length > 0) ? activeDrones.join(' + ') : 'No drones active';
       _droneIndicatorEl.textContent = indicatorText;
     }
@@ -419,7 +421,8 @@
     } else if (droneIdx === 2) {
       midi = _drone3Midi;
     }
-    if (isActive && _cachedNoteOn && midi >= 0) {
+    var canStartDrone = isActive && _cachedNoteOn && midi >= 0;
+    if (canStartDrone) {
       _cachedNoteOn(midi);
     }
     if (droneIdx === 0) {
@@ -433,17 +436,17 @@
 
   function _stopDrone(droneIdx) {
     if (droneIdx === 0) {
-      if (_drone1SoundingId !== null && _cachedNoteOff) {
+      if (_drone1SoundingId !== NO_DRONE && _cachedNoteOff) {
         _cachedNoteOff(_drone1SoundingId);
         _drone1SoundingId = null;
       }
     } else if (droneIdx === 1) {
-      if (_drone2SoundingId !== null && _cachedNoteOff) {
+      if (_drone2SoundingId !== NO_DRONE && _cachedNoteOff) {
         _cachedNoteOff(_drone2SoundingId);
         _drone2SoundingId = null;
       }
     } else if (droneIdx === 2) {
-      if (_drone3SoundingId !== null && _cachedNoteOff) {
+      if (_drone3SoundingId !== NO_DRONE && _cachedNoteOff) {
         _cachedNoteOff(_drone3SoundingId);
         _drone3SoundingId = null;
       }
@@ -452,23 +455,29 @@
 
   function _updateDroneSounding() {
     var crankSounding = (_crankSpeedSmoothed >= CRANK_MIN_SPEED);
-    if (_drone1Active && crankSounding && _drone1SoundingId === null) {
+    var shouldStartDrone1 = _isDrone1Active && crankSounding && (_drone1SoundingId === NO_DRONE);
+    var shouldStopDrone1 = (!_isDrone1Active || !crankSounding) && (_drone1SoundingId !== NO_DRONE);
+    if (shouldStartDrone1) {
       _startDrone(0);
-    } else if ((!_drone1Active || !crankSounding) && _drone1SoundingId !== null) {
+    } else if (shouldStopDrone1) {
       _stopDrone(0);
     }
-    if (_drone2Active && crankSounding && _drone2SoundingId === null) {
+    var shouldStartDrone2 = _isDrone2Active && crankSounding && (_drone2SoundingId === NO_DRONE);
+    var shouldStopDrone2 = (!_isDrone2Active || !crankSounding) && (_drone2SoundingId !== NO_DRONE);
+    if (shouldStartDrone2) {
       _startDrone(1);
-    } else if ((!_drone2Active || !crankSounding) && _drone2SoundingId !== null) {
+    } else if (shouldStopDrone2) {
       _stopDrone(1);
     }
-    if (_drone3Active && crankSounding && _drone3SoundingId === null) {
+    var shouldStartDrone3 = _isDrone3Active && crankSounding && (_drone3SoundingId === NO_DRONE);
+    var shouldStopDrone3 = (!_isDrone3Active || !crankSounding) && (_drone3SoundingId !== NO_DRONE);
+    if (shouldStartDrone3) {
       _startDrone(2);
-    } else if ((!_drone3Active || !crankSounding) && _drone3SoundingId !== null) {
+    } else if (shouldStopDrone3) {
       _stopDrone(2);
     }
     // Buzz tremolo management
-    if (_buzzActive && crankSounding) {
+    if (_isBuzzActive && crankSounding) {
       _startBuzzTremolo();
     } else {
       _stopBuzzTremolo();
@@ -480,7 +489,7 @@
   // ============================================================
 
   function _crankDecayTick() {
-    if (_crankActive) { return; }
+    if (_isCrankActive) { return; }
     _crankSpeedSmoothed = _crankSpeedSmoothed * CRANK_DECAY_FACTOR;
     var stillSpinning = (_crankSpeedSmoothed >= CRANK_MIN_SPEED);
     if (stillSpinning) {
@@ -524,7 +533,9 @@
         _cachedNoteOn(midi, velocity);
       }
 
-      if (oldMelodyMidi >= 0 && oldMelodyMidi !== midi && _cachedNoteOff) {
+      var isDifferentMelodyNote = oldMelodyMidi >= 0 && oldMelodyMidi !== midi;
+      var shouldStopOldMelody = isDifferentMelodyNote && _cachedNoteOff;
+      if (shouldStopOldMelody) {
         _cachedNoteOff(oldMelodyMidi);
       }
 
@@ -558,7 +569,7 @@
   // ============================================================
 
   function _stopAll() {
-    _crankActive = false;
+    _isCrankActive = false;
     _crankPointerId = -1;
     if (_crankDecayId) {
       clearTimeout(_crankDecayId);
@@ -589,8 +600,8 @@
 
   function _documentPointerUp(ev) {
     var isCrankPointer = (_crankPointerId >= 0 && ev.pointerId === _crankPointerId);
-    if (_crankActive && isCrankPointer) {
-      _crankActive = false;
+    if (_isCrankActive && isCrankPointer) {
+      _isCrankActive = false;
       _crankPointerId = -1;
       _crankLastTime = 0;
       _crankDecayId = setTimeout(_crankDecayTick, FRAME_MS);
@@ -641,10 +652,10 @@
     _modeSelectorEls = [];
     _activeMelodyIdx = -1;
     _melodyMidi = -1;
-    _drone1Active = false;
-    _drone2Active = false;
-    _drone3Active = false;
-    _buzzActive = false;
+    _isDrone1Active = false;
+    _isDrone2Active = false;
+    _isDrone3Active = false;
+    _isBuzzActive = false;
     _buzzPhase = 0;
     _drone1Midi = _computeDroneMidi(baseOctave, _cachedRootPc, DRONE_TONIC_INTERVAL);
     _drone2Midi = _computeDroneMidi(baseOctave, _cachedRootPc, DRONE_FIFTH_INTERVAL);
@@ -667,8 +678,8 @@
     drone1.title = SL.t('hurdygurdy.toggle_tonic_drone');
     drone1.addEventListener('click', function(ev) {
       ev.preventDefault();
-      _drone1Active = !_drone1Active;
-      if (_drone1Active) {
+      _isDrone1Active = !_isDrone1Active;
+      if (_isDrone1Active) {
         drone1.classList.add('active');
         _updateDroneSounding();
       } else {
@@ -687,8 +698,8 @@
     drone2.title = SL.t('hurdygurdy.toggle_fifth_drone');
     drone2.addEventListener('click', function(ev) {
       ev.preventDefault();
-      _drone2Active = !_drone2Active;
-      if (_drone2Active) {
+      _isDrone2Active = !_isDrone2Active;
+      if (_isDrone2Active) {
         drone2.classList.add('active');
         _updateDroneSounding();
       } else {
@@ -706,8 +717,8 @@
     drone3.title = SL.t('hurdygurdy.toggle_octave_drone');
     drone3.addEventListener('click', function(ev) {
       ev.preventDefault();
-      _drone3Active = !_drone3Active;
-      if (_drone3Active) {
+      _isDrone3Active = !_isDrone3Active;
+      if (_isDrone3Active) {
         drone3.classList.add('active');
         _updateDroneSounding();
       } else {
@@ -727,8 +738,8 @@
     buzzBtn.title = SL.t('hurdygurdy.buzz_toggle_title');
     buzzBtn.addEventListener('click', function(ev) {
       ev.preventDefault();
-      _buzzActive = !_buzzActive;
-      if (_buzzActive) {
+      _isBuzzActive = !_isBuzzActive;
+      if (_isBuzzActive) {
         buzzBtn.classList.add('active');
         _updateDroneSounding();
       } else {
@@ -903,12 +914,12 @@
     }
 
     function _onCrankDown(e) {
-      if (_crankActive) { return; }
+      if (_isCrankActive) { return; }
       e.preventDefault();
       if (wheel.setPointerCapture && typeof e.pointerId !== 'undefined') {
-        try { wheel.setPointerCapture(e.pointerId); } catch (err) { /* best effort */ }
+        try { wheel.setPointerCapture(e.pointerId); } catch (err) { /* pointer capture is best-effort */ }
       }
-      _crankActive = true;
+      _isCrankActive = true;
       _crankPointerId = (typeof e.pointerId !== 'undefined') ? e.pointerId : -1;
       if (_crankDecayId) {
         clearTimeout(_crankDecayId);
@@ -920,7 +931,7 @@
     }
 
     function _onCrankMove(e) {
-      if (!_crankActive) { return; }
+      if (!_isCrankActive) { return; }
       var newAngle = _crankLocalAngle(e);
       var delta = newAngle - _crankAngle;
 
@@ -943,7 +954,7 @@
       _crankPrevSpeed = _crankSpeedSmoothed;
 
       // Trigger percussive buzz hit when acceleration exceeds threshold
-      var buzzShouldFire = (_buzzActive && _crankAccel >= BUZZ_ACCEL_THRESHOLD);
+      var buzzShouldFire = (_isBuzzActive && _crankAccel >= BUZZ_ACCEL_THRESHOLD);
       if (buzzShouldFire) {
         _triggerBuzzHit(_crankAccel);
       }
@@ -955,8 +966,8 @@
     }
 
     function _onCrankUp(e) {
-      if (!_crankActive) { return; }
-      _crankActive = false;
+      if (!_isCrankActive) { return; }
+      _isCrankActive = false;
       _crankPointerId = -1;
       _crankLastTime = 0;
       _crankDecayId = setTimeout(_crankDecayTick, FRAME_MS);
@@ -967,7 +978,7 @@
     wheel.addEventListener('pointerup', _onCrankUp);
     wheel.addEventListener('pointercancel', function(e) {
       if (wheel.setPointerCapture && typeof e.pointerId !== 'undefined') {
-        try { wheel.setPointerCapture(e.pointerId); return; } catch (err) { /* fall through */ }
+        try { wheel.setPointerCapture(e.pointerId); return; } catch (err) { /* capture failed; fall through to release handler */ }
       }
       _onCrankUp(e);
     });
@@ -1005,7 +1016,7 @@
       function() { _stopAll(); },
       function() {
         var status = null;
-        if (_crankActive || _crankSpeedSmoothed >= CRANK_MIN_SPEED) {
+        if (_isCrankActive || _crankSpeedSmoothed >= CRANK_MIN_SPEED) {
           status = 'crank active';
         }
         return status;

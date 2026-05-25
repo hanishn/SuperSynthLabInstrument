@@ -16,6 +16,10 @@
   var GAUSSIAN_SIGMA = 0.15;
   var GAUSSIAN_DENOM = 2 * GAUSSIAN_SIGMA * GAUSSIAN_SIGMA;
 
+  // Valid pulsaret waveform and envelope types
+  var VALID_PULSARET_WAVEFORMS = { 'sine': 1, 'saw': 1, 'square': 1, 'triangle': 1 };
+  var VALID_PULSARET_ENVELOPES = { 'gaussian': 1, 'hann': 1, 'triangle': 1, 'rectangle': 1 };
+
   /** Default pulsar settings */
   var DEFAULT_PULSAR_SETTINGS = {
     pulsaretWaveform: 'sine',
@@ -33,7 +37,7 @@
   var audioContext = null;
   var scriptNodes = [null, null, null, null];
   var fallbackVoicesByInst = [[], [], [], []];
-  var engineReady = false;
+  var isEngineReady = false;
   var instrumentSettings = {};
   var pulsarFilterNodes = {};
   var connectedInsts = [false, false, false, false];
@@ -354,7 +358,7 @@
     var bufSize = (SL.audio && SL.audio.getScriptProcessorBufferSize) ? SL.audio.getScriptProcessorBufferSize() : 2048;
 
     for (var i = 0; i < 4; i++) {
-      fallbackVoicesByInst[i] = [];
+      fallbackVoicesByInst[i].length = 0;
       for (var v = 0; v < MAX_VOICES_PER_INSTRUMENT; v++) {
         fallbackVoicesByInst[i].push(new PulsarVoice(sr));
       }
@@ -382,7 +386,7 @@
       })(idx);
     }
 
-    engineReady = true;
+    isEngineReady = true;
     return Promise.resolve(true);
   }
 
@@ -409,9 +413,7 @@
       instId = 0;
     }
     var filterNode = pulsarFilterNodes[instId];
-    if (!filterNode) {
-      return;
-    }
+    if (filterNode) {
     var filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
     if (!filterSettings || !filterSettings.enabled) {
       filterNode.type = 'lowpass';
@@ -422,28 +424,29 @@
       filterNode.frequency.value = Math.max(20, Math.min(20000, filterSettings.frequency || 20000));
       filterNode.Q.value = Math.max(0.1, Math.min(30, filterSettings.resonance || 1));
     }
+    } // end if (filterNode)
   }
 
   function connectToOutput(instId) {
-    if (!scriptNodes[instId]) {
-      return;
-    }
+    if (scriptNodes[instId]) {
 
     if (connectedInsts[instId]) {
       updateFilter(instId);
     } else {
       var instruments = SL.audio && SL.audio.getInstruments ? SL.audio.getInstruments() : null;
       var inst = instruments ? instruments[instId] : null;
+      var isDestinationResolved = false;
       var destination;
 
       if (inst && inst.masterOutput) {
         destination = inst.masterOutput;
+        isDestinationResolved = true;
       } else if (audioContext) {
         destination = audioContext.destination;
-      } else {
-        return;
+        isDestinationResolved = true;
       }
 
+      if (isDestinationResolved) {
       var filterNode = getOrCreateFilterNode(instId);
       updateFilter(instId);
 
@@ -455,7 +458,9 @@
       }
 
       connectedInsts[instId] = true;
+      } // end if (isDestinationResolved)
     }
+    } // end if (scriptNodes[instId])
   }
 
   // ============================================================
@@ -562,14 +567,14 @@
 
   function setPulsaretWaveform(instId, waveform) {
     var settings = getOrCreateSettings(instId);
-    if (waveform === 'sine' || waveform === 'saw' || waveform === 'square' || waveform === 'triangle') {
+    if (VALID_PULSARET_WAVEFORMS[waveform]) {
       settings.pulsaretWaveform = waveform;
     }
   }
 
   function setPulsaretEnvelope(instId, envType) {
     var settings = getOrCreateSettings(instId);
-    if (envType === 'gaussian' || envType === 'hann' || envType === 'triangle' || envType === 'rectangle') {
+    if (VALID_PULSARET_ENVELOPES[envType]) {
       settings.pulsaretEnvelope = envType;
     }
   }
@@ -608,7 +613,7 @@
   }
 
   function isReady() {
-    return engineReady;
+    return isEngineReady;
   }
 
   function getDefaultSettings() {

@@ -23,12 +23,16 @@
     'workletState'
   ];
 
-  var _registrations = {};
-  for (var ci = 0; ci < CATEGORY_ORDER.length; ci++) {
-    _registrations[CATEGORY_ORDER[ci]] = {};
+  function _makeCategoryMap() {
+    return {};
   }
 
-  var _panicInProgress = false;
+  var _registrations = {};
+  for (var ci = 0; ci < CATEGORY_ORDER.length; ci++) {
+    _registrations[CATEGORY_ORDER[ci]] = _makeCategoryMap();
+  }
+
+  var _isPanicInProgress = false;
 
   function register(category, name, teardownFn, assertFn) {
     if (!_registrations[category]) {
@@ -48,11 +52,11 @@
 
   function executePanic(hardReset, dryRun) {
     var result = { errors: [] };
-    if (_panicInProgress) {
+    if (_isPanicInProgress) {
       result.errors.push('panic re-entry blocked');
       return result;
     }
-    _panicInProgress = true;
+    _isPanicInProgress = true;
     try {
       var i;
       var n;
@@ -68,8 +72,8 @@
           try {
             entry.teardown();
           } catch (e) {
-            var msg = '[panic] ' + category + '/' + names[n] + ': ' + (e && e.message ? e.message : String(e));
-            result.errors.push(msg);
+            var message = '[panic] ' + category + '/' + names[n] + ': ' + (e && e.message ? e.message : String(e));
+            result.errors.push(message);
           }
         }
       }
@@ -87,7 +91,7 @@
     } catch (outer) {
       result.errors.push('[panic] outer: ' + (outer && outer.message ? outer.message : String(outer)));
     }
-    _panicInProgress = false;
+    _isPanicInProgress = false;
     return result;
   }
 

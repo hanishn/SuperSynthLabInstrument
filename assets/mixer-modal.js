@@ -2,69 +2,79 @@
 // Extracted from ui-state.js - the entire setupMixerModal() function and nested helpers
 (function() {
   'use strict';
-  const SL = window.SynthLab;
+  var SL = window.SynthLab;
+
+  // Sentinel constants
+  var NO_SELECTION = 'none';
 
   /**
-   * Set up mixer modal button and sync between modal and inline controls
+   * Set up mixer modal btn and sync between modal and inline controls
    */
   function setupMixerModal() {
-    const mixerBtn = document.getElementById('mixerBtn');
-    const mixerModal = document.getElementById('mixerModal');
-    const mixerClose = document.getElementById('mixerClose');
-    const instrumentSelectEl = document.getElementById('instrumentSelect');
+    var mixerBtn = document.getElementById('mixerBtn');
+    var mixerModal = document.getElementById('mixerModal');
+    var mixerClose = document.getElementById('mixerClose');
+    var instrumentSelectEl = document.getElementById('instrumentSelect');
 
     if (!mixerBtn || !mixerModal) {
       console.error('Mixer modal elements not found!');
-      return;
-    }
+    } else {
 
     // Open modal
-    mixerBtn.addEventListener('click', () => {
+    mixerBtn.addEventListener('click', function() {
       // Sync modal OSC controls from inline controls
-      [1, 2, 3].forEach(n => {
-        const inlineWave = document.querySelector('.osc-wave[data-osc="' + n + '"]');
-        const inlineOct = document.querySelector('.osc-oct[data-osc="' + n + '"]');
-        const inlineDetune = document.querySelector('.osc-detune[data-osc="' + n + '"]');
-        const inlineLevel = document.querySelector('.osc-level[data-osc="' + n + '"]');
+      [1, 2, 3].forEach(function(n) {
+        var inlineWave = document.querySelector('.osc-wave[data-osc="' + n + '"]');
+        var inlineOct = document.querySelector('.osc-oct[data-osc="' + n + '"]');
+        var inlineDetune = document.querySelector('.osc-detune[data-osc="' + n + '"]');
+        var inlineLevel = document.querySelector('.osc-level[data-osc="' + n + '"]');
 
-        const modalWave = document.querySelector('.osc-wave-lg[data-osc="' + n + '"]');
-        const modalDetune = document.querySelector('.osc-detune-lg[data-osc="' + n + '"]');
-        const modalDetuneVal = document.querySelector('.osc-detune-val-lg[data-osc="' + n + '"]');
-        const modalLevel = document.querySelector('.osc-level-lg[data-osc="' + n + '"]');
-        const modalLevelVal = document.querySelector('.osc-level-val-lg[data-osc="' + n + '"]');
+        var modalWave = document.querySelector('.osc-wave-lg[data-osc="' + n + '"]');
+        var modalDetune = document.querySelector('.osc-detune-lg[data-osc="' + n + '"]');
+        var modalDetuneVal = document.querySelector('.osc-detune-val-lg[data-osc="' + n + '"]');
+        var modalLevel = document.querySelector('.osc-level-lg[data-osc="' + n + '"]');
+        var modalLevelVal = document.querySelector('.osc-level-val-lg[data-osc="' + n + '"]');
 
-        if (modalWave && inlineWave) modalWave.value = inlineWave.value;
+        if (modalWave) {
+          if (inlineWave) { modalWave.value = inlineWave.value; }
+        }
 
         // Sync octave radio buttons from inline select
         if (inlineOct) {
-          const octVal = inlineOct.value;
-          const radioBtn = document.querySelector('input[name="osc' + n + 'oct"][value="' + octVal + '"]');
+          var octVal = inlineOct.value;
+          var radioBtn = document.querySelector('input[name="osc' + n + 'oct"][value="' + octVal + '"]');
           if (radioBtn) radioBtn.checked = true;
         }
 
-        if (modalDetune && inlineDetune) {
-          modalDetune.value = inlineDetune.value;
-          if (modalDetuneVal) modalDetuneVal.textContent = inlineDetune.value + ' ct';
+        if (modalDetune) {
+          if (inlineDetune) {
+            modalDetune.value = inlineDetune.value;
+            if (modalDetuneVal) modalDetuneVal.textContent = inlineDetune.value + ' ct';
+          }
         }
-        if (modalLevel && inlineLevel) {
-          modalLevel.value = inlineLevel.value;
-          if (modalLevelVal) modalLevelVal.textContent = inlineLevel.value + '%';
+        if (modalLevel) {
+          if (inlineLevel) {
+            modalLevel.value = inlineLevel.value;
+            if (modalLevelVal) modalLevelVal.textContent = inlineLevel.value + '%';
+          }
         }
       });
 
       // Sync modal ADSR controls from inline controls (with log display + units)
-      ['A', 'D', 'S', 'R'].forEach(p => {
-        const inline = document.getElementById('adsr' + p);
-        const inlineVal = document.getElementById('val' + p);
-        const modal = document.getElementById('adsr' + p + '-modal');
-        const modalVal = document.getElementById('val' + p + '-modal');
-        if (modal && inline) {
-          modal.value = inline.value;
-          if (modalVal) {
-            if (p === 'S') {
-              modalVal.textContent = inline.value + '%';
-            } else {
-              modalVal.textContent = SL.ui.formatADSRTime(p, parseFloat(inline.value)) + 'ms';
+      ['A', 'D', 'S', 'R'].forEach(function(p) {
+        var inline = document.getElementById('adsr' + p);
+        var inlineVal = document.getElementById('val' + p);
+        var modal = document.getElementById('adsr' + p + '-modal');
+        var modalVal = document.getElementById('val' + p + '-modal');
+        if (modal) {
+          if (inline) {
+            modal.value = inline.value;
+            if (modalVal) {
+              if (p === 'S') {
+                modalVal.textContent = inline.value + '%';
+              } else {
+                modalVal.textContent = SL.ui.formatADSRTime(p, parseFloat(inline.value)) + 'ms';
+              }
             }
           }
         }
@@ -78,8 +88,8 @@
 
       // Initialize key-tracked frequency display
       // Show current cutoff or "(play a note)" if key tracking is enabled
-      const filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
-      const keyTrackedDisplay = document.getElementById('filterKeyTrackedFreq-val-modal');
+      var filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
+      var keyTrackedDisplay = document.getElementById('filterKeyTrackedFreq-val-modal');
       if (keyTrackedDisplay && filterSettings) {
         if (filterSettings.keyTrack > 0) {
           keyTrackedDisplay.textContent = SL.t('ui.label.play_a_note');
@@ -93,15 +103,15 @@
       }
 
       // Initialize conditional controls visibility based on wave types
-      [1, 2, 3].forEach(n => {
-        const wave = document.querySelector('.osc-wave-lg[data-osc="' + n + '"]');
+      [1, 2, 3].forEach(function(n) {
+        var wave = document.querySelector('.osc-wave-lg[data-osc="' + n + '"]');
         if (wave) {
           updateOscConditionalControls(n, wave.value);
         }
       });
 
       // Sync modal instrument selector with main instrument selector
-      const modalInstSelect = document.getElementById('instrumentSelect-modal');
+      var modalInstSelect = document.getElementById('instrumentSelect-modal');
       if (modalInstSelect && instrumentSelectEl) {
         modalInstSelect.value = instrumentSelectEl.value;
       }
@@ -113,11 +123,11 @@
     });
 
     // Modal instrument selector change handler
-    const modalInstSelect = document.getElementById('instrumentSelect-modal');
+    var modalInstSelect = document.getElementById('instrumentSelect-modal');
     if (modalInstSelect) {
-      modalInstSelect.addEventListener('change', () => {
-        const newInst = parseInt(modalInstSelect.value);
-        const oldInst = SL.audio.getCurrentInstrument();
+      modalInstSelect.addEventListener('change', function() {
+        var newInst = parseInt(modalInstSelect.value);
+        var oldInst = SL.audio.getCurrentInstrument();
 
         if (newInst === oldInst) return;
 
@@ -149,11 +159,11 @@
     }
 
     // Test tone button handler (plays A4 - concert pitch)
-    const testToneBtn = document.getElementById('testToneBtn');
+    var testToneBtn = document.getElementById('testToneBtn');
     if (testToneBtn) {
-      testToneBtn.addEventListener('click', () => {
+      testToneBtn.addEventListener('click', function() {
         // A4 = MIDI 69
-        const a4Midi = 69;
+        var a4Midi = 69;
         if (SL.audio && SL.audio.playNote) {
           SL.audio.playNote(a4Midi, 0.5);  // Play for 0.5 seconds
         }
@@ -163,54 +173,62 @@
     // Helper to sync all modal controls from inline (for instrument switching)
     function syncAllModalControlsFromInline() {
       // Sync OSC controls
-      [1, 2, 3].forEach(n => {
-        const inlineWave = document.querySelector('.osc-wave[data-osc="' + n + '"]');
-        const inlineOct = document.querySelector('.osc-oct[data-osc="' + n + '"]');
-        const inlineDetune = document.querySelector('.osc-detune[data-osc="' + n + '"]');
-        const inlineLevel = document.querySelector('.osc-level[data-osc="' + n + '"]');
+      [1, 2, 3].forEach(function(n) {
+        var inlineWave = document.querySelector('.osc-wave[data-osc="' + n + '"]');
+        var inlineOct = document.querySelector('.osc-oct[data-osc="' + n + '"]');
+        var inlineDetune = document.querySelector('.osc-detune[data-osc="' + n + '"]');
+        var inlineLevel = document.querySelector('.osc-level[data-osc="' + n + '"]');
 
-        const modalWave = document.querySelector('.osc-wave-lg[data-osc="' + n + '"]');
-        const modalDetune = document.querySelector('.osc-detune-lg[data-osc="' + n + '"]');
-        const modalDetuneVal = document.querySelector('.osc-detune-val-lg[data-osc="' + n + '"]');
-        const modalLevel = document.querySelector('.osc-level-lg[data-osc="' + n + '"]');
-        const modalLevelVal = document.querySelector('.osc-level-val-lg[data-osc="' + n + '"]');
+        var modalWave = document.querySelector('.osc-wave-lg[data-osc="' + n + '"]');
+        var modalDetune = document.querySelector('.osc-detune-lg[data-osc="' + n + '"]');
+        var modalDetuneVal = document.querySelector('.osc-detune-val-lg[data-osc="' + n + '"]');
+        var modalLevel = document.querySelector('.osc-level-lg[data-osc="' + n + '"]');
+        var modalLevelVal = document.querySelector('.osc-level-val-lg[data-osc="' + n + '"]');
 
-        if (modalWave && inlineWave) modalWave.value = inlineWave.value;
+        if (modalWave) {
+          if (inlineWave) { modalWave.value = inlineWave.value; }
+        }
         if (inlineOct) {
-          const octVal = inlineOct.value;
-          const radioBtn = document.querySelector('input[name="osc' + n + 'oct"][value="' + octVal + '"]');
+          var octVal = inlineOct.value;
+          var radioBtn = document.querySelector('input[name="osc' + n + 'oct"][value="' + octVal + '"]');
           if (radioBtn) radioBtn.checked = true;
         }
-        if (modalDetune && inlineDetune) {
-          modalDetune.value = inlineDetune.value;
-          if (modalDetuneVal) modalDetuneVal.textContent = inlineDetune.value + ' ct';
+        if (modalDetune) {
+          if (inlineDetune) {
+            modalDetune.value = inlineDetune.value;
+            if (modalDetuneVal) modalDetuneVal.textContent = inlineDetune.value + ' ct';
+          }
         }
-        if (modalLevel && inlineLevel) {
-          modalLevel.value = inlineLevel.value;
-          if (modalLevelVal) modalLevelVal.textContent = inlineLevel.value + '%';
+        if (modalLevel) {
+          if (inlineLevel) {
+            modalLevel.value = inlineLevel.value;
+            if (modalLevelVal) modalLevelVal.textContent = inlineLevel.value + '%';
+          }
         }
       });
 
       // Sync ADSR controls
-      ['A', 'D', 'S', 'R'].forEach(p => {
-        const inline = document.getElementById('adsr' + p);
-        const modal = document.getElementById('adsr' + p + '-modal');
-        const modalVal = document.getElementById('val' + p + '-modal');
-        if (modal && inline) {
-          modal.value = inline.value;
-          if (modalVal) {
-            if (p === 'S') {
-              modalVal.textContent = inline.value + '%';
-            } else {
-              modalVal.textContent = SL.ui.formatADSRTime(p, parseFloat(inline.value)) + 'ms';
+      ['A', 'D', 'S', 'R'].forEach(function(p) {
+        var inline = document.getElementById('adsr' + p);
+        var modal = document.getElementById('adsr' + p + '-modal');
+        var modalVal = document.getElementById('val' + p + '-modal');
+        if (modal) {
+          if (inline) {
+            modal.value = inline.value;
+            if (modalVal) {
+              if (p === 'S') {
+                modalVal.textContent = inline.value + '%';
+              } else {
+                modalVal.textContent = SL.ui.formatADSRTime(p, parseFloat(inline.value)) + 'ms';
+              }
             }
           }
         }
       });
 
       // Update conditional controls visibility
-      [1, 2, 3].forEach(n => {
-        const wave = document.querySelector('.osc-wave-lg[data-osc="' + n + '"]');
+      [1, 2, 3].forEach(function(n) {
+        var wave = document.querySelector('.osc-wave-lg[data-osc="' + n + '"]');
         if (wave) {
           updateOscConditionalControls(n, wave.value);
         }
@@ -221,12 +239,12 @@
     }
 
     // Close modal
-    mixerClose.addEventListener('click', () => {
+    mixerClose.addEventListener('click', function() {
       mixerModal.classList.add('hidden');
     });
 
     // Close on overlay click
-    mixerModal.addEventListener('click', e => {
+    mixerModal.addEventListener('click', function(e) {
       if (e.target === mixerModal) {
         mixerModal.classList.add('hidden');
       }
@@ -235,25 +253,25 @@
     // ============================================================
     // Tab Switching
     // ============================================================
-    const modalTabs = document.querySelectorAll('.modal-tab');
-    const mixerTabContent = document.getElementById('mixerTabContent');
-    const filterTabContent = document.getElementById('filterTabContent');
-    const effectsTabContent = document.getElementById('effectsTabContent');
-    const samplerTabContent = document.getElementById('samplerTabContent');
-    const lfoTabContent = document.getElementById('lfoTabContent');
+    var modalTabs = document.querySelectorAll('.modal-tab');
+    var mixerTabContent = document.getElementById('mixerTabContent');
+    var filterTabContent = document.getElementById('filterTabContent');
+    var effectsTabContent = document.getElementById('effectsTabContent');
+    var samplerTabContent = document.getElementById('samplerTabContent');
+    var lfoTabContent = document.getElementById('lfoTabContent');
     var modMatrixPanel = document.getElementById('modMatrixPanel');
     var modMatrixPanelContent = document.getElementById('modMatrixPanelContent');
     var modMatrixBtn = document.getElementById('modMatrixBtn');
     var modMatrixPanelClose = document.getElementById('modMatrixPanelClose');
 
-    modalTabs.forEach(tab => {
-      tab.addEventListener('click', () => {
+    modalTabs.forEach(function(tab) {
+      tab.addEventListener('click', function() {
         // Update active tab button
-        modalTabs.forEach(t => t.classList.remove('active'));
+        modalTabs.forEach(function(t) { t.classList.remove('active'); });
         tab.classList.add('active');
 
         // Show/hide tab content
-        const tabName = tab.dataset.tab;
+        var tabName = tab.dataset.tab;
         if (mixerTabContent) mixerTabContent.classList.add('hidden');
         if (filterTabContent) filterTabContent.classList.add('hidden');
         if (effectsTabContent) effectsTabContent.classList.add('hidden');
@@ -287,7 +305,7 @@
     // ============================================================
     // Instrument Type Toggle (Subtractive / FM / Sampler)
     // ============================================================
-    const typeToggleBtns = document.querySelectorAll('.instrument-type-btn');
+    var typeToggleBtns = document.querySelectorAll('.instrument-type-btn');
 
     function updateTypeVisibility(instType) {
       var oscMixer = document.querySelector('.osc-mixer');
@@ -464,7 +482,9 @@
         if (topFreezeBtn) topFreezeBtn.style.display = '';
         initGranularControls();
         // Sync top freeze button state
-        if (topFreezeBtn && SL.granular && SL.granular.isFreeze) {
+        var canCheckFreeze = SL.granular && SL.granular.isFreeze;
+        var shouldSyncFreezeBtn = topFreezeBtn && canCheckFreeze;
+        if (shouldSyncFreezeBtn) {
           var curInst = SL.audio.getCurrentInstrument();
           if (SL.granular.isFreeze(curInst)) {
             topFreezeBtn.classList.add('active');
@@ -910,13 +930,13 @@
       }
     }
 
-    typeToggleBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const instType = btn.dataset.type;
-        const instId = SL.audio.getCurrentInstrument();
+    typeToggleBtns.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var instType = btn.dataset.type;
+        var instId = SL.audio.getCurrentInstrument();
 
         // Update button states
-        typeToggleBtns.forEach(b => b.classList.remove('active'));
+        typeToggleBtns.forEach(function(b) { b.classList.remove('active'); });
         btn.classList.add('active');
 
         // Set instrument type
@@ -996,10 +1016,10 @@
 
     // Update type toggle when instrument changes
     function updateTypeToggleState() {
-      const instId = SL.audio.getCurrentInstrument();
-      const instType = SL.audio.getInstrumentType ? SL.audio.getInstrumentType(instId) : 'subtractive';
+      var instId = SL.audio.getCurrentInstrument();
+      var instType = SL.audio.getInstrumentType ? SL.audio.getInstrumentType(instId) : 'subtractive';
       var isLoopInst = (instId === 4);
-      typeToggleBtns.forEach(btn => {
+      typeToggleBtns.forEach(function(btn) {
         btn.classList.toggle('active', btn.dataset.type === instType);
         // For the loop instrument (index 4), hide all type buttons except "loop"
         if (isLoopInst) {
@@ -1025,7 +1045,7 @@
     // ============================================================
 
     // Guard flag: prevents programmatic .checked changes from firing change events
-    var _updatingLoopUI = false;
+    var _isUpdatingLoopUI = false;
 
     function updateLoopControlsUI() {
       var instId = SL.audio.getCurrentInstrument();
@@ -1037,7 +1057,9 @@
       var loopTopPreset = document.getElementById('loopTopPreset');
 
       // Populate texture selector if empty
-      if (loopTextureSelect && loopTextureSelect.options.length === 0 && SL.loop) {
+      var isTextureSelectEmpty = loopTextureSelect && loopTextureSelect.options.length === 0;
+      var shouldPopulateTextures = isTextureSelectEmpty && SL.loop;
+      if (shouldPopulateTextures) {
         var names = SL.loop.getTextureNames();
         for (var i = 0; i < names.length; i++) {
           var opt = document.createElement('option');
@@ -1048,7 +1070,9 @@
       }
 
       // Populate top bar preset selector if empty
-      if (loopTopPreset && loopTopPreset.options.length === 0 && SL.loop) {
+      var isTopPresetEmpty = loopTopPreset && loopTopPreset.options.length === 0;
+      var shouldPopulateTopPreset = isTopPresetEmpty && SL.loop;
+      if (shouldPopulateTopPreset) {
         var names2 = SL.loop.getTextureNames();
         for (var j = 0; j < names2.length; j++) {
           var opt2 = document.createElement('option');
@@ -1070,9 +1094,9 @@
         }
         // Sync top bar controls (guard against programmatic change event)
         if (loopTopToggle) {
-          _updatingLoopUI = true;
+          _isUpdatingLoopUI = true;
           loopTopToggle.checked = playing;
-          _updatingLoopUI = false;
+          _isUpdatingLoopUI = false;
         }
         if (loopTopPreset) {
           loopTopPreset.value = textureName;
@@ -1191,22 +1215,21 @@
     var loopToggleBtn = document.getElementById('loopToggleBtn');
     if (loopToggleBtn) {
       loopToggleBtn.addEventListener('click', function() {
-        if (!SL.loop) {
-          return;
+        if (SL.loop) {
+          var instId = SL.audio.getCurrentInstrument();
+          if (SL.loop.isPlaying(instId)) {
+            SL.loop.stopLoop(instId);
+            loopToggleBtn.textContent = '';
+            loopToggleBtn.classList.remove('active');
+          } else {
+            var loopTextureSelect = document.getElementById('loopTextureSelect');
+            var textureName = loopTextureSelect ? loopTextureSelect.value : 'White Noise';
+            SL.loop.startLoop(instId, textureName);
+            loopToggleBtn.textContent = '';
+            loopToggleBtn.classList.add('active');
+          }
+          updateLoopControlsUI();
         }
-        var instId = SL.audio.getCurrentInstrument();
-        if (SL.loop.isPlaying(instId)) {
-          SL.loop.stopLoop(instId);
-          loopToggleBtn.textContent = '';
-          loopToggleBtn.classList.remove('active');
-        } else {
-          var loopTextureSelect = document.getElementById('loopTextureSelect');
-          var textureName = loopTextureSelect ? loopTextureSelect.value : 'White Noise';
-          SL.loop.startLoop(instId, textureName);
-          loopToggleBtn.textContent = '';
-          loopToggleBtn.classList.add('active');
-        }
-        updateLoopControlsUI();
       });
     }
 
@@ -1214,15 +1237,14 @@
     var loopTextureSelect = document.getElementById('loopTextureSelect');
     if (loopTextureSelect) {
       loopTextureSelect.addEventListener('change', function() {
-        if (!SL.loop) {
-          return;
+        if (SL.loop) {
+          var instId = SL.audio.getCurrentInstrument();
+          // If currently playing, restart with new texture
+          if (SL.loop.isPlaying(instId)) {
+            SL.loop.startLoop(instId, loopTextureSelect.value);
+          }
+          updateLoopControlsUI();
         }
-        var instId = SL.audio.getCurrentInstrument();
-        // If currently playing, restart with new texture
-        if (SL.loop.isPlaying(instId)) {
-          SL.loop.startLoop(instId, loopTextureSelect.value);
-        }
-        updateLoopControlsUI();
       });
     }
 
@@ -1446,22 +1468,20 @@
     var loopTopToggle = document.getElementById('loopTopToggle');
     if (loopTopToggle) {
       loopTopToggle.addEventListener('change', function() {
-        // Skip if this change was triggered programmatically (not by user click)
-        if (_updatingLoopUI) {
-          return;
+        if (!_isUpdatingLoopUI) {
+          // Skip if this change was triggered programmatically (not by user click)
+          if (SL.loop) {
+            var instId = SL.audio.getCurrentInstrument();
+            if (loopTopToggle.checked) {
+              var loopTopPresetEl = document.getElementById('loopTopPreset');
+              var textureName = loopTopPresetEl ? loopTopPresetEl.value : 'White Noise';
+              SL.loop.startLoop(instId, textureName);
+            } else {
+              SL.loop.stopLoop(instId);
+            }
+            updateLoopControlsUI();
+          }
         }
-        if (!SL.loop) {
-          return;
-        }
-        var instId = SL.audio.getCurrentInstrument();
-        if (loopTopToggle.checked) {
-          var loopTopPresetEl = document.getElementById('loopTopPreset');
-          var textureName = loopTopPresetEl ? loopTopPresetEl.value : 'White Noise';
-          SL.loop.startLoop(instId, textureName);
-        } else {
-          SL.loop.stopLoop(instId);
-        }
-        updateLoopControlsUI();
       });
     }
 
@@ -1469,13 +1489,12 @@
     var loopTopPresetEl = document.getElementById('loopTopPreset');
     if (loopTopPresetEl) {
       loopTopPresetEl.addEventListener('change', function() {
-        if (!SL.loop) {
-          return;
-        }
-        var instId = SL.audio.getCurrentInstrument();
-        if (SL.loop.isPlaying(instId)) {
-          SL.loop.startLoop(instId, loopTopPresetEl.value);
-          updateLoopControlsUI();
+        if (SL.loop) {
+          var instId = SL.audio.getCurrentInstrument();
+          if (SL.loop.isPlaying(instId)) {
+            SL.loop.startLoop(instId, loopTopPresetEl.value);
+            updateLoopControlsUI();
+          }
         }
       });
     }
@@ -1496,13 +1515,11 @@
     // Wavefolder Controls
     // ============================================================
 
-    var _wavefoldInitialized = false;
+    var _isWavefoldInitialized = false;
 
     function initWavefoldControls() {
       var container = document.getElementById('wavefoldControlsModal');
-      if (!container) {
-        return;
-      }
+      if (container) {
 
       var instId = SL.audio.getCurrentInstrument();
       var wfSettings = (SL.wavefolder && SL.wavefolder.getSettings) ? SL.wavefolder.getSettings(instId) : null;
@@ -1512,7 +1529,7 @@
         };
       }
 
-      if (_wavefoldInitialized) {
+      if (_isWavefoldInitialized) {
         // Refresh values from engine
         var srcEl = document.getElementById('wavefoldSource');
         if (srcEl) srcEl.value = wfSettings.source || 'sine';
@@ -1540,8 +1557,7 @@
           gainEl.value = (wfSettings.preGain || 1.0) * 10;
           if (gainValEl) gainValEl.textContent = (wfSettings.preGain || 1.0).toFixed(1);
         }
-        return;
-      }
+      } else {
 
       // Build HTML
       var html = '';
@@ -1586,7 +1602,7 @@
       html += '<span class="wavefold-param-val" id="wavefoldPreGainVal">' + (wfSettings.preGain || 1.0).toFixed(1) + '</span>';
       html += '</div>';
 
-      container.innerHTML = '<div class="wavefold-title-modal">WAVEFOLDER SYNTHESIS</div>' + html;
+      container.innerHTML = '<div class="wavefold-title-modal">WAVEFOLDER SYNTHESIS</div>' + html; /* trusted: computed from internal state */
 
       // Event listeners
       var sourceEl = document.getElementById('wavefoldSource');
@@ -1651,16 +1667,16 @@
         });
       }
 
-      _wavefoldInitialized = true;
+      _isWavefoldInitialized = true;
+      } // end else (!_isWavefoldInitialized)
+      } // end if (container)
     }
 
-    var _vocoderSynthInitialized = false;
+    var _isVocoderSynthInitialized = false;
 
     function initVocoderSynthControls() {
       var container = document.getElementById('vocoderSynthControlsModal');
-      if (!container) {
-        return;
-      }
+      if (container) {
 
       var instId = SL.audio.getCurrentInstrument();
       var vocSettings = (SL.vocoderSynth && SL.vocoderSynth.getSettings) ? SL.vocoderSynth.getSettings(instId) : null;
@@ -1670,7 +1686,7 @@
         };
       }
 
-      if (_vocoderSynthInitialized) {
+      if (_isVocoderSynthInitialized) {
         // Refresh values from engine
         var carrierEl = document.getElementById('vocoderSynthCarrier');
         if (carrierEl) carrierEl.value = vocSettings.carrierWaveform || 'saw';
@@ -1710,8 +1726,7 @@
             bandBtns[bi].classList.remove('active');
           }
         }
-        return;
-      }
+      } else {
 
       // Build HTML
       var html = '';
@@ -1768,7 +1783,7 @@
       html += '<span class="vocoder-synth-param-val" id="vocoderSynthFilterQVal">' + (vocSettings.filterQ || 8) + '</span>';
       html += '</div>';
 
-      container.innerHTML = '<div class="vocoder-synth-title-modal">VOCODER SYNTHESIS</div>' + html;
+      container.innerHTML = '<div class="vocoder-synth-title-modal">VOCODER SYNTHESIS</div>' + html; /* trusted: computed from internal state */
 
       // Wire up carrier waveform selector
       var carrierSelect = document.getElementById('vocoderSynthCarrier');
@@ -1859,19 +1874,19 @@
         });
       }
 
-      _vocoderSynthInitialized = true;
+      _isVocoderSynthInitialized = true;
+      } // end else (!_isVocoderSynthInitialized)
+      } // end if (container)
     }
 
     // ============================================================
     // Granular UI Builder
     // ============================================================
-    var _granularInitialized = false;
+    var _isGranularInitialized = false;
 
     function initGranularControls() {
       var container = document.getElementById('granularControlsModal');
-      if (!container) {
-        return;
-      }
+      if (container) {
 
       var instId = SL.audio.getCurrentInstrument();
       var granSettings = null;
@@ -1882,7 +1897,7 @@
         granSettings = JSON.parse(JSON.stringify(SL.audio._DEFAULT_INSTRUMENT_SETTINGS.granularSettings));
       }
 
-      if (_granularInitialized) {
+      if (_isGranularInitialized) {
         // Just refresh values from engine
         var sourceEl = document.getElementById('granularSource');
         if (sourceEl) sourceEl.value = granSettings.sourceWaveform || 'sine';
@@ -1926,8 +1941,7 @@
             freezeBtn.classList.remove('active');
           }
         }
-        return;
-      }
+      } else {
 
       // Build the HTML content
       var html = '';
@@ -1994,7 +2008,7 @@
       html += '<button class="granular-freeze-btn' + (granSettings.freeze ? ' active' : '') + '" id="granularFreezeBtn">FREEZE</button>';
       html += '</div>';
 
-      container.innerHTML = '<div class="granular-title-modal">GRANULAR SYNTHESIS</div>' + html;
+      container.innerHTML = '<div class="granular-title-modal">GRANULAR SYNTHESIS</div>' + html; /* trusted: computed from internal state */
 
       // Wire up source waveform selector
       var sourceSelect = document.getElementById('granularSource');
@@ -2108,17 +2122,17 @@
         });
       }
 
-      _granularInitialized = true;
+      _isGranularInitialized = true;
+      } // end else (!_isGranularInitialized)
+      } // end if (container)
     }
 
     /**
-     * Sync the top-bar FREEZE button appearance with freeze state
+     * Sync the top-bar FREEZE btn appearance with freeze state
      */
     function syncTopFreezeButton(frozen) {
       var topBtn = document.getElementById('topFreezeBtn');
-      if (!topBtn) {
-        return;
-      }
+      if (topBtn) {
       if (frozen) {
         topBtn.classList.add('active');
         topBtn.style.background = '#4a2a6e';
@@ -2130,12 +2144,13 @@
         topBtn.style.color = '#b0b0b0';
         topBtn.style.borderColor = '#444';
       }
+      } // end if (topBtn)
     }
 
     // ============================================================
     // Additive UI Builder
     // ============================================================
-    var _additiveInitialized = false;
+    var _isAdditiveInitialized = false;
 
     function updateAdditiveVisibility(drawbarMode) {
       var partialsSection = document.getElementById('additivePartialsSection');
@@ -2150,7 +2165,7 @@
     }
 
     function initAdditiveControls() {
-      if (_additiveInitialized) {
+      if (_isAdditiveInitialized) {
         // Just refresh values from engine
         var instId = SL.audio.getCurrentInstrument();
         if (SL.additive) {
@@ -2158,8 +2173,12 @@
           if (addSettings) {
             for (var pi = 0; pi < 16; pi++) {
               var partialEl = document.getElementById('additivePartial' + pi);
-              if (partialEl && addSettings.partials && addSettings.partials[pi]) {
+              var hasMixerPartial = partialEl && addSettings.partials;
+            var canUpdateMixerPartial = hasMixerPartial && addSettings.partials[pi];
+            if (canUpdateMixerPartial) {
+              if (partialEl) {
                 partialEl.value = Math.round(addSettings.partials[pi].amplitude * 100);
+              }
               }
             }
             for (var di = 0; di < 9; di++) {
@@ -2177,13 +2196,8 @@
             updateAdditiveVisibility(addSettings.drawbarMode);
           }
         }
-        return;
-      }
-
-      var container = document.getElementById('additiveControlsModal');
-      if (!container) {
-        return;
-      }
+      } else {
+      if (container) {
 
       var instId = SL.audio.getCurrentInstrument();
       var addSettings = null;
@@ -2242,7 +2256,7 @@
       html += '</div>';
       html += '</div>';
 
-      container.innerHTML = '<div class="additive-title-modal">ADDITIVE SYNTHESIS</div>' + html;
+      container.innerHTML = '<div class="additive-title-modal">ADDITIVE SYNTHESIS</div>' + html; /* trusted: computed from internal state */
 
       // Wire up quick-set buttons
       var quickBtns = container.querySelectorAll('.additive-quickset-btn');
@@ -2313,7 +2327,9 @@
         })(di2);
       }
 
-      _additiveInitialized = true;
+      _isAdditiveInitialized = true;
+      } // end if (container)
+      } // end else (!_isAdditiveInitialized)
     }
 
     // ============================================================
@@ -2328,7 +2344,7 @@
       if (!algoSelect || !opsContainer) return;
 
       // Populate algorithm dropdown (1-32)
-      algoSelect.innerHTML = '';
+      algoSelect.textContent = '';
       for (var a = 1; a <= 32; a++) {
         var opt = document.createElement('option');
         opt.value = a;
@@ -2337,14 +2353,16 @@
       }
 
       // Feedback slider display update
-      if (feedbackSlider && feedbackVal) {
-        feedbackSlider.addEventListener('input', function() {
-          feedbackVal.textContent = feedbackSlider.value;
-          var instId = SL.audio.getCurrentInstrument();
-          if (SL.audio.setFMSettings) {
-            SL.audio.setFMSettings(instId, { feedback: parseInt(feedbackSlider.value) });
-          }
-        });
+      if (feedbackSlider) {
+        if (feedbackVal) {
+          feedbackSlider.addEventListener('input', function() {
+            feedbackVal.textContent = feedbackSlider.value;
+            var instId = SL.audio.getCurrentInstrument();
+            if (SL.audio.setFMSettings) {
+              SL.audio.setFMSettings(instId, { feedback: parseInt(feedbackSlider.value) });
+            }
+          });
+        }
       }
 
       // Algorithm change handler
@@ -2356,17 +2374,22 @@
       });
 
       // Build 6 operator strips
-      opsContainer.innerHTML = '';
+      opsContainer.textContent = '';
       for (var op = 1; op <= 6; op++) {
+        var opLevelDefault = (op === 1) ? 99 : 0;
         var strip = document.createElement('div');
         strip.className = 'fm-op-strip';
         strip.dataset.op = op;
-        strip.innerHTML =
+        strip.innerHTML = /* trusted: computed from internal state (op number + opLevelDefault) */
           '<div class="fm-op-header">OP ' + op + '</div>' +
           '<div class="fm-op-param"><label>Ratio: <input type="number" class="fm-op-ratio-coarse" data-op="' + op + '" min="0" max="31" value="1" step="1"></label>' +
           '<label>Fine: <input type="number" class="fm-op-ratio-fine" data-op="' + op + '" min="0" max="99" value="0" step="1"></label></div>' +
-          '<div class="fm-op-param"><label>Level: <input type="range" aria-label="Operator ' + op + ' level" class="fm-op-level" data-op="' + op + '" min="0" max="99" value="' + (op === 1 ? 99 : 0) + '"><span class="fm-op-level-val" data-op="' + op + '">' + (op === 1 ? 99 : 0) + '</span></label></div>' +
-          '<div class="fm-op-param"><label>Detune: <input type="range" aria-label="Operator ' + op + ' detune" class="fm-op-detune" data-op="' + op + '" min="0" max="14" value="7"><span class="fm-op-detune-val" data-op="' + op + '">7</span></label></div>' +
+          '<div class="fm-op-param"><label>Level: ' +
+          '<input type="range" aria-label="Operator ' + op + ' level" class="fm-op-level" data-op="' + op + '" min="0" max="99" value="' + opLevelDefault + '">' +
+          '<span class="fm-op-level-val" data-op="' + op + '">' + opLevelDefault + '</span></label></div>' +
+          '<div class="fm-op-param"><label>Detune: ' +
+          '<input type="range" aria-label="Operator ' + op + ' detune" class="fm-op-detune" data-op="' + op + '" min="0" max="14" value="7">' +
+          '<span class="fm-op-detune-val" data-op="' + op + '">7</span></label></div>' +
           '<div class="fm-op-param fm-op-env">' +
           '<span class="fm-op-env-label">ENV</span>' +
           '<label>R1: <input type="number" class="fm-op-env-r1" data-op="' + op + '" min="0" max="99" value="95" step="1"></label>' +
@@ -2441,16 +2464,16 @@
     buildFMUI();
 
     // EXPLICIT listeners for each oscillator control (more reliable than event delegation)
-    [1, 2, 3].forEach(n => {
-      const wave = document.querySelector('.osc-wave-lg[data-osc="' + n + '"]');
-      const detune = document.querySelector('.osc-detune-lg[data-osc="' + n + '"]');
-      const detuneVal = document.querySelector('.osc-detune-val-lg[data-osc="' + n + '"]');
-      const level = document.querySelector('.osc-level-lg[data-osc="' + n + '"]');
-      const levelVal = document.querySelector('.osc-level-val-lg[data-osc="' + n + '"]');
+    [1, 2, 3].forEach(function(n) {
+      var wave = document.querySelector('.osc-wave-lg[data-osc="' + n + '"]');
+      var detune = document.querySelector('.osc-detune-lg[data-osc="' + n + '"]');
+      var detuneVal = document.querySelector('.osc-detune-val-lg[data-osc="' + n + '"]');
+      var level = document.querySelector('.osc-level-lg[data-osc="' + n + '"]');
+      var levelVal = document.querySelector('.osc-level-val-lg[data-osc="' + n + '"]');
 
       // Wave dropdown
       if (wave) {
-        wave.addEventListener('change', () => {
+        wave.addEventListener('change', function() {
           updateOscConditionalControls(n, wave.value);
           syncModalToInline();
           triggerAudioRefresh();
@@ -2461,29 +2484,29 @@
       }
 
       // Pulse width slider
-      const pw = document.querySelector('.osc-pw-lg[data-osc="' + n + '"]');
-      const pwVal = document.querySelector('.osc-pw-val-lg[data-osc="' + n + '"]');
+      var pw = document.querySelector('.osc-pw-lg[data-osc="' + n + '"]');
+      var pwVal = document.querySelector('.osc-pw-val-lg[data-osc="' + n + '"]');
       if (pw) {
-        pw.addEventListener('input', () => {
+        pw.addEventListener('input', function() {
           if (pwVal) pwVal.textContent = pw.value + '%';
           triggerAudioRefresh();
         });
       }
 
       // Spread slider (for supersaw)
-      const spread = document.querySelector('.osc-spread-lg[data-osc="' + n + '"]');
-      const spreadVal = document.querySelector('.osc-spread-val-lg[data-osc="' + n + '"]');
+      var spread = document.querySelector('.osc-spread-lg[data-osc="' + n + '"]');
+      var spreadVal = document.querySelector('.osc-spread-val-lg[data-osc="' + n + '"]');
       if (spread) {
-        spread.addEventListener('input', () => {
+        spread.addEventListener('input', function() {
           if (spreadVal) spreadVal.textContent = spread.value + '%';
           triggerAudioRefresh();
         });
       }
 
       // Octave radio buttons
-      const octRadios = document.querySelectorAll('input[name="osc' + n + 'oct"]');
-      octRadios.forEach(radio => {
-        radio.addEventListener('change', () => {
+      var octRadios = document.querySelectorAll('input[name="osc' + n + 'oct"]');
+      octRadios.forEach(function(radio) {
+        radio.addEventListener('change', function() {
           syncModalToInline();
           triggerAudioRefresh();
           updateDebugDisplay();
@@ -2492,7 +2515,7 @@
 
       // Detune slider
       if (detune) {
-        detune.addEventListener('input', () => {
+        detune.addEventListener('input', function() {
           if (detuneVal) detuneVal.textContent = detune.value + ' ct';
           syncModalToInline();
           triggerAudioRefresh();
@@ -2504,7 +2527,7 @@
 
       // Level slider
       if (level) {
-        level.addEventListener('input', () => {
+        level.addEventListener('input', function() {
           if (levelVal) levelVal.textContent = level.value + '%';
           syncModalToInline();
           triggerAudioRefresh();
@@ -2517,28 +2540,36 @@
 
     // Helper to sync all modal values to inline controls
     function syncModalToInline() {
-      [1, 2, 3].forEach(n => {
-        const modalWave = document.querySelector('.osc-wave-lg[data-osc="' + n + '"]');
-        const modalOctRadio = document.querySelector('input[name="osc' + n + 'oct"]:checked');
-        const modalDetune = document.querySelector('.osc-detune-lg[data-osc="' + n + '"]');
-        const modalLevel = document.querySelector('.osc-level-lg[data-osc="' + n + '"]');
+      [1, 2, 3].forEach(function(n) {
+        var modalWave = document.querySelector('.osc-wave-lg[data-osc="' + n + '"]');
+        var modalOctRadio = document.querySelector('input[name="osc' + n + 'oct"]:checked');
+        var modalDetune = document.querySelector('.osc-detune-lg[data-osc="' + n + '"]');
+        var modalLevel = document.querySelector('.osc-level-lg[data-osc="' + n + '"]');
 
-        const inlineWave = document.querySelector('.osc-wave[data-osc="' + n + '"]');
-        const inlineOct = document.querySelector('.osc-oct[data-osc="' + n + '"]');
-        const inlineDetune = document.querySelector('.osc-detune[data-osc="' + n + '"]');
-        const inlineDetuneVal = document.querySelector('.osc-detune-val[data-osc="' + n + '"]');
-        const inlineLevel = document.querySelector('.osc-level[data-osc="' + n + '"]');
-        const inlineLevelVal = document.querySelector('.osc-level-val[data-osc="' + n + '"]');
+        var inlineWave = document.querySelector('.osc-wave[data-osc="' + n + '"]');
+        var inlineOct = document.querySelector('.osc-oct[data-osc="' + n + '"]');
+        var inlineDetune = document.querySelector('.osc-detune[data-osc="' + n + '"]');
+        var inlineDetuneVal = document.querySelector('.osc-detune-val[data-osc="' + n + '"]');
+        var inlineLevel = document.querySelector('.osc-level[data-osc="' + n + '"]');
+        var inlineLevelVal = document.querySelector('.osc-level-val[data-osc="' + n + '"]');
 
-        if (modalWave && inlineWave) inlineWave.value = modalWave.value;
-        if (modalOctRadio && inlineOct) inlineOct.value = modalOctRadio.value;
-        if (modalDetune && inlineDetune) {
-          inlineDetune.value = modalDetune.value;
-          if (inlineDetuneVal) inlineDetuneVal.textContent = modalDetune.value + ' ct';
+        if (modalWave) {
+          if (inlineWave) { inlineWave.value = modalWave.value; }
         }
-        if (modalLevel && inlineLevel) {
-          inlineLevel.value = modalLevel.value;
-          if (inlineLevelVal) inlineLevelVal.textContent = modalLevel.value + '%';
+        if (modalOctRadio) {
+          if (inlineOct) { inlineOct.value = modalOctRadio.value; }
+        }
+        if (modalDetune) {
+          if (inlineDetune) {
+            inlineDetune.value = modalDetune.value;
+            if (inlineDetuneVal) inlineDetuneVal.textContent = modalDetune.value + ' ct';
+          }
+        }
+        if (modalLevel) {
+          if (inlineLevel) {
+            inlineLevel.value = modalLevel.value;
+            if (inlineLevelVal) inlineLevelVal.textContent = modalLevel.value + '%';
+          }
         }
 
       });
@@ -2553,8 +2584,8 @@
 
     // Helper to show/hide conditional oscillator controls (pulse width, spread)
     function updateOscConditionalControls(oscNum, waveType) {
-      const pwRow = document.querySelector('.osc-pw-row[data-osc="' + oscNum + '"]');
-      const spreadRow = document.querySelector('.osc-spread-row[data-osc="' + oscNum + '"]');
+      var pwRow = document.querySelector('.osc-pw-row[data-osc="' + oscNum + '"]');
+      var spreadRow = document.querySelector('.osc-spread-row[data-osc="' + oscNum + '"]');
 
       // Show pulse width control only for pulse wave
       if (pwRow) {
@@ -2581,11 +2612,11 @@
 
     // Helper to update debug display in modal title (always runs, even without active notes)
     function updateDebugDisplay() {
-      const title = document.querySelector('.mixer-modal-title');
+      var title = document.querySelector('.mixer-modal-title');
       if (!title) return;
 
       // Wave abbreviations that are distinct
-      const waveAbbr = {
+      var waveAbbr = {
         'sawtooth': 'Saw',
         'square': 'Sqr',
         'sine': 'Sin',
@@ -2594,33 +2625,33 @@
         'supersaw': 'SSaw'
       };
 
-      const settings = [];
-      for (let n = 1; n <= 3; n++) {
-        const wave = document.querySelector('.osc-wave-lg[data-osc="' + n + '"]');
-        const octRadio = document.querySelector('input[name="osc' + n + 'oct"]:checked');
-        const detune = document.querySelector('.osc-detune-lg[data-osc="' + n + '"]');
-        const level = document.querySelector('.osc-level-lg[data-osc="' + n + '"]');
+      var settings = [];
+      for (var n = 1; n <= 3; n++) {
+        var wave = document.querySelector('.osc-wave-lg[data-osc="' + n + '"]');
+        var octRadio = document.querySelector('input[name="osc' + n + 'oct"]:checked');
+        var detune = document.querySelector('.osc-detune-lg[data-osc="' + n + '"]');
+        var level = document.querySelector('.osc-level-lg[data-osc="' + n + '"]');
 
-        const w = wave ? (waveAbbr[wave.value] || wave.value) : '?';
-        const o = octRadio ? octRadio.value : '?';
-        const d = detune ? detune.value : '?';
-        const l = level ? level.value : '?';
+        var w = wave ? (waveAbbr[wave.value] || wave.value) : '?';
+        var o = octRadio ? octRadio.value : '?';
+        var d = detune ? detune.value : '?';
+        var l = level ? level.value : '?';
         settings.push(n + ':' + w + ' o' + o + ' d' + d + ' L' + l);
       }
       title.textContent = settings.join(' | ');
     }
 
     // Set up modal ADSR listeners to sync back to inline controls (with log display + units)
-    ['A', 'D', 'S', 'R'].forEach(p => {
-      const modal = document.getElementById('adsr' + p + '-modal');
-      const modalVal = document.getElementById('val' + p + '-modal');
-      const inline = document.getElementById('adsr' + p);
-      const inlineVal = document.getElementById('val' + p);
+    ['A', 'D', 'S', 'R'].forEach(function(p) {
+      var modal = document.getElementById('adsr' + p + '-modal');
+      var modalVal = document.getElementById('val' + p + '-modal');
+      var inline = document.getElementById('adsr' + p);
+      var inlineVal = document.getElementById('val' + p);
 
       if (modal) {
-        modal.addEventListener('input', () => {
-          const timeVal = (p === 'S') ? modal.value : SL.ui.formatADSRTime(p, parseFloat(modal.value));
-          const displayVal = (p === 'S') ? timeVal + '%' : timeVal + 'ms';
+        modal.addEventListener('input', function() {
+          var timeVal = (p === 'S') ? modal.value : SL.ui.formatADSRTime(p, parseFloat(modal.value));
+          var displayVal = (p === 'S') ? timeVal + '%' : timeVal + 'ms';
           if (modalVal) modalVal.textContent = displayVal;
           if (inline) inline.value = modal.value;
           if (inlineVal) inlineVal.textContent = displayVal;
@@ -2634,51 +2665,59 @@
 
     // Helper to sync filter modal controls to inline controls
     function syncFilterToModal() {
-      const inlineEnabled = document.getElementById('filterEnabled');
-      const inlineType = document.getElementById('filterType');
-      const inlineSlopeRadio = document.querySelector('input[name="filterSlope"]:checked');
-      const inlineFreq = document.getElementById('filterFreq');
-      const inlineQ = document.getElementById('filterQ');
-      const inlineModel = document.getElementById('filterModel');
+      var inlineEnabled = document.getElementById('filterEnabled');
+      var inlineType = document.getElementById('filterType');
+      var inlineSlopeRadio = document.querySelector('input[name="filterSlope"]:checked');
+      var inlineFreq = document.getElementById('filterFreq');
+      var inlineQ = document.getElementById('filterQ');
+      var inlineModel = document.getElementById('filterModel');
 
-      const modalEnabled = document.getElementById('filterEnabled-modal');
-      const modalTypeRadios = document.querySelectorAll('input[name="filterType-modal"]');
-      const modalSlopeRadios = document.querySelectorAll('input[name="filterSlope-modal"]');
-      const modalFreq = document.getElementById('filterFreq-modal');
-      const modalFreqVal = document.getElementById('filterFreq-val-modal');
-      const modalQ = document.getElementById('filterQ-modal');
-      const modalQVal = document.getElementById('filterQ-val-modal');
-      const modalModel = document.getElementById('filterModel-modal');
+      var modalEnabled = document.getElementById('filterEnabled-modal');
+      var modalTypeRadios = document.querySelectorAll('input[name="filterType-modal"]');
+      var modalSlopeRadios = document.querySelectorAll('input[name="filterSlope-modal"]');
+      var modalFreq = document.getElementById('filterFreq-modal');
+      var modalFreqVal = document.getElementById('filterFreq-val-modal');
+      var modalQ = document.getElementById('filterQ-modal');
+      var modalQVal = document.getElementById('filterQ-val-modal');
+      var modalModel = document.getElementById('filterModel-modal');
 
-      if (modalEnabled && inlineEnabled) modalEnabled.checked = inlineEnabled.checked;
+      if (modalEnabled) {
+        if (inlineEnabled) { modalEnabled.checked = inlineEnabled.checked; }
+      }
 
       if (inlineType) {
-        modalTypeRadios.forEach(radio => {
+        modalTypeRadios.forEach(function(radio) {
           radio.checked = (radio.value === inlineType.value);
         });
       }
 
       if (inlineSlopeRadio) {
-        modalSlopeRadios.forEach(radio => {
+        modalSlopeRadios.forEach(function(radio) {
           radio.checked = (radio.value === inlineSlopeRadio.value);
         });
       }
 
-      if (modalFreq && inlineFreq) {
-        modalFreq.value = inlineFreq.value;
-        const sliderVal = parseFloat(inlineFreq.value);
-        const freq = SL.audio && SL.audio.sliderToFreq ? SL.audio.sliderToFreq(sliderVal) : sliderVal;
-        updateFreqDisplay(freq);
+      if (modalFreq) {
+        if (inlineFreq) {
+          modalFreq.value = inlineFreq.value;
+          var sliderVal = parseFloat(inlineFreq.value);
+          var freq = SL.audio && SL.audio.sliderToFreq ? SL.audio.sliderToFreq(sliderVal) : sliderVal;
+          updateFreqDisplay(freq);
+        }
       }
 
-      if (modalQ && inlineQ) {
-        modalQ.value = inlineQ.value;
-        const sliderVal = parseFloat(inlineQ.value);
-        const q = SL.audio && SL.audio.sliderToQ ? SL.audio.sliderToQ(sliderVal) : sliderVal;
-        if (modalQVal) modalQVal.textContent = 'Q: ' + q.toFixed(1);
+      if (modalQ) {
+        if (inlineQ) {
+          modalQ.value = inlineQ.value;
+          var sliderVal = parseFloat(inlineQ.value);
+          var q = SL.audio && SL.audio.sliderToQ ? SL.audio.sliderToQ(sliderVal) : sliderVal;
+          if (modalQVal) modalQVal.textContent = SL.t('mixer.q_prefix') + q.toFixed(1);
+        }
       }
 
-      if (modalModel && inlineModel) modalModel.value = inlineModel.value;
+      if (modalModel) {
+        if (inlineModel) { modalModel.value = inlineModel.value; }
+      }
 
       // Update disabled state
       updateFilterDisabledState();
@@ -2686,40 +2725,50 @@
 
     // Helper to sync filter modal controls back to inline controls
     function syncFilterToInline() {
-      const modalEnabled = document.getElementById('filterEnabled-modal');
-      const modalTypeRadio = document.querySelector('input[name="filterType-modal"]:checked');
-      const modalSlopeRadio = document.querySelector('input[name="filterSlope-modal"]:checked');
-      const modalFreq = document.getElementById('filterFreq-modal');
-      const modalQ = document.getElementById('filterQ-modal');
-      const modalModel = document.getElementById('filterModel-modal');
+      var modalEnabled = document.getElementById('filterEnabled-modal');
+      var modalTypeRadio = document.querySelector('input[name="filterType-modal"]:checked');
+      var modalSlopeRadio = document.querySelector('input[name="filterSlope-modal"]:checked');
+      var modalFreq = document.getElementById('filterFreq-modal');
+      var modalQ = document.getElementById('filterQ-modal');
+      var modalModel = document.getElementById('filterModel-modal');
 
-      const inlineEnabled = document.getElementById('filterEnabled');
-      const inlineType = document.getElementById('filterType');
-      const inlineSlopeRadios = document.querySelectorAll('input[name="filterSlope"]');
-      const inlineFreq = document.getElementById('filterFreq');
-      const inlineQ = document.getElementById('filterQ');
-      const inlineModel = document.getElementById('filterModel');
+      var inlineEnabled = document.getElementById('filterEnabled');
+      var inlineType = document.getElementById('filterType');
+      var inlineSlopeRadios = document.querySelectorAll('input[name="filterSlope"]');
+      var inlineFreq = document.getElementById('filterFreq');
+      var inlineQ = document.getElementById('filterQ');
+      var inlineModel = document.getElementById('filterModel');
 
-      if (inlineEnabled && modalEnabled) inlineEnabled.checked = modalEnabled.checked;
+      if (inlineEnabled) {
+        if (modalEnabled) { inlineEnabled.checked = modalEnabled.checked; }
+      }
 
-      if (inlineType && modalTypeRadio) inlineType.value = modalTypeRadio.value;
+      if (inlineType) {
+        if (modalTypeRadio) { inlineType.value = modalTypeRadio.value; }
+      }
 
       if (modalSlopeRadio) {
-        inlineSlopeRadios.forEach(radio => {
+        inlineSlopeRadios.forEach(function(radio) {
           radio.checked = (radio.value === modalSlopeRadio.value);
         });
       }
 
-      if (inlineFreq && modalFreq) inlineFreq.value = modalFreq.value;
-      if (inlineQ && modalQ) inlineQ.value = modalQ.value;
-      if (inlineModel && modalModel) inlineModel.value = modalModel.value;
+      if (inlineFreq) {
+        if (modalFreq) { inlineFreq.value = modalFreq.value; }
+      }
+      if (inlineQ) {
+        if (modalQ) { inlineQ.value = modalQ.value; }
+      }
+      if (inlineModel) {
+        if (modalModel) { inlineModel.value = modalModel.value; }
+      }
     }
 
     // Helper to update frequency display (Hz or Note based on radio selection)
     function updateFreqDisplay(freq) {
-      const modalFreqVal = document.getElementById('filterFreq-val-modal');
-      const freqUnitRadio = document.querySelector('input[name="filterFreqUnit-modal"]:checked');
-      const displayMode = freqUnitRadio ? freqUnitRadio.value : 'hz';
+      var modalFreqVal = document.getElementById('filterFreq-val-modal');
+      var freqUnitRadio = document.querySelector('input[name="filterFreqUnit-modal"]:checked');
+      var displayMode = freqUnitRadio ? freqUnitRadio.value : 'hz';
 
       if (!modalFreqVal) return;
 
@@ -2730,15 +2779,15 @@
           modalFreqVal.textContent = Math.round(freq) + ' Hz';
         }
       } else {
-        const noteName = SL.audio && SL.audio.freqToNote ? SL.audio.freqToNote(freq) : '?';
+        var noteName = SL.audio && SL.audio.freqToNote ? SL.audio.freqToNote(freq) : '?';
         modalFreqVal.textContent = noteName + ' (' + Math.round(freq) + ' Hz)';
       }
     }
 
     // Helper to update filter section disabled state
     function updateFilterDisabledState() {
-      const filterSection = document.querySelector('.filter-section-modal');
-      const modalEnabled = document.getElementById('filterEnabled-modal');
+      var filterSection = document.querySelector('.filter-section-modal');
+      var modalEnabled = document.getElementById('filterEnabled-modal');
       if (filterSection && modalEnabled) {
         if (modalEnabled.checked) {
           filterSection.classList.remove('disabled');
@@ -2749,9 +2798,9 @@
     }
 
     // Set up filter control event listeners
-    const filterEnabledModal = document.getElementById('filterEnabled-modal');
+    var filterEnabledModal = document.getElementById('filterEnabled-modal');
     if (filterEnabledModal) {
-      filterEnabledModal.addEventListener('change', () => {
+      filterEnabledModal.addEventListener('change', function() {
         syncFilterToInline();
         updateFilterDisabledState();
         // When toggling filter, need to refresh oscillators to update signal chain
@@ -2762,9 +2811,9 @@
     }
 
     // Filter type radio buttons
-    const filterTypeRadios = document.querySelectorAll('input[name="filterType-modal"]');
-    filterTypeRadios.forEach(radio => {
-      radio.addEventListener('change', () => {
+    var filterTypeRadios = document.querySelectorAll('input[name="filterType-modal"]');
+    filterTypeRadios.forEach(function(radio) {
+      radio.addEventListener('change', function() {
         syncFilterToInline();
         if (SL.audio && SL.audio.refreshFilter) {
           SL.audio.refreshFilter();
@@ -2773,9 +2822,9 @@
     });
 
     // Filter slope radio buttons
-    const filterSlopeRadios = document.querySelectorAll('input[name="filterSlope-modal"]');
-    filterSlopeRadios.forEach(radio => {
-      radio.addEventListener('change', () => {
+    var filterSlopeRadios = document.querySelectorAll('input[name="filterSlope-modal"]');
+    filterSlopeRadios.forEach(function(radio) {
+      radio.addEventListener('change', function() {
         syncFilterToInline();
         // Slope change requires full oscillator refresh (different filter chain)
         if (SL.audio && SL.audio.refreshActiveOscillators) {
@@ -2785,11 +2834,11 @@
     });
 
     // Filter frequency slider (logarithmic)
-    const filterFreqModal = document.getElementById('filterFreq-modal');
+    var filterFreqModal = document.getElementById('filterFreq-modal');
     if (filterFreqModal) {
-      filterFreqModal.addEventListener('input', () => {
-        const sliderVal = parseFloat(filterFreqModal.value);
-        const freq = SL.audio && SL.audio.sliderToFreq ? SL.audio.sliderToFreq(sliderVal) : sliderVal;
+      filterFreqModal.addEventListener('input', function() {
+        var sliderVal = parseFloat(filterFreqModal.value);
+        var freq = SL.audio && SL.audio.sliderToFreq ? SL.audio.sliderToFreq(sliderVal) : sliderVal;
         updateFreqDisplay(freq);
         syncFilterToInline();
         if (SL.audio && SL.audio.refreshFilter) {
@@ -2799,13 +2848,13 @@
     }
 
     // Filter Q/resonance slider (curved 0-100 -> Q 0.5-20)
-    const filterQModal = document.getElementById('filterQ-modal');
-    const filterQValModal = document.getElementById('filterQ-val-modal');
+    var filterQModal = document.getElementById('filterQ-modal');
+    var filterQValModal = document.getElementById('filterQ-val-modal');
     if (filterQModal) {
-      filterQModal.addEventListener('input', () => {
-        const sliderVal = parseFloat(filterQModal.value);
-        const q = SL.audio && SL.audio.sliderToQ ? SL.audio.sliderToQ(sliderVal) : sliderVal;
-        if (filterQValModal) filterQValModal.textContent = 'Q: ' + q.toFixed(1);
+      filterQModal.addEventListener('input', function() {
+        var sliderVal = parseFloat(filterQModal.value);
+        var q = SL.audio && SL.audio.sliderToQ ? SL.audio.sliderToQ(sliderVal) : sliderVal;
+        if (filterQValModal) filterQValModal.textContent = SL.t('mixer.q_prefix') + q.toFixed(1);
         syncFilterToInline();
         if (SL.audio && SL.audio.refreshFilter) {
           SL.audio.refreshFilter();
@@ -2814,9 +2863,9 @@
     }
 
     // Filter model dropdown
-    const filterModelModal = document.getElementById('filterModel-modal');
+    var filterModelModal = document.getElementById('filterModel-modal');
     if (filterModelModal) {
-      filterModelModal.addEventListener('change', () => {
+      filterModelModal.addEventListener('change', function() {
         syncFilterToInline();
         // Model change requires different filter implementation
         if (SL.audio && SL.audio.refreshActiveOscillators) {
@@ -2826,33 +2875,33 @@
     }
 
     // Frequency unit radio buttons (Hz / Note)
-    const freqUnitRadios = document.querySelectorAll('input[name="filterFreqUnit-modal"]');
-    freqUnitRadios.forEach(radio => {
-      radio.addEventListener('change', () => {
-        const sliderVal = filterFreqModal ? parseFloat(filterFreqModal.value) : 850;
-        const freq = SL.audio && SL.audio.sliderToFreq ? SL.audio.sliderToFreq(sliderVal) : sliderVal;
+    var freqUnitRadios = document.querySelectorAll('input[name="filterFreqUnit-modal"]');
+    freqUnitRadios.forEach(function(radio) {
+      radio.addEventListener('change', function() {
+        var sliderVal = filterFreqModal ? parseFloat(filterFreqModal.value) : 850;
+        var freq = SL.audio && SL.audio.sliderToFreq ? SL.audio.sliderToFreq(sliderVal) : sliderVal;
         updateFreqDisplay(freq);
       });
     });
 
     // Filter key tracking slider
-    const filterKeyTrackModal = document.getElementById('filterKeyTrack-modal');
-    const filterKeyTrackValModal = document.getElementById('filterKeyTrack-val-modal');
-    const inlineKeyTrack = document.getElementById('filterKeyTrack');
+    var filterKeyTrackModal = document.getElementById('filterKeyTrack-modal');
+    var filterKeyTrackValModal = document.getElementById('filterKeyTrack-val-modal');
+    var inlineKeyTrack = document.getElementById('filterKeyTrack');
     if (filterKeyTrackModal) {
-      filterKeyTrackModal.addEventListener('input', () => {
-        const val = parseInt(filterKeyTrackModal.value);
+      filterKeyTrackModal.addEventListener('input', function() {
+        var val = parseInt(filterKeyTrackModal.value);
         if (filterKeyTrackValModal) filterKeyTrackValModal.textContent = val + '%';
         if (inlineKeyTrack) inlineKeyTrack.value = val;
 
         // Update key tracked display to show effect of new key track amount
-        const keyTrackedDisplay = document.getElementById('filterKeyTrackedFreq-val-modal');
+        var keyTrackedDisplay = document.getElementById('filterKeyTrackedFreq-val-modal');
         if (keyTrackedDisplay) {
           if (val > 0) {
             keyTrackedDisplay.textContent = SL.t('ui.label.play_a_note');
           } else {
             // No key tracking - show same as base cutoff
-            const filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
+            var filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
             if (filterSettings) {
               if (filterSettings.frequency >= 1000) {
                 keyTrackedDisplay.textContent = (filterSettings.frequency / 1000).toFixed(2) + ' kHz';
@@ -2880,56 +2929,62 @@
 
     // Helper to sync noise modal to inline
     function syncNoiseToInline() {
-      const modalTypeRadio = document.querySelector('input[name="noiseType-modal"]:checked');
-      const modalLevel = document.getElementById('noiseLevel-modal');
+      var modalTypeRadio = document.querySelector('input[name="noiseType-modal"]:checked');
+      var modalLevel = document.getElementById('noiseLevel-modal');
 
-      const inlineEnabled = document.getElementById('noiseEnabled');
-      const inlineType = document.getElementById('noiseType');
-      const inlineLevel = document.getElementById('noiseLevel');
+      var inlineEnabled = document.getElementById('noiseEnabled');
+      var inlineType = document.getElementById('noiseType');
+      var inlineLevel = document.getElementById('noiseLevel');
 
       // Noise is always enabled now (no enable checkbox in modal)
       if (inlineEnabled) inlineEnabled.checked = true;
-      if (inlineType && modalTypeRadio) inlineType.value = modalTypeRadio.value;
-      if (inlineLevel && modalLevel) inlineLevel.value = modalLevel.value;
+      if (inlineType) {
+        if (modalTypeRadio) { inlineType.value = modalTypeRadio.value; }
+      }
+      if (inlineLevel) {
+        if (modalLevel) { inlineLevel.value = modalLevel.value; }
+      }
     }
 
     // Helper to convert linear level (0-100) to dB display - defined earlier, reuse
     function levelToDbDisplayForSync(level) {
       if (level <= 0) return '-\u221E dB';
-      const linearLevel = level / 100;
-      const db = 20 * Math.log10(linearLevel);
+      var linearLevel = level / 100;
+      var db = 20 * Math.log10(linearLevel);
       if (db <= -60) return '-\u221E dB';
       return db.toFixed(1) + ' dB';
     }
 
     // Helper to sync noise inline to modal
     function syncNoiseToModal() {
-      const inlineType = document.getElementById('noiseType');
-      const inlineLevel = document.getElementById('noiseLevel');
+      var inlineType = document.getElementById('noiseType');
+      var inlineLevel = document.getElementById('noiseLevel');
 
-      const modalTypeRadios = document.querySelectorAll('input[name="noiseType-modal"]');
-      const modalLevel = document.getElementById('noiseLevel-modal');
-      const modalLevelVal = document.getElementById('noiseLevel-val-modal');
+      var modalTypeRadios = document.querySelectorAll('input[name="noiseType-modal"]');
+      var modalLevel = document.getElementById('noiseLevel-modal');
+      var modalLevelVal = document.getElementById('noiseLevel-val-modal');
 
       // Noise is always enabled now (no enable checkbox in modal)
 
       if (inlineType) {
-        modalTypeRadios.forEach(radio => {
+        modalTypeRadios.forEach(function(radio) {
           radio.checked = (radio.value === inlineType.value);
         });
       }
 
-      if (modalLevel && inlineLevel) {
-        modalLevel.value = inlineLevel.value;
-        if (modalLevelVal) modalLevelVal.textContent = levelToDbDisplayForSync(parseInt(inlineLevel.value));
+      if (modalLevel) {
+        if (inlineLevel) {
+          modalLevel.value = inlineLevel.value;
+          if (modalLevelVal) modalLevelVal.textContent = levelToDbDisplayForSync(parseInt(inlineLevel.value));
+        }
       }
     }
 
     // Noise is always enabled now (no enable checkbox)
     // Noise type radio buttons
-    const noiseTypeRadios = document.querySelectorAll('input[name="noiseType-modal"]');
-    noiseTypeRadios.forEach(radio => {
-      radio.addEventListener('change', () => {
+    var noiseTypeRadios = document.querySelectorAll('input[name="noiseType-modal"]');
+    noiseTypeRadios.forEach(function(radio) {
+      radio.addEventListener('change', function() {
         syncNoiseToInline();
         // Restart continuous noise with new type
         if (SL.audio && SL.audio.restartContinuousNoise) {
@@ -2941,18 +2996,18 @@
     // Helper to convert linear level (0-100) to dB display
     function levelToDbDisplay(level) {
       if (level <= 0) return '-\u221E dB';
-      const linearLevel = level / 100;
-      const db = 20 * Math.log10(linearLevel);
+      var linearLevel = level / 100;
+      var db = 20 * Math.log10(linearLevel);
       if (db <= -60) return '-\u221E dB';
       return db.toFixed(1) + ' dB';
     }
 
     // Noise level slider
-    const noiseLevelModal = document.getElementById('noiseLevel-modal');
-    const noiseLevelValModal = document.getElementById('noiseLevel-val-modal');
+    var noiseLevelModal = document.getElementById('noiseLevel-modal');
+    var noiseLevelValModal = document.getElementById('noiseLevel-val-modal');
     if (noiseLevelModal) {
-      noiseLevelModal.addEventListener('input', () => {
-        const val = parseInt(noiseLevelModal.value);
+      noiseLevelModal.addEventListener('input', function() {
+        var val = parseInt(noiseLevelModal.value);
         if (noiseLevelValModal) noiseLevelValModal.textContent = levelToDbDisplay(val);
         syncNoiseToInline();
         // Update continuous noise level
@@ -2963,16 +3018,18 @@
     }
 
     // Sync noise controls when modal opens (update mixerBtn click handler)
-    const origMixerClickHandler = mixerBtn.onclick;
-    mixerBtn.addEventListener('click', () => {
+    var origMixerClickHandler = mixerBtn.onclick;
+    mixerBtn.addEventListener('click', function() {
       syncNoiseToModal();
       // Also sync key tracking
-      const inlineKeyTrackEl = document.getElementById('filterKeyTrack');
-      const modalKeyTrackEl = document.getElementById('filterKeyTrack-modal');
-      const modalKeyTrackValEl = document.getElementById('filterKeyTrack-val-modal');
-      if (modalKeyTrackEl && inlineKeyTrackEl) {
-        modalKeyTrackEl.value = inlineKeyTrackEl.value;
-        if (modalKeyTrackValEl) modalKeyTrackValEl.textContent = inlineKeyTrackEl.value + '%';
+      var inlineKeyTrackEl = document.getElementById('filterKeyTrack');
+      var modalKeyTrackEl = document.getElementById('filterKeyTrack-modal');
+      var modalKeyTrackValEl = document.getElementById('filterKeyTrack-val-modal');
+      if (modalKeyTrackEl) {
+        if (inlineKeyTrackEl) {
+          modalKeyTrackEl.value = inlineKeyTrackEl.value;
+          if (modalKeyTrackValEl) modalKeyTrackValEl.textContent = inlineKeyTrackEl.value + '%';
+        }
       }
       // Sync filter envelope controls
       syncFilterEnvToModal();
@@ -2984,55 +3041,69 @@
 
     // Helper to sync filter envelope inline controls to modal
     function syncFilterEnvToModal() {
-      const inlineEnabled = document.getElementById('filterEnvEnabled');
-      const inlineAmount = document.getElementById('filterEnvAmount');
-      const inlineA = document.getElementById('filterEnvA');
-      const inlineD = document.getElementById('filterEnvD');
-      const inlineS = document.getElementById('filterEnvS');
-      const inlineR = document.getElementById('filterEnvR');
-      const inlineLinkToAmp = document.getElementById('filterEnvLinkToAmp');
+      var inlineEnabled = document.getElementById('filterEnvEnabled');
+      var inlineAmount = document.getElementById('filterEnvAmount');
+      var inlineA = document.getElementById('filterEnvA');
+      var inlineD = document.getElementById('filterEnvD');
+      var inlineS = document.getElementById('filterEnvS');
+      var inlineR = document.getElementById('filterEnvR');
+      var inlineLinkToAmp = document.getElementById('filterEnvLinkToAmp');
 
-      const modalEnabled = document.getElementById('filterEnvEnabled-modal');
-      const modalAmount = document.getElementById('filterEnvAmount-modal');
-      const modalAmountVal = document.getElementById('filterEnvAmount-val-modal');
-      const modalA = document.getElementById('filterEnvA-modal');
-      const modalAVal = document.getElementById('filterEnvA-val-modal');
-      const modalD = document.getElementById('filterEnvD-modal');
-      const modalDVal = document.getElementById('filterEnvD-val-modal');
-      const modalS = document.getElementById('filterEnvS-modal');
-      const modalSVal = document.getElementById('filterEnvS-val-modal');
-      const modalR = document.getElementById('filterEnvR-modal');
-      const modalRVal = document.getElementById('filterEnvR-val-modal');
-      const modalLinkToAmp = document.getElementById('filterEnvLinkToAmp-modal');
+      var modalEnabled = document.getElementById('filterEnvEnabled-modal');
+      var modalAmount = document.getElementById('filterEnvAmount-modal');
+      var modalAmountVal = document.getElementById('filterEnvAmount-val-modal');
+      var modalA = document.getElementById('filterEnvA-modal');
+      var modalAVal = document.getElementById('filterEnvA-val-modal');
+      var modalD = document.getElementById('filterEnvD-modal');
+      var modalDVal = document.getElementById('filterEnvD-val-modal');
+      var modalS = document.getElementById('filterEnvS-modal');
+      var modalSVal = document.getElementById('filterEnvS-val-modal');
+      var modalR = document.getElementById('filterEnvR-modal');
+      var modalRVal = document.getElementById('filterEnvR-val-modal');
+      var modalLinkToAmp = document.getElementById('filterEnvLinkToAmp-modal');
 
-      if (modalEnabled && inlineEnabled) modalEnabled.checked = inlineEnabled.checked;
+      if (modalEnabled) {
+        if (inlineEnabled) { modalEnabled.checked = inlineEnabled.checked; }
+      }
 
-      if (modalAmount && inlineAmount) {
-        modalAmount.value = inlineAmount.value;
-        if (modalAmountVal) {
-          const amt = parseInt(inlineAmount.value);
-          modalAmountVal.textContent = (amt >= 0 ? '+' : '') + amt + ' st';
+      if (modalAmount) {
+        if (inlineAmount) {
+          modalAmount.value = inlineAmount.value;
+          if (modalAmountVal) {
+            var amt = parseInt(inlineAmount.value);
+            modalAmountVal.textContent = (amt >= 0 ? '+' : '') + amt + ' st';
+          }
         }
       }
 
-      if (modalA && inlineA) {
-        modalA.value = inlineA.value;
-        if (modalAVal) modalAVal.textContent = SL.ui.formatFilterEnvTime('A', parseFloat(inlineA.value)) + 'ms';
+      if (modalA) {
+        if (inlineA) {
+          modalA.value = inlineA.value;
+          if (modalAVal) modalAVal.textContent = SL.ui.formatFilterEnvTime('A', parseFloat(inlineA.value)) + 'ms';
+        }
       }
-      if (modalD && inlineD) {
-        modalD.value = inlineD.value;
-        if (modalDVal) modalDVal.textContent = SL.ui.formatFilterEnvTime('D', parseFloat(inlineD.value)) + 'ms';
+      if (modalD) {
+        if (inlineD) {
+          modalD.value = inlineD.value;
+          if (modalDVal) modalDVal.textContent = SL.ui.formatFilterEnvTime('D', parseFloat(inlineD.value)) + 'ms';
+        }
       }
-      if (modalS && inlineS) {
-        modalS.value = inlineS.value;
-        if (modalSVal) modalSVal.textContent = inlineS.value + '%';
+      if (modalS) {
+        if (inlineS) {
+          modalS.value = inlineS.value;
+          if (modalSVal) modalSVal.textContent = inlineS.value + '%';
+        }
       }
-      if (modalR && inlineR) {
-        modalR.value = inlineR.value;
-        if (modalRVal) modalRVal.textContent = SL.ui.formatFilterEnvTime('R', parseFloat(inlineR.value)) + 'ms';
+      if (modalR) {
+        if (inlineR) {
+          modalR.value = inlineR.value;
+          if (modalRVal) modalRVal.textContent = SL.ui.formatFilterEnvTime('R', parseFloat(inlineR.value)) + 'ms';
+        }
       }
 
-      if (modalLinkToAmp && inlineLinkToAmp) modalLinkToAmp.checked = inlineLinkToAmp.checked;
+      if (modalLinkToAmp) {
+        if (inlineLinkToAmp) { modalLinkToAmp.checked = inlineLinkToAmp.checked; }
+      }
 
       // Update disabled state
       updateFilterEnvDisabledState();
@@ -3041,35 +3112,49 @@
 
     // Helper to sync filter envelope modal controls back to inline
     function syncFilterEnvToInline() {
-      const modalEnabled = document.getElementById('filterEnvEnabled-modal');
-      const modalAmount = document.getElementById('filterEnvAmount-modal');
-      const modalA = document.getElementById('filterEnvA-modal');
-      const modalD = document.getElementById('filterEnvD-modal');
-      const modalS = document.getElementById('filterEnvS-modal');
-      const modalR = document.getElementById('filterEnvR-modal');
-      const modalLinkToAmp = document.getElementById('filterEnvLinkToAmp-modal');
+      var modalEnabled = document.getElementById('filterEnvEnabled-modal');
+      var modalAmount = document.getElementById('filterEnvAmount-modal');
+      var modalA = document.getElementById('filterEnvA-modal');
+      var modalD = document.getElementById('filterEnvD-modal');
+      var modalS = document.getElementById('filterEnvS-modal');
+      var modalR = document.getElementById('filterEnvR-modal');
+      var modalLinkToAmp = document.getElementById('filterEnvLinkToAmp-modal');
 
-      const inlineEnabled = document.getElementById('filterEnvEnabled');
-      const inlineAmount = document.getElementById('filterEnvAmount');
-      const inlineA = document.getElementById('filterEnvA');
-      const inlineD = document.getElementById('filterEnvD');
-      const inlineS = document.getElementById('filterEnvS');
-      const inlineR = document.getElementById('filterEnvR');
-      const inlineLinkToAmp = document.getElementById('filterEnvLinkToAmp');
+      var inlineEnabled = document.getElementById('filterEnvEnabled');
+      var inlineAmount = document.getElementById('filterEnvAmount');
+      var inlineA = document.getElementById('filterEnvA');
+      var inlineD = document.getElementById('filterEnvD');
+      var inlineS = document.getElementById('filterEnvS');
+      var inlineR = document.getElementById('filterEnvR');
+      var inlineLinkToAmp = document.getElementById('filterEnvLinkToAmp');
 
-      if (inlineEnabled && modalEnabled) inlineEnabled.checked = modalEnabled.checked;
-      if (inlineAmount && modalAmount) inlineAmount.value = modalAmount.value;
-      if (inlineA && modalA) inlineA.value = modalA.value;
-      if (inlineD && modalD) inlineD.value = modalD.value;
-      if (inlineS && modalS) inlineS.value = modalS.value;
-      if (inlineR && modalR) inlineR.value = modalR.value;
-      if (inlineLinkToAmp && modalLinkToAmp) inlineLinkToAmp.checked = modalLinkToAmp.checked;
+      if (inlineEnabled) {
+        if (modalEnabled) { inlineEnabled.checked = modalEnabled.checked; }
+      }
+      if (inlineAmount) {
+        if (modalAmount) { inlineAmount.value = modalAmount.value; }
+      }
+      if (inlineA) {
+        if (modalA) { inlineA.value = modalA.value; }
+      }
+      if (inlineD) {
+        if (modalD) { inlineD.value = modalD.value; }
+      }
+      if (inlineS) {
+        if (modalS) { inlineS.value = modalS.value; }
+      }
+      if (inlineR) {
+        if (modalR) { inlineR.value = modalR.value; }
+      }
+      if (inlineLinkToAmp) {
+        if (modalLinkToAmp) { inlineLinkToAmp.checked = modalLinkToAmp.checked; }
+      }
     }
 
     // Helper to update filter envelope section disabled state
     function updateFilterEnvDisabledState() {
-      const filterEnvSection = document.querySelector('.filter-env-section-modal');
-      const modalEnabled = document.getElementById('filterEnvEnabled-modal');
+      var filterEnvSection = document.querySelector('.filter-env-section-modal');
+      var modalEnabled = document.getElementById('filterEnvEnabled-modal');
       if (filterEnvSection && modalEnabled) {
         if (modalEnabled.checked) {
           filterEnvSection.classList.remove('disabled');
@@ -3081,8 +3166,8 @@
 
     // Helper to update filter envelope ADSR disabled state (when linked to amp)
     function updateFilterEnvADSRDisabledState() {
-      const modalLinkToAmp = document.getElementById('filterEnvLinkToAmp-modal');
-      const adsrContainer = document.querySelector('.filter-env-adsr-container');
+      var modalLinkToAmp = document.getElementById('filterEnvLinkToAmp-modal');
+      var adsrContainer = document.querySelector('.filter-env-adsr-container');
       if (adsrContainer && modalLinkToAmp) {
         if (modalLinkToAmp.checked) {
           adsrContainer.classList.add('linked');
@@ -3093,9 +3178,9 @@
     }
 
     // Filter envelope enable checkbox
-    const filterEnvEnabledModal = document.getElementById('filterEnvEnabled-modal');
+    var filterEnvEnabledModal = document.getElementById('filterEnvEnabled-modal');
     if (filterEnvEnabledModal) {
-      filterEnvEnabledModal.addEventListener('change', () => {
+      filterEnvEnabledModal.addEventListener('change', function() {
         syncFilterEnvToInline();
         updateFilterEnvDisabledState();
         // When toggling filter envelope, need to refresh oscillators
@@ -3106,11 +3191,11 @@
     }
 
     // Filter envelope amount slider
-    const filterEnvAmountModal = document.getElementById('filterEnvAmount-modal');
-    const filterEnvAmountValModal = document.getElementById('filterEnvAmount-val-modal');
+    var filterEnvAmountModal = document.getElementById('filterEnvAmount-modal');
+    var filterEnvAmountValModal = document.getElementById('filterEnvAmount-val-modal');
     if (filterEnvAmountModal) {
-      filterEnvAmountModal.addEventListener('input', () => {
-        const amt = parseInt(filterEnvAmountModal.value);
+      filterEnvAmountModal.addEventListener('input', function() {
+        var amt = parseInt(filterEnvAmountModal.value);
         if (filterEnvAmountValModal) filterEnvAmountValModal.textContent = (amt >= 0 ? '+' : '') + amt + ' st';
         syncFilterEnvToInline();
         if (SL.audio && SL.audio.refreshActiveOscillators) {
@@ -3120,10 +3205,10 @@
     }
 
     // Filter envelope ADSR sliders (with logarithmic display + units)
-    const filterEnvAModal = document.getElementById('filterEnvA-modal');
-    const filterEnvAValModal = document.getElementById('filterEnvA-val-modal');
+    var filterEnvAModal = document.getElementById('filterEnvA-modal');
+    var filterEnvAValModal = document.getElementById('filterEnvA-val-modal');
     if (filterEnvAModal) {
-      filterEnvAModal.addEventListener('input', () => {
+      filterEnvAModal.addEventListener('input', function() {
         if (filterEnvAValModal) filterEnvAValModal.textContent = SL.ui.formatFilterEnvTime('A', parseFloat(filterEnvAModal.value)) + 'ms';
         syncFilterEnvToInline();
         if (SL.audio && SL.audio.refreshActiveOscillators) {
@@ -3132,10 +3217,10 @@
       });
     }
 
-    const filterEnvDModal = document.getElementById('filterEnvD-modal');
-    const filterEnvDValModal = document.getElementById('filterEnvD-val-modal');
+    var filterEnvDModal = document.getElementById('filterEnvD-modal');
+    var filterEnvDValModal = document.getElementById('filterEnvD-val-modal');
     if (filterEnvDModal) {
-      filterEnvDModal.addEventListener('input', () => {
+      filterEnvDModal.addEventListener('input', function() {
         if (filterEnvDValModal) filterEnvDValModal.textContent = SL.ui.formatFilterEnvTime('D', parseFloat(filterEnvDModal.value)) + 'ms';
         syncFilterEnvToInline();
         if (SL.audio && SL.audio.refreshActiveOscillators) {
@@ -3144,10 +3229,10 @@
       });
     }
 
-    const filterEnvSModal = document.getElementById('filterEnvS-modal');
-    const filterEnvSValModal = document.getElementById('filterEnvS-val-modal');
+    var filterEnvSModal = document.getElementById('filterEnvS-modal');
+    var filterEnvSValModal = document.getElementById('filterEnvS-val-modal');
     if (filterEnvSModal) {
-      filterEnvSModal.addEventListener('input', () => {
+      filterEnvSModal.addEventListener('input', function() {
         if (filterEnvSValModal) filterEnvSValModal.textContent = filterEnvSModal.value + '%';
         syncFilterEnvToInline();
         if (SL.audio && SL.audio.refreshActiveOscillators) {
@@ -3156,10 +3241,10 @@
       });
     }
 
-    const filterEnvRModal = document.getElementById('filterEnvR-modal');
-    const filterEnvRValModal = document.getElementById('filterEnvR-val-modal');
+    var filterEnvRModal = document.getElementById('filterEnvR-modal');
+    var filterEnvRValModal = document.getElementById('filterEnvR-val-modal');
     if (filterEnvRModal) {
-      filterEnvRModal.addEventListener('input', () => {
+      filterEnvRModal.addEventListener('input', function() {
         if (filterEnvRValModal) filterEnvRValModal.textContent = SL.ui.formatFilterEnvTime('R', parseFloat(filterEnvRModal.value)) + 'ms';
         syncFilterEnvToInline();
         if (SL.audio && SL.audio.refreshActiveOscillators) {
@@ -3169,9 +3254,9 @@
     }
 
     // Filter envelope "Link to Amp" checkbox
-    const filterEnvLinkToAmpModal = document.getElementById('filterEnvLinkToAmp-modal');
+    var filterEnvLinkToAmpModal = document.getElementById('filterEnvLinkToAmp-modal');
     if (filterEnvLinkToAmpModal) {
-      filterEnvLinkToAmpModal.addEventListener('change', () => {
+      filterEnvLinkToAmpModal.addEventListener('change', function() {
         syncFilterEnvToInline();
         updateFilterEnvADSRDisabledState();
         if (SL.audio && SL.audio.refreshActiveOscillators) {
@@ -3194,10 +3279,12 @@
       var blowParams = document.getElementById('physicalBlowParams');
       var strikeParams = document.getElementById('physicalStrikeParams');
 
-      if (pluckParams) pluckParams.style.display = model === 'pluck' ? '' : 'none';
-      if (bowParams) bowParams.style.display = model === 'bow' ? '' : 'none';
-      if (blowParams) blowParams.style.display = model === 'blow' ? '' : 'none';
-      if (strikeParams) strikeParams.style.display = model === 'strike' ? '' : 'none';
+      var physParamMap = { 'pluck': pluckParams, 'bow': bowParams, 'blow': blowParams, 'strike': strikeParams };
+      for (var physKey in physParamMap) {
+        if (physParamMap[physKey]) {
+          physParamMap[physKey].style.display = (physKey === model) ? '' : 'none';
+        }
+      }
     }
 
     // Model selector
@@ -3456,7 +3543,13 @@
         if (waveform === 'sine') {
           val = Math.sin(phase * 2 * Math.PI);
         } else if (waveform === 'triangle') {
-          val = phase < 0.25 ? phase * 4 : phase < 0.75 ? 2 - phase * 4 : phase * 4 - 4;
+          if (phase < 0.25) {
+            val = phase * 4;
+          } else if (phase < 0.75) {
+            val = 2 - phase * 4;
+          } else {
+            val = phase * 4 - 4;
+          }
         } else if (waveform === 'square') {
           val = phase < 0.5 ? 1 : -1;
         } else if (waveform === 'saw') {
@@ -3529,7 +3622,7 @@
 
     // Build LFO tab content
     if (lfoTabContent) {
-      lfoTabContent.innerHTML = '<div class="lfo-tab-inner">' +
+      lfoTabContent.innerHTML = '<div class="lfo-tab-inner">' + /* trusted: computed from internal state */
         buildLFOSectionHTML(1) +
         buildLFOSectionHTML(2) +
       '</div>';
@@ -3674,7 +3767,7 @@
         rowsHTML += buildModMatrixRowHTML(ri);
       }
 
-      modMatrixPanelContent.innerHTML = '<div class="mod-matrix-tab-inner">' +
+      modMatrixPanelContent.innerHTML = '<div class="mod-matrix-tab-inner">' + /* trusted: computed from internal state */
         '<div class="mod-matrix-grid">' + headerHTML + rowsHTML + '</div>' +
       '</div>';
 
@@ -3690,13 +3783,12 @@
           var activityEl = document.getElementById('modMatrixActivity' + slotIdx);
 
           function updateRowState() {
-            if (!rowEl) {
-              return;
-            }
+            if (rowEl) {
             var isEnabled = enableEl && enableEl.checked;
-            var hasSource = sourceEl && sourceEl.value !== 'none';
-            var hasDest = destEl && destEl.value !== 'none';
-            if (isEnabled && hasSource && hasDest) {
+            var hasSource = sourceEl && sourceEl.value !== NO_SELECTION;
+            var hasDest = destEl && destEl.value !== NO_SELECTION;
+            var isActiveModSlot = isEnabled && hasSource && hasDest;
+            if (isActiveModSlot) {
               rowEl.classList.add('active');
               rowEl.classList.remove('disabled');
               if (activityEl) activityEl.classList.add('active');
@@ -3709,6 +3801,7 @@
               rowEl.classList.add('disabled');
               if (activityEl) activityEl.classList.remove('active');
             }
+            } // end if (rowEl)
           }
 
           if (enableEl) {
@@ -3750,9 +3843,7 @@
      * Refresh mod matrix UI from current instrument settings
      */
     function refreshModMatrixUI() {
-      if (!SL.audio.modMatrix) {
-        return;
-      }
+      if (SL.audio.modMatrix) {
       var instId = SL.audio.getCurrentInstrument();
       var slots = SL.audio.modMatrix.getSettings(instId);
       var numSlots = SL.audio.modMatrix.NUM_SLOTS || 8;
@@ -3775,7 +3866,7 @@
 
         // Update row visual state
         if (rowEl) {
-          var isActive = slot.enabled && slot.source !== 'none' && slot.destination !== 'none';
+          var isActive = slot.enabled && slot.source !== NO_SELECTION && slot.destination !== NO_SELECTION;
           if (isActive) {
             rowEl.classList.add('active');
             rowEl.classList.remove('disabled');
@@ -3791,6 +3882,7 @@
           }
         }
       }
+      } // end if (SL.audio.modMatrix)
     }
 
     // ============================================================
@@ -3833,7 +3925,9 @@
 
     // Close on Escape key
     document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape' && modMatrixPanel && !modMatrixPanel.classList.contains('hidden')) {
+      var isEscapeKey = e.key === 'Escape' && modMatrixPanel;
+      var shouldCloseModMatrix = isEscapeKey && !modMatrixPanel.classList.contains('hidden');
+      if (shouldCloseModMatrix) {
         closeModMatrixPanel();
       }
     });
@@ -3843,20 +3937,19 @@
     if (topFreezeBtnEl) {
       topFreezeBtnEl.addEventListener('click', function() {
         var currentInstId = SL.audio.getCurrentInstrument();
-        if (!SL.granular || !SL.granular.setFreeze) {
-          return;
-        }
-        var isActive = topFreezeBtnEl.classList.contains('active');
-        var newState = !isActive;
-        SL.granular.setFreeze(currentInstId, newState);
-        syncTopFreezeButton(newState);
-        // Also sync the modal freeze button if it exists
-        var modalFreezeBtn = document.getElementById('granularFreezeBtn');
-        if (modalFreezeBtn) {
-          if (newState) {
-            modalFreezeBtn.classList.add('active');
-          } else {
-            modalFreezeBtn.classList.remove('active');
+        if (SL.granular && SL.granular.setFreeze) {
+          var isActive = topFreezeBtnEl.classList.contains('active');
+          var newState = !isActive;
+          SL.granular.setFreeze(currentInstId, newState);
+          syncTopFreezeButton(newState);
+          // Also sync the modal freeze button if it exists
+          var modalFreezeBtn = document.getElementById('granularFreezeBtn');
+          if (modalFreezeBtn) {
+            if (newState) {
+              modalFreezeBtn.classList.add('active');
+            } else {
+              modalFreezeBtn.classList.remove('active');
+            }
           }
         }
       });
@@ -4019,19 +4112,24 @@
     }
     var sliderNames = ['MalletHardness', 'Damping', 'Brightness', 'BodySize', 'Inharmonicity'];
     var settingsKeys = ['malletHardness', 'damping', 'brightness', 'bodySize', 'inharmonicity'];
+
+    function _applyModalSetting(key, value) {
+      var instId = SL.audio.getCurrentInstrument();
+      if (SL.modal && SL.modal.setSettings) {
+        var upd = {};
+        upd[key] = parseInt(value);
+        SL.modal.setSettings(instId, upd);
+      }
+    }
+
     for (var si = 0; si < sliderNames.length; si++) {
       (function(name, key) {
         var el = document.getElementById('modal' + name);
         var valEl = document.getElementById('modal' + name + 'Val');
         if (el) {
           el.addEventListener('input', function() {
-            if (valEl) valEl.textContent = el.value;
-            var instId = SL.audio.getCurrentInstrument();
-            if (SL.modal && SL.modal.setSettings) {
-              var upd = {};
-              upd[key] = parseInt(el.value);
-              SL.modal.setSettings(instId, upd);
-            }
+            if (valEl) { valEl.textContent = el.value; }
+            _applyModalSetting(key, el.value);
           });
         }
       })(sliderNames[si], settingsKeys[si]);
@@ -4042,13 +4140,11 @@
   // Ring Modulation Controls
   // ============================================================
 
-  var _ringmodInitialized = false;
+  var _isRingmodInitialized = false;
 
   function initRingmodControls() {
     var container = document.getElementById('ringmodControlsModal');
-    if (!container) {
-      return;
-    }
+    if (container) {
 
     var instId = SL.audio.getCurrentInstrument();
     var rmSettings = (SL.ringmod && SL.ringmod.getSettings) ? SL.ringmod.getSettings(instId) : null;
@@ -4058,9 +4154,7 @@
       };
     }
 
-    if (_ringmodInitialized) {
-      return;
-    }
+    if (!_isRingmodInitialized) {
 
     var html = '';
     html += '<div class="ringmod-controls-grid">';
@@ -4082,7 +4176,7 @@
     html += '<div class="param-value" id="ringmodModDepthVal">' + (rmSettings.modDepth || 80) + '%</div></div>';
     html += '</div>';
 
-    container.innerHTML = html;
+    container.innerHTML = html; /* trusted: computed from internal state */
 
     var carrierEl = document.getElementById('ringmodCarrierWave');
     var modWaveEl = document.getElementById('ringmodModWave');
@@ -4125,20 +4219,20 @@
       });
     }
 
-    _ringmodInitialized = true;
+    _isRingmodInitialized = true;
+    } // end if (!_isRingmodInitialized)
+    } // end if (container)
   }
 
   // ============================================================
   // Chord Controls
   // ============================================================
 
-  var _chordInitialized = false;
+  var _isChordInitialized = false;
 
   function initChordControls() {
     var container = document.getElementById('chordControlsModal');
-    if (!container) {
-      return;
-    }
+    if (container) {
 
     var instId = SL.audio.getCurrentInstrument();
     var chSettings = (SL.chord && SL.chord.getSettings) ? SL.chord.getSettings(instId) : null;
@@ -4148,9 +4242,7 @@
       };
     }
 
-    if (_chordInitialized) {
-      return;
-    }
+    if (!_isChordInitialized) {
 
     var html = '';
     html += '<div class="chord-controls-grid">';
@@ -4178,7 +4270,7 @@
     html += '<div class="param-value" id="chordStrumVal">' + (chSettings.strum || 0) + ' ms</div></div>';
     html += '</div>';
 
-    container.innerHTML = html;
+    container.innerHTML = html; /* trusted: computed from internal state */
 
     var typeEl = document.getElementById('chordType');
     var voicingEl = document.getElementById('chordVoicing');
@@ -4216,20 +4308,20 @@
       });
     }
 
-    _chordInitialized = true;
+    _isChordInitialized = true;
+    } // end if (!_isChordInitialized)
+    } // end if (container)
   }
 
   // ============================================================
   // SuperWave Controls
   // ============================================================
 
-  var _superwaveInitialized = false;
+  var _isSuperwaveInitialized = false;
 
   function initSuperwaveControls() {
     var container = document.getElementById('superwaveControlsModal');
-    if (!container) {
-      return;
-    }
+    if (container) {
 
     var instId = SL.audio.getCurrentInstrument();
     var swSettings = (SL.superwave && SL.superwave.getSettings) ? SL.superwave.getSettings(instId) : null;
@@ -4239,9 +4331,7 @@
       };
     }
 
-    if (_superwaveInitialized) {
-      return;
-    }
+    if (!_isSuperwaveInitialized) {
 
     var html = '';
     html += '<div class="superwave-controls-grid">';
@@ -4270,7 +4360,7 @@
     html += '</select></div>';
     html += '</div>';
 
-    container.innerHTML = html;
+    container.innerHTML = html; /* trusted: computed from internal state */
 
     var sourceEl = document.getElementById('superwaveSource');
     var vcountEl = document.getElementById('superwaveVoiceCount');
@@ -4318,15 +4408,15 @@
       });
     }
 
-    _superwaveInitialized = true;
+    _isSuperwaveInitialized = true;
+    } // end if (!_isSuperwaveInitialized)
+    } // end if (container)
   }
 
-  var _wavetableInitialized = false;
+  var _isWavetableInitialized = false;
   function initWavetableControls() {
     var container = document.getElementById('wavetableControlsModal');
-    if (!container) {
-      return;
-    }
+    if (container) {
 
     var instId = SL.audio.getCurrentInstrument();
     var wtSettings = (SL.wavetableSynth && SL.wavetableSynth.getSettings) ? SL.wavetableSynth.getSettings(instId) : null;
@@ -4336,9 +4426,7 @@
       };
     }
 
-    if (_wavetableInitialized) {
-      return;
-    }
+    if (!_isWavetableInitialized) {
 
     var html = '';
     html += '<div class="wavetable-controls-grid">';
@@ -4362,7 +4450,7 @@
     html += '<div class="param-value" id="wavetableSynthDetuneVal">' + (wtSettings.detune || 0) + ' cents</div></div>';
     html += '</div>';
 
-    container.innerHTML = html;
+    container.innerHTML = html; /* trusted: computed from internal state */
 
     var bankEl = document.getElementById('wavetableSynthBank');
     var scanEl = document.getElementById('wavetableSynthScan');
@@ -4414,15 +4502,15 @@
       });
     }
 
-    _wavetableInitialized = true;
+    _isWavetableInitialized = true;
+    } // end if (!_isWavetableInitialized)
+    } // end if (container)
   }
 
-  var _phasedistInitialized = false;
+  var _isPhasedistInitialized = false;
   function initPhasedistControls() {
     var container = document.getElementById('phasedistControlsModal');
-    if (!container) {
-      return;
-    }
+    if (container) {
 
     var instId = SL.audio.getCurrentInstrument();
     var pdSettings = (SL.phasedist && SL.phasedist.getSettings) ? SL.phasedist.getSettings(instId) : null;
@@ -4433,9 +4521,7 @@
       };
     }
 
-    if (_phasedistInitialized) {
-      return;
-    }
+    if (!_isPhasedistInitialized) {
 
     var html = '';
     html += '<div class="phasedist-controls-grid">';
@@ -4470,7 +4556,7 @@
     html += '<div class="param-value" id="phasedistEnvRVal">' + (pdSettings.envRelease || 300) + ' ms</div></div>';
     html += '</div>';
 
-    container.innerHTML = html;
+    container.innerHTML = html; /* trusted: computed from internal state */
 
     var typeEl = document.getElementById('phasedistType');
     var amountEl = document.getElementById('phasedistAmount');
@@ -4550,15 +4636,15 @@
       });
     }
 
-    _phasedistInitialized = true;
+    _isPhasedistInitialized = true;
+    } // end if (!_isPhasedistInitialized)
+    } // end if (container)
   }
 
-  var _chipInitialized = false;
+  var _isChipInitialized = false;
   function initChipControls() {
     var container = document.getElementById('chipControlsModal');
-    if (!container) {
-      return;
-    }
+    if (container) {
 
     var instId = SL.audio.getCurrentInstrument();
     var chipSettings = (SL.chip && SL.chip.getSettings) ? SL.chip.getSettings(instId) : null;
@@ -4569,9 +4655,7 @@
       };
     }
 
-    if (_chipInitialized) {
-      return;
-    }
+    if (!_isChipInitialized) {
 
     var html = '';
     html += '<div class="chip-controls-grid">';
@@ -4610,7 +4694,7 @@
     html += '<div class="param-value" id="chipFmFbVal">' + (chipSettings.fmFeedback || 0) + '</div></div>';
     html += '</div>';
 
-    container.innerHTML = html;
+    container.innerHTML = html; /* trusted: computed from internal state */
 
     var modeEl = document.getElementById('chipMode');
     var waveEl = document.getElementById('chipWaveform');
@@ -4679,7 +4763,7 @@
     if (fmAlgoEl) {
       fmAlgoEl.addEventListener('input', function() {
         var val = parseInt(fmAlgoEl.value);
-        if (fmAlgoValEl) fmAlgoValEl.textContent = 'Algo ' + val;
+        if (fmAlgoValEl) fmAlgoValEl.textContent = SL.t('mixer.algo_prefix') + val;
         var iid = SL.audio.getCurrentInstrument();
         SL.audio.setChipSettings(iid, { fmAlgorithm: val });
         if (SL.chip && SL.chip.setFmAlgorithm) {
@@ -4699,27 +4783,18 @@
       });
     }
 
-    _chipInitialized = true;
+    _isChipInitialized = true;
+    } // end if (!_isChipInitialized)
+    } // end if (container)
   }
-
-  SL.mixerModal = {
-    setup: setupMixerModal,
-    updateTypeToggleState: null,
-    updatePhysicalParamVisibility: null,
-    updateAdditiveVisibility: null,
-    refreshModMatrixUI: null,
-    syncTopFreezeButton: null
-  };
 
   // ============================================================
   // Bytebeat Controls Init
   // ============================================================
-  var _bytebeatInitialized = false;
+  var _isBytebeatInitialized = false;
   function initBytebeatControls() {
     var container = document.getElementById('bytebeatControlsModal');
-    if (!container) {
-      return;
-    }
+    if (container) {
 
     var bbSettings = (SL.bytebeat && SL.bytebeat.getSettings) ? SL.bytebeat.getSettings() : null;
     if (!bbSettings) {
@@ -4755,14 +4830,18 @@
     // T rate slider
     html += '<div style="margin-bottom:4px;"><label style="color:#ccc;font-size:0.55rem;">T Rate: </label>';
     html += '<input id="bytebeatTRate" type="range" aria-label="Bytebeat T Rate" min="1" max="16" value="' + bbSettings.tIncrement + '" style="width:80px;vertical-align:middle;" />';
-    html += '<span id="bytebeatTRateVal" style="color:#ccc;font-size:0.55rem;margin-left:4px;">' + bbSettings.tIncrement + '</span></div>';
+    html += '<span id="bytebeatTRateVal" style="color:#ccc;font-size:0.55rem;margin-left:4px;">' +
+            bbSettings.tIncrement + '</span></div>';
 
     // Bit depth toggle
     html += '<div style="margin-bottom:4px;"><label style="color:#ccc;font-size:0.55rem;">Bit Depth: </label>';
-    html += '<button id="bytebeatBitDepth" class="mini-toggle" style="font-size:0.55rem;padding:2px 8px;background:' + (bbSettings.bitDepth === 16 ? '#0a5' : '#333') + ';color:#fff;border:1px solid #555;cursor:pointer;">' + bbSettings.bitDepth + '-bit</button></div>';
+    var bytebeatBitDepthBg = (bbSettings.bitDepth === 16) ? '#0a5' : '#333';
+    html += '<button id="bytebeatBitDepth" class="mini-toggle"' +
+            ' style="font-size:0.55rem;padding:2px 8px;background:' + bytebeatBitDepthBg + ';color:#fff;border:1px solid #555;cursor:pointer;">' +
+            bbSettings.bitDepth + '-bit</button></div>';
 
     html += '</div>';
-    container.innerHTML = html;
+    container.innerHTML = html; /* trusted: computed from internal state */
 
     // Event handlers
     var formulaSel = document.getElementById('bytebeatFormulaSelect');
@@ -4823,18 +4902,17 @@
       });
     }
 
-    _bytebeatInitialized = true;
+    _isBytebeatInitialized = true;
+  }
   }
 
   // ============================================================
   // Vector Controls Init
   // ============================================================
-  var _vectorInitialized = false;
+  var _isVectorInitialized = false;
   function initVectorControls() {
     var container = document.getElementById('vectorControlsModal');
-    if (!container) {
-      return;
-    }
+    if (container) {
 
     var instId = SL.audio.getCurrentInstrument();
     var vecSettings = (SL.vector && SL.vector.getSettings) ? SL.vector.getSettings(instId) : null;
@@ -4883,10 +4961,14 @@
     // Vector envelope toggle + speed
     var envEnabled = vecSettings.vectorEnvelope && vecSettings.vectorEnvelope.enabled;
     html += '<div style="margin-bottom:4px;"><label style="color:#ccc;font-size:0.55rem;">Vec Envelope: </label>';
-    html += '<button id="vectorEnvToggle" class="mini-toggle" style="font-size:0.55rem;padding:2px 8px;background:' + (envEnabled ? '#0a5' : '#333') + ';color:#fff;border:1px solid #555;cursor:pointer;">' + (envEnabled ? 'ON' : 'OFF') + '</button></div>';
+    var vectorEnvBg = envEnabled ? '#0a5' : '#333';
+    var vectorEnvLabel = envEnabled ? 'ON' : 'OFF';
+    html += '<button id="vectorEnvToggle" class="mini-toggle"' +
+            ' style="font-size:0.55rem;padding:2px 8px;background:' + vectorEnvBg + ';color:#fff;border:1px solid #555;cursor:pointer;">' +
+            vectorEnvLabel + '</button></div>';
 
     html += '</div>';
-    container.innerHTML = html;
+    container.innerHTML = html; /* trusted: computed from internal state */
 
     // Event handlers
     var xSlider = document.getElementById('vectorXSlider');
@@ -4951,20 +5033,19 @@
       });
     }
 
-    _vectorInitialized = true;
+    _isVectorInitialized = true;
+  }
   }
 
   // ============================================================
   // Drum Synth Controls
   // ============================================================
 
-  var _drumsynInitialized = false;
+  var _isDrumsynInitialized = false;
 
   function initDrumsynControls() {
     var container = document.getElementById('drumsynControlsModal');
-    if (!container) {
-      return;
-    }
+    if (container) {
 
     var instId = SL.audio.getCurrentInstrument();
     var dsSettings = (SL.drumsyn && SL.drumsyn.getSettings) ? SL.drumsyn.getSettings(instId) : null;
@@ -5005,7 +5086,7 @@
     }
 
     html += '</div>';
-    container.innerHTML = html;
+    container.innerHTML = html; /* trusted: computed from internal state */
 
     // Event handlers
     var typeSelect = document.getElementById('drumsynType');
@@ -5026,35 +5107,32 @@
             if (valSpan) valSpan.textContent = slider.value;
             var iid = SL.audio.getCurrentInstrument();
             if (SL.drumsyn && SL.drumsyn.setSettings) {
-              var update = {};
-              if (param.id === 'drumsynPitch') update.pitch = parseInt(slider.value);
-              if (param.id === 'drumsynDecay') update.decay = parseInt(slider.value);
-              if (param.id === 'drumsynTone') update.tone = parseInt(slider.value);
-              if (param.id === 'drumsynMix') update.bodyNoiseMix = parseInt(slider.value);
-              if (param.id === 'drumsynDrive') update.drive = parseInt(slider.value);
-              var cur = SL.drumsyn.getSettings(iid);
-              for (var k in update) { cur[k] = update[k]; }
-              SL.drumsyn.setSettings(iid, cur);
+              var drumsynPropMap = { 'drumsynPitch': 'pitch', 'drumsynDecay': 'decay', 'drumsynTone': 'tone', 'drumsynMix': 'bodyNoiseMix', 'drumsynDrive': 'drive' };
+              var drumsynProp = drumsynPropMap[param.id];
+              if (drumsynProp) {
+                var cur = SL.drumsyn.getSettings(iid);
+                cur[drumsynProp] = parseInt(slider.value);
+                SL.drumsyn.setSettings(iid, cur);
+              }
             }
           });
         }
       })(params[si]);
     }
 
-    _drumsynInitialized = true;
+    _isDrumsynInitialized = true;
+  }
   }
 
   // ============================================================
   // Pulsar Controls
   // ============================================================
 
-  var _pulsarInitialized = false;
+  var _isPulsarInitialized = false;
 
   function initPulsarControls() {
     var container = document.getElementById('pulsarControlsModal');
-    if (!container) {
-      return;
-    }
+    if (container) {
 
     var instId = SL.audio.getCurrentInstrument();
     var plsSettings = (SL.pulsar && SL.pulsar.getSettings) ? SL.pulsar.getSettings(instId) : null;
@@ -5104,7 +5182,7 @@
     }
 
     html += '</div>';
-    container.innerHTML = html;
+    container.innerHTML = html; /* trusted: computed from internal state */
 
     // Event handlers
     var waveSelect = document.getElementById('pulsarWaveform');
@@ -5140,19 +5218,32 @@
             if (valSpan) valSpan.textContent = slider.value;
             var iid = SL.audio.getCurrentInstrument();
             if (SL.pulsar && SL.pulsar.setSettings) {
-              var cur = SL.pulsar.getSettings(iid);
-              if (param.id === 'pulsarRate') cur.pulseRate = parseInt(slider.value);
-              if (param.id === 'pulsarDuty') cur.dutyCycle = parseInt(slider.value);
-              if (param.id === 'pulsarFormant') cur.formantFreq = parseInt(slider.value);
-              if (param.id === 'pulsarMasking') cur.masking = parseInt(slider.value);
-              SL.pulsar.setSettings(iid, cur);
+              var pulsarPropMap = { 'pulsarRate': 'pulseRate', 'pulsarDuty': 'dutyCycle', 'pulsarFormant': 'formantFreq', 'pulsarMasking': 'masking' };
+              var pulsarProp = pulsarPropMap[param.id];
+              if (pulsarProp) {
+                var cur = SL.pulsar.getSettings(iid);
+                cur[pulsarProp] = parseInt(slider.value);
+                SL.pulsar.setSettings(iid, cur);
+              }
             }
           });
         }
       })(params[si]);
     }
 
-    _pulsarInitialized = true;
+    _isPulsarInitialized = true;
   }
+  }
+
+  } // end else (mixerBtn && mixerModal)
+
+  SL.mixerModal = {
+    setup: setupMixerModal,
+    updateTypeToggleState: null,
+    updatePhysicalParamVisibility: null,
+    updateAdditiveVisibility: null,
+    refreshModMatrixUI: null,
+    syncTopFreezeButton: null
+  };
 
 })();

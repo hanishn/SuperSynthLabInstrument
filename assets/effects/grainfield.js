@@ -159,6 +159,7 @@
   GrainfieldEffect.prototype.updateParam = function(name, value) {
     var numeric = value;
     var stored = numeric;
+    var wasHandled = true;
 
     // Store normalized 0..1 for continuous params; 0/1 for freeze.
     switch (name) {
@@ -175,13 +176,16 @@
         this.params.freeze = stored;
         break;
       default:
-        return;
+        wasHandled = false;
+        break;
     }
 
-    if (this.workletNode) {
-      _setAudioParam(this.workletNode, name, stored, this.ctx.currentTime);
+    if (wasHandled) {
+      if (this.workletNode) {
+        _setAudioParam(this.workletNode, name, stored, this.ctx.currentTime);
+      }
+      // Otherwise: queued — _applyAllParams seeds everything once the node exists.
     }
-    // Otherwise: queued — _applyAllParams seeds everything once the node exists.
   };
 
   GrainfieldEffect.prototype.dispose = function() {

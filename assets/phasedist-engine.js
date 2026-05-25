@@ -29,6 +29,10 @@
     EXPONENTIAL: 'exponential'
   };
 
+  // Lookup tables for validation
+  var VALID_PD_TYPES = { 'saw': 1, 'square': 1, 'pulse': 1, 'resonant': 1, 'doublesine': 1 };
+  var VALID_WINDOW_SHAPES = { 'cosine': 1, 'triangle': 1, 'exponential': 1 };
+
   // ============================================================
   // Default Settings
   // ============================================================
@@ -50,7 +54,7 @@
   // ============================================================
 
   var audioContext = null;
-  var engineReady = false;
+  var isEngineReady = false;
 
   var scriptNodes = [null, null, null, null];
   var fallbackVoicesByInst = [[], [], [], []];
@@ -505,7 +509,7 @@
     var bufSize = (SL.audio && SL.audio.getScriptProcessorBufferSize) ? SL.audio.getScriptProcessorBufferSize() : 1024;
 
     for (var i = 0; i < 4; i++) {
-      fallbackVoicesByInst[i] = [];
+      fallbackVoicesByInst[i].length = 0;
       for (var v = 0; v < MAX_VOICES_PER_INSTRUMENT; v++) {
         fallbackVoicesByInst[i].push(new PhasedistVoice(sr));
       }
@@ -545,7 +549,7 @@
       })(idx);
     }
 
-    engineReady = true;
+    isEngineReady = true;
     return Promise.resolve(true);
   }
 
@@ -572,9 +576,7 @@
       instId = 0;
     }
     var filterNode = pdFilterNodes[instId];
-    if (!filterNode) {
-      return;
-    }
+    if (filterNode) {
 
     var filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
     if (!filterSettings || !filterSettings.enabled) {
@@ -586,28 +588,29 @@
       filterNode.frequency.value = Math.max(20, Math.min(20000, filterSettings.frequency || 20000));
       filterNode.Q.value = Math.max(0.1, Math.min(30, filterSettings.resonance || 1));
     }
+    } // end if (filterNode)
   }
 
   function connectToOutput(instId) {
-    if (!scriptNodes[instId]) {
-      return;
-    }
+    if (scriptNodes[instId]) {
 
     if (connectedInsts[instId]) {
       updateFilter(instId);
     } else {
       var instruments = SL.audio && SL.audio.getInstruments ? SL.audio.getInstruments() : null;
       var inst = instruments ? instruments[instId] : null;
+      var isDestinationResolved = false;
       var destination;
 
       if (inst && inst.masterOutput) {
         destination = inst.masterOutput;
+        isDestinationResolved = true;
       } else if (audioContext) {
         destination = audioContext.destination;
-      } else {
-        return;
+        isDestinationResolved = true;
       }
 
+      if (isDestinationResolved) {
       var filterNode = getOrCreateFilterNode(instId);
       updateFilter(instId);
 
@@ -619,7 +622,9 @@
       }
 
       connectedInsts[instId] = true;
+      } // end if (isDestinationResolved)
     }
+    } // end if (scriptNodes[instId])
   }
 
   // ============================================================
@@ -730,8 +735,7 @@
 
   function setPdType(instId, pdType) {
     var settings = getOrCreateSettings(instId);
-    if (pdType === 'saw' || pdType === 'square' || pdType === 'pulse' ||
-        pdType === 'resonant' || pdType === 'doublesine') {
+    if (VALID_PD_TYPES[pdType]) {
       settings.pdType = pdType;
     }
   }
@@ -743,7 +747,7 @@
 
   function setWindowShape(instId, shape) {
     var settings = getOrCreateSettings(instId);
-    if (shape === 'cosine' || shape === 'triangle' || shape === 'exponential') {
+    if (VALID_WINDOW_SHAPES[shape]) {
       settings.windowShape = shape;
     }
   }
@@ -803,7 +807,7 @@
   }
 
   function isReady() {
-    return engineReady;
+    return isEngineReady;
   }
 
   // ============================================================

@@ -122,32 +122,31 @@ var SynthLab = window.SynthLab || {};
         if (!contextMenuEl) {
             contextMenuEl = document.getElementById("sslContextMenu");
         }
-        if (!contextMenuEl) {
-            return;
-        }
-        currentTargetId = sslId;
-        var displayName = ELEMENT_NAMES[sslId] || sslId;
-        var itemEl = contextMenuEl.querySelector(".ssl-context-menu-item");
-        if (itemEl) {
-            itemEl.textContent = SynthLab.t('feedback.provide_on') + displayName;
-        }
-        contextMenuEl.style.display = "block";
+        if (contextMenuEl) {
+            currentTargetId = sslId;
+            var displayName = ELEMENT_NAMES[sslId] || sslId;
+            var itemEl = contextMenuEl.querySelector(".ssl-context-menu-item");
+            if (itemEl) {
+                itemEl.textContent = SynthLab.t('feedback.provide_on') + displayName;
+            }
+            contextMenuEl.style.display = "block";
 
-        // Position — keep on screen
-        var menuW = contextMenuEl.offsetWidth;
-        var menuH = contextMenuEl.offsetHeight;
-        var winW = window.innerWidth;
-        var winH = window.innerHeight;
-        var posX = x;
-        var posY = y;
-        if (posX + menuW > winW) {
-            posX = winW - menuW - 4;
+            // Position — keep on screen
+            var menuW = contextMenuEl.offsetWidth;
+            var menuH = contextMenuEl.offsetHeight;
+            var winW = window.innerWidth;
+            var winH = window.innerHeight;
+            var posX = x;
+            var posY = y;
+            if (posX + menuW > winW) {
+                posX = winW - menuW - 4;
+            }
+            if (posY + menuH > winH) {
+                posY = winH - menuH - 4;
+            }
+            contextMenuEl.style.left = posX + "px";
+            contextMenuEl.style.top = posY + "px";
         }
-        if (posY + menuH > winH) {
-            posY = winH - menuH - 4;
-        }
-        contextMenuEl.style.left = posX + "px";
-        contextMenuEl.style.top = posY + "px";
     }
 
     function hideContextMenu() {
@@ -168,37 +167,35 @@ var SynthLab = window.SynthLab || {};
         if (!feedbackOverlay) {
             feedbackOverlay = document.getElementById("sslFeedbackOverlay");
         }
-        if (!feedbackOverlay) {
-            return;
-        }
+        if (feedbackOverlay) {
+            var displayName = ELEMENT_NAMES[sslId] || sslId;
+            var elIdDiv = feedbackOverlay.querySelector(".ssl-feedback-element-id");
+            if (elIdDiv) {
+                elIdDiv.textContent = sslId + " (" + displayName + ")";
+            }
 
-        var displayName = ELEMENT_NAMES[sslId] || sslId;
-        var elIdDiv = feedbackOverlay.querySelector(".ssl-feedback-element-id");
-        if (elIdDiv) {
-            elIdDiv.textContent = sslId + " (" + displayName + ")";
-        }
+            // Reset state
+            selectedRating = null;
+            var btns = feedbackOverlay.querySelectorAll(".ssl-feedback-rating-btn");
+            for (var i = 0; i < btns.length; i++) {
+                btns[i].className = "ssl-feedback-rating-btn";
+            }
+            var textarea = feedbackOverlay.querySelector(".ssl-feedback-textarea");
+            if (textarea) {
+                textarea.value = "";
+            }
+            var successEl = feedbackOverlay.querySelector(".ssl-feedback-success");
+            if (successEl) {
+                successEl.style.display = "none";
+            }
+            var submitBtn = feedbackOverlay.querySelector(".ssl-feedback-submit");
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = SynthLab.t('ui.button.submit_feedback');
+            }
 
-        // Reset state
-        selectedRating = null;
-        var btns = feedbackOverlay.querySelectorAll(".ssl-feedback-rating-btn");
-        for (var i = 0; i < btns.length; i++) {
-            btns[i].className = "ssl-feedback-rating-btn";
+            feedbackOverlay.className = "ssl-feedback-overlay visible";
         }
-        var textarea = feedbackOverlay.querySelector(".ssl-feedback-textarea");
-        if (textarea) {
-            textarea.value = "";
-        }
-        var successEl = feedbackOverlay.querySelector(".ssl-feedback-success");
-        if (successEl) {
-            successEl.style.display = "none";
-        }
-        var submitBtn = feedbackOverlay.querySelector(".ssl-feedback-submit");
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.textContent = SynthLab.t('ui.button.submit_feedback');
-        }
-
-        feedbackOverlay.className = "ssl-feedback-overlay visible";
     }
 
     function closeFeedbackModal() {
@@ -208,38 +205,37 @@ var SynthLab = window.SynthLab || {};
     }
 
     function submitFeedback() {
-        if (!selectedRating) {
-            return;
+        if (selectedRating) {
+            var textarea = feedbackOverlay.querySelector(".ssl-feedback-textarea");
+            var comment = textarea ? textarea.value.trim() : "";
+
+            var record = {
+                elementId: currentTargetId,
+                rating: selectedRating,
+                comment: comment,
+                timestamp: new Date().toISOString(),
+                sslVersion: SSL_VERSION
+            };
+
+            var items = getFeedback();
+            items.push(record);
+            saveFeedback(items);
+
+            var submitBtn = feedbackOverlay.querySelector(".ssl-feedback-submit");
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = SynthLab.t('feedback.submitted');
+            }
+            var successEl = feedbackOverlay.querySelector(".ssl-feedback-success");
+            if (successEl) {
+                successEl.style.display = "block";
+            }
+
+            // Auto-close after brief pause
+            setTimeout(function() {
+                closeFeedbackModal();
+            }, 1200);
         }
-        var textarea = feedbackOverlay.querySelector(".ssl-feedback-textarea");
-        var comment = textarea ? textarea.value.trim() : "";
-
-        var record = {
-            elementId: currentTargetId,
-            rating: selectedRating,
-            comment: comment,
-            timestamp: new Date().toISOString(),
-            sslVersion: SSL_VERSION
-        };
-
-        var items = getFeedback();
-        items.push(record);
-        saveFeedback(items);
-
-        var submitBtn = feedbackOverlay.querySelector(".ssl-feedback-submit");
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.textContent = SynthLab.t('feedback.submitted');
-        }
-        var successEl = feedbackOverlay.querySelector(".ssl-feedback-success");
-        if (successEl) {
-            successEl.style.display = "block";
-        }
-
-        // Auto-close after brief pause
-        setTimeout(function() {
-            closeFeedbackModal();
-        }, 1200);
     }
 
     // =========================================================================
@@ -252,18 +248,20 @@ var SynthLab = window.SynthLab || {};
         if (!aboutOverlay) {
             aboutOverlay = document.getElementById("sslAboutOverlay");
         }
-        if (!aboutOverlay) {
-            return;
+        if (aboutOverlay) {
+            // Update feedback count
+            var countEl = aboutOverlay.querySelector(".ssl-about-feedback-count");
+            if (countEl) {
+                var items = getFeedback();
+                var countSuffix = (items.length !== 1)
+                    ? SynthLab.t('feedback.count_suffix_plural')
+                    : SynthLab.t('feedback.count_suffix_singular');
+                countEl.textContent = SynthLab.t('feedback.count_prefix') + items.length + countSuffix;
+            }
+            // Must clear inline style AND set class — inline display:none overrides CSS
+            aboutOverlay.style.display = "flex";
+            aboutOverlay.className = "ssl-about-overlay visible";
         }
-        // Update feedback count
-        var countEl = aboutOverlay.querySelector(".ssl-about-feedback-count");
-        if (countEl) {
-            var items = getFeedback();
-            countEl.textContent = SynthLab.t('feedback.count_prefix') + items.length + (items.length !== 1 ? SynthLab.t('feedback.count_suffix_plural') : SynthLab.t('feedback.count_suffix_singular'));
-        }
-        // Must clear inline style AND set class — inline display:none overrides CSS
-        aboutOverlay.style.display = "flex";
-        aboutOverlay.className = "ssl-about-overlay visible";
     }
 
     function closeAbout() {
@@ -282,24 +280,24 @@ var SynthLab = window.SynthLab || {};
         var items = getFeedback();
         if (items.length === 0) {
             alert(SynthLab.t('feedback.no_items_to_export'));
-            return;
-        }
-        var jsonStr = JSON.stringify(items, null, 2);
-        var blob = new Blob([jsonStr], { type: "application/json" });
-        var url = URL.createObjectURL(blob);
-        var now = new Date();
-        var y = now.getFullYear();
-        var m = ("0" + (now.getMonth() + 1)).slice(-2);
-        var d = ("0" + now.getDate()).slice(-2);
-        var filename = "SSL_Feedback_" + y + "-" + m + "-" + d + ".json";
+        } else {
+            var jsonStr = JSON.stringify(items, null, 2);
+            var blob = new Blob([jsonStr], { type: "application/json" });
+            var url = URL.createObjectURL(blob);
+            var now = new Date();
+            var y = now.getFullYear();
+            var m = ("0" + (now.getMonth() + 1)).slice(-2);
+            var d = ("0" + now.getDate()).slice(-2);
+            var filename = "SSL_Feedback_" + y + "-" + m + "-" + d + ".json";
 
-        var a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+            var a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
     }
 
     function toggleDonate() {

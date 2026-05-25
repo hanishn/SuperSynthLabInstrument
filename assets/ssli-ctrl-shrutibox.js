@@ -13,6 +13,8 @@
 
   var SEMITONES_PER_OCTAVE = 12;
   var OCTAVE_BASE_OFFSET = 1;
+
+  var NO_SAVED_SUSTAIN = null;
   var DEFAULT_REED_COUNT = 13;
 
   var BELLOWS_HEIGHT_PX = 90;
@@ -46,7 +48,7 @@
   var _reedMidis = [];
   var _reedElements = [];
   var _airLevel = 0.0;
-  var _bellowsActive = false;
+  var _isBellowsActive = false;
   var _bellowsStartX = 0;
   var _bellowsStartAir = 0;
   var _bellowsFillEl = null;
@@ -96,11 +98,14 @@
   }
 
   function _forceSustain() {
-    if (SL.audio && SL.audio.getInstruments && SL.audio.getCurrentInstrument) {
+    var canQueryShrutiInstrument = SL.audio && SL.audio.getInstruments;
+    var hasShrutiInstrumentQuery = canQueryShrutiInstrument && SL.audio.getCurrentInstrument;
+    if (hasShrutiInstrumentQuery) {
       var instId = SL.audio.getCurrentInstrument();
       var insts = SL.audio.getInstruments();
       var inst = insts ? insts[instId] : null;
-      if (inst && inst.settings && inst.settings.adsr) {
+      var hasAdsrForShrutiboxSustain = inst && inst.settings && inst.settings.adsr;
+      if (hasAdsrForShrutiboxSustain) {
         _savedSustainInst = instId;
         _savedSustain = inst.settings.adsr.s;
         inst.settings.adsr.s = REED_HELD_SUSTAIN;
@@ -109,11 +114,12 @@
   }
 
   function _restoreSustain() {
-    if ((_savedSustain !== null) && (_savedSustainInst >= 0)
+    if ((_savedSustain !== NO_SAVED_SUSTAIN) && (_savedSustainInst >= 0)
         && SL.audio && SL.audio.getInstruments) {
       var insts = SL.audio.getInstruments();
       var inst = insts ? insts[_savedSustainInst] : null;
-      if (inst && inst.settings && inst.settings.adsr) {
+      var hasAdsrForShrutiboxRestore = inst && inst.settings && inst.settings.adsr;
+      if (hasAdsrForShrutiboxRestore) {
         inst.settings.adsr.s = _savedSustain;
       }
       _savedSustain = null;
@@ -245,20 +251,20 @@
     function _onBellowsDown(e) {
       e.preventDefault();
       e.stopPropagation();
-      var alreadyTracking = _bellowsActive;
+      var alreadyTracking = _isBellowsActive;
       if (!alreadyTracking) {
-        _bellowsActive = true;
+        _isBellowsActive = true;
         _bellowsPointerId = (typeof e.pointerId !== 'undefined') ? e.pointerId : -1;
         _bellowsStartX = e.clientX;
         _bellowsStartAir = _airLevel;
         if (bellows.setPointerCapture && _bellowsPointerId >= 0) {
-          try { bellows.setPointerCapture(_bellowsPointerId); } catch (err) { /* best effort */ }
+          try { bellows.setPointerCapture(_bellowsPointerId); } catch (err) { /* pointer capture is best-effort */ }
         }
       }
     }
 
     function _onBellowsMove(e) {
-      if (!_bellowsActive) { return; }
+      if (!_isBellowsActive) { return; }
       var isCorrectPointer = (typeof e.pointerId === 'undefined') || (e.pointerId === _bellowsPointerId);
       if (isCorrectPointer) {
         var rect = bellows.getBoundingClientRect();
@@ -273,9 +279,9 @@
     function _onBellowsUp(e) {
       var isCorrectPointer = (typeof e.pointerId === 'undefined') || (e.pointerId === _bellowsPointerId);
       if (isCorrectPointer) {
-        _bellowsActive = false;
+        _isBellowsActive = false;
         if (bellows.releasePointerCapture && _bellowsPointerId >= 0) {
-          try { bellows.releasePointerCapture(_bellowsPointerId); } catch (err) { /* best effort */ }
+          try { bellows.releasePointerCapture(_bellowsPointerId); } catch (err) { /* pointer capture is best-effort */ }
         }
         _bellowsPointerId = -1;
       }
@@ -287,7 +293,7 @@
     bellows.addEventListener('pointerup', _onBellowsUp);
     bellows.addEventListener('pointercancel', _onBellowsUp);
     bellows.addEventListener('lostpointercapture', function() {
-      _bellowsActive = false;
+      _isBellowsActive = false;
       _bellowsPointerId = -1;
     });
 
@@ -316,6 +322,8 @@
     var bottomRow = document.createElement('div');
     bottomRow.className = 'ssli-shrutibox-reed-row';
 
+    var topFrag = document.createDocumentFragment();
+    var bottomFrag = document.createDocumentFragment();
     var reedIdx;
     for (reedIdx = 0; reedIdx < DEFAULT_REED_COUNT; reedIdx++) {
       var midi = baseMidi + reedIdx;
@@ -386,12 +394,14 @@
 
       var isTopRow = reedIdx < REEDS_PER_TOP_ROW;
       if (isTopRow) {
-        topRow.appendChild(reedBtn);
+        topFrag.appendChild(reedBtn);
       } else {
-        bottomRow.appendChild(reedBtn);
+        bottomFrag.appendChild(reedBtn);
       }
       _reedElements.push(reedBtn);
     }
+    topRow.appendChild(topFrag);
+    bottomRow.appendChild(bottomFrag);
 
     reedArea.appendChild(topRow);
 

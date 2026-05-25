@@ -3,8 +3,8 @@
 // Uses multiple delay lines with subtle LFO modulation for a lush, wide stereo chorus
 
 (function() {
-  const SL = window.SynthLab;
-  const BaseEffect = SL.effects.BaseEffect;
+  var SL = window.SynthLab;
+  var BaseEffect = SL.effects.BaseEffect;
 
   /**
    * DimensionEffect - Roland Dimension D style chorus/ensemble
@@ -75,9 +75,9 @@
       // Clean up existing delays
       this.disposeDelays();
 
-      const preset = this.modePresets[this.params.mode] || this.modePresets[2];
-      const spreadValue = this.params.spread / 100;
-      const rateMultiplier = this.params.rate;
+      var preset = this.modePresets[this.params.mode] || this.modePresets[2];
+      var spreadValue = this.params.spread / 100;
+      var rateMultiplier = this.params.rate;
 
       // Split input to stereo
       this.input.connect(this.splitter);
@@ -105,7 +105,7 @@
       this.connectDelayBank(this.rightChannel.delays, 1);
 
       // Set output gain based on number of delay lines
-      const numDelays = preset.delays.length;
+      var numDelays = preset.delays.length;
       this.outputMixer.gain.value = 0.6 / Math.sqrt(numDelays);
     }
 
@@ -113,30 +113,30 @@
      * Create a bank of delay lines with LFO modulation
      */
     createDelayBank(preset, rateMultiplier, channel, spreadValue, invertPhase) {
-      const ctx = this.ctx;
-      const delays = [];
-      const numDelays = preset.delays.length;
+      var ctx = this.ctx;
+      var delays = [];
+      var numDelays = preset.delays.length;
 
-      for (let i = 0; i < numDelays; i++) {
+      for (var i = 0; i < numDelays; i++) {
         // Base delay time with slight offset per channel for stereo effect
-        const baseDelay = preset.delays[i] + (channel * 0.001 * spreadValue);
+        var baseDelay = preset.delays[i] + (channel * 0.001 * spreadValue);
 
         // Create delay node
-        const delay = ctx.createDelay(0.1);
+        var delay = ctx.createDelay(0.1);
         delay.delayTime.value = baseDelay;
 
         // Create LFO with rate from preset, multiplied by master rate
-        const lfo = ctx.createOscillator();
+        var lfo = ctx.createOscillator();
         lfo.type = 'sine';
 
         // Slightly detune LFO rates between channels for width
-        const channelRateOffset = channel === 0 ? 0.97 : 1.03;
+        var channelRateOffset = channel === 0 ? 0.97 : 1.03;
         lfo.frequency.value = preset.rates[i] * rateMultiplier * channelRateOffset;
 
         // LFO gain controls modulation depth
-        const lfoGain = ctx.createGain();
+        var lfoGain = ctx.createGain();
         // Invert modulation for one channel to create the "dimension" stereo effect
-        const phaseMultiplier = invertPhase && (i % 2 === 0) ? -1 : 1;
+        var phaseMultiplier = invertPhase && (i % 2 === 0) ? -1 : 1;
         lfoGain.gain.value = preset.depth * phaseMultiplier;
 
         // Connect LFO to delay time
@@ -144,7 +144,7 @@
         lfoGain.connect(delay.delayTime);
 
         // Input gain for this delay tap
-        const inputGain = ctx.createGain();
+        var inputGain = ctx.createGain();
         inputGain.gain.value = 1;
 
         // Connect splitter channel to delay
@@ -170,23 +170,21 @@
      * Connect a delay bank to the stereo merger
      */
     connectDelayBank(delays, mergerChannel) {
-      delays.forEach(d => {
+      delays.forEach(function(d) {
         d.delay.connect(this.merger, 0, mergerChannel);
-      });
+      }, this);
     }
 
     /**
      * Clean up delay nodes
      */
     disposeDelays() {
-      const cleanupBank = (bank) => {
+      var cleanupBank = function(bank) {
         if (bank && bank.delays) {
-          bank.delays.forEach(d => {
+          bank.delays.forEach(function(d) {
             try {
               d.lfo.stop();
-            } catch (e) {
-              // LFO might not have started
-            }
+            } catch (e) { /* LFO may not have started yet */ }
             d.lfo.disconnect();
             d.lfoGain.disconnect();
             d.delay.disconnect();
@@ -202,21 +200,19 @@
       // Disconnect splitter from everything
       try {
         this.splitter.disconnect();
-      } catch (e) {
-        // Might not be connected
-      }
+      } catch (e) { /* splitter may not be connected */ }
     }
 
     /**
      * Handle parameter updates
      */
     updateParam(name, value) {
-      const currentTime = this.ctx.currentTime;
+      var currentTime = this.ctx.currentTime;
 
       switch (name) {
         case 'mode':
           // Clamp mode to 1-4
-          const mode = Math.max(1, Math.min(4, Math.round(value)));
+          var mode = Math.max(1, Math.min(4, Math.round(value)));
           if (mode !== this.params.mode) {
             this.params.mode = mode;
             this.initializeDelayNetwork();
@@ -225,7 +221,7 @@
 
         case 'spread':
           // Update spread requires reinitializing for stereo offsets
-          const spread = Math.max(0, Math.min(100, value));
+          var spread = Math.max(0, Math.min(100, value));
           if (spread !== this.params.spread) {
             this.params.spread = spread;
             this.initializeDelayNetwork();
@@ -234,19 +230,19 @@
 
         case 'rate':
           // Update LFO rates for all delay lines
-          const rate = Math.max(0.1, Math.min(2, value));
+          var rate = Math.max(0.1, Math.min(2, value));
           this.params.rate = rate;
-          const preset = this.modePresets[this.params.mode];
+          var preset = this.modePresets[this.params.mode];
 
           // Update left channel LFOs
-          this.leftChannel.delays.forEach((d, i) => {
-            const newRate = preset.rates[i] * rate * 0.97;
+          this.leftChannel.delays.forEach(function(d, i) {
+            var newRate = preset.rates[i] * rate * 0.97;
             d.lfo.frequency.setTargetAtTime(newRate, currentTime, 0.02);
           });
 
           // Update right channel LFOs
-          this.rightChannel.delays.forEach((d, i) => {
-            const newRate = preset.rates[i] * rate * 1.03;
+          this.rightChannel.delays.forEach(function(d, i) {
+            var newRate = preset.rates[i] * rate * 1.03;
             d.lfo.frequency.setTargetAtTime(newRate, currentTime, 0.02);
           });
           break;

@@ -4,12 +4,11 @@
 (function() {
   'use strict';
 
-  const SL = window.SynthLab;
+  var SL = window.SynthLab;
 
   if (!SL || !SL.audio) {
     console.error('[filters] SynthLab.audio not available');
-    return;
-  }
+  } else {
 
   var _pulseWaveCache = {};
   var _ms20CurveCache = {};
@@ -25,11 +24,11 @@
    * @returns {number} Frequency in Hz
    */
   function sliderToFreq(sliderValue) {
-    const minFreq = 20;
-    const maxFreq = 20000;
-    const minLog = Math.log10(minFreq);
-    const maxLog = Math.log10(maxFreq);
-    const logValue = minLog + (sliderValue / 1000) * (maxLog - minLog);
+    var minFreq = 20;
+    var maxFreq = 20000;
+    var minLog = Math.log10(minFreq);
+    var maxLog = Math.log10(maxFreq);
+    var logValue = minLog + (sliderValue / 1000) * (maxLog - minLog);
     return Math.pow(10, logValue);
   }
 
@@ -39,12 +38,12 @@
    * @returns {number} Slider position (0-1000)
    */
   function freqToSlider(freq) {
-    const minFreq = 20;
-    const maxFreq = 20000;
-    const clampedFreq = Math.max(minFreq, Math.min(maxFreq, freq));
-    const minLog = Math.log10(minFreq);
-    const maxLog = Math.log10(maxFreq);
-    const logFreq = Math.log10(clampedFreq);
+    var minFreq = 20;
+    var maxFreq = 20000;
+    var clampedFreq = Math.max(minFreq, Math.min(maxFreq, freq));
+    var minLog = Math.log10(minFreq);
+    var maxLog = Math.log10(maxFreq);
+    var logFreq = Math.log10(clampedFreq);
     return ((logFreq - minLog) / (maxLog - minLog)) * 1000;
   }
 
@@ -55,10 +54,10 @@
    * @returns {number} Q factor
    */
   function sliderToQ(sliderValue) {
-    const minQ = 0.5;
-    const maxQ = 20;
-    const normalized = sliderValue / 100;
-    const curved = Math.pow(normalized, 1.5);
+    var minQ = 0.5;
+    var maxQ = 20;
+    var normalized = sliderValue / 100;
+    var curved = Math.pow(normalized, 1.5);
     return minQ + curved * (maxQ - minQ);
   }
 
@@ -68,10 +67,10 @@
    * @returns {number} Slider position (0-100)
    */
   function qToSlider(q) {
-    const minQ = 0.5;
-    const maxQ = 20;
-    const clampedQ = Math.max(minQ, Math.min(maxQ, q));
-    const normalized = (clampedQ - minQ) / (maxQ - minQ);
+    var minQ = 0.5;
+    var maxQ = 20;
+    var clampedQ = Math.max(minQ, Math.min(maxQ, q));
+    var normalized = (clampedQ - minQ) / (maxQ - minQ);
     return Math.pow(normalized, 1 / 1.5) * 100;
   }
 
@@ -89,16 +88,16 @@
     }
 
     // Reference frequency is middle C (C4 = 261.63 Hz)
-    const refFreq = 261.63;
+    var refFreq = 261.63;
 
     // Calculate how many octaves above/below reference
-    const octaveDiff = Math.log2(noteFreq / refFreq);
+    var octaveDiff = Math.log2(noteFreq / refFreq);
 
     // Apply key tracking: each octave shifts cutoff by keyTrack amount
-    const multiplier = Math.pow(2, octaveDiff * keyTrack);
+    var multiplier = Math.pow(2, octaveDiff * keyTrack);
 
     // Clamp to reasonable range
-    const result = Math.max(20, Math.min(20000, baseFreq * multiplier));
+    var result = Math.max(20, Math.min(20000, baseFreq * multiplier));
     return result;
   }
 
@@ -113,7 +112,7 @@
    * @returns {{input: BiquadFilterNode, output: BiquadFilterNode, filters: BiquadFilterNode[]}}
    */
   function createButterworthFilter(ctx, settings) {
-    const filter1 = ctx.createBiquadFilter();
+    var filter1 = ctx.createBiquadFilter();
     filter1.type = settings.type;
     filter1.frequency.value = settings.frequency;
     filter1.Q.value = settings.resonance;
@@ -123,7 +122,7 @@
     }
 
     // 24dB/oct: chain two biquads
-    const filter2 = ctx.createBiquadFilter();
+    var filter2 = ctx.createBiquadFilter();
     filter2.type = settings.type;
     filter2.frequency.value = settings.frequency;
     filter2.Q.value = Math.max(0.1, settings.resonance * 0.707);
@@ -252,11 +251,11 @@
    * @returns {{input: AudioNode, output: AudioNode, filters: BiquadFilterNode[]}}
    */
   function createSVFFilter(ctx, settings) {
-    const filters = [];
-    const svfQ = 0.5 + (settings.resonance * 2.5);
+    var filters = [];
+    var svfQ = 0.5 + (settings.resonance * 2.5);
 
     if (settings.slope === 12) {
-      const filter = ctx.createBiquadFilter();
+      var filter = ctx.createBiquadFilter();
       filter.type = settings.type;
       filter.frequency.value = settings.frequency;
       filter.Q.value = svfQ;
@@ -265,13 +264,13 @@
       return { input: filter, output: filter, filters: filters };
     }
 
-    const filter1 = ctx.createBiquadFilter();
+    var filter1 = ctx.createBiquadFilter();
     filter1.type = settings.type;
     filter1.frequency.value = settings.frequency;
     filter1.Q.value = svfQ;
     filters.push(filter1);
 
-    const filter2 = ctx.createBiquadFilter();
+    var filter2 = ctx.createBiquadFilter();
     filter2.type = settings.type;
     filter2.frequency.value = settings.frequency;
     filter2.Q.value = svfQ * 0.8;
@@ -289,13 +288,13 @@
    * @returns {{input: AudioNode, output: AudioNode, filters: AudioNode[]}}
    */
   function createMS20Filter(ctx, settings) {
-    const filters = [];
-    const aggressiveQ = 0.5 + Math.pow(settings.resonance / 5, 1.8) * 25;
+    var filters = [];
+    var aggressiveQ = 0.5 + Math.pow(settings.resonance / 5, 1.8) * 25;
 
-    const inputGain = ctx.createGain();
+    var inputGain = ctx.createGain();
     inputGain.gain.value = 1.0 + (settings.resonance / 30);
 
-    const filter1 = ctx.createBiquadFilter();
+    var filter1 = ctx.createBiquadFilter();
     filter1.type = settings.type;
     filter1.frequency.value = settings.frequency;
     filter1.Q.value = Math.min(aggressiveQ, 30);
@@ -307,7 +306,7 @@
       return { input: inputGain, output: filter1, filters: [inputGain, filter1] };
     }
 
-    const filter2 = ctx.createBiquadFilter();
+    var filter2 = ctx.createBiquadFilter();
     filter2.type = settings.type;
     filter2.frequency.value = settings.frequency;
     filter2.Q.value = Math.min(aggressiveQ * 1.2, 35);
@@ -316,7 +315,7 @@
     filter1.connect(filter2);
 
     // Add subtle soft-clipping for the MS-20 "grit"
-    const waveshaper = ctx.createWaveShaper();
+    var waveshaper = ctx.createWaveShaper();
     waveshaper.curve = createMS20SaturationCurve(settings.resonance);
     waveshaper.oversample = '2x';
     filter2.connect(waveshaper);
@@ -354,10 +353,10 @@
    * @returns {{input: AudioNode, output: AudioNode, filters: BiquadFilterNode[]}}
    */
   function createOberheimFilter(ctx, settings) {
-    const filters = [];
-    const semQ = 0.7 + Math.sqrt(settings.resonance) * 2.5;
+    var filters = [];
+    var semQ = 0.7 + Math.sqrt(settings.resonance) * 2.5;
 
-    const filter1 = ctx.createBiquadFilter();
+    var filter1 = ctx.createBiquadFilter();
     filter1.type = settings.type;
     filter1.frequency.value = settings.frequency;
     filter1.Q.value = semQ;
@@ -367,7 +366,7 @@
       return { input: filter1, output: filter1, filters: filters };
     }
 
-    const filter2 = ctx.createBiquadFilter();
+    var filter2 = ctx.createBiquadFilter();
     filter2.type = settings.type;
     filter2.frequency.value = settings.frequency * 0.97;
     filter2.Q.value = semQ * 0.9;
@@ -387,7 +386,7 @@
   function createFilterChain(ctx, settings) {
     if (!settings.enabled) return null;
 
-    const model = settings.model || 'butterworth';
+    var model = settings.model || 'butterworth';
 
     switch (model) {
       case 'moog':
@@ -432,7 +431,7 @@
    * @returns {number} Anti-aliased sawtooth sample [-1, 1]
    */
   function polyBlepSaw(phase, dt) {
-    let sample = 2 * phase - 1;
+    var sample = 2 * phase - 1;
     sample -= polyBlep(phase, dt);
     return sample;
   }
@@ -444,7 +443,7 @@
    * @returns {number} Anti-aliased square sample [-1, 1]
    */
   function polyBlepSquare(phase, dt) {
-    let sample = phase < 0.5 ? 1 : -1;
+    var sample = phase < 0.5 ? 1 : -1;
     sample += polyBlep(phase, dt);
     sample -= polyBlep((phase + 0.5) % 1, dt);
     return sample;
@@ -458,7 +457,7 @@
    * @returns {number} Anti-aliased pulse sample [-1, 1]
    */
   function polyBlepPulse(phase, dt, pw) {
-    let sample = phase < pw ? 1 : -1;
+    var sample = phase < pw ? 1 : -1;
     sample += polyBlep(phase, dt);
     sample -= polyBlep((phase + (1 - pw)) % 1, dt);
     return sample;
@@ -471,7 +470,7 @@
    * @returns {number} Anti-aliased triangle sample [-1, 1]
    */
   function polyBlepTriangle(phase, dt) {
-    let sample = phase < 0.5 ? 4 * phase - 1 : 3 - 4 * phase;
+    var sample = phase < 0.5 ? 4 * phase - 1 : 3 - 4 * phase;
     return sample;
   }
 
@@ -511,7 +510,7 @@
   }
 
   // Super saw detune offsets in cents (7 voices)
-  const SUPERSAW_DETUNES = [-40, -25, -10, 0, 10, 25, 40];
+  var SUPERSAW_DETUNES = [-40, -25, -10, 0, 10, 25, 40];
 
   /**
    * Create multiple detuned sawtooth oscillators for super saw effect
@@ -523,16 +522,16 @@
    * @returns {OscillatorNode[]} Array of oscillator nodes
    */
   function createSuperSawOscillators(ctx, freq, spread, outputNode, level) {
-    const oscillators = [];
-    const spreadFactor = spread / 50;
-    const voiceGain = level / SUPERSAW_DETUNES.length;
+    var oscillators = [];
+    var spreadFactor = spread / 50;
+    var voiceGain = level / SUPERSAW_DETUNES.length;
 
-    SUPERSAW_DETUNES.forEach(detuneCents => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+    SUPERSAW_DETUNES.forEach(function(detuneCents) {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
 
-      const actualDetune = detuneCents * spreadFactor;
-      const voiceFreq = freq * Math.pow(2, actualDetune / 1200);
+      var actualDetune = detuneCents * spreadFactor;
+      var voiceFreq = freq * Math.pow(2, actualDetune / 1200);
 
       osc.type = 'sawtooth';
       osc.frequency.value = voiceFreq;
@@ -568,5 +567,6 @@
   // Expose constants needed by other modules
   SL.audio._SUPERSAW_DETUNES = SUPERSAW_DETUNES;
   SL.audio._createMS20SaturationCurve = createMS20SaturationCurve;
+  }
 
 })();

@@ -35,7 +35,7 @@ class SynthWorkletProcessor extends AudioWorkletProcessor {
     this.hasActiveVoice = [false, false, false, false];
 
     // Initialize voice pool
-    for (let i = 0; i < this.maxVoices; i++) {
+    for (var i = 0; i < this.maxVoices; i++) {
       this.voices.push(this.createVoice());
     }
 
@@ -94,7 +94,7 @@ class SynthWorkletProcessor extends AudioWorkletProcessor {
    * PolyBLEP-corrected sawtooth
    */
   polyBlepSaw(phase, dt) {
-    let sample = 2 * phase - 1;
+    var sample = 2 * phase - 1;
     sample -= this.polyBlep(phase, dt);
     return sample;
   }
@@ -103,7 +103,7 @@ class SynthWorkletProcessor extends AudioWorkletProcessor {
    * PolyBLEP-corrected square wave
    */
   polyBlepSquare(phase, dt) {
-    let sample = phase < 0.5 ? 1 : -1;
+    var sample = phase < 0.5 ? 1 : -1;
     sample += this.polyBlep(phase, dt);
     sample -= this.polyBlep((phase + 0.5) % 1, dt);
     return sample;
@@ -113,7 +113,7 @@ class SynthWorkletProcessor extends AudioWorkletProcessor {
    * PolyBLEP-corrected pulse wave
    */
   polyBlepPulse(phase, dt, pw) {
-    let sample = phase < pw ? 1 : -1;
+    var sample = phase < pw ? 1 : -1;
     sample += this.polyBlep(phase, dt);
     sample -= this.polyBlep((phase + (1 - pw)) % 1, dt);
     return sample;
@@ -200,7 +200,7 @@ class SynthWorkletProcessor extends AudioWorkletProcessor {
    * Handle messages from main thread
    */
   handleMessage(event) {
-    const data = event.data;
+    var data = event.data;
 
     switch (data.type) {
       case 'noteOn':
@@ -363,7 +363,9 @@ class SynthWorkletProcessor extends AudioWorkletProcessor {
     voice.glideSamplesTotal = 0;
     voice.glideSamplesRemaining = 0;
 
-    if (glideTime > 0 && instId >= 0 && instId <= 1) {
+    var isGlideInstId = instId >= 0 && instId <= 1;
+    var shouldApplyGlide = glideTime > 0 && isGlideInstId;
+    if (shouldApplyGlide) {
       var prevFreq = this.lastFrequency[instId];
       if (prevFreq > 0 && this.hasActiveVoice[instId]) {
         voice.glideTime = glideTime;
@@ -411,7 +413,9 @@ class SynthWorkletProcessor extends AudioWorkletProcessor {
   noteOff(midi) {
     for (var i = 0; i < this.voices.length; i++) {
       var voice = this.voices[i];
-      if (voice.active && voice.midi === midi && !voice.released) {
+      var isActiveUnreleasedVoice = voice.active && voice.midi === midi;
+      var canReleaseVoice = isActiveUnreleasedVoice && !voice.released;
+      if (canReleaseVoice) {
         voice.released = true;
         voice.noteOffTime = currentTime;
         voice.envelopePhase = 'release';
@@ -420,14 +424,16 @@ class SynthWorkletProcessor extends AudioWorkletProcessor {
         // Check if this instrument still has any non-released voices
         var instId = voice.instId;
         if (instId >= 0 && instId < 4) {
-          var stillActive = false;
+          var isStillActive = false;
           for (var j = 0; j < this.voices.length; j++) {
-            if (j !== i && this.voices[j].active && !this.voices[j].released && this.voices[j].instId === instId) {
-              stillActive = true;
+            var isOtherVoice = j !== i && this.voices[j].active;
+            var isOtherActiveInst = isOtherVoice && !this.voices[j].released && this.voices[j].instId === instId;
+            if (isOtherActiveInst) {
+              isStillActive = true;
               break;
             }
           }
-          this.hasActiveVoice[instId] = stillActive;
+          this.hasActiveVoice[instId] = isStillActive;
         }
 
         break; // Only release one voice per noteOff
@@ -535,7 +541,7 @@ class SynthWorkletProcessor extends AudioWorkletProcessor {
    * Calculate ADSR envelope value and advance envelope state
    */
   processEnvelope(voice, sampleDuration) {
-    const { a, d, s, r } = voice.adsr;
+    var a = voice.adsr.a, d = voice.adsr.d, s = voice.adsr.s, r = voice.adsr.r;
 
     switch (voice.envelopePhase) {
       case 'attack':

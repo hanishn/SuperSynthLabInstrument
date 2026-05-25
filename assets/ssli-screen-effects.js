@@ -16,6 +16,10 @@
   var MAX_MASTER_MIX = 100;
   var MODAL_BACKDROP_OPACITY = 0.85;
 
+  function _emptyOptions() {
+    return [];
+  }
+
   // ============================================================
   // FX Preset Library — Category + Preset system
   // ============================================================
@@ -88,8 +92,8 @@
   // State
   // ============================================================
 
-  var _initialized = false;
-  var _active = false;
+  var isScreenInitialized = false;
+  var isScreenActive = false;
   var _screenEl = null;
   var _chainListEl = null;
   var _masterMixSlider = null;
@@ -102,10 +106,11 @@
   // Drag state
   var _dragState = null;
   var _longPressTimer = null;
+  var isDragRafPending = false;
 
   // Modal state
   var _modalEl = null;
-  var _modalOpen = false;
+  var isModalOpen = false;
 
   // ============================================================
   // Helpers
@@ -242,50 +247,44 @@
 
   function _moveEffectInChain(effectName, displayIndex, direction) {
     var chain = _getCurrentChain();
-    if (!chain) {
-      return;
-    }
-    var order = chain.getOrder();
+    if (chain) {
+      var order = chain.getOrder();
 
-    // Build list of indices of enabled effects only
-    var enabledIndices = [];
-    var f;
-    for (f = 0; f < order.length; f++) {
-      if (_isEffectEnabled(order[f])) {
-        enabledIndices.push(f);
+      // Build list of indices of enabled effects only
+      var enabledIndices = [];
+      var f;
+      for (f = 0; f < order.length; f++) {
+        if (_isEffectEnabled(order[f])) {
+          enabledIndices.push(f);
+        }
+      }
+
+      // Find which position in the enabled list this effect occupies
+      var actualIndex = -1;
+      for (f = 0; f < order.length; f++) {
+        if (order[f] === effectName) {
+          actualIndex = f;
+          break;
+        }
+      }
+      if (actualIndex >= 0) {
+        var enabledPos = enabledIndices.indexOf(actualIndex);
+        if (enabledPos >= 0) {
+          // Navigate to next/prev enabled effect position
+          var targetEnabledPos = enabledPos + direction;
+          if (targetEnabledPos >= 0 && targetEnabledPos < enabledIndices.length) {
+            var newIndex = enabledIndices[targetEnabledPos];
+
+            /* Swap with the target enabled effect */
+            var temp = order[actualIndex];
+            order[actualIndex] = order[newIndex];
+            order[newIndex] = temp;
+            chain.setOrder(order);
+            _buildChainList();
+          }
+        }
       }
     }
-
-    // Find which position in the enabled list this effect occupies
-    var actualIndex = -1;
-    for (f = 0; f < order.length; f++) {
-      if (order[f] === effectName) {
-        actualIndex = f;
-        break;
-      }
-    }
-    if (actualIndex < 0) {
-      return;
-    }
-
-    var enabledPos = enabledIndices.indexOf(actualIndex);
-    if (enabledPos < 0) {
-      return;
-    }
-
-    // Navigate to next/prev enabled effect position
-    var targetEnabledPos = enabledPos + direction;
-    if (targetEnabledPos < 0 || targetEnabledPos >= enabledIndices.length) {
-      return;
-    }
-    var newIndex = enabledIndices[targetEnabledPos];
-
-    /* Swap with the target enabled effect */
-    var temp = order[actualIndex];
-    order[actualIndex] = order[newIndex];
-    order[newIndex] = temp;
-    chain.setOrder(order);
-    _buildChainList();
   }
 
   // ============================================================
@@ -293,9 +292,7 @@
   // ============================================================
 
   function _buildChainList() {
-    if (!_chainListEl) {
-      return;
-    }
+    if (_chainListEl) {
     _chainListEl.innerHTML = '';
 
     var order = _getChainOrder();
@@ -320,6 +317,7 @@
     var displayOrder = enabledEffects.concat(disabledEffects);
     var enabledCount = enabledEffects.length;
 
+    var frag = document.createDocumentFragment();
     for (var i = 0; i < displayOrder.length; i++) {
       var effectName = displayOrder[i];
       var effectMeta = meta[effectName];
@@ -334,7 +332,7 @@
       cb.type = 'checkbox';
       cb.className = 'ssli-fx-chain-cb';
       cb.checked = enabled;
-      cb.setAttribute('aria-label', 'Enable ' + _effectDisplayName(effectName, effectMeta));
+      cb.setAttribute('aria-label', SL.t('screen.effects.enable') + ' ' + _effectDisplayName(effectName, effectMeta));
       (function(eName, cbEl) {
         cbEl.addEventListener('change', function() {
           _setEffectEnabled(eName, cbEl.checked);
@@ -347,7 +345,7 @@
       var infoWrap = document.createElement('div');
       infoWrap.className = 'ssli-fx-chain-info';
       infoWrap.setAttribute('role', 'button');
-      infoWrap.setAttribute('aria-label', 'Open ' + _effectDisplayName(effectName, effectMeta) + ' parameters');
+      infoWrap.setAttribute('aria-label', SL.t('screen.effects.open') + ' ' + _effectDisplayName(effectName, effectMeta) + ' ' + SL.t('screen.effects.parameters'));
       infoWrap.setAttribute('tabindex', '0');
       (function(eName) {
         infoWrap.addEventListener('click', function() {
@@ -374,7 +372,7 @@
 
         var upBtn = document.createElement('button');
         upBtn.className = 'ssli-fx-reorder-btn';
-        upBtn.textContent = '\u25C0';
+        upBtn.textContent = SL.t('screen.effects.arrowLeft');
         upBtn.title = SL.t('ui.button.move_left');
         upBtn.setAttribute('aria-label', SL.t('ui.button.move_left') + ' ' + _effectDisplayName(effectName, effectMeta));
         if (i === 0) { upBtn.disabled = true; }
@@ -388,7 +386,7 @@
 
         var downBtn = document.createElement('button');
         downBtn.className = 'ssli-fx-reorder-btn';
-        downBtn.textContent = '\u25B6';
+        downBtn.textContent = SL.t('screen.effects.arrowRight');
         downBtn.title = SL.t('ui.button.move_right');
         downBtn.setAttribute('aria-label', SL.t('ui.button.move_right') + ' ' + _effectDisplayName(effectName, effectMeta));
         if (i === enabledCount - 1) { downBtn.disabled = true; }
@@ -403,8 +401,10 @@
         row.appendChild(reorderWrap);
       }
 
-      _chainListEl.appendChild(row);
+      frag.appendChild(row);
     }
+    _chainListEl.appendChild(frag);
+    } // end if (_chainListEl)
   }
 
   // ============================================================
@@ -471,27 +471,34 @@
   }
 
   function _onDragMove(e) {
-    if (!_dragState) {
-      return;
-    }
-    _dragState.currentY = e.clientY;
-    _updateDragPosition();
+    if (!_dragState) { return; }
+    if (isDragRafPending) { return; }
+    isDragRafPending = true;
+    requestAnimationFrame(function() {
+      isDragRafPending = false;
+      if (!_dragState) { return; }
+      _dragState.currentY = e.clientY;
+      _updateDragPosition();
+    });
   }
 
   function _onDragMoveTouch(e) {
-    if (!_dragState) {
-      return;
-    }
+    if (!_dragState) { return; }
     e.preventDefault();
+    if (isDragRafPending) { return; }
+    isDragRafPending = true;
     var touch = e.touches[0];
-    _dragState.currentY = touch.clientY;
-    _updateDragPosition();
+    var touchY = touch.clientY;
+    requestAnimationFrame(function() {
+      isDragRafPending = false;
+      if (!_dragState) { return; }
+      _dragState.currentY = touchY;
+      _updateDragPosition();
+    });
   }
 
   function _updateDragPosition() {
-    if (!_dragState || !_chainListEl) {
-      return;
-    }
+    if (_dragState && _chainListEl) {
     var rows = _chainListEl.querySelectorAll('.ssli-fx-chain-row');
     for (var i = 0; i < rows.length; i++) {
       var rowRect = rows[i].getBoundingClientRect();
@@ -509,6 +516,7 @@
         }
       }
     }
+    } // end if (_dragState && _chainListEl)
   }
 
   function _onDragEnd() {
@@ -525,11 +533,7 @@
   }
 
   function _finishDrag() {
-    if (!_dragState || !_chainListEl) {
-      _dragState = null;
-      return;
-    }
-
+    if (_dragState && _chainListEl) {
     // Find drop target
     var rows = _chainListEl.querySelectorAll('.ssli-fx-chain-row');
     var dropIdx = -1;
@@ -582,7 +586,7 @@
         _buildChainList();
       }
     }
-
+    } // end if (_dragState && _chainListEl)
     _dragState = null;
   }
 
@@ -593,10 +597,7 @@
   function _openParamModal(effectName) {
     var meta = _getEffectMeta();
     var effectMeta = meta[effectName];
-    if (!effectMeta) {
-      return;
-    }
-
+    if (effectMeta) {
     _closeParamModal();
 
     var params = _getEffectParams(effectName);
@@ -671,13 +672,15 @@
 
         var select = document.createElement('select');
         select.className = 'ssli-sound-select';
-        var options = pDef.options || [];
+        var options = pDef.options || _emptyOptions();
+        var optFrag = document.createDocumentFragment();
         for (var o = 0; o < options.length; o++) {
           var optEl = document.createElement('option');
           optEl.value = options[o];
           optEl.textContent = _optionDisplayLabel(options[o]);
-          select.appendChild(optEl);
+          optFrag.appendChild(optEl);
         }
+        select.appendChild(optFrag);
         select.value = params[pDef.name] || pDef.default;
         (function(eName, pName) {
           select.addEventListener('change', function() {
@@ -711,7 +714,8 @@
     panel.appendChild(paramsContainer);
     _modalEl.appendChild(panel);
     document.body.appendChild(_modalEl);
-    _modalOpen = true;
+    isModalOpen = true;
+    } // end if (effectMeta)
   }
 
   function _createParamSliderRow(label, min, max, value, step, unit, effectName, paramName) {
@@ -768,7 +772,7 @@
       _modalEl.parentNode.removeChild(_modalEl);
     }
     _modalEl = null;
-    _modalOpen = false;
+    isModalOpen = false;
   }
 
   // ============================================================
@@ -790,10 +794,7 @@
 
   function _applyFxPreset(presetId, skipNotify) {
     var found = _findPresetById(presetId);
-    if (!found) {
-      return;
-    }
-
+    if (found) {
     _activeFxCategory = found.category;
     _activeFxPresetId = presetId;
 
@@ -821,7 +822,9 @@
     }
 
     // 4. Set chain order: preset effects first, then remaining in default order
-    if (chain && SL.effectsUI && SL.effectsUI.DEFAULT_CHAIN_ORDER) {
+    var hasDefaultChainOrder = SL.effectsUI && SL.effectsUI.DEFAULT_CHAIN_ORDER;
+    var canSetChainOrder = chain && hasDefaultChainOrder;
+    if (canSetChainOrder) {
       var defaultOrder = SL.effectsUI.DEFAULT_CHAIN_ORDER;
       for (var d = 0; d < defaultOrder.length; d++) {
         if (chainOrder.indexOf(defaultOrder[d]) < 0) {
@@ -838,9 +841,12 @@
     _buildChainList();
 
     // 7. Notify other screens
-    if (!skipNotify && SL.state && SL.state.notify) {
+    var hasStateNotify = SL.state && SL.state.notify;
+    var shouldNotifyFxChange = !skipNotify && hasStateNotify;
+    if (shouldNotifyFxChange) {
       SL.state.notify('fxpreset');
     }
+    } // end if (found)
   }
 
   function _syncFxDropdowns() {
@@ -854,37 +860,34 @@
   }
 
   function _populateFxPresetDropdown() {
-    if (!_fxPresetSelect) {
-      return;
-    }
-    _fxPresetSelect.innerHTML = '';
-    var presets = FX_PRESET_LIBRARY[_activeFxCategory] || [];
-    for (var i = 0; i < presets.length; i++) {
-      var opt = document.createElement('option');
-      opt.value = presets[i].id;
-      opt.textContent = SL.t('fx_preset_label.' + (_FX_PRESET_KEY[presets[i].label] || ''), presets[i].label);
-      _fxPresetSelect.appendChild(opt);
+    if (_fxPresetSelect) {
+      _fxPresetSelect.innerHTML = '';
+      var presets = FX_PRESET_LIBRARY[_activeFxCategory] || [];
+      for (var i = 0; i < presets.length; i++) {
+        var opt = document.createElement('option');
+        opt.value = presets[i].id;
+        opt.textContent = SL.t('fx_preset_label.' + (_FX_PRESET_KEY[presets[i].label] || ''), presets[i].label);
+        _fxPresetSelect.appendChild(opt);
+      }
     }
   }
 
   function _onFxCategoryChange() {
-    if (!_fxCategorySelect) {
-      return;
-    }
-    _activeFxCategory = _fxCategorySelect.value;
-    _populateFxPresetDropdown();
-    // Auto-apply first preset in category
-    var presets = FX_PRESET_LIBRARY[_activeFxCategory];
-    if (presets && presets.length > 0) {
-      _applyFxPreset(presets[0].id);
+    if (_fxCategorySelect) {
+      _activeFxCategory = _fxCategorySelect.value;
+      _populateFxPresetDropdown();
+      // Auto-apply first preset in category
+      var presets = FX_PRESET_LIBRARY[_activeFxCategory];
+      if (presets && presets.length > 0) {
+        _applyFxPreset(presets[0].id);
+      }
     }
   }
 
   function _onFxPresetChange() {
-    if (!_fxPresetSelect) {
-      return;
+    if (_fxPresetSelect) {
+      _applyFxPreset(_fxPresetSelect.value);
     }
-    _applyFxPreset(_fxPresetSelect.value);
   }
 
   // ============================================================
@@ -893,9 +896,7 @@
 
   function _buildScreen() {
     _screenEl = document.getElementById('ssli-screen-effects');
-    if (!_screenEl) {
-      return;
-    }
+    if (_screenEl) {
     _screenEl.innerHTML = '';
 
     var container = document.createElement('div');
@@ -915,7 +916,7 @@
 
     _fxCategorySelect = document.createElement('select');
     _fxCategorySelect.className = 'ssli-sound-select ssli-fx-cat-select';
-    _fxCategorySelect.setAttribute('aria-label', 'FX Preset Category');
+    _fxCategorySelect.setAttribute('aria-label', SL.t('screen.effects.fxPresetCategory'));
     for (var ci = 0; ci < FX_PRESET_CATEGORIES.length; ci++) {
       var catOpt = document.createElement('option');
       catOpt.value = FX_PRESET_CATEGORIES[ci];
@@ -928,7 +929,7 @@
 
     _fxPresetSelect = document.createElement('select');
     _fxPresetSelect.className = 'ssli-sound-select ssli-fx-pre-select';
-    _fxPresetSelect.setAttribute('aria-label', 'FX Preset');
+    _fxPresetSelect.setAttribute('aria-label', SL.t('screen.effects.fxPreset'));
     _fxPresetSelect.addEventListener('change', _onFxPresetChange);
     presetsRow.appendChild(_fxPresetSelect);
 
@@ -1005,6 +1006,7 @@
 
     // Populate chain list
     _buildChainList();
+    }
   }
 
   // ============================================================
@@ -1012,13 +1014,12 @@
   // ============================================================
 
   function _onStateChange(what) {
-    if (!_active) {
-      return;
-    }
-    if (what === 'fxpreset') {
-      // Sync dropdowns when changed from another screen
-      _syncFxDropdowns();
-      _buildChainList();
+    if (isScreenActive) {
+      if (what === 'fxpreset') {
+        // Sync dropdowns when changed from another screen
+        _syncFxDropdowns();
+        _buildChainList();
+      }
     }
   }
 
@@ -1027,15 +1028,15 @@
   // ============================================================
 
   function activate() {
-    _active = true;
-    if (!_initialized) {
+    isScreenActive = true;
+    if (!isScreenInitialized) {
       _buildScreen();
-      _initialized = true;
+      isScreenInitialized = true;
 
       // Re-translate all visible text when the UI language changes
       if (SL.localization && SL.localization.onLanguageChange) {
         SL.localization.onLanguageChange(function() {
-          if (_active) {
+          if (isScreenActive) {
             _buildScreen();
           }
         });
@@ -1050,7 +1051,7 @@
   }
 
   function deactivate() {
-    _active = false;
+    isScreenActive = false;
     _closeParamModal();
     // E-01: Clear long press timer if pending
     _cancelLongPress();

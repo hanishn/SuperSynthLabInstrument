@@ -55,15 +55,15 @@
 
   var _fxCategorySelect = null;
   var _fxPresetSelect = null;
-  var _activeFxCategory = null;
-  var _activeFxPresetId = null;
+  var isScreenActiveFxCategory = null;
+  var isScreenActiveFxPresetId = null;
 
   // ============================================================
   // State
   // ============================================================
 
-  var _initialized = false;
-  var _active = false;
+  var isScreenInitialized = false;
+  var isScreenActive = false;
   var _screenEl = null;
   var _engineSelect = null;
   var _categorySelect = null;
@@ -149,27 +149,26 @@
 
   function _ensureEngineReady(engineType) {
     // Subtractive uses the built-in oscillator path, no module to init
-    if (engineType === 'subtractive') {
-      return;
-    }
-    var moduleName = ENGINE_TYPE_TO_MODULE[engineType];
-    if (!moduleName) {
-      return;
-    }
-    var engine = SL[moduleName];
-    if (!engine) {
-      return;
-    }
-    // If the engine has an isReady() check and it's not ready, re-init
-    if (engine.isReady && !engine.isReady()) {
-      if (engine.init) {
-        engine.init();
+    if (engineType !== 'subtractive') {
+      var moduleName = ENGINE_TYPE_TO_MODULE[engineType];
+      if (moduleName) {
+        var engine = SL[moduleName];
+        if (engine) {
+          // If the engine has an isReady() check and it's not ready, re-init
+          if (engine.isReady && !engine.isReady()) {
+            if (engine.init) {
+              engine.init();
+            }
+          }
+          // If no isReady check, try init if it hasn't been called
+          // (some engines set internal flags on init)
+          var needsEngineInit = !engine.isReady && engine.init;
+          var canInitEngine = needsEngineInit && !engine._initialized;
+          if (canInitEngine) {
+            engine.init();
+          }
+        }
       }
-    }
-    // If no isReady check, try init if it hasn't been called
-    // (some engines set internal flags on init)
-    if (!engine.isReady && engine.init && !engine._initialized) {
-      engine.init();
     }
   }
 
@@ -203,60 +202,59 @@
   // ============================================================
 
   function _populateEngines() {
-    if (!_engineSelect) {
-      return;
-    }
-    _engineSelect.innerHTML = '';
-    var engines = _getEngineList();
-    for (var i = 0; i < engines.length; i++) {
-      var opt = document.createElement('option');
-      opt.value = engines[i];
-      var icon = ENGINE_ICONS[engines[i]] || '';
-      var engineLabel = SL.t('engine.' + engines[i].toLowerCase(), engines[i]);
-      var displayName = icon ? (icon + ' ' + engineLabel) : engineLabel;
-      opt.textContent = displayName;
-      _engineSelect.appendChild(opt);
+    if (_engineSelect) {
+      _engineSelect.innerHTML = '';
+      var engines = _getEngineList();
+      for (var i = 0; i < engines.length; i++) {
+        var opt = document.createElement('option');
+        opt.value = engines[i];
+        var icon = ENGINE_ICONS[engines[i]] || '';
+        var engineLabel = SL.t('engine.' + engines[i].toLowerCase(), engines[i]);
+        var displayName = icon ? (icon + ' ' + engineLabel) : engineLabel;
+        opt.textContent = displayName;
+        _engineSelect.appendChild(opt);
+      }
     }
   }
 
   var PREFERRED_DEFAULT_CATEGORY = 'Keys';
 
   function _populateCategories() {
-    if (!_categorySelect || !_engineSelect) {
-      return;
-    }
-    _categorySelect.innerHTML = '';
-    var engine = _engineSelect.value;
-    var cats = _getCategoriesForEngine(engine);
-    var preferredIdx = 0;
-    for (var i = 0; i < cats.length; i++) {
-      var opt = document.createElement('option');
-      opt.value = cats[i];
-      var catKey = _PRESET_CAT_KEY[cats[i]] || '';
-      opt.textContent = catKey ? SL.t('preset_category.' + catKey, cats[i]) : cats[i];
-      _categorySelect.appendChild(opt);
-      if (cats[i] === PREFERRED_DEFAULT_CATEGORY) {
-        preferredIdx = i;
+    if (_categorySelect && _engineSelect) {
+      _categorySelect.innerHTML = '';
+      var engine = _engineSelect.value;
+      var cats = _getCategoriesForEngine(engine);
+      var preferredIdx = 0;
+      for (var i = 0; i < cats.length; i++) {
+        var opt = document.createElement('option');
+        opt.value = cats[i];
+        var catKey = _PRESET_CAT_KEY[cats[i]] || '';
+        opt.textContent = catKey ? SL.t('preset_category.' + catKey, cats[i]) : cats[i];
+        _categorySelect.appendChild(opt);
+        if (cats[i] === PREFERRED_DEFAULT_CATEGORY) {
+          preferredIdx = i;
+        }
       }
-    }
-    if (preferredIdx > 0) {
-      _categorySelect.selectedIndex = preferredIdx;
+      if (preferredIdx > 0) {
+        _categorySelect.selectedIndex = preferredIdx;
+      }
     }
   }
 
   function _populatePresets() {
-    if (!_presetSelect || !_engineSelect || !_categorySelect) {
-      return;
-    }
-    var engine = _engineSelect.value;
-    var category = _categorySelect.value;
-    _cachedPresets = _getPresetsForEngineCategory(engine, category);
+    var hasPresetControls = _presetSelect && _engineSelect;
+    var hasAllPresetControls = hasPresetControls && _categorySelect;
+    if (hasAllPresetControls) {
+      var engine = _engineSelect.value;
+      var category = _categorySelect.value;
+      _cachedPresets = _getPresetsForEngineCategory(engine, category);
 
-    _filterAndDisplayPresets('');
+      _filterAndDisplayPresets('');
 
-    // Auto-apply first preset
-    if (_cachedPresets.length > 0) {
-      _applyPreset(_cachedPresets[0]);
+      // Auto-apply first preset
+      if (_cachedPresets.length > 0) {
+        _applyPreset(_cachedPresets[0]);
+      }
     }
   }
 
@@ -265,19 +263,18 @@
    * @param {string} query - Search text (case-insensitive substring match)
    */
   function _filterAndDisplayPresets(query) {
-    if (!_presetSelect) {
-      return;
-    }
-    _presetSelect.innerHTML = '';
-    var lowerQuery = (query || '').toLowerCase();
+    if (_presetSelect) {
+      _presetSelect.innerHTML = '';
+      var lowerQuery = (query || '').toLowerCase();
 
-    for (var i = 0; i < _cachedPresets.length; i++) {
-      var name = _cachedPresets[i].name || ('Preset ' + (i + 1));
-      if (lowerQuery.length === 0 || name.toLowerCase().indexOf(lowerQuery) >= 0) {
-        var opt = document.createElement('option');
-        opt.value = i;
-        opt.textContent = name;
-        _presetSelect.appendChild(opt);
+      for (var i = 0; i < _cachedPresets.length; i++) {
+        var name = _cachedPresets[i].name || ('Preset ' + (i + 1));
+        if (lowerQuery.length === 0 || name.toLowerCase().indexOf(lowerQuery) >= 0) {
+          var opt = document.createElement('option');
+          opt.value = i;
+          opt.textContent = name;
+          _presetSelect.appendChild(opt);
+        }
       }
     }
   }
@@ -292,12 +289,11 @@
   }
 
   function _onPresetChange() {
-    if (!_presetSelect) {
-      return;
-    }
-    var idx = parseInt(_presetSelect.value, 10);
-    if (_cachedPresets[idx]) {
-      _applyPreset(_cachedPresets[idx]);
+    if (_presetSelect) {
+      var idx = parseInt(_presetSelect.value, 10);
+      if (_cachedPresets[idx]) {
+        _applyPreset(_cachedPresets[idx]);
+      }
     }
   }
 
@@ -307,49 +303,47 @@
    */
   function _onSurpriseMe() {
     var engines = _getEngineList();
-    if (engines.length === 0) {
-      return;
+    if (engines.length > 0) {
+      var randomEngineIdx = Math.floor(Math.random() * engines.length);
+      var randomEngine = engines[randomEngineIdx];
+
+      // Set engine dropdown
+      if (_engineSelect) {
+        _engineSelect.value = randomEngine;
+      }
+
+      // Get categories for this engine and pick one
+      var categories = _getCategoriesForEngine(randomEngine);
+      var randomCatIdx = Math.floor(Math.random() * categories.length);
+      var randomCategory = categories[randomCatIdx];
+
+      // Set category dropdown
+      if (_categorySelect) {
+        _populateCategories();
+        _categorySelect.value = randomCategory;
+      }
+
+      // Get presets for this engine+category and pick one
+      var presets = _getPresetsForEngineCategory(randomEngine, randomCategory);
+      if (presets.length > 0) {
+        var randomPresetIdx = Math.floor(Math.random() * presets.length);
+        var randomPreset = presets[randomPresetIdx];
+
+        // Update cached presets and preset dropdown
+        _cachedPresets = presets;
+        _filterAndDisplayPresets('');
+        if (_presetSelect) {
+          _presetSelect.value = String(randomPresetIdx);
+        }
+
+        // Tag with the randomly-selected engine type before applying
+        var randomEngineType = SL.presets.engineNameToType ? SL.presets.engineNameToType(randomEngine) : 'subtractive';
+        randomPreset.engine = randomEngineType;
+
+        // Apply the preset
+        _applyPreset(randomPreset);
+      }
     }
-    var randomEngineIdx = Math.floor(Math.random() * engines.length);
-    var randomEngine = engines[randomEngineIdx];
-
-    // Set engine dropdown
-    if (_engineSelect) {
-      _engineSelect.value = randomEngine;
-    }
-
-    // Get categories for this engine and pick one
-    var categories = _getCategoriesForEngine(randomEngine);
-    var randomCatIdx = Math.floor(Math.random() * categories.length);
-    var randomCategory = categories[randomCatIdx];
-
-    // Set category dropdown
-    if (_categorySelect) {
-      _populateCategories();
-      _categorySelect.value = randomCategory;
-    }
-
-    // Get presets for this engine+category and pick one
-    var presets = _getPresetsForEngineCategory(randomEngine, randomCategory);
-    if (presets.length === 0) {
-      return;
-    }
-    var randomPresetIdx = Math.floor(Math.random() * presets.length);
-    var randomPreset = presets[randomPresetIdx];
-
-    // Update cached presets and preset dropdown
-    _cachedPresets = presets;
-    _filterAndDisplayPresets('');
-    if (_presetSelect) {
-      _presetSelect.value = String(randomPresetIdx);
-    }
-
-    // Tag with the randomly-selected engine type before applying
-    var randomEngineType = SL.presets.engineNameToType ? SL.presets.engineNameToType(randomEngine) : 'subtractive';
-    randomPreset.engine = randomEngineType;
-
-    // Apply the preset
-    _applyPreset(randomPreset);
   }
 
   // ============================================================
@@ -357,13 +351,12 @@
   // ============================================================
 
   function _onVolumeChange() {
-    if (!_volumeSlider || !_volumeVal) {
-      return;
-    }
-    var val = parseInt(_volumeSlider.value, 10);
-    _volumeVal.textContent = val + '%';
-    if (SL.audio && SL.audio.setMasterVolume) {
-      SL.audio.setMasterVolume(val / VOLUME_MAX);
+    if (_volumeSlider && _volumeVal) {
+      var val = parseInt(_volumeSlider.value, 10);
+      _volumeVal.textContent = val + '%';
+      if (SL.audio && SL.audio.setMasterVolume) {
+        SL.audio.setMasterVolume(val / VOLUME_MAX);
+      }
     }
   }
 
@@ -377,29 +370,28 @@
 
   function _initFxState() {
     var lib = _getFxLib();
-    if (!_activeFxCategory && lib.categories.length > 0) {
-      _activeFxCategory = lib.categories[0];
+    if (!isScreenActiveFxCategory && lib.categories.length > 0) {
+      isScreenActiveFxCategory = lib.categories[0];
     }
-    if (!_activeFxPresetId) {
-      var presets = lib.library[_activeFxCategory] || [];
+    if (!isScreenActiveFxPresetId) {
+      var presets = lib.library[isScreenActiveFxCategory] || [];
       if (presets.length > 0) {
-        _activeFxPresetId = presets[0].id;
+        isScreenActiveFxPresetId = presets[0].id;
       }
     }
   }
 
   function _populateFxPresetDropdown() {
-    if (!_fxPresetSelect) {
-      return;
-    }
-    _fxPresetSelect.innerHTML = '';
-    var lib = _getFxLib();
-    var presets = lib.library[_activeFxCategory] || [];
-    for (var i = 0; i < presets.length; i++) {
-      var opt = document.createElement('option');
-      opt.value = presets[i].id;
-      opt.textContent = SL.t('fx_preset_label.' + (_FX_PRESET_KEY[presets[i].label] || ''), presets[i].label);
-      _fxPresetSelect.appendChild(opt);
+    if (_fxPresetSelect) {
+      _fxPresetSelect.innerHTML = '';
+      var lib = _getFxLib();
+      var presets = lib.library[isScreenActiveFxCategory] || [];
+      for (var i = 0; i < presets.length; i++) {
+        var opt = document.createElement('option');
+        opt.value = presets[i].id;
+        opt.textContent = SL.t('fx_preset_label.' + (_FX_PRESET_KEY[presets[i].label] || ''), presets[i].label);
+        _fxPresetSelect.appendChild(opt);
+      }
     }
   }
 
@@ -407,40 +399,38 @@
     // Read shared state from effects screen module
     if (SL.screenEffects && SL.screenEffects.getFxState) {
       var state = SL.screenEffects.getFxState();
-      _activeFxCategory = state.category;
-      _activeFxPresetId = state.presetId;
+      isScreenActiveFxCategory = state.category;
+      isScreenActiveFxPresetId = state.presetId;
     }
     if (_fxCategorySelect) {
-      _fxCategorySelect.value = _activeFxCategory;
+      _fxCategorySelect.value = isScreenActiveFxCategory;
     }
     _populateFxPresetDropdown();
     if (_fxPresetSelect) {
-      _fxPresetSelect.value = _activeFxPresetId;
+      _fxPresetSelect.value = isScreenActiveFxPresetId;
     }
   }
 
   function _onSoundFxCategoryChange() {
-    if (!_fxCategorySelect) {
-      return;
-    }
-    _activeFxCategory = _fxCategorySelect.value;
-    _populateFxPresetDropdown();
-    var lib = _getFxLib();
-    var presets = lib.library[_activeFxCategory] || [];
-    if (presets.length > 0) {
-      _onSoundFxPresetApply(presets[0].id);
+    if (_fxCategorySelect) {
+      isScreenActiveFxCategory = _fxCategorySelect.value;
+      _populateFxPresetDropdown();
+      var lib = _getFxLib();
+      var presets = lib.library[isScreenActiveFxCategory] || [];
+      if (presets.length > 0) {
+        _onSoundFxPresetApply(presets[0].id);
+      }
     }
   }
 
   function _onSoundFxPresetChange() {
-    if (!_fxPresetSelect) {
-      return;
+    if (_fxPresetSelect) {
+      _onSoundFxPresetApply(_fxPresetSelect.value);
     }
-    _onSoundFxPresetApply(_fxPresetSelect.value);
   }
 
   function _onSoundFxPresetApply(presetId) {
-    _activeFxPresetId = presetId;
+    isScreenActiveFxPresetId = presetId;
     // Delegate to the effects screen's apply logic
     if (SL.screenEffects && SL.screenEffects.applyPreset) {
       SL.screenEffects.applyPreset(presetId);
@@ -458,32 +448,31 @@
 
   function _playTestTone() {
     // Ignore clicks while already playing — no stacking
-    if (_testToneTimer) {
-      return;
-    }
-    // Ensure AudioContext is created and resumed before playing
-    if (SL.audio && SL.audio.getCtx) {
-      var ctx = SL.audio.getCtx();
-      if (ctx && ctx.state === 'suspended') {
-        ctx.resume();
-      }
-    }
-    if (SL.audio && SL.audio.startSustainedNote) {
-      // Update button text to show playing state
-      if (_testToneBtn) {
-        _testToneBtn.textContent = _getTestToneLabelPlaying();
-      }
-      SL.audio.startSustainedNote(TEST_TONE_MIDI, TEST_TONE_VELOCITY);
-      _testToneTimer = setTimeout(function() {
-        if (SL.audio && SL.audio.stopSustainedNote) {
-          SL.audio.stopSustainedNote(TEST_TONE_MIDI);
+    if (!_testToneTimer) {
+      // Ensure AudioContext is created and resumed before playing
+      if (SL.audio && SL.audio.getCtx) {
+        var ctx = SL.audio.getCtx();
+        if (ctx && ctx.state === 'suspended') {
+          ctx.resume();
         }
-        // Restore button text
+      }
+      if (SL.audio && SL.audio.startSustainedNote) {
+        // Update button text to show playing state
         if (_testToneBtn) {
-          _testToneBtn.textContent = _getTestToneLabelDefault();
+          _testToneBtn.textContent = _getTestToneLabelPlaying();
         }
-        _testToneTimer = null;
-      }, TEST_TONE_DURATION_MS);
+        SL.audio.startSustainedNote(TEST_TONE_MIDI, TEST_TONE_VELOCITY);
+        _testToneTimer = setTimeout(function() {
+          if (SL.audio && SL.audio.stopSustainedNote) {
+            SL.audio.stopSustainedNote(TEST_TONE_MIDI);
+          }
+          // Restore button text
+          if (_testToneBtn) {
+            _testToneBtn.textContent = _getTestToneLabelDefault();
+          }
+          _testToneTimer = null;
+        }, TEST_TONE_DURATION_MS);
+      }
     }
   }
 
@@ -497,7 +486,9 @@
     if (SL.audio && SL.audio.getInstruments) {
       var insts = SL.audio.getInstruments();
       var idx = SL.audio.getCurrentInstrument();
-      if (insts && insts[idx] && insts[idx].settings && insts[idx].settings.filter) {
+      var hasInstFilter = insts && insts[idx] && insts[idx].settings;
+      var hasCurrentFilter = hasInstFilter && insts[idx].settings.filter;
+      if (hasCurrentFilter) {
         return insts[idx].settings.filter;
       }
     }
@@ -566,22 +557,22 @@
     if (SL.audio && SL.audio.getInstruments) {
       var insts = SL.audio.getInstruments();
       var idx = SL.audio.getCurrentInstrument();
-      if (insts && insts[idx] && insts[idx].settings) {
+      var hasInstForVelCurve = insts && insts[idx] && insts[idx].settings;
+      if (hasInstForVelCurve) {
         insts[idx].settings.velCurve = curve;
       }
     }
     try {
       localStorage.setItem('ssli-vel-curve', curve);
-    } catch (e) {
-      // localStorage may be unavailable
-    }
+    } catch (e) { /* localStorage may be unavailable */ }
   }
 
   function _getVelocityCurve() {
     if (SL.audio && SL.audio.getInstruments) {
       var insts = SL.audio.getInstruments();
       var idx = SL.audio.getCurrentInstrument();
-      if (insts && insts[idx] && insts[idx].settings && insts[idx].settings.velCurve) {
+      var hasVelCurve = insts && insts[idx] && insts[idx].settings && insts[idx].settings.velCurve;
+      if (hasVelCurve) {
         return insts[idx].settings.velCurve;
       }
     }
@@ -590,9 +581,7 @@
       if (saved) {
         return saved;
       }
-    } catch (e) {
-      // localStorage may be unavailable
-    }
+    } catch (e) { /* localStorage may be unavailable */ }
     return 'linear';
   }
 
@@ -602,10 +591,8 @@
 
   function _buildScreen() {
     _screenEl = document.getElementById('ssli-screen-sound');
-    if (!_screenEl) {
-      return;
-    }
-    _screenEl.innerHTML = '';
+    if (_screenEl) {
+      _screenEl.innerHTML = '';
 
     var container = document.createElement('div');
     container.className = 'ssli-sound-container';
@@ -634,7 +621,7 @@
     _engineSelect = document.createElement('select');
     _engineSelect.className = 'ssli-sound-select';
     _engineSelect.id = 'ssliEngine';
-    _engineSelect.setAttribute('aria-label', 'Synth Engine');
+    _engineSelect.setAttribute('aria-label', SL.t('aria.synthEngine'));
     _engineSelect.addEventListener('change', _onEngineChange);
     engineRow.appendChild(engineLabel);
     engineRow.appendChild(_engineSelect);
@@ -649,7 +636,7 @@
     _categorySelect = document.createElement('select');
     _categorySelect.className = 'ssli-sound-select';
     _categorySelect.id = 'ssliCategory';
-    _categorySelect.setAttribute('aria-label', 'Preset Category');
+    _categorySelect.setAttribute('aria-label', SL.t('aria.presetCategory'));
     _categorySelect.addEventListener('change', _onCategoryChange);
     catRow.appendChild(catLabel);
     catRow.appendChild(_categorySelect);
@@ -674,7 +661,7 @@
     _surpriseBtn.type = 'button';
     _surpriseBtn.className = 'ssli-surprise-btn';
     _surpriseBtn.textContent = '\uD83C\uDFB2 ' + SL.t('ui.label.surprise_me');
-    _surpriseBtn.setAttribute('aria-label', 'Pick a random preset from any engine');
+    _surpriseBtn.setAttribute('aria-label', SL.t('aria.randomPresetAnyEngine'));
     _surpriseBtn.addEventListener('click', _onSurpriseMe);
     var surpriseBtn = _surpriseBtn;
 
@@ -725,7 +712,7 @@
     cutoffSlider.min = '0';
     cutoffSlider.max = String(CUT_SLIDER_MAX);
     cutoffSlider.value = String(CUT_SLIDER_MAX);
-    cutoffSlider.setAttribute('aria-label', 'Filter Cutoff');
+    cutoffSlider.setAttribute('aria-label', SL.t('aria.filterCutoff'));
     var cutoffVal = document.createElement('span');
     cutoffVal.className = 'ssli-sound-filter-inline-val';
     cutoffVal.textContent = _formatFilterHz(SL.FILTER_CUTOFF_MAX);
@@ -756,7 +743,7 @@
     resoSlider.max = String(SL.FILTER_RESO_MAX);
     resoSlider.step = '0.1';
     resoSlider.value = '10';
-    resoSlider.setAttribute('aria-label', 'Filter Resonance');
+    resoSlider.setAttribute('aria-label', SL.t('aria.filterResonance'));
     var resoVal = document.createElement('span');
     resoVal.className = 'ssli-sound-filter-inline-val';
     resoVal.textContent = 'Q10';
@@ -801,25 +788,25 @@
     var lib = _getFxLib();
     _fxCategorySelect = document.createElement('select');
     _fxCategorySelect.className = 'ssli-sound-select ssli-fx-cat-select';
-    _fxCategorySelect.setAttribute('aria-label', 'FX Preset Category');
+    _fxCategorySelect.setAttribute('aria-label', SL.t('aria.fxPresetCategory'));
     for (var fci = 0; fci < lib.categories.length; fci++) {
       var fcOpt = document.createElement('option');
       fcOpt.value = lib.categories[fci];
       fcOpt.textContent = SL.t('fx_category.' + (_FX_CAT_KEY[lib.categories[fci]] || ''), lib.categories[fci]);
       _fxCategorySelect.appendChild(fcOpt);
     }
-    _fxCategorySelect.value = _activeFxCategory;
+    _fxCategorySelect.value = isScreenActiveFxCategory;
     _fxCategorySelect.addEventListener('change', _onSoundFxCategoryChange);
     fxInlineRow.appendChild(_fxCategorySelect);
 
     _fxPresetSelect = document.createElement('select');
     _fxPresetSelect.className = 'ssli-sound-select ssli-fx-pre-select';
-    _fxPresetSelect.setAttribute('aria-label', 'FX Preset');
+    _fxPresetSelect.setAttribute('aria-label', SL.t('aria.fxPreset'));
     _fxPresetSelect.addEventListener('change', _onSoundFxPresetChange);
     fxInlineRow.appendChild(_fxPresetSelect);
 
     _populateFxPresetDropdown();
-    _fxPresetSelect.value = _activeFxPresetId;
+    _fxPresetSelect.value = isScreenActiveFxPresetId;
 
     presetsSection.appendChild(fxInlineRow);
     container.appendChild(presetsSection);
@@ -846,7 +833,7 @@
     _volumeSlider.min = String(VOLUME_MIN);
     _volumeSlider.max = String(VOLUME_MAX);
     _volumeSlider.value = String(DEFAULT_VOLUME);
-    _volumeSlider.setAttribute('aria-label', 'Master Volume');
+    _volumeSlider.setAttribute('aria-label', SL.t('aria.masterVolume'));
     _volumeSlider.addEventListener('input', _onVolumeChange);
     _volumeVal = document.createElement('span');
     _volumeVal.className = 'ssli-volume-val';
@@ -860,7 +847,7 @@
     _velSelect = document.createElement('select');
     var velSelect = _velSelect;
     velSelect.className = 'ssli-vel-select';
-    velSelect.setAttribute('aria-label', 'Velocity Response Curve');
+    velSelect.setAttribute('aria-label', SL.t('aria.velocityResponseCurve'));
     var currentVelCurve = _getVelocityCurve();
     for (var vc = 0; vc < VELOCITY_CURVES.length; vc++) {
       var vcOpt = document.createElement('option');
@@ -880,8 +867,8 @@
     _testToneBtn.className = 'ssli-test-tone-btn';
     _testToneBtn.type = 'button';
     _testToneBtn.textContent = _getTestToneLabelDefault();
-    _testToneBtn.title = 'Play a 1-second test note to verify audio';
-    _testToneBtn.setAttribute('aria-label', 'Play test tone');
+    _testToneBtn.title = SL.t('tooltip.playTestTone');
+    _testToneBtn.setAttribute('aria-label', SL.t('aria.playTestTone'));
     _testToneBtn.addEventListener('click', _playTestTone);
 
     volVelRow.appendChild(volLabel);
@@ -910,7 +897,7 @@
     _touchVelCb = document.createElement('input');
     _touchVelCb.type = 'checkbox';
     _touchVelCb.className = 'ssli-shape-checkbox';
-    _touchVelCb.setAttribute('aria-label', 'Touch Velocity');
+    _touchVelCb.setAttribute('aria-label', SL.t('aria.touchVelocity'));
     _touchVelCb.title = TIP_TOUCH_VELOCITY;
 
     var touchVelSaved = SL._touchSettings.enabled;
@@ -928,7 +915,7 @@
     _touchSensSlider.className = 'ssli-shape-slider';
     _touchSensSlider.min = String(TOUCH_SENS_MIN);
     _touchSensSlider.max = String(TOUCH_SENS_MAX);
-    _touchSensSlider.setAttribute('aria-label', 'Touch Sensitivity');
+    _touchSensSlider.setAttribute('aria-label', SL.t('aria.touchSensitivity'));
     _touchSensSlider.title = TIP_TOUCH_SENSITIVITY;
 
     var savedSensitivity = SL._touchSettings.sensitivity;
@@ -963,9 +950,7 @@
       SL._touchSettings.enabled = isOn;
       try {
         localStorage.setItem('ssli-touch-velocity', isOn ? 'on' : 'off');
-      } catch (lsErr) {
-        // localStorage may be unavailable
-      }
+      } catch (lsErr) { /* localStorage may be unavailable */ }
       _touchSensSlider.disabled = !isOn;
       _touchSensLabel.style.opacity = isOn ? '1' : '0.4';
       _touchSensVal.style.opacity = isOn ? '1' : '0.4';
@@ -988,9 +973,7 @@
       SL._touchSettings.sensitivity = sensVal;
       try {
         localStorage.setItem('ssli-touch-sensitivity', String(sensVal));
-      } catch (lsErr) {
-        // localStorage may be unavailable
-      }
+      } catch (lsErr) { /* localStorage may be unavailable */ }
     });
 
     touchVelRow.appendChild(_touchVelLabel);
@@ -1021,7 +1004,7 @@
     _touchVelMinSlider.className = 'ssli-shape-slider';
     _touchVelMinSlider.min = String(TOUCH_VEL_MIN_FLOOR);
     _touchVelMinSlider.max = String(TOUCH_VEL_MIN_CEIL);
-    _touchVelMinSlider.setAttribute('aria-label', 'Min Velocity');
+    _touchVelMinSlider.setAttribute('aria-label', SL.t('aria.minVelocity'));
 
     var savedVelMin = SL._touchSettings.velMin;
     _touchVelMinSlider.value = String(savedVelMin);
@@ -1036,9 +1019,7 @@
       SL._touchSettings.velMin = minVal;
       try {
         localStorage.setItem('ssli-touch-vel-min', String(minVal));
-      } catch (lsErr) {
-        // localStorage may be unavailable
-      }
+      } catch (lsErr) { /* localStorage may be unavailable */ }
     });
 
     // --- Max Velocity ---
@@ -1051,7 +1032,7 @@
     _touchVelMaxSlider.className = 'ssli-shape-slider';
     _touchVelMaxSlider.min = String(TOUCH_VEL_MAX_FLOOR);
     _touchVelMaxSlider.max = String(TOUCH_VEL_MAX_CEIL);
-    _touchVelMaxSlider.setAttribute('aria-label', 'Max Velocity');
+    _touchVelMaxSlider.setAttribute('aria-label', SL.t('aria.maxVelocity'));
 
     var savedVelMax = SL._touchSettings.velMax;
     _touchVelMaxSlider.value = String(savedVelMax);
@@ -1066,9 +1047,7 @@
       SL._touchSettings.velMax = maxVal;
       try {
         localStorage.setItem('ssli-touch-vel-max', String(maxVal));
-      } catch (lsErr) {
-        // localStorage may be unavailable
-      }
+      } catch (lsErr) { /* localStorage may be unavailable */ }
     });
 
     // Enable/disable min/max sliders based on touch velocity state
@@ -1089,7 +1068,8 @@
 
     container.appendChild(outSection);
 
-    _screenEl.appendChild(container);
+      _screenEl.appendChild(container);
+    }
   }
 
   // ============================================================
@@ -1113,14 +1093,13 @@
   }
 
   function _onStateChange(what) {
-    if (!_active) {
-      return;
-    }
-    if (what === 'fxpreset') {
-      _syncFxDropdowns();
-    }
-    if (what === 'preset' || what === 'instrument') {
-      _refreshFilterSliders();
+    if (isScreenActive) {
+      if (what === 'fxpreset') {
+        _syncFxDropdowns();
+      }
+      if (what === 'preset' || what === 'instrument') {
+        _refreshFilterSliders();
+      }
     }
   }
 
@@ -1129,34 +1108,32 @@
   // ============================================================
 
   function _populateFxCategories() {
-    if (!_fxCategorySelect) {
-      return;
+    if (_fxCategorySelect) {
+      var savedVal = _fxCategorySelect.value;
+      _fxCategorySelect.innerHTML = '';
+      var lib = _getFxLib();
+      for (var fci = 0; fci < lib.categories.length; fci++) {
+        var fcOpt = document.createElement('option');
+        fcOpt.value = lib.categories[fci];
+        fcOpt.textContent = SL.t('fx_category.' + (_FX_CAT_KEY[lib.categories[fci]] || ''), lib.categories[fci]);
+        _fxCategorySelect.appendChild(fcOpt);
+      }
+      _fxCategorySelect.value = savedVal;
     }
-    var savedVal = _fxCategorySelect.value;
-    _fxCategorySelect.innerHTML = '';
-    var lib = _getFxLib();
-    for (var fci = 0; fci < lib.categories.length; fci++) {
-      var fcOpt = document.createElement('option');
-      fcOpt.value = lib.categories[fci];
-      fcOpt.textContent = SL.t('fx_category.' + (_FX_CAT_KEY[lib.categories[fci]] || ''), lib.categories[fci]);
-      _fxCategorySelect.appendChild(fcOpt);
-    }
-    _fxCategorySelect.value = savedVal;
   }
 
   function _populateVelocityCurves() {
-    if (!_velSelect) {
-      return;
+    if (_velSelect) {
+      var savedVal = _velSelect.value;
+      _velSelect.innerHTML = '';
+      for (var vc = 0; vc < VELOCITY_CURVES.length; vc++) {
+        var vcOpt = document.createElement('option');
+        vcOpt.value = VELOCITY_CURVES[vc].val;
+        vcOpt.textContent = SL.t('velocity_curve.' + VELOCITY_CURVES[vc].val, VELOCITY_CURVES[vc].lbl);
+        _velSelect.appendChild(vcOpt);
+      }
+      _velSelect.value = savedVal;
     }
-    var savedVal = _velSelect.value;
-    _velSelect.innerHTML = '';
-    for (var vc = 0; vc < VELOCITY_CURVES.length; vc++) {
-      var vcOpt = document.createElement('option');
-      vcOpt.value = VELOCITY_CURVES[vc].val;
-      vcOpt.textContent = SL.t('velocity_curve.' + VELOCITY_CURVES[vc].val, VELOCITY_CURVES[vc].lbl);
-      _velSelect.appendChild(vcOpt);
-    }
-    _velSelect.value = savedVal;
   }
 
   function _rebuildAllForLanguage() {
@@ -1206,7 +1183,7 @@
 
     // FX preset dropdown
     _populateFxPresetDropdown();
-    if (_fxPresetSelect && _activeFxPresetId) { _fxPresetSelect.value = _activeFxPresetId; }
+    if (_fxPresetSelect && isScreenActiveFxPresetId) { _fxPresetSelect.value = isScreenActiveFxPresetId; }
 
     // Velocity curve dropdown
     _populateVelocityCurves();
@@ -1215,8 +1192,8 @@
   var DEFAULT_PRESET_NAME = 'Electric Piano (Rhodes)';
 
   function activate() {
-    _active = true;
-    if (!_initialized) {
+    isScreenActive = true;
+    if (!isScreenInitialized) {
       _buildScreen();
       _populateEngines();
       _populateCategories();
@@ -1231,7 +1208,7 @@
           }
         }
       }
-      _initialized = true;
+      isScreenInitialized = true;
 
       // Register language-change callback (once, after first init)
       if (SL.localization && SL.localization.onLanguageChange) {
@@ -1247,7 +1224,7 @@
   }
 
   function deactivate() {
-    _active = false;
+    isScreenActive = false;
     // E-01: Stop test tone if playing
     if (_testToneTimer) {
       clearTimeout(_testToneTimer);

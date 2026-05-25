@@ -2,7 +2,7 @@
 // Low shelf, mid peaking, high shelf filters in series
 
 (function() {
-  const SL = window.SynthLab = window.SynthLab || {};
+  var SL = window.SynthLab = window.SynthLab || {};
   SL.effects = SL.effects || {};
 
   /**
@@ -65,7 +65,7 @@
      * Update a parameter on the filter nodes
      */
     updateParam(name, value) {
-      const now = this.ctx.currentTime;
+      var now = this.ctx.currentTime;
 
       switch (name) {
         case 'lowGain':

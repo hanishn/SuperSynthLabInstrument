@@ -13,6 +13,9 @@
   var MAX_VOICES_PER_INSTRUMENT = 16;
   var TWO_PI = 2 * Math.PI;
 
+  // Valid oscillator waveform types
+  var VALID_WAVES = { 'sine': 1, 'saw': 1, 'square': 1, 'triangle': 1 };
+
   /** Default ring mod settings */
   var DEFAULT_RINGMOD_SETTINGS = {
     carrierWave: 'sine',
@@ -30,7 +33,7 @@
   var audioContext = null;
   var scriptNodes = [null, null, null, null];
   var fallbackVoicesByInst = [[], [], [], []];
-  var engineReady = false;
+  var isEngineReady = false;
   var instrumentSettings = {};
   var ringmodFilterNodes = {};
   var connectedInsts = [false, false, false, false];
@@ -283,7 +286,7 @@
     var bufSize = (SL.audio && SL.audio.getScriptProcessorBufferSize) ? SL.audio.getScriptProcessorBufferSize() : 1024;
 
     for (var i = 0; i < 4; i++) {
-      fallbackVoicesByInst[i] = [];
+      fallbackVoicesByInst[i].length = 0;
       for (var v = 0; v < MAX_VOICES_PER_INSTRUMENT; v++) {
         fallbackVoicesByInst[i].push(new RingmodVoice(sr));
       }
@@ -310,7 +313,7 @@
       })(idx);
     }
 
-    engineReady = true;
+    isEngineReady = true;
     return Promise.resolve(true);
   }
 
@@ -337,9 +340,7 @@
       instId = 0;
     }
     var filterNode = ringmodFilterNodes[instId];
-    if (!filterNode) {
-      return;
-    }
+    if (filterNode) {
     var filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
     if (!filterSettings || !filterSettings.enabled) {
       filterNode.type = 'lowpass';
@@ -350,28 +351,29 @@
       filterNode.frequency.value = Math.max(20, Math.min(20000, filterSettings.frequency || 20000));
       filterNode.Q.value = Math.max(0.1, Math.min(30, filterSettings.resonance || 1));
     }
+    } // end if (filterNode)
   }
 
   function connectToOutput(instId) {
-    if (!scriptNodes[instId]) {
-      return;
-    }
+    if (scriptNodes[instId]) {
 
     if (connectedInsts[instId]) {
       updateFilter(instId);
     } else {
       var instruments = SL.audio && SL.audio.getInstruments ? SL.audio.getInstruments() : null;
       var inst = instruments ? instruments[instId] : null;
+      var isDestinationResolved = false;
       var destination;
 
       if (inst && inst.masterOutput) {
         destination = inst.masterOutput;
+        isDestinationResolved = true;
       } else if (audioContext) {
         destination = audioContext.destination;
-      } else {
-        return;
+        isDestinationResolved = true;
       }
 
+      if (isDestinationResolved) {
       var filterNode = getOrCreateFilterNode(instId);
       updateFilter(instId);
 
@@ -383,7 +385,9 @@
       }
 
       connectedInsts[instId] = true;
+      } // end if (isDestinationResolved)
     }
+    } // end if (scriptNodes[instId])
   }
 
   // ============================================================
@@ -475,14 +479,14 @@
 
   function setCarrierWave(instId, wave) {
     var settings = getOrCreateSettings(instId);
-    if (wave === 'sine' || wave === 'saw' || wave === 'square' || wave === 'triangle') {
+    if (VALID_WAVES[wave]) {
       settings.carrierWave = wave;
     }
   }
 
   function setModWave(instId, wave) {
     var settings = getOrCreateSettings(instId);
-    if (wave === 'sine' || wave === 'saw' || wave === 'square' || wave === 'triangle') {
+    if (VALID_WAVES[wave]) {
       settings.modWave = wave;
     }
   }
@@ -526,7 +530,7 @@
   }
 
   function isReady() {
-    return engineReady;
+    return isEngineReady;
   }
 
   function getDefaultSettings() {

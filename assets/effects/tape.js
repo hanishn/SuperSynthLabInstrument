@@ -2,11 +2,11 @@
 // Emulates analog tape characteristics: soft saturation, head bump, and high-frequency rolloff
 
 (function() {
-  const SL = window.SynthLab = window.SynthLab || {};
+  var SL = window.SynthLab = window.SynthLab || {};
   SL.effects = SL.effects || {};
 
   // Number of samples for waveshaper curve
-  const CURVE_SAMPLES = 44100;
+  var CURVE_SAMPLES = 44100;
 
   /**
    * Generate an asymmetric tape-style saturation curve
@@ -16,17 +16,17 @@
    * @returns {Float32Array} Waveshaper curve
    */
   function generateTapeCurve(drive) {
-    const curve = new Float32Array(CURVE_SAMPLES);
+    var curve = new Float32Array(CURVE_SAMPLES);
     // Map drive (0-100) to saturation intensity (1-8)
-    const amount = 1 + (drive / 100) * 7;
+    var amount = 1 + (drive / 100) * 7;
 
-    for (let i = 0; i < CURVE_SAMPLES; i++) {
-      const x = (i * 2 / CURVE_SAMPLES) - 1;
+    for (var i = 0; i < CURVE_SAMPLES; i++) {
+      var x = (i * 2 / CURVE_SAMPLES) - 1;
 
       // Tape-style asymmetric soft saturation
       // Uses a combination of tanh for soft clipping with slight asymmetry
       // Positive half saturates slightly differently than negative (even harmonics)
-      let y;
+      var y;
       if (x >= 0) {
         // Positive side: slightly more compression, warmer
         y = Math.tanh(x * amount * 1.1) / Math.tanh(amount * 1.1);
@@ -39,11 +39,11 @@
 
       // Apply subtle soft knee compression feel
       // This reduces the dynamic range slightly, mimicking tape compression
-      const knee = 0.7;
+      var knee = 0.7;
       if (Math.abs(y) > knee) {
-        const sign = y >= 0 ? 1 : -1;
-        const excess = Math.abs(y) - knee;
-        const compressed = knee + excess * 0.5;
+        var sign = y >= 0 ? 1 : -1;
+        var excess = Math.abs(y) - knee;
+        var compressed = knee + excess * 0.5;
         y = sign * Math.min(1, compressed);
       }
 
@@ -156,7 +156,7 @@
      * Handle parameter updates
      */
     updateParam(name, value) {
-      const currentTime = this.ctx.currentTime;
+      var currentTime = this.ctx.currentTime;
 
       switch (name) {
         case 'drive':
@@ -167,13 +167,13 @@
 
         case 'warmth':
           this.params.warmth = Math.max(0, Math.min(100, value));
-          const warmthFreq = this.calculateWarmthFrequency(this.params.warmth);
+          var warmthFreq = this.calculateWarmthFrequency(this.params.warmth);
           this.warmthFilter.frequency.setTargetAtTime(warmthFreq, currentTime, 0.01);
           break;
 
         case 'bump':
           this.params.bump = Math.max(0, Math.min(100, value));
-          const bumpGain = this.calculateBumpGain(this.params.bump);
+          var bumpGain = this.calculateBumpGain(this.params.bump);
           this.bumpFilter.gain.setTargetAtTime(bumpGain, currentTime, 0.01);
           break;
       }

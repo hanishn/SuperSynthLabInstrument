@@ -479,10 +479,10 @@
   // State
   // ============================================================
 
-  var _initialized = false;
+  var _isInitialized = false;
   var _active = false;
   var _screenEl = null;
-  var _testToneActive = false;
+  var _isTestToneActive = false;
   var _testToneBtn = null;
   var _statusEl = null;
 
@@ -563,6 +563,16 @@
     if (SL.state && SL.state.notify) {
       SL.state.notify('tweak');
     }
+  }
+
+  function _makeEmptySettingsObj() {
+    return {};
+  }
+  function _makeEmptySourcesArray() {
+    return [];
+  }
+  function _makeDefaultSourceEntry() {
+    return { waveform: 'sine', detune: 0 };
   }
 
   function _cloneSettings(s) {
@@ -675,7 +685,7 @@
     if (icon) {
       var iconSpan = document.createElement('span');
       iconSpan.className = 'ssli-tweak2-section-icon';
-      iconSpan.innerHTML = icon;
+      iconSpan.innerHTML = icon; /* trusted: internal SVG constant from PARAM_SVGS */
       header.appendChild(iconSpan);
     }
 
@@ -898,7 +908,8 @@
   function _safeSettingsGet(key) {
     var inst = _getCurrentInstrument();
     var bag = null;
-    if (inst && inst.settings && inst.settings[key]) {
+    var hasSettingsBag = inst && inst.settings && inst.settings[key];
+    if (hasSettingsBag) {
       bag = inst.settings[key];
     }
     return bag;
@@ -920,7 +931,7 @@
     var info = acc.addSection(PARAM_SVGS.Generic, ctx.label + ' Engine');
     var stub = document.createElement('div');
     stub.className = CLS_STUB;
-    stub.textContent = 'Panel for ' + ctx.engineType + ' — not yet implemented. TODO.';
+    stub.textContent = SL.t('screen.tweak.panelFor') + ' ' + ctx.engineType + ' — ' + SL.t('screen.tweak.notYetImplemented');
     info.body.appendChild(stub);
   }
 
@@ -930,7 +941,7 @@
 
   function _buildSubtractivePanel(container, ctx) {
     var inst = _getCurrentInstrument();
-    var hasSubtractive = !!(inst && inst.settings);
+    var hasSubtractive = Boolean(inst && inst.settings);
 
     if (!hasSubtractive) {
       var warn = document.createElement('div');
@@ -943,7 +954,7 @@
       // Oscillators section
       var acc = createAccordion(container);
       var oscSec = acc.addSection(PARAM_SVGS.Oscillators, SL.t('tweak.oscillators', 'Oscillators'));
-      var hasOscArr = !!(settings.osc && settings.osc.length);
+      var hasOscArr = Boolean(settings.osc && settings.osc.length);
       if (!hasOscArr) {
         var oscNote = document.createElement('div');
         oscNote.className = CLS_STUB;
@@ -955,7 +966,9 @@
             var osc = settings.osc[idx];
             var row = createOscRow(idx, osc, function(field, value) {
               var cur = _getCurrentInstrument();
-              if (cur && cur.settings && cur.settings.osc && cur.settings.osc[idx]) {
+              var hasOscForIdx = cur && cur.settings && cur.settings.osc;
+              var canWriteOscField = hasOscForIdx && cur.settings.osc[idx];
+              if (canWriteOscField) {
                 cur.settings.osc[idx][field] = value;
                 _notifyChange();
               }
@@ -967,7 +980,7 @@
 
       // Noise section
       var noiseSec = acc.addSection(PARAM_SVGS.Noise, SL.t('tweak.noise', 'Noise'));
-      var hasNoise = !!settings.noise;
+      var hasNoise = Boolean(settings.noise);
       if (!hasNoise) {
         var noiseNote = document.createElement('div');
         noiseNote.className = CLS_STUB;
@@ -976,14 +989,16 @@
       } else {
         noiseSec.body.appendChild(createSelectRow('Type', NOISE_TYPES, settings.noise.type, TIP_NOISE_TYPE, function(v) {
           var cur = _getCurrentInstrument();
-          if (cur && cur.settings && cur.settings.noise) {
+          var hasNoiseForType = cur && cur.settings && cur.settings.noise;
+          if (hasNoiseForType) {
             cur.settings.noise.type = v;
             _notifyChange();
           }
         }));
         noiseSec.body.appendChild(createSliderRow('Level', NOISE_LEVEL_MIN, NOISE_LEVEL_MAX, NOISE_LEVEL_STEP, settings.noise.level, '%', TIP_NOISE_LEVEL, function(v) {
           var cur = _getCurrentInstrument();
-          if (cur && cur.settings && cur.settings.noise) {
+          var hasNoiseForLevel = cur && cur.settings && cur.settings.noise;
+          if (hasNoiseForLevel) {
             cur.settings.noise.level = v;
             _notifyChange();
           }
@@ -1006,7 +1021,7 @@
     shapeBtn.type = 'button';
     shapeBtn.className = CLS_BTN + ' ' + CLS_LINK;
     shapeBtn.textContent = SL.t('tweak.shape_link');
-    shapeBtn.title = 'Jump to the Shape screen for envelope + filter editing.';
+    shapeBtn.title = SL.t('screen.tweak.jumpToShapeTitle');
     shapeBtn.addEventListener('click', function() {
       if (SL.screens && SL.screens.switchTo) {
         SL.screens.switchTo(SCREEN_NAME_SHAPE);
@@ -1027,13 +1042,15 @@
     }
     // If settings bag is missing (fresh fm instrument), seed defaults via setter
     var needsSeed = !settings || !settings.operators || settings.operators.length < FM_OPERATOR_COUNT;
-    if (needsSeed && SL.audio && SL.audio.setFMSettings) {
+    var canSeedFm = SL.audio && SL.audio.setFMSettings;
+    var shouldSeedFm = needsSeed && canSeedFm;
+    if (shouldSeedFm) {
       var seeded = {
         algorithm: (settings && settings.algorithm) ? settings.algorithm : 1,
         feedback: (settings && settings.feedback != null) ? settings.feedback : 0,
         operators: []
       };
-      var hadOps = !!(settings && settings.operators);
+      var hadOps = Boolean(settings && settings.operators);
       for (var oi = 0; oi < FM_OPERATOR_COUNT; oi++) {
         var existingOp = hadOps ? settings.operators[oi] : null;
         if (existingOp) {
@@ -1059,19 +1076,23 @@
 
   function _writeFMOperator(instId, opIdx, field, value) {
     var current = SL.audio.getFMSettings(instId);
-    if (!current || !current.operators || !current.operators[opIdx]) {
-      return;
-    }
-    var ops = current.operators.slice();
-    var opCopy = {};
-    for (var k in ops[opIdx]) {
-      if (ops[opIdx].hasOwnProperty(k)) {
-        opCopy[k] = ops[opIdx][k];
+    var hasFmOperator = current && current.operators && current.operators[opIdx];
+    if (hasFmOperator) {
+      var ops = current.operators.slice();
+      var opCopy = {};
+      for (var k in ops[opIdx]) {
+        if (ops[opIdx].hasOwnProperty(k)) {
+          opCopy[k] = ops[opIdx][k];
+        }
       }
+      opCopy[field] = value;
+      ops[opIdx] = opCopy;
+      SL.audio.setFMSettings(instId, { operators: ops });
     }
-    opCopy[field] = value;
-    ops[opIdx] = opCopy;
-    SL.audio.setFMSettings(instId, { operators: ops });
+  }
+
+  function _makeEmptyOpData() {
+    return {};
   }
 
   function _buildFMOperatorStrip(instId, opIdx, opSettings) {
@@ -1125,9 +1146,7 @@
       warn.className = CLS_STUB;
       warn.textContent = SL.t('tweak.no_fm');
       container.appendChild(warn);
-      return;
-    }
-
+    } else {
     // Algorithm + feedback section
     var acc = createAccordion(container);
     var algoSec = acc.addSection(PARAM_SVGS.FM, 'FM Algorithm');
@@ -1157,13 +1176,14 @@
     var opGrid = document.createElement('div');
     opGrid.className = 'fm-operators';
     for (var i = 0; i < FM_OPERATOR_COUNT; i++) {
-      var opData = settings.operators[i] ? settings.operators[i] : {};
+      var opData = settings.operators[i] ? settings.operators[i] : _makeEmptyOpData();
       opGrid.appendChild(_buildFMOperatorStrip(instId, i, opData));
     }
     opSec.body.appendChild(opGrid);
 
     // Shape link
     _appendShapeLink(container);
+    }
   }
 
   // ============================================================
@@ -1253,9 +1273,7 @@
       warn.className = CLS_STUB;
       warn.textContent = SL.t('tweak.no_physical');
       container.appendChild(warn);
-      return;
-    }
-
+    } else {
     // Model selector
     var acc = createAccordion(container);
     var modelSec = acc.addSection(PARAM_SVGS.Physical, 'Physical Model');
@@ -1282,12 +1300,13 @@
     } else {
       var note = document.createElement('div');
       note.className = CLS_STUB;
-      note.textContent = 'Unknown model: ' + currentModel;
+      note.textContent = SL.t('screen.tweak.unknownModel') + ' ' + currentModel;
       modelSpecificSec.body.appendChild(note);
     }
 
     // Shape link
     _appendShapeLink(container);
+    }
   }
 
   // ============================================================
@@ -1300,13 +1319,15 @@
       settings = SL.audio.getAdditiveSettings(instId);
     }
     var needsSeed = !settings || !settings.partials || settings.partials.length < ADDITIVE_PARTIAL_COUNT;
-    if (needsSeed && SL.audio && SL.audio.setAdditiveSettings) {
+    var canSeedAdditive = SL.audio && SL.audio.setAdditiveSettings;
+    var shouldSeedAdditive = needsSeed && canSeedAdditive;
+    if (shouldSeedAdditive) {
       var seeded = {
         partials: [],
         spread: (settings && settings.spread != null) ? settings.spread : ADDITIVE_SPREAD_DEFAULT,
         decay: (settings && settings.decay != null) ? settings.decay : ADDITIVE_DECAY_DEFAULT
       };
-      var hadPartials = !!(settings && settings.partials);
+      var hadPartials = Boolean(settings && settings.partials);
       for (var pi = 0; pi < ADDITIVE_PARTIAL_COUNT; pi++) {
         var existing = hadPartials ? settings.partials[pi] : null;
         if (existing) {
@@ -1323,6 +1344,13 @@
       settings = SL.audio.getAdditiveSettings(instId);
     }
     return settings;
+  }
+
+  function _emptyPartialsList() {
+    return [];
+  }
+  function _makeEmptyPartialsCopy() {
+    return [];
   }
 
   function _computePresetPartials(presetName) {
@@ -1379,10 +1407,20 @@
     return out;
   }
 
+  function _applyAdditivePartialAmp(instId, partials, idx, ampNorm) {
+    var newPartials = partials.slice();
+    newPartials[idx] = {
+      amplitude: ampNorm,
+      ratio: partials[idx].ratio,
+      phase: partials[idx].phase
+    };
+    SL.audio.setAdditiveSettings(instId, { partials: newPartials });
+  }
+
   function _buildAdditivePanel(container, ctx) {
     var instId = ctx.instId;
     var settings = _ensureAdditiveSettings(instId);
-    var hasSettings = !!(settings && settings.partials);
+    var hasSettings = Boolean(settings && settings.partials);
 
     if (!hasSettings) {
       var warn = document.createElement('div');
@@ -1426,7 +1464,7 @@
           bar.step = String(ADDITIVE_BAR_STEP);
           bar.value = String(initBarVal);
           bar.setAttribute('orient', 'vertical');
-          bar.setAttribute('aria-label', 'Partial ' + (idx + 1));
+          bar.setAttribute('aria-label', SL.t('screen.tweak.partial') + ' ' + (idx + 1));
           bar.title = TIP_ADDITIVE_BAR + ' (partial ' + (idx + 1) + ')';
           bar.setAttribute('data-partial', String(idx));
 
@@ -1434,14 +1472,9 @@
             var pct = parseFloat(bar.value);
             var ampNorm = pct / ADDITIVE_PERCENT_SCALE;
             var cur = SL.audio.getAdditiveSettings(instId);
-            if (cur && cur.partials && cur.partials[idx]) {
-              var newPartials = cur.partials.slice();
-              newPartials[idx] = {
-                amplitude: ampNorm,
-                ratio: cur.partials[idx].ratio,
-                phase: cur.partials[idx].phase
-              };
-              SL.audio.setAdditiveSettings(instId, { partials: newPartials });
+            var hasPartialForIdx = cur && cur.partials && cur.partials[idx];
+            if (hasPartialForIdx) {
+              _applyAdditivePartialAmp(instId, cur.partials, idx, ampNorm);
               _notifyChange();
             }
           });
@@ -1468,8 +1501,8 @@
           btn.addEventListener('click', function() {
             var newAmps = _computePresetPartials(presetName);
             var cur = SL.audio.getAdditiveSettings(instId);
-            var existingPartials = (cur && cur.partials) ? cur.partials : [];
-            var newPartials = [];
+            var existingPartials = (cur && cur.partials) ? cur.partials : _emptyPartialsList();
+            var newPartials = _makeEmptyPartialsCopy();
             for (var k = 0; k < ADDITIVE_PARTIAL_COUNT; k++) {
               var oldRatio = (existingPartials[k] && existingPartials[k].ratio != null) ? existingPartials[k].ratio : (k + 1);
               var oldPhase = (existingPartials[k] && existingPartials[k].phase != null) ? existingPartials[k].phase : 0;
@@ -1519,7 +1552,9 @@
       settings = SL.audio.getGranularSettings(instId);
     }
     var needsSeed = !settings;
-    if (needsSeed && SL.audio && SL.audio.setGranularSettings) {
+    var canSeedGranular = SL.audio && SL.audio.setGranularSettings;
+    var shouldSeedGranular = needsSeed && canSeedGranular;
+    if (shouldSeedGranular) {
       var seeded = {
         sourceWaveform: 'sine',
         grainSize: GRAN_SIZE_DEFAULT,
@@ -1539,7 +1574,7 @@
   function _buildGranularPanel(container, ctx) {
     var instId = ctx.instId;
     var settings = _ensureGranularSettings(instId);
-    var hasSettings = !!settings;
+    var hasSettings = Boolean(settings);
 
     if (!hasSettings) {
       var warn = document.createElement('div');
@@ -1607,7 +1642,7 @@
       freezeBtn.type = 'button';
       freezeBtn.className = CLS_BTN;
       freezeBtn.title = TIP_GRAN_FREEZE;
-      var initFrozen = !!settings.freeze;
+      var initFrozen = Boolean(settings.freeze);
       if (initFrozen) {
         freezeBtn.classList.add(CLS_BTN_ACTIVE);
         freezeBtn.textContent = SL.t('tweak.frozen');
@@ -1616,7 +1651,7 @@
       }
       freezeBtn.addEventListener('click', function() {
         var cur = SL.audio.getGranularSettings(instId);
-        var wasFrozen = !!(cur && cur.freeze);
+        var wasFrozen = Boolean(cur && cur.freeze);
         var nowFrozen = !wasFrozen;
         SL.audio.setGranularSettings(instId, { freeze: nowFrozen });
         if (nowFrozen) {
@@ -1799,7 +1834,7 @@
 
       // Sequence section
       var seqSec = acc.addSection(PARAM_SVGS.Generic, 'Vowel Sequence');
-      var seqOn = !!settings.vowelSequenceEnabled;
+      var seqOn = Boolean(settings.vowelSequenceEnabled);
       var seqRow = document.createElement('div');
       seqRow.className = CLS_ROW;
       var seqLbl = document.createElement('span');
@@ -1985,14 +2020,16 @@
       get: function(instId) {
         var insts = _getInstruments();
         var bag = null;
-        if (insts && insts[instId] && insts[instId].settings) {
+        var hasInstSettingsSet = insts && insts[instId] && insts[instId].settings;
+        if (hasInstSettingsSet) {
           bag = insts[instId].settings[settingsKey];
         }
         return bag;
       },
       set: function(instId, obj) {
         var insts = _getInstruments();
-        if (insts && insts[instId] && insts[instId].settings) {
+        var hasInstForFallbackSet = insts && insts[instId] && insts[instId].settings;
+        if (hasInstForFallbackSet) {
           insts[instId].settings[settingsKey] = obj;
         }
       }
@@ -2493,7 +2530,7 @@
       } else {
         var noF = document.createElement('div');
         noF.className = CLS_STUB;
-        noF.textContent = 'No built-in formula list available.';
+        noF.textContent = SL.t('screen.tweak.noFormulaList');
         sec.body.appendChild(noF);
       }
       sec.body.appendChild(createSliderRow('Sample Rate', BYTEBEAT_SR_MIN, BYTEBEAT_SR_MAX, BYTEBEAT_SR_STEP,
@@ -2512,6 +2549,26 @@
     _appendShapeLink(container);
   }
 
+  function _setVectorSourceWaveform(ctx, idx, v) {
+    var cur = ctx.adapter.get(ctx.instId);
+    var next = cur ? _cloneSettings(cur) : _makeEmptySettingsObj();
+    if (!next.sources) { next.sources = _makeEmptySourcesArray(); }
+    if (!next.sources[idx]) { next.sources[idx] = _makeDefaultSourceEntry(); }
+    next.sources[idx].waveform = v;
+    ctx.adapter.set(ctx.instId, next);
+    _notifyChange();
+  }
+
+  function _setVectorSourceDetune(ctx, idx, v) {
+    var cur = ctx.adapter.get(ctx.instId);
+    var next = cur ? _cloneSettings(cur) : _makeEmptySettingsObj();
+    if (!next.sources) { next.sources = _makeEmptySourcesArray(); }
+    if (!next.sources[idx]) { next.sources[idx] = _makeDefaultSourceEntry(); }
+    next.sources[idx].detune = v;
+    ctx.adapter.set(ctx.instId, next);
+    _notifyChange();
+  }
+
   function _buildVectorPanel(container, ctx) {
     var s = ctx.adapter.get(ctx.instId);
     if (!s) {
@@ -2527,32 +2584,16 @@
         function(v) { _updateField(ctx, 'vectorY', v); }));
 
       var srcSec = acc.addSection(PARAM_SVGS.Oscillators, 'Corner Sources');
-      var sources = s.sources ? s.sources : [];
+      var sources = s.sources ? s.sources : _makeEmptySourcesArray();
       for (var i = 0; i < VECTOR_SOURCE_COUNT; i++) {
         (function(idx) {
-          var src = sources[idx] ? sources[idx] : { waveform: 'sine', detune: 0 };
+          var src = sources[idx] ? sources[idx] : _makeDefaultSourceEntry();
           srcSec.body.appendChild(createSelectRow('Src ' + (idx + 1) + ' Wave', VECTOR_WAVES, src.waveform,
             'Waveform for corner source ' + (idx + 1) + '.',
-            function(v) {
-              var cur = ctx.adapter.get(ctx.instId);
-              var next = cur ? _cloneSettings(cur) : {};
-              if (!next.sources) { next.sources = []; }
-              if (!next.sources[idx]) { next.sources[idx] = { waveform: 'sine', detune: 0 }; }
-              next.sources[idx].waveform = v;
-              ctx.adapter.set(ctx.instId, next);
-              _notifyChange();
-            }));
+            function(v) { _setVectorSourceWaveform(ctx, idx, v); }));
           srcSec.body.appendChild(createSliderRow('Src ' + (idx + 1) + ' Detune', VECTOR_DETUNE_MIN, VECTOR_DETUNE_MAX, VECTOR_DETUNE_STEP,
             src.detune, ' ct', 'Detune in cents for corner source ' + (idx + 1) + '.',
-            function(v) {
-              var cur = ctx.adapter.get(ctx.instId);
-              var next = cur ? _cloneSettings(cur) : {};
-              if (!next.sources) { next.sources = []; }
-              if (!next.sources[idx]) { next.sources[idx] = { waveform: 'sine', detune: 0 }; }
-              next.sources[idx].detune = v;
-              ctx.adapter.set(ctx.instId, next);
-              _notifyChange();
-            }));
+            function(v) { _setVectorSourceDetune(ctx, idx, v); }));
         })(i);
       }
     }
@@ -2715,7 +2756,7 @@
   // ============================================================
 
   function _startTestTone() {
-    var canStart = !_testToneActive && SL.audio && SL.audio.startSustainedNote;
+    var canStart = !_isTestToneActive && SL.audio && SL.audio.startSustainedNote;
     if (canStart) {
       if (SL.audio.getCtx) {
         var ctx = SL.audio.getCtx();
@@ -2724,7 +2765,7 @@
         }
       }
       SL.audio.startSustainedNote(TEST_TONE_MIDI, TEST_TONE_VELOCITY);
-      _testToneActive = true;
+      _isTestToneActive = true;
       if (_testToneBtn) {
         _testToneBtn.classList.add(CLS_BTN_ACTIVE);
         _testToneBtn.textContent = SL.t('tweak.stop_test_tone');
@@ -2734,14 +2775,14 @@
   }
 
   function _stopTestTone() {
-    if (_testToneActive && SL.audio && SL.audio.stopSustainedNote) {
+    var canStopTestTone = SL.audio && SL.audio.stopSustainedNote;
+    var shouldStopTestTone = _isTestToneActive && canStopTestTone;
+    if (shouldStopTestTone) {
       try {
         SL.audio.stopSustainedNote(TEST_TONE_MIDI);
-      } catch (e) {
-        // best-effort teardown
-      }
+      } catch (e) { /* best-effort teardown; note may already be stopped */ }
     }
-    _testToneActive = false;
+    _isTestToneActive = false;
     if (_testToneBtn) {
       _testToneBtn.classList.remove(CLS_BTN_ACTIVE);
       _testToneBtn.textContent = SL.t('tweak.test_tone');
@@ -2750,7 +2791,7 @@
   }
 
   function _toggleTestTone() {
-    if (_testToneActive) {
+    if (_isTestToneActive) {
       _stopTestTone();
     } else {
       _startTestTone();
@@ -2824,14 +2865,14 @@
         settings: _cloneSettings(inst.settings),
         savedAt: Date.now()
       });
-      var writeOk = false;
+      var isWriteOk = false;
       try {
         localStorage.setItem(USER_PRESETS_STORAGE_KEY, JSON.stringify(userPresets));
-        writeOk = true;
+        isWriteOk = true;
       } catch (e) {
-        writeOk = false;
+        isWriteOk = false;
       }
-      if (writeOk) {
+      if (isWriteOk) {
         _setStatus('Saved "' + finalName + '" (' + userPresets.length + ' user presets)');
       } else {
         _setStatus('Saved in-memory only (localStorage unavailable)');
@@ -2864,8 +2905,8 @@
     _testToneBtn = document.createElement('button');
     _testToneBtn.type = 'button';
     _testToneBtn.className = CLS_BTN;
-    _testToneBtn.textContent = _testToneActive ? SL.t('tweak.stop_test_tone') : SL.t('tweak.test_tone');
-    if (_testToneActive) {
+    _testToneBtn.textContent = _isTestToneActive ? SL.t('tweak.stop_test_tone') : SL.t('tweak.test_tone');
+    if (_isTestToneActive) {
       _testToneBtn.classList.add(CLS_BTN_ACTIVE);
     }
     _testToneBtn.addEventListener('click', function() {
@@ -2913,32 +2954,31 @@
 
   function _build() {
     _screenEl = document.getElementById(SCREEN_ID);
-    if (!_screenEl) {
-      return;
+    if (_screenEl) {
+      _screenEl.textContent = '';
+
+      var container = document.createElement('div');
+      container.className = CLS_CONTAINER;
+
+      container.appendChild(_buildHeader());
+
+      var grid = document.createElement('div');
+      grid.className = CLS_GRID;
+
+      // Dispatch to the current engine's panel builder
+      var engineType = _getEngineType();
+      var adapter = _getAdapter(engineType);
+      var ctx = {
+        engineType: engineType,
+        label: adapter.label,
+        instId: _getCurrentInstId(),
+        adapter: adapter
+      };
+      adapter.build(grid, ctx);
+
+      container.appendChild(grid);
+      _screenEl.appendChild(container);
     }
-    _screenEl.innerHTML = '';
-
-    var container = document.createElement('div');
-    container.className = CLS_CONTAINER;
-
-    container.appendChild(_buildHeader());
-
-    var grid = document.createElement('div');
-    grid.className = CLS_GRID;
-
-    // Dispatch to the current engine's panel builder
-    var engineType = _getEngineType();
-    var adapter = _getAdapter(engineType);
-    var ctx = {
-      engineType: engineType,
-      label: adapter.label,
-      instId: _getCurrentInstId(),
-      adapter: adapter
-    };
-    adapter.build(grid, ctx);
-
-    container.appendChild(grid);
-    _screenEl.appendChild(container);
   }
 
   function _rebuild() {
@@ -2946,11 +2986,10 @@
   }
 
   function _onStateChange(what) {
-    if (!_active) {
-      return;
-    }
-    if (what === 'preset' || what === 'instrument') {
-      _rebuild();
+    if (_active) {
+      if (what === 'preset' || what === 'instrument') {
+        _rebuild();
+      }
     }
   }
 
@@ -2960,9 +2999,9 @@
 
   function activate() {
     _active = true;
-    if (!_initialized) {
+    if (!_isInitialized) {
       _registerPanicTeardown();
-      _initialized = true;
+      _isInitialized = true;
     }
     _build();
     if (SL.state && SL.state.onChange) {

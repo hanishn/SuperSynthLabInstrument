@@ -100,40 +100,43 @@
 
   SpectralHoldEffect.prototype._onModuleReady = function() {
     var ctx = this.ctx;
+    var isNodeOk = false;
     try {
       this.worklet = new AudioWorkletNode(ctx, WORKLET_NAME, {
         numberOfInputs: 1,
         numberOfOutputs: 1,
         outputChannelCount: [2]
       });
+      isNodeOk = true;
     } catch (e) {
       if (typeof console !== 'undefined') {
         console.error('[SpectralHold] node construct failed:', e);
       }
-      return;
     }
 
-    // Swap: input -> worklet -> wetGain (replace bridge pass-through)
-    try { this.input.disconnect(this.bridge); } catch (e) { /* fine */ }
-    try { this.bridge.disconnect(this.wetGain); } catch (e) { /* fine */ }
-    this.input.connect(this.worklet);
-    this.worklet.connect(this.wetGain);
+    if (isNodeOk) {
+      // Swap: input -> worklet -> wetGain (replace bridge pass-through)
+      try { this.input.disconnect(this.bridge); } catch (e) { /* node may not be connected */ }
+      try { this.bridge.disconnect(this.wetGain); } catch (e) { /* node may not be connected */ }
+      this.input.connect(this.worklet);
+      this.worklet.connect(this.wetGain);
 
-    this.workletReady = true;
+      this.workletReady = true;
 
-    // Apply initial params
-    this._applyParam('mix', this.params.mix);
-    this._applyParam('freeze', this.params.freeze);
-    this._applyParam('smear', this.params.smear);
-    this._applyParam('decay', this.params.decay);
-    this._applyParam('bright', this.params.bright);
-    this._applyParam('pitchOffset', this.params.pitchOffset);
+      // Apply initial params
+      this._applyParam('mix', this.params.mix);
+      this._applyParam('freeze', this.params.freeze);
+      this._applyParam('smear', this.params.smear);
+      this._applyParam('decay', this.params.decay);
+      this._applyParam('bright', this.params.bright);
+      this._applyParam('pitchOffset', this.params.pitchOffset);
 
-    // Flush any deferred updates
-    var pending = this._pendingUpdates;
-    this._pendingUpdates = [];
-    for (var i = 0; i < pending.length; i++) {
-      this._applyParam(pending[i].name, pending[i].value);
+      // Flush any deferred updates
+      var pending = this._pendingUpdates;
+      this._pendingUpdates = [];
+      for (var i = 0; i < pending.length; i++) {
+        this._applyParam(pending[i].name, pending[i].value);
+      }
     }
   };
 
@@ -190,11 +193,11 @@
 
   SpectralHoldEffect.prototype.dispose = function() {
     if (this.worklet) {
-      try { this.worklet.disconnect(); } catch (e) { /* ignore */ }
+      try { this.worklet.disconnect(); } catch (e) { /* node already disconnected */ }
       this.worklet = null;
     }
     if (this.bridge) {
-      try { this.bridge.disconnect(); } catch (e) { /* ignore */ }
+      try { this.bridge.disconnect(); } catch (e) { /* node already disconnected */ }
     }
     BaseEffect.prototype.dispose.call(this);
   };

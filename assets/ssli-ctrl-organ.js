@@ -167,15 +167,14 @@
 
   function _applyPreset(presetIdx) {
     var preset = PRESETS[presetIdx];
-    if (!preset) {
-      return;
+    if (preset) {
+      var m;
+      for (m = 0; m < NUM_DRAWBARS; m++) {
+        _drawbarValues[m] = preset.bars[m];
+      }
+      _updateAllDrawbarVisuals();
+      _publishDrawbarState();
     }
-    var m;
-    for (m = 0; m < NUM_DRAWBARS; m++) {
-      _drawbarValues[m] = preset.bars[m];
-    }
-    _updateAllDrawbarVisuals();
-    _publishDrawbarState();
   }
 
   function _publishDrawbarState() {
@@ -209,7 +208,9 @@
     _drawbarPointerMap[pointerId] = idx;
 
     var track = e.currentTarget;
-    if (track && track.setPointerCapture && (e.pointerId !== undefined)) {
+    var canCaptureDrawbar = track && track.setPointerCapture;
+    var hasDrawbarPointerId = canCaptureDrawbar && (e.pointerId !== undefined);
+    if (hasDrawbarPointerId) {
       track.setPointerCapture(e.pointerId);
     }
 
@@ -218,28 +219,26 @@
 
   function _drawbarPointerMove(idx, e) {
     var track = e.currentTarget;
-    if (!track) {
-      return;
-    }
-    var rect = track.getBoundingClientRect();
-    var trackHeight = rect.height;
-    if (trackHeight <= 0) {
-      return;
-    }
-    var yFromBottom = rect.bottom - e.clientY;
-    var ratio = yFromBottom / trackHeight;
-    ratio = Math.max(0, Math.min(1, ratio));
-    var rawStep = ratio * DRAWBAR_MAX;
-    var snapped = Math.round(rawStep);
-    snapped = _clampDrawbar(snapped);
+    if (track) {
+      var rect = track.getBoundingClientRect();
+      var trackHeight = rect.height;
+      if (trackHeight > 0) {
+        var yFromBottom = rect.bottom - e.clientY;
+        var ratio = yFromBottom / trackHeight;
+        ratio = Math.max(0, Math.min(1, ratio));
+        var rawStep = ratio * DRAWBAR_MAX;
+        var snapped = Math.round(rawStep);
+        snapped = _clampDrawbar(snapped);
 
-    var changed = (_drawbarValues[idx] !== snapped);
-    if (changed) {
-      _drawbarValues[idx] = snapped;
-      _updateDrawbarVisual(idx);
-      _publishDrawbarState();
+        var changed = (_drawbarValues[idx] !== snapped);
+        if (changed) {
+          _drawbarValues[idx] = snapped;
+          _updateDrawbarVisual(idx);
+          _publishDrawbarState();
+        }
+        if (SL.sliderOverlay) { SL.sliderOverlay.show(DRAWBAR_LABELS[idx] + ' = ' + snapped); }
+      }
     }
-    if (SL.sliderOverlay) { SL.sliderOverlay.show(DRAWBAR_LABELS[idx] + ' = ' + snapped); }
   }
 
   function _drawbarPointerUp(idx, e) {
@@ -247,7 +246,9 @@
     delete _drawbarPointerMap[pointerId];
 
     var track = e.currentTarget;
-    if (track && track.releasePointerCapture && (e.pointerId !== undefined)) {
+    var canReleaseDrawbar = track && track.releasePointerCapture;
+    var hasDrawbarReleaseId = canReleaseDrawbar && (e.pointerId !== undefined);
+    if (hasDrawbarReleaseId) {
       track.releasePointerCapture(e.pointerId);
     }
     if (SL.sliderOverlay) { SL.sliderOverlay.hide(); }
@@ -335,7 +336,7 @@
     // Preset dropdown
     var sel = document.createElement('select');
     sel.className = 'ssli-organ-preset-select';
-    sel.setAttribute('aria-label', 'Registration Preset');
+    sel.setAttribute('aria-label', SL.t('organ.preset_aria'));
     var pi;
     for (pi = 0; pi < PRESETS.length; pi++) {
       var opt = document.createElement('option');
@@ -353,7 +354,7 @@
     var percBtn = document.createElement('button');
     percBtn.className = 'ssli-organ-perc-btn';
     percBtn.textContent = SL.t('organ.perc_prefix') + PERCUSSION_MODES[_percussionMode];
-    percBtn.setAttribute('aria-label', 'Percussion Toggle');
+    percBtn.setAttribute('aria-label', SL.t('organ.perc_aria'));
     percBtn.addEventListener('click', function(e) {
       e.preventDefault();
       _cyclePercussion();
@@ -375,6 +376,7 @@
     _drawbarThumbEls = [];
     _drawbarReadoutEls = [];
 
+    var frag = document.createDocumentFragment();
     var di;
     for (di = 0; di < NUM_DRAWBARS; di++) {
       var col = document.createElement('div');
@@ -440,8 +442,9 @@
       _drawbarReadoutEls.push(readout);
       col.appendChild(readout);
 
-      panel.appendChild(col);
+      frag.appendChild(col);
     }
+    panel.appendChild(frag);
 
     _updateAllDrawbarVisuals();
     container.appendChild(panel);

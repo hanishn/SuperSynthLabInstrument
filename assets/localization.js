@@ -13,6 +13,8 @@
     var STORAGE_KEY = 'ssli-lang';
     var DEFAULT_LANG = 'en';
 
+    var NO_VALUE = null;
+
     var _currentLang = DEFAULT_LANG;
     var _strings = {};
     var _changeCallbacks = [];
@@ -30,7 +32,9 @@
             var found = true;
             var partIndex = 0;
             while (partIndex < parts.length && found) {
-                if (cursor !== null && typeof cursor === 'object' && parts[partIndex] in cursor) {
+                var isCursorObject = cursor !== NO_VALUE && typeof cursor === 'object';
+                var hasCursorKey = isCursorObject && parts[partIndex] in cursor;
+                if (hasCursorKey) {
                     cursor = cursor[parts[partIndex]];
                 } else {
                     found = false;
@@ -98,9 +102,7 @@
 
             try {
                 localStorage.setItem(STORAGE_KEY, langCode);
-            } catch (e) {
-                // localStorage may be unavailable in some contexts
-            }
+            } catch (e) { /* localStorage may be unavailable */ }
 
             var callbackIndex = 0;
             while (callbackIndex < _changeCallbacks.length) {
@@ -147,121 +149,202 @@
             _currentLang = savedLang;
             SL.localization._currentLang = savedLang;
         }
-    } catch (e) {
-        // localStorage unavailable
-    }
+    } catch (e) { /* localStorage may be unavailable */ }
 
     // Auto-load inlined English strings if available (build script inlines
     // data before JS files, so SynthLab._data.langEn exists at this point)
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langEn) {
+    var hasLangEnData = window.SynthLab && SynthLab._data && SynthLab._data.langEn;
+
+    if (hasLangEnData) {
         SL.localization.loadLanguage('en', SynthLab._data.langEn);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langEs) {
+    var hasLangEsData = window.SynthLab && SynthLab._data && SynthLab._data.langEs;
+
+
+    if (hasLangEsData) {
         SL.localization.loadLanguage('es', SynthLab._data.langEs);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langFr) {
+    var hasLangFrData = window.SynthLab && SynthLab._data && SynthLab._data.langFr;
+
+
+    if (hasLangFrData) {
         SL.localization.loadLanguage('fr', SynthLab._data.langFr);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langIt) {
+    var hasLangItData = window.SynthLab && SynthLab._data && SynthLab._data.langIt;
+
+
+    if (hasLangItData) {
         SL.localization.loadLanguage('it', SynthLab._data.langIt);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langDe) {
+    var hasLangDeData = window.SynthLab && SynthLab._data && SynthLab._data.langDe;
+
+
+    if (hasLangDeData) {
         SL.localization.loadLanguage('de', SynthLab._data.langDe);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langPt) {
+    var hasLangPtData = window.SynthLab && SynthLab._data && SynthLab._data.langPt;
+
+
+    if (hasLangPtData) {
         SL.localization.loadLanguage('pt', SynthLab._data.langPt);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langNl) {
+    var hasLangNlData = window.SynthLab && SynthLab._data && SynthLab._data.langNl;
+
+
+    if (hasLangNlData) {
         SL.localization.loadLanguage('nl', SynthLab._data.langNl);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langPl) {
+    var hasLangPlData = window.SynthLab && SynthLab._data && SynthLab._data.langPl;
+
+
+    if (hasLangPlData) {
         SL.localization.loadLanguage('pl', SynthLab._data.langPl);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langSv) {
+    var hasLangSvData = window.SynthLab && SynthLab._data && SynthLab._data.langSv;
+
+
+    if (hasLangSvData) {
         SL.localization.loadLanguage('sv', SynthLab._data.langSv);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langNo) {
+    var hasLangNoData = window.SynthLab && SynthLab._data && SynthLab._data.langNo;
+
+
+    if (hasLangNoData) {
         SL.localization.loadLanguage('no', SynthLab._data.langNo);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langDa) {
+    var hasLangDaData = window.SynthLab && SynthLab._data && SynthLab._data.langDa;
+
+
+    if (hasLangDaData) {
         SL.localization.loadLanguage('da', SynthLab._data.langDa);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langFi) {
+    var hasLangFiData = window.SynthLab && SynthLab._data && SynthLab._data.langFi;
+
+
+    if (hasLangFiData) {
         SL.localization.loadLanguage('fi', SynthLab._data.langFi);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langCs) {
+    var hasLangCsData = window.SynthLab && SynthLab._data && SynthLab._data.langCs;
+
+
+    if (hasLangCsData) {
         SL.localization.loadLanguage('cs', SynthLab._data.langCs);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langHu) {
+    var hasLangHuData = window.SynthLab && SynthLab._data && SynthLab._data.langHu;
+
+
+    if (hasLangHuData) {
         SL.localization.loadLanguage('hu', SynthLab._data.langHu);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langRo) {
+    var hasLangRoData = window.SynthLab && SynthLab._data && SynthLab._data.langRo;
+
+
+    if (hasLangRoData) {
         SL.localization.loadLanguage('ro', SynthLab._data.langRo);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langEl) {
+    var hasLangElData = window.SynthLab && SynthLab._data && SynthLab._data.langEl;
+
+
+    if (hasLangElData) {
         SL.localization.loadLanguage('el', SynthLab._data.langEl);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langTr) {
+    var hasLangTrData = window.SynthLab && SynthLab._data && SynthLab._data.langTr;
+
+
+    if (hasLangTrData) {
         SL.localization.loadLanguage('tr', SynthLab._data.langTr);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langRu) {
+    var hasLangRuData = window.SynthLab && SynthLab._data && SynthLab._data.langRu;
+
+
+    if (hasLangRuData) {
         SL.localization.loadLanguage('ru', SynthLab._data.langRu);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langKo) {
+    var hasLangKoData = window.SynthLab && SynthLab._data && SynthLab._data.langKo;
+
+
+    if (hasLangKoData) {
         SL.localization.loadLanguage('ko', SynthLab._data.langKo);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langTh) {
+    var hasLangThData = window.SynthLab && SynthLab._data && SynthLab._data.langTh;
+
+
+    if (hasLangThData) {
         SL.localization.loadLanguage('th', SynthLab._data.langTh);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langZhCN) {
+    var hasLangZhCNData = window.SynthLab && SynthLab._data && SynthLab._data.langZhCN;
+
+
+    if (hasLangZhCNData) {
         SL.localization.loadLanguage('zh-CN', SynthLab._data.langZhCN);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langJa) {
+    var hasLangJaData = window.SynthLab && SynthLab._data && SynthLab._data.langJa;
+
+
+    if (hasLangJaData) {
         SL.localization.loadLanguage('ja', SynthLab._data.langJa);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langAr) {
+    var hasLangArData = window.SynthLab && SynthLab._data && SynthLab._data.langAr;
+
+
+    if (hasLangArData) {
         SL.localization.loadLanguage('ar', SynthLab._data.langAr);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langHe) {
+    var hasLangHeData = window.SynthLab && SynthLab._data && SynthLab._data.langHe;
+
+
+    if (hasLangHeData) {
         SL.localization.loadLanguage('he', SynthLab._data.langHe);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langHi) {
+    var hasLangHiData = window.SynthLab && SynthLab._data && SynthLab._data.langHi;
+
+
+    if (hasLangHiData) {
         SL.localization.loadLanguage('hi', SynthLab._data.langHi);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langId) {
+    var hasLangIdData = window.SynthLab && SynthLab._data && SynthLab._data.langId;
+
+
+    if (hasLangIdData) {
         SL.localization.loadLanguage('id', SynthLab._data.langId);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langVi) {
+    var hasLangViData = window.SynthLab && SynthLab._data && SynthLab._data.langVi;
+
+
+    if (hasLangViData) {
         SL.localization.loadLanguage('vi', SynthLab._data.langVi);
     }
 
-    if (window.SynthLab && SynthLab._data && SynthLab._data.langUk) {
+    var hasLangUkData = window.SynthLab && SynthLab._data && SynthLab._data.langUk;
+
+
+    if (hasLangUkData) {
         SL.localization.loadLanguage('uk', SynthLab._data.langUk);
     }
 
@@ -291,9 +374,7 @@
      */
     function _initLangSelector() {
         var container = document.getElementById('sslLangSelector');
-        if (!container) {
-            return;
-        }
+        if (container) {
 
         var buttons = container.querySelectorAll('.ssl-lang-btn');
 
@@ -321,29 +402,26 @@
                 target = target.parentElement;
             }
 
-            if (!target || !target.classList || !target.classList.contains('ssl-lang-btn')) {
-                return;
+            var isLangButton = target && target.classList && target.classList.contains('ssl-lang-btn');
+            if (isLangButton) {
+              var lang = target.getAttribute('data-lang');
+              if (lang) {
+                // Update active class on all buttons
+                var allBtns = container.querySelectorAll('.ssl-lang-btn');
+                var i = 0;
+                while (i < allBtns.length) {
+                    allBtns[i].classList.remove('ssl-lang-active');
+                    i = i + 1;
+                }
+                target.classList.add('ssl-lang-active');
+
+                // Set the language (fires callbacks, stores to localStorage)
+                SL.localization.setLanguage(lang);
+
+                // Refresh data-i18n elements in the DOM
+                SL.localization._applyDomTranslations();
+              }
             }
-
-            var lang = target.getAttribute('data-lang');
-            if (!lang) {
-                return;
-            }
-
-            // Update active class on all buttons
-            var allBtns = container.querySelectorAll('.ssl-lang-btn');
-            var i = 0;
-            while (i < allBtns.length) {
-                allBtns[i].classList.remove('ssl-lang-active');
-                i = i + 1;
-            }
-            target.classList.add('ssl-lang-active');
-
-            // Set the language (fires callbacks, stores to localStorage)
-            SL.localization.setLanguage(lang);
-
-            // Refresh data-i18n elements in the DOM
-            SL.localization._applyDomTranslations();
         });
 
         // Also listen for programmatic language changes to keep selector in sync
@@ -360,6 +438,7 @@
                 j = j + 1;
             }
         });
+        } // end if (container)
     }
 
     // Initialize when DOM is ready

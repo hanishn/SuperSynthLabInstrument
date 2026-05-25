@@ -15,6 +15,8 @@
 
   var NUM_VISIBLE_OCTAVES = 3;
   var KEYWAVE_BORDER_RADIUS = 6;
+
+  var NOT_FOUND = -1;
   var RIPPLE_DURATION_MS = 600;
   var RIPPLE_MAX_RADIUS = 40;
   var SCROLL_OCTAVE_STEP = 1;
@@ -42,7 +44,7 @@
   // ============================================================
 
   var _activeTouches = {};   // touchId -> { midi, element, rippleEl, startX, pressure }
-  var _mouseDown = false;
+  var _isMouseDown = false;
   var _mouseInfo = null;     // { midi, element, rippleEl }
   var _scrollOffset = 0;     // octave offset from base
   var _surfaceEl = null;
@@ -81,8 +83,11 @@
     if (rootEl) {
       root = parseInt(rootEl.value, 10) || 0;
     }
-    if (modeEl && SL.MODES && SL.MODES[modeEl.value]) {
-      scaleIntervals = SL.MODES[modeEl.value].scale;
+    if (modeEl && SL.MODES) {
+      var modeVal = modeEl.value;
+      if (SL.MODES[modeVal]) {
+        scaleIntervals = SL.MODES[modeVal].scale;
+      }
     }
 
     for (i = 0; i < scaleIntervals.length; i++) {
@@ -213,7 +218,7 @@
     var startMidi = _getStartMidi();
     var idx = midi - startMidi;
     if (idx >= 0 && idx < _keywaveEls.length) {
-      return { el: _keywaveEls[idx], midi: midi };
+      return { element: _keywaveEls[idx], midi: midi };
     }
     return null;
   }
@@ -280,37 +285,36 @@
 
     if (_trailPoints.length < 2) {
       _trailAnimId = requestAnimationFrame(_renderTrail);
-      return;
+    } else {
+      var i;
+      for (i = 1; i < _trailPoints.length; i++) {
+        var p0 = _trailPoints[i - 1];
+        var p1 = _trailPoints[i];
+        var age = now - p1.time;
+        var alpha = Math.max(0, 1 - (age / TRAIL_FADE_MS));
+        var progressFrac = i / _trailPoints.length;
+
+        // Glow layer
+        _trailCtx.beginPath();
+        _trailCtx.moveTo(p0.x, p0.y);
+        _trailCtx.lineTo(p1.x, p1.y);
+        _trailCtx.strokeStyle = 'hsla(' + p1.hue + ', 80%, 65%, ' + (alpha * 0.25) + ')';
+        _trailCtx.lineWidth = TRAIL_GLOW_WIDTH * progressFrac;
+        _trailCtx.lineCap = 'round';
+        _trailCtx.stroke();
+
+        // Core line
+        _trailCtx.beginPath();
+        _trailCtx.moveTo(p0.x, p0.y);
+        _trailCtx.lineTo(p1.x, p1.y);
+        _trailCtx.strokeStyle = 'hsla(' + p1.hue + ', 85%, 70%, ' + alpha + ')';
+        _trailCtx.lineWidth = TRAIL_LINE_WIDTH * progressFrac;
+        _trailCtx.lineCap = 'round';
+        _trailCtx.stroke();
+      }
+
+      _trailAnimId = requestAnimationFrame(_renderTrail);
     }
-
-    var i;
-    for (i = 1; i < _trailPoints.length; i++) {
-      var p0 = _trailPoints[i - 1];
-      var p1 = _trailPoints[i];
-      var age = now - p1.time;
-      var alpha = Math.max(0, 1 - (age / TRAIL_FADE_MS));
-      var progressFrac = i / _trailPoints.length;
-
-      // Glow layer
-      _trailCtx.beginPath();
-      _trailCtx.moveTo(p0.x, p0.y);
-      _trailCtx.lineTo(p1.x, p1.y);
-      _trailCtx.strokeStyle = 'hsla(' + p1.hue + ', 80%, 65%, ' + (alpha * 0.25) + ')';
-      _trailCtx.lineWidth = TRAIL_GLOW_WIDTH * progressFrac;
-      _trailCtx.lineCap = 'round';
-      _trailCtx.stroke();
-
-      // Core line
-      _trailCtx.beginPath();
-      _trailCtx.moveTo(p0.x, p0.y);
-      _trailCtx.lineTo(p1.x, p1.y);
-      _trailCtx.strokeStyle = 'hsla(' + p1.hue + ', 85%, 70%, ' + alpha + ')';
-      _trailCtx.lineWidth = TRAIL_LINE_WIDTH * progressFrac;
-      _trailCtx.lineCap = 'round';
-      _trailCtx.stroke();
-    }
-
-    _trailAnimId = requestAnimationFrame(_renderTrail);
   }
 
   function _startTrailAnim() {
@@ -409,11 +413,11 @@
 
     if (midi < MIN_MIDI || midi > MAX_MIDI) { return; }
 
-    if (kw && kw.el) {
-      kw.el.classList.add('mpe-keywave-active');
-      var lp = _localPos(clientX, clientY, kw.el);
-      rippleEl = _createRipple(kw.el, lp.x, lp.y);
-      _shiftKeywave(kw.el, bendCents);
+    if (kw && kw.element) {
+      kw.element.classList.add('mpe-keywave-active');
+      var lp = _localPos(clientX, clientY, kw.element);
+      rippleEl = _createRipple(kw.element, lp.x, lp.y);
+      _shiftKeywave(kw.element, bendCents);
     }
 
     _noteOn(midi, velocity);
@@ -422,7 +426,7 @@
 
     _activeTouches[touchId] = {
       midi: midi,
-      element: (kw && kw.el) ? kw.el : null,
+      element: (kw && kw.element) ? kw.element : null,
       rippleEl: rippleEl,
       startX: clientX,
       pressure: force
@@ -459,15 +463,15 @@
       var velocity = touchEvent ? SL.velocityFromPressure(touchEvent, fallbackVel) : fallbackVel;
       var kw = _findKeywaveAt(clientX);
       var rippleEl = null;
-      if (kw && kw.el) {
-        kw.el.classList.add('mpe-keywave-active');
-        var lp = _localPos(clientX, clientY, kw.el);
-        rippleEl = _createRipple(kw.el, lp.x, lp.y);
-        _shiftKeywave(kw.el, bendCents);
+      if (kw && kw.element) {
+        kw.element.classList.add('mpe-keywave-active');
+        var lp = _localPos(clientX, clientY, kw.element);
+        rippleEl = _createRipple(kw.element, lp.x, lp.y);
+        _shiftKeywave(kw.element, bendCents);
       }
 
       info.midi = midi;
-      info.element = (kw && kw.el) ? kw.el : null;
+      info.element = (kw && kw.element) ? kw.element : null;
       info.rippleEl = rippleEl;
       _noteOn(midi, velocity);
     }
@@ -533,7 +537,7 @@
       _removeRipple(_mouseInfo.rippleEl);
       _mouseInfo = null;
     }
-    _mouseDown = false;
+    _isMouseDown = false;
 
     if (_resetPitchBend) { _resetPitchBend(); }
     _clearSlide();
@@ -570,7 +574,7 @@
     var midi;
     for (midi = startMidi; midi < endMidi; midi++) {
       var pc = midi % 12;
-      var isInScale = (scaleNotes.indexOf(pc) !== -1);
+      var isInScale = (scaleNotes.indexOf(pc) !== NOT_FOUND);
       var isRoot = (pc === rootPc);
       var widthPercent = 100 / totalNotes;
       var leftPercent = ((midi - startMidi) / totalNotes) * 100;
@@ -735,7 +739,7 @@
         if (ctx && ctx.state === 'suspended') { ctx.resume(); }
       }
 
-      _mouseDown = true;
+      _isMouseDown = true;
       var mFloat = _posToMidiFloat(e.clientX);
       var midi = Math.round(mFloat);
       var bendCents = (mFloat - midi) * 100;
@@ -744,11 +748,11 @@
 
       var kw = _findKeywaveAt(e.clientX);
       var rippleEl = null;
-      if (kw && kw.el) {
-        kw.el.classList.add('mpe-keywave-active');
-        var lp = _localPos(e.clientX, e.clientY, kw.el);
-        rippleEl = _createRipple(kw.el, lp.x, lp.y);
-        _shiftKeywave(kw.el, bendCents);
+      if (kw && kw.element) {
+        kw.element.classList.add('mpe-keywave-active');
+        var lp = _localPos(e.clientX, e.clientY, kw.element);
+        rippleEl = _createRipple(kw.element, lp.x, lp.y);
+        _shiftKeywave(kw.element, bendCents);
       }
 
       var mouseVelocity = SL.velocityFromPressure(e, DEFAULT_VELOCITY);
@@ -758,7 +762,7 @@
 
       _mouseInfo = {
         midi: midi,
-        element: (kw && kw.el) ? kw.el : null,
+        element: (kw && kw.element) ? kw.element : null,
         rippleEl: rippleEl
       };
       _addTrailPoint(e.clientX, e.clientY);
@@ -768,7 +772,7 @@
     });
 
     surface.addEventListener('mousemove', function(e) {
-      if (!_mouseDown || !_mouseInfo) { return; }
+      if (!_isMouseDown || !_mouseInfo) { return; }
 
       var mFloat = _posToMidiFloat(e.clientX);
       var midi = Math.round(mFloat);
@@ -787,15 +791,15 @@
 
         var kw = _findKeywaveAt(e.clientX);
         var rippleEl = null;
-        if (kw && kw.el) {
-          kw.el.classList.add('mpe-keywave-active');
-          var lp = _localPos(e.clientX, e.clientY, kw.el);
-          rippleEl = _createRipple(kw.el, lp.x, lp.y);
-          _shiftKeywave(kw.el, bendCents);
+        if (kw && kw.element) {
+          kw.element.classList.add('mpe-keywave-active');
+          var lp = _localPos(e.clientX, e.clientY, kw.element);
+          rippleEl = _createRipple(kw.element, lp.x, lp.y);
+          _shiftKeywave(kw.element, bendCents);
         }
 
         _mouseInfo.midi = midi;
-        _mouseInfo.element = (kw && kw.el) ? kw.el : null;
+        _mouseInfo.element = (kw && kw.element) ? kw.element : null;
         _mouseInfo.rippleEl = rippleEl;
         var mouseMoveVelocity = SL.velocityFromPressure(e, DEFAULT_VELOCITY);
         _noteOn(midi, mouseMoveVelocity);
@@ -812,7 +816,7 @@
     });
 
     surface.addEventListener('mouseup', function() {
-      if (_mouseDown && _mouseInfo) {
+      if (_isMouseDown && _mouseInfo) {
         _noteOff(_mouseInfo.midi);
         _resetPitchBend();
         _clearSlide();
@@ -822,14 +826,14 @@
         }
         _removeRipple(_mouseInfo.rippleEl);
         _mouseInfo = null;
-        _mouseDown = false;
+        _isMouseDown = false;
         _clearNoteDisplay();
         _hideBendIndicator();
       }
     });
 
     surface.addEventListener('mouseleave', function() {
-      if (_mouseDown && _mouseInfo) {
+      if (_isMouseDown && _mouseInfo) {
         _noteOff(_mouseInfo.midi);
         _resetPitchBend();
         _clearSlide();
@@ -839,7 +843,7 @@
         }
         _removeRipple(_mouseInfo.rippleEl);
         _mouseInfo = null;
-        _mouseDown = false;
+        _isMouseDown = false;
         _clearNoteDisplay();
         _hideBendIndicator();
       }
@@ -913,7 +917,7 @@
       function() { _releaseAll(); },
       function() {
         var touchCount = Object.keys(_activeTouches).length;
-        var mouseActive = _mouseDown ? 1 : 0;
+        var mouseActive = _isMouseDown ? 1 : 0;
         var totalActive = touchCount + mouseActive;
         var status = null;
         if (totalActive > 0) {

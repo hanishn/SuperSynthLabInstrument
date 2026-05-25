@@ -94,7 +94,7 @@
   var _playbackAnimId = 0;
   var _recordAnimId = 0;
   var _recordStartMs = 0;
-  var _isPointerDown = false;
+  var isPointerDown = false;
 
   // Cached DOM/canvas refs
   var _canvas = null;
@@ -116,11 +116,15 @@
   // Layer initialization
   // ============================================================
 
+  function _makeLayer() {
+    return { trail: [], hasData: false };
+  }
+
   function _initLayers() {
     _layers = [];
     var i;
     for (i = 0; i < MAX_LAYERS; i++) {
-      _layers.push({ trail: [], hasData: false });
+      _layers.push(_makeLayer());
     }
   }
 
@@ -278,10 +282,10 @@
     layer.trail = [];
     layer.hasData = false;
     _recordStartMs = _nowMs();
-    _isPointerDown = true;
+    isPointerDown = true;
 
     function sampleLoop() {
-      if (!_isPointerDown) { return; }
+      if (!isPointerDown) { return; }
       _recordAnimId = requestAnimationFrame(sampleLoop);
     }
     _recordAnimId = requestAnimationFrame(sampleLoop);
@@ -301,7 +305,7 @@
   }
 
   function _stopRecording() {
-    _isPointerDown = false;
+    isPointerDown = false;
     if (_recordAnimId) {
       cancelAnimationFrame(_recordAnimId);
       _recordAnimId = 0;
@@ -474,8 +478,10 @@
 
   function _onSurfacePointerDown(e) {
     e.preventDefault();
-    if (_surfaceDiv && _surfaceDiv.setPointerCapture && typeof e.pointerId !== 'undefined') {
-      try { _surfaceDiv.setPointerCapture(e.pointerId); } catch (err) { /* best-effort */ }
+    var hasSurface = _surfaceDiv && _surfaceDiv.setPointerCapture;
+    var canCapturePointer = hasSurface && typeof e.pointerId !== 'undefined';
+    if (canCapturePointer) {
+      try { _surfaceDiv.setPointerCapture(e.pointerId); } catch (err) { /* pointer capture is best-effort */ }
     }
 
     var isIdleState = (_state === STATE_IDLE);
@@ -499,19 +505,21 @@
   }
 
   function _onSurfacePointerMove(e) {
-    if (!_isPointerDown) { return; }
+    if (!isPointerDown) { return; }
     var coords = _getNormalizedCoords(e);
     _addSample(coords.x, coords.y);
   }
 
   function _onSurfacePointerUp() {
-    if (!_isPointerDown) { return; }
+    if (!isPointerDown) { return; }
     _stopRecording();
     // Only kill the note if we did NOT transition to playback.
     // _startPlayback (called from _stopRecording) now owns the note
     // lifecycle during playback and will noteOff when playback stops.
     var isNowPlaying = (_state === STATE_PLAYING) || (_state === STATE_OVERDUB);
-    if (!isNowPlaying && _noteOff && _currentMidi >= 0) {
+    var hasActiveKaossNote = _noteOff && _currentMidi >= 0;
+    var shouldReleaseKaossNote = !isNowPlaying && hasActiveKaossNote;
+    if (shouldReleaseKaossNote) {
       _noteOff(_currentMidi);
       _currentMidi = -1;
     }
@@ -519,7 +527,7 @@
 
   // Document-level safety net
   function _documentPointerUp() {
-    if (_isPointerDown) {
+    if (isPointerDown) {
       _onSurfacePointerUp();
     }
   }
@@ -541,7 +549,7 @@
     _activeLayer = 0;
     _syncMode = 0;
     _playbackHead = 0;
-    _isPointerDown = false;
+    isPointerDown = false;
 
     var wrapper = document.createElement('div');
     wrapper.className = 'kaoss-wrapper';
@@ -618,7 +626,7 @@
     surface.addEventListener('pointermove', _onSurfacePointerMove);
     surface.addEventListener('pointerup', _onSurfacePointerUp);
     surface.addEventListener('pointercancel', function() {
-      if (_isPointerDown) { _onSurfacePointerUp(); }
+      if (isPointerDown) { _onSurfacePointerUp(); }
     });
 
     // ---------- Axis labels ----------
@@ -747,8 +755,8 @@
 
   function _releaseKaoss() {
     _stopPlayback();
-    if (_isPointerDown) {
-      _isPointerDown = false;
+    if (isPointerDown) {
+      isPointerDown = false;
       if (_recordAnimId) {
         cancelAnimationFrame(_recordAnimId);
         _recordAnimId = 0;
@@ -791,7 +799,7 @@
       'kaoss.trail',
       function() { _releaseKaoss(); },
       function() {
-        var hasActivity = (_state !== STATE_IDLE) || _isPointerDown;
+        var hasActivity = (_state !== STATE_IDLE) || isPointerDown;
         return hasActivity ? 'gesture active' : null;
       }
     );

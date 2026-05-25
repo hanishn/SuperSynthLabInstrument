@@ -24,6 +24,8 @@
 
   var SEMITONES_PER_OCTAVE = 12;
   var OCTAVE_BASE_OFFSET = 1;
+
+  var NO_SAVED_SUSTAIN = null;
   var SCALE_DEGREES_PER_OCTAVE = 7;
   var DISPLAYED_OCTAVES = 2;
   var TOTAL_NOTE_BUTTONS = SCALE_DEGREES_PER_OCTAVE * DISPLAYED_OCTAVES;
@@ -67,7 +69,7 @@
   // State
   // ============================================================
 
-  var _breathActive = false;
+  var _isBreathActive = false;
   var _breathPointerId = -1;
   var _currentMidi = -1;
   var _activeNoteButtonIdx = -1;
@@ -136,7 +138,9 @@
 
   function _getScaleIntervals() {
     var intervals = DEFAULT_SCALE_INTERVALS;
-    if (SL.screenPlay && SL.screenPlay.getModeKey && SL.MODES) {
+    var hasScreenPlayMode = SL.screenPlay && SL.screenPlay.getModeKey;
+    var canGetScaleIntervals = hasScreenPlayMode && SL.MODES;
+    if (canGetScaleIntervals) {
       var modeKey = SL.screenPlay.getModeKey();
       var modeData = SL.MODES[modeKey];
       if (modeData && modeData.scale) {
@@ -201,7 +205,9 @@
   // ============================================================
 
   function _playNote(midi) {
-    if (_currentMidi >= 0 && _currentMidi !== midi && _currentNoteOff) {
+    var hasCurrentNote = _currentMidi >= 0 && _currentMidi !== midi;
+    var shouldStopCurrentNote = hasCurrentNote && _currentNoteOff;
+    if (shouldStopCurrentNote) {
       _currentNoteOff(_currentMidi);
     }
     if (midi !== _currentMidi) {
@@ -273,7 +279,7 @@
   function _startVibratoLoop() {
     _animStartMs = (typeof performance !== 'undefined') ? performance.now() : Date.now();
     function tick() {
-      if (!_breathActive) { return; }
+      if (!_isBreathActive) { return; }
       var nowMs = (typeof performance !== 'undefined') ? performance.now() : Date.now();
       var deltaYPx = _lastY - _strikeY;
       var depth = _effectivePressure(_lastPressure, deltaYPx);
@@ -299,11 +305,14 @@
   // ============================================================
 
   function _forceSustain() {
-    if (SL.audio && SL.audio.getInstruments && SL.audio.getCurrentInstrument) {
+    var canQueryBreathInstrument = SL.audio && SL.audio.getInstruments;
+    var hasBreathInstrumentQuery = canQueryBreathInstrument && SL.audio.getCurrentInstrument;
+    if (hasBreathInstrumentQuery) {
       var instId = SL.audio.getCurrentInstrument();
       var insts = SL.audio.getInstruments();
       var inst = insts ? insts[instId] : null;
-      if (inst && inst.settings && inst.settings.adsr) {
+      var hasAdsrBreathfingerSustain = inst && inst.settings && inst.settings.adsr;
+      if (hasAdsrBreathfingerSustain) {
         _savedSustainInst = instId;
         _savedSustain = inst.settings.adsr.s;
         inst.settings.adsr.s = BREATH_HELD_SUSTAIN;
@@ -312,11 +321,12 @@
   }
 
   function _restoreSustain() {
-    if (_savedSustain !== null && _savedSustainInst >= 0
+    if (_savedSustain !== NO_SAVED_SUSTAIN && _savedSustainInst >= 0
         && SL.audio && SL.audio.getInstruments) {
       var insts = SL.audio.getInstruments();
       var inst = insts ? insts[_savedSustainInst] : null;
-      if (inst && inst.settings && inst.settings.adsr) {
+      var hasAdsrBreathfingerRestore = inst && inst.settings && inst.settings.adsr;
+      if (hasAdsrBreathfingerRestore) {
         inst.settings.adsr.s = _savedSustain;
       }
       _savedSustain = null;
@@ -340,8 +350,8 @@
   // ============================================================
 
   function _releaseBreath() {
-    if (!_breathActive) { return; }
-    _breathActive = false;
+    if (!_isBreathActive) { return; }
+    _isBreathActive = false;
     _breathPointerId = -1;
     _stopVibratoLoop();
     if (_currentResetPitchBend) { _currentResetPitchBend(); }
@@ -360,7 +370,7 @@
   }
 
   function _releaseAll() {
-    _breathActive = false;
+    _isBreathActive = false;
     _breathPointerId = -1;
     _activeNoteButtonIdx = -1;
     _notePointerMap = {};
@@ -399,7 +409,7 @@
         _activeNoteButtonIdx = -1;
         _highlightButton(-1);
         _releaseCurrentNote();
-        if (!_breathActive) {
+        if (!_isBreathActive) {
           _clearTimbre();
         }
       }
@@ -424,7 +434,7 @@
     _baseOctave = _displayOctave;
 
     // Reset state
-    _breathActive = false;
+    _isBreathActive = false;
     _currentMidi = -1;
     _breathPointerId = -1;
     _activeNoteButtonIdx = -1;
@@ -597,7 +607,7 @@
             e.preventDefault();
             e.stopPropagation();
             if (capturedBtn.setPointerCapture && typeof e.pointerId !== 'undefined') {
-              try { capturedBtn.setPointerCapture(e.pointerId); } catch (err) { /* best-effort */ }
+              try { capturedBtn.setPointerCapture(e.pointerId); } catch (err) { /* pointer capture is best-effort */ }
             }
             _notePointerMap[e.pointerId] = capturedIdx;
             _activeNoteButtonIdx = capturedIdx;
@@ -605,7 +615,7 @@
 
             var midi = _buttonIndexToMidi(capturedIdx);
             // If breath is not active, use default timbre
-            if (!_breathActive) {
+            if (!_isBreathActive) {
               _applyDefaultTimbre();
             }
             _playNote(midi);
@@ -621,7 +631,7 @@
               _activeNoteButtonIdx = -1;
               _highlightButton(-1);
               _releaseCurrentNote();
-              if (!_breathActive) {
+              if (!_isBreathActive) {
                 _clearTimbre();
               }
             }
@@ -635,7 +645,7 @@
               _activeNoteButtonIdx = -1;
               _highlightButton(-1);
               _releaseCurrentNote();
-              if (!_breathActive) {
+              if (!_isBreathActive) {
                 _clearTimbre();
               }
             }
@@ -676,12 +686,12 @@
     }
 
     breathZone.addEventListener('pointerdown', function(e) {
-      if (_breathActive) { return; }
+      if (_isBreathActive) { return; }
       e.preventDefault();
       if (breathZone.setPointerCapture && typeof e.pointerId !== 'undefined') {
-        try { breathZone.setPointerCapture(e.pointerId); } catch (err) { /* best-effort */ }
+        try { breathZone.setPointerCapture(e.pointerId); } catch (err) { /* pointer capture is best-effort */ }
       }
-      _breathActive = true;
+      _isBreathActive = true;
       _breathPointerId = e.pointerId;
       breathZone.classList.add('bf-breath-active');
 
@@ -694,19 +704,19 @@
     });
 
     breathZone.addEventListener('pointermove', function(e) {
-      if (!_breathActive) { return; }
+      if (!_isBreathActive) { return; }
       if (e.pointerId !== _breathPointerId) { return; }
       _applyBreathAtPointer(e, false);
     });
 
     breathZone.addEventListener('pointerup', function(e) {
-      if (!_breathActive) { return; }
+      if (!_isBreathActive) { return; }
       if (e.pointerId !== _breathPointerId) { return; }
       _releaseBreath();
     });
 
     breathZone.addEventListener('pointercancel', function(e) {
-      if (!_breathActive) { return; }
+      if (!_isBreathActive) { return; }
       if (e.pointerId !== _breathPointerId) { return; }
       _releaseBreath();
     });
@@ -751,7 +761,7 @@
       'voices',
       'breathfinger.breath',
       function() { _releaseAll(); },
-      function() { return _breathActive ? 'breath active' : null; }
+      function() { return _isBreathActive ? 'breath active' : null; }
     );
   }
 

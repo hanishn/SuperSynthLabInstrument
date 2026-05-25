@@ -3,9 +3,9 @@
 // Classic EDM/synthwave pumping effect using tempo-synced LFO
 
 (function() {
-  const SL = window.SynthLab = window.SynthLab || {};
+  var SL = window.SynthLab = window.SynthLab || {};
   SL.effects = SL.effects || {};
-  const BaseEffect = SL.effects.BaseEffect;
+  var BaseEffect = SL.effects.BaseEffect;
 
   /**
    * PumpEffect - Simulated sidechain compression via LFO-controlled gain
@@ -55,9 +55,9 @@
      */
     getPumpInterval() {
       // Beats per second
-      const bps = this.tempo / 60;
+      var bps = this.tempo / 60;
       // Seconds per beat (quarter note)
-      const spb = 1 / bps;
+      var spb = 1 / bps;
       // Interval based on rate division
       // rate=1 -> 4 beats, rate=2 -> 2 beats, rate=4 -> 1 beat, rate=8 -> 0.5 beats
       return (4 / this.params.rate) * spb;
@@ -67,11 +67,11 @@
      * Apply the pump envelope based on shape
      */
     applyPumpEnvelope(startTime) {
-      const gain = this.pumpGain.gain;
-      const depth = this.params.depth / 100;
-      const minGain = 1 - depth;
-      const attackTime = this.params.attack / 1000; // Convert to seconds
-      const releaseTime = this.params.release / 1000;
+      var gain = this.pumpGain.gain;
+      var depth = this.params.depth / 100;
+      var minGain = 1 - depth;
+      var attackTime = this.params.attack / 1000; // Convert to seconds
+      var releaseTime = this.params.release / 1000;
 
       // Cancel any scheduled changes
       gain.cancelScheduledValues(startTime);
@@ -122,20 +122,21 @@
       this.nextPumpTime = this.ctx.currentTime;
 
       // Schedule pumps ahead of time using a lookahead scheduler
-      const lookahead = 0.1; // 100ms lookahead
-      const scheduleInterval = 25; // Check every 25ms
+      var lookahead = 0.1; // 100ms lookahead
+      var scheduleInterval = 25; // Check every 25ms
 
-      this.schedulerInterval = setInterval(() => {
-        const currentTime = this.ctx.currentTime;
-        const pumpInterval = this.getPumpInterval();
+      var self = this;
+      this.schedulerInterval = setInterval(function() {
+        var currentTime = self.ctx.currentTime;
+        var pumpInterval = self.getPumpInterval();
 
         // Schedule all pumps that fall within the lookahead window
-        while (this.nextPumpTime < currentTime + lookahead) {
+        while (self.nextPumpTime < currentTime + lookahead) {
           // Only apply pump if effect is enabled
-          if (this.enabled) {
-            this.applyPumpEnvelope(this.nextPumpTime);
+          if (self.enabled) {
+            self.applyPumpEnvelope(self.nextPumpTime);
           }
-          this.nextPumpTime += pumpInterval;
+          self.nextPumpTime += pumpInterval;
         }
       }, scheduleInterval);
     }
@@ -213,7 +214,7 @@
 
         case 'shape':
           // Validate shape
-          const validShapes = ['linear', 'exponential', 'logarithmic'];
+          var validShapes = ['linear', 'exponential', 'logarithmic'];
           if (validShapes.includes(value)) {
             this.params.shape = value;
           }
@@ -230,11 +231,10 @@
      * Get params including tempo
      */
     getParams() {
-      return {
-        ...this.params,
+      return Object.assign({}, this.params, {
         tempo: this.tempo,
         enabled: this.enabled
-      };
+      });
     }
 
     /**

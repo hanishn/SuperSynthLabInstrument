@@ -29,6 +29,10 @@
   var CHROMATIC_NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
   var NOTES = (SL && SL.NOTES) ? SL.NOTES : CHROMATIC_NOTE_NAMES;
 
+  // Sentinel constants
+  var NO_SUSTAIN = null;
+  var NO_POINTER = null;
+
   // ============================================================
   // Constants
   // ============================================================
@@ -140,7 +144,7 @@
   // pointermove for every finger, we mark pads dirty and apply once per rAF.
   // _expressionPending[padIdx] = { xFrac, yFrac } or null
   var _expressionPending = {};
-  var _expressionDirty = false;
+  var _isExpressionDirty = false;
 
   // Sustain save/restore (shared because sustain override is global)
   var _savedSustain = null;
@@ -257,14 +261,14 @@
   // pads' values (averaged) to avoid per-finger-per-move contention.
   function _markExpressionDirty(pointerId, xFrac, yFrac) {
     _expressionPending[pointerId] = { xFrac: xFrac, yFrac: yFrac };
-    _expressionDirty = true;
+    _isExpressionDirty = true;
   }
 
   // Compute combined expression from all dirty+active pads and call
   // setExpression ONCE. Called from the shared rAF loop.
   function _flushExpression() {
-    if (!_expressionDirty) { return; }
-    _expressionDirty = false;
+    if (!_isExpressionDirty) { return; }
+    _isExpressionDirty = false;
 
     var totalXFrac = 0;
     var totalYFrac = 0;
@@ -298,12 +302,14 @@
   }
 
   function _saveAndForceSustain() {
-    if (_savedSustain !== null) { return; } // already saved
-    if (!(SL.audio && SL.audio.getInstruments && SL.audio.getCurrentInstrument)) { return; }
+    if (_savedSustain !== NO_SUSTAIN) { return; } // already saved
+    var hasAudioApi = SL.audio && SL.audio.getInstruments && SL.audio.getCurrentInstrument;
+    if (!hasAudioApi) { return; }
     var instId = SL.audio.getCurrentInstrument();
     var insts = SL.audio.getInstruments();
     var inst = insts ? insts[instId] : null;
-    if (inst && inst.settings && inst.settings.adsr) {
+    var hasAdsrSettings = inst && inst.settings && inst.settings.adsr;
+    if (hasAdsrSettings) {
       _savedSustainInst = instId;
       _savedSustain = inst.settings.adsr.s;
       inst.settings.adsr.s = BREATH_HELD_SUSTAIN;
@@ -311,19 +317,21 @@
   }
 
   function _restoreSustain() {
-    if (_savedSustain === null || _savedSustainInst < 0) { return; }
-    if (!(SL.audio && SL.audio.getInstruments)) {
-      _savedSustain = null;
-      _savedSustainInst = -1;
-      return;
+    if (!(_savedSustain === NO_SUSTAIN || _savedSustainInst < 0)) {
+      if (!(SL.audio && SL.audio.getInstruments)) {
+        _savedSustain = null;
+        _savedSustainInst = -1;
+      } else {
+        var insts = SL.audio.getInstruments();
+        var inst = insts ? insts[_savedSustainInst] : null;
+        var hasAdsrForEnsembleSustain = inst && inst.settings && inst.settings.adsr;
+      if (hasAdsrForEnsembleSustain) {
+          inst.settings.adsr.s = _savedSustain;
+        }
+        _savedSustain = null;
+        _savedSustainInst = -1;
+      }
     }
-    var insts = SL.audio.getInstruments();
-    var inst = insts ? insts[_savedSustainInst] : null;
-    if (inst && inst.settings && inst.settings.adsr) {
-      inst.settings.adsr.s = _savedSustain;
-    }
-    _savedSustain = null;
-    _savedSustainInst = -1;
   }
 
   function _updateMiniVisual(state, relX, relY, pressure, xCC, yCC) {
@@ -837,18 +845,20 @@
       function _onPointerDown(e) {
         // Don't allow re-trigger if this pad already has an active pointer.
         var existingId;
+        var isPadAlreadyActive = false;
         for (existingId in _activePointers) {
           if (_activePointers.hasOwnProperty(existingId)
               && _activePointers[existingId].padEl === pad) {
-            return;
+            isPadAlreadyActive = true;
           }
         }
+        if (!isPadAlreadyActive) {
         e.preventDefault();
         if (pad.setPointerCapture && typeof e.pointerId !== 'undefined') {
-          var captureOk = true;
-          try { pad.setPointerCapture(e.pointerId); } catch (err) { captureOk = false; }
-          // captureOk consumed for clarity; not otherwise used.
-          if (!captureOk) { /* best-effort */ }
+          var isCaptureOk = true;
+          try { pad.setPointerCapture(e.pointerId); } catch (err) { isCaptureOk = false; }
+          // isCaptureOk consumed for clarity; not otherwise used.
+          if (!isCaptureOk) { /* best-effort */ }
         }
 
         // First active pointer: force sustain to 100.
@@ -871,7 +881,7 @@
               }
             }
           }
-          if (oldestId !== null) {
+          if (oldestId !== NO_POINTER) {
             _releasePointer(oldestId);
           }
         }
@@ -897,6 +907,7 @@
         noteOn(midi);
         _applyAtPointer(state, e, true);
         _startVibratoLoop(state);
+        } // end if (!isPadAlreadyActive)
       }
 
       function _onPointerMove(e) {

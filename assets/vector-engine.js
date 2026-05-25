@@ -15,6 +15,9 @@
   var TWO_PI = 2 * Math.PI;
   var NUM_SOURCES = 4;
 
+  // Valid source waveform types
+  var VALID_SOURCE_WAVEFORMS = { 'sine': 1, 'saw': 1, 'square': 1, 'triangle': 1, 'pulse': 1, 'noise': 1 };
+
   /** Default vector settings */
   var DEFAULT_VECTOR_SETTINGS = {
     sources: [
@@ -45,7 +48,7 @@
   var audioContext = null;
   var scriptNodes = [null, null, null, null];
   var fallbackVoicesByInst = [[], [], [], []];
-  var engineReady = false;
+  var isEngineReady = false;
   var instrumentSettings = {};
   var vectorFilterNodes = {};
   var connectedInsts = [false, false, false, false];
@@ -255,7 +258,9 @@
 
     // Vector envelope
     var vEnv = settings.vectorEnvelope;
-    if (vEnv && vEnv.enabled && vEnv.points && vEnv.points.length > 0) {
+    var hasVectorEnv = vEnv && vEnv.enabled && vEnv.points;
+    var hasVectorEnvPoints = hasVectorEnv && vEnv.points.length > 0;
+    if (hasVectorEnvPoints) {
       this.vectorEnvEnabled = true;
       this.vectorEnvLoop = vEnv.loop || false;
       this.vectorEnvPoints = vEnv.points;
@@ -422,7 +427,7 @@
     var bufSize = (SL.audio && SL.audio.getScriptProcessorBufferSize) ? SL.audio.getScriptProcessorBufferSize() : 1024;
 
     for (var i = 0; i < 4; i++) {
-      fallbackVoicesByInst[i] = [];
+      fallbackVoicesByInst[i].length = 0;
       for (var v = 0; v < MAX_VOICES_PER_INSTRUMENT; v++) {
         fallbackVoicesByInst[i].push(new VectorVoice(sr));
       }
@@ -450,7 +455,7 @@
       })(idx);
     }
 
-    engineReady = true;
+    isEngineReady = true;
     return Promise.resolve(true);
   }
 
@@ -477,52 +482,49 @@
       instId = 0;
     }
     var filterNode = vectorFilterNodes[instId];
-    if (!filterNode) {
-      return;
-    }
-    var filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
-    if (!filterSettings || !filterSettings.enabled) {
-      filterNode.type = 'lowpass';
-      filterNode.frequency.value = 20000;
-      filterNode.Q.value = 0.707;
-    } else {
-      filterNode.type = filterSettings.type || 'lowpass';
-      filterNode.frequency.value = Math.max(20, Math.min(20000, filterSettings.frequency || 20000));
-      filterNode.Q.value = Math.max(0.1, Math.min(30, filterSettings.resonance || 1));
+    if (filterNode) {
+      var filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
+      if (!filterSettings || !filterSettings.enabled) {
+        filterNode.type = 'lowpass';
+        filterNode.frequency.value = 20000;
+        filterNode.Q.value = 0.707;
+      } else {
+        filterNode.type = filterSettings.type || 'lowpass';
+        filterNode.frequency.value = Math.max(20, Math.min(20000, filterSettings.frequency || 20000));
+        filterNode.Q.value = Math.max(0.1, Math.min(30, filterSettings.resonance || 1));
+      }
     }
   }
 
   function connectToOutput(instId) {
-    if (!scriptNodes[instId]) {
-      return;
-    }
-
-    if (connectedInsts[instId]) {
-      updateFilter(instId);
-    } else {
-      var instruments = SL.audio && SL.audio.getInstruments ? SL.audio.getInstruments() : null;
-      var inst = instruments ? instruments[instId] : null;
-      var destination;
-
-      if (inst && inst.masterOutput) {
-        destination = inst.masterOutput;
-      } else if (audioContext) {
-        destination = audioContext.destination;
+    if (scriptNodes[instId]) {
+      if (connectedInsts[instId]) {
+        updateFilter(instId);
       } else {
-        return;
+        var instruments = SL.audio && SL.audio.getInstruments ? SL.audio.getInstruments() : null;
+        var inst = instruments ? instruments[instId] : null;
+        var destination;
+
+        if (inst && inst.masterOutput) {
+          destination = inst.masterOutput;
+        } else if (audioContext) {
+          destination = audioContext.destination;
+        }
+
+        if (destination) {
+          var filterNode = getOrCreateFilterNode(instId);
+          updateFilter(instId);
+
+          if (filterNode) {
+            scriptNodes[instId].connect(filterNode);
+            filterNode.connect(destination);
+          } else {
+            scriptNodes[instId].connect(destination);
+          }
+
+          connectedInsts[instId] = true;
+        }
       }
-
-      var filterNode = getOrCreateFilterNode(instId);
-      updateFilter(instId);
-
-      if (filterNode) {
-        scriptNodes[instId].connect(filterNode);
-        filterNode.connect(destination);
-      } else {
-        scriptNodes[instId].connect(destination);
-      }
-
-      connectedInsts[instId] = true;
     }
   }
 
@@ -634,20 +636,19 @@
     }
   }
 
-  function setSource(instId, index, waveform) {
+  function setSource(instId, idx, waveform) {
     var settings = getOrCreateSettings(instId);
-    if (index >= 0 && index < NUM_SOURCES) {
-      if (waveform === 'sine' || waveform === 'saw' || waveform === 'square' ||
-          waveform === 'triangle' || waveform === 'pulse' || waveform === 'noise') {
-        settings.sources[index].waveform = waveform;
+    if (idx >= 0 && idx < NUM_SOURCES) {
+      if (VALID_SOURCE_WAVEFORMS[waveform]) {
+        settings.sources[idx].waveform = waveform;
       }
     }
   }
 
-  function setSourceDetune(instId, index, cents) {
+  function setSourceDetune(instId, idx, cents) {
     var settings = getOrCreateSettings(instId);
-    if (index >= 0 && index < NUM_SOURCES) {
-      settings.sources[index].detune = Math.max(-100, Math.min(100, cents));
+    if (idx >= 0 && idx < NUM_SOURCES) {
+      settings.sources[idx].detune = Math.max(-100, Math.min(100, cents));
     }
   }
 
@@ -663,12 +664,12 @@
 
   function setVectorEnvelopeLoop(instId, loop) {
     var settings = getOrCreateSettings(instId);
-    settings.vectorEnvelope.loop = !!loop;
+    settings.vectorEnvelope.loop = Boolean(loop);
   }
 
   function enableVectorEnvelope(instId, enabled) {
     var settings = getOrCreateSettings(instId);
-    settings.vectorEnvelope.enabled = !!enabled;
+    settings.vectorEnvelope.enabled = Boolean(enabled);
   }
 
   function getSettings(instId) {
@@ -700,7 +701,7 @@
   }
 
   function isReady() {
-    return engineReady;
+    return isEngineReady;
   }
 
   function getDefaultSettings() {

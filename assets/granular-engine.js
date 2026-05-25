@@ -15,6 +15,10 @@
   var SOURCE_BUFFER_DURATION = 1.0; // seconds of source material
   var MAX_GRAINS_PER_VOICE = 16;   // max simultaneous grains per voice
 
+  // Valid window shapes and source waveform types
+  var VALID_WINDOW_SHAPES = { 'hann': 1, 'triangle': 1, 'rectangle': 1 };
+  var VALID_SOURCE_WAVEFORMS = { 'sine': 1, 'saw': 1, 'square': 1, 'triangle': 1, 'noise': 1 };
+
   /** Default granular settings for a new instrument */
   var DEFAULT_GRANULAR_SETTINGS = {
     sourceWaveform: 'sine',
@@ -32,7 +36,7 @@
   // ============================================================
 
   var audioContext = null;
-  var engineReady = false;
+  var isEngineReady = false;
 
   // Per-instrument settings cache (instId -> settings object)
   var instrumentSettings = {};
@@ -410,45 +414,43 @@
         }
       }
     }
-    if (!grain || !this.sourceData) {
-      return;
-    }
+    if (grain && this.sourceData) {
+      // Calculate start position in buffer
+      var basePos = this.position;
+      if (!this.freeze) {
+        // Non-freeze: use position with scatter
+        basePos = this.position;
+      }
+      var scatter = 0;
+      if (this.positionScatter > 0) {
+        scatter = (Math.random() * 2 - 1) * this.positionScatter;
+      }
+      var startFraction = basePos + scatter;
+      if (startFraction < 0) { startFraction = 0; }
+      if (startFraction > 1) { startFraction = 1; }
+      var startSample = Math.floor(startFraction * (this.sourceLength - this.grainSizeSamples));
+      if (startSample < 0) { startSample = 0; }
 
-    // Calculate start position in buffer
-    var basePos = this.position;
-    if (!this.freeze) {
-      // Non-freeze: use position with scatter
-      basePos = this.position;
-    }
-    var scatter = 0;
-    if (this.positionScatter > 0) {
-      scatter = (Math.random() * 2 - 1) * this.positionScatter;
-    }
-    var startFraction = basePos + scatter;
-    if (startFraction < 0) { startFraction = 0; }
-    if (startFraction > 1) { startFraction = 1; }
-    var startSample = Math.floor(startFraction * (this.sourceLength - this.grainSizeSamples));
-    if (startSample < 0) { startSample = 0; }
+      // Pitch scatter
+      var pitchRatio = this.basePitchRatio;
+      if (this.pitchScatter > 0) {
+        var semitoneOffset = (Math.random() * 2 - 1) * this.pitchScatter;
+        pitchRatio *= Math.pow(2, semitoneOffset / 12);
+      }
 
-    // Pitch scatter
-    var pitchRatio = this.basePitchRatio;
-    if (this.pitchScatter > 0) {
-      var semitoneOffset = (Math.random() * 2 - 1) * this.pitchScatter;
-      pitchRatio *= Math.pow(2, semitoneOffset / 12);
+      grain.active = true;
+      grain.readPos = startSample;
+      grain.readInc = pitchRatio;
+      grain.samplesRemaining = this.grainSizeSamples;
+      // Reuse cached window envelope when grain size and shape match
+      if (this._cachedWindowSize !== this.grainSizeSamples || this._cachedWindowShape !== this.windowShape) {
+        this._cachedWindowEnv = createWindowEnvelope(this.grainSizeSamples, this.windowShape);
+        this._cachedWindowSize = this.grainSizeSamples;
+        this._cachedWindowShape = this.windowShape;
+      }
+      grain.windowEnv = this._cachedWindowEnv;
+      grain.windowIdx = 0;
     }
-
-    grain.active = true;
-    grain.readPos = startSample;
-    grain.readInc = pitchRatio;
-    grain.samplesRemaining = this.grainSizeSamples;
-    // Reuse cached window envelope when grain size and shape match
-    if (this._cachedWindowSize !== this.grainSizeSamples || this._cachedWindowShape !== this.windowShape) {
-      this._cachedWindowEnv = createWindowEnvelope(this.grainSizeSamples, this.windowShape);
-      this._cachedWindowSize = this.grainSizeSamples;
-      this._cachedWindowShape = this.windowShape;
-    }
-    grain.windowEnv = this._cachedWindowEnv;
-    grain.windowIdx = 0;
   };
 
   GranularVoice.prototype.process = function() {
@@ -547,7 +549,7 @@
 
     // Pre-allocate per-instrument voice pools
     for (var i = 0; i < 4; i++) {
-      voicesByInst[i] = [];
+      voicesByInst[i].length = 0;
       for (var v = 0; v < MAX_VOICES_PER_INSTRUMENT; v++) {
         voicesByInst[i].push(new GranularVoice(sr));
       }
@@ -588,7 +590,7 @@
       })(idx);
     }
 
-    engineReady = true;
+    isEngineReady = true;
     return Promise.resolve(true);
   }
 
@@ -615,54 +617,53 @@
       instId = 0;
     }
     var filterNode = granularFilterNodes[instId];
-    if (!filterNode) {
-      return;
-    }
-
-    var filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
-    if (!filterSettings || !filterSettings.enabled) {
-      filterNode.type = 'lowpass';
-      filterNode.frequency.value = 20000;
-      filterNode.Q.value = 0.707;
-    } else {
-      filterNode.type = filterSettings.type || 'lowpass';
-      filterNode.frequency.value = Math.max(20, Math.min(20000, filterSettings.frequency || 20000));
-      filterNode.Q.value = Math.max(0.1, Math.min(30, filterSettings.resonance || 1));
+    if (filterNode) {
+      var filterSettings = SL.audio && SL.audio.getFilterSettings ? SL.audio.getFilterSettings() : null;
+      if (!filterSettings || !filterSettings.enabled) {
+        filterNode.type = 'lowpass';
+        filterNode.frequency.value = 20000;
+        filterNode.Q.value = 0.707;
+      } else {
+        filterNode.type = filterSettings.type || 'lowpass';
+        filterNode.frequency.value = Math.max(20, Math.min(20000, filterSettings.frequency || 20000));
+        filterNode.Q.value = Math.max(0.1, Math.min(30, filterSettings.resonance || 1));
+      }
     }
   }
 
   function connectToOutput(instId) {
     // If output node not created yet (engine not initialized), skip
-    if (!granularOutputNodes[instId]) {
-      return;
-    }
-
-    if (connectedInsts[instId]) {
-      updateFilter(instId);
-    } else {
-      var instruments = SL.audio && SL.audio.getInstruments ? SL.audio.getInstruments() : null;
-      var inst = instruments ? instruments[instId] : null;
-      var destination;
-
-      if (inst && inst.masterOutput) {
-        destination = inst.masterOutput;
-      } else if (audioContext) {
-        destination = audioContext.destination;
+    if (granularOutputNodes[instId]) {
+      if (connectedInsts[instId]) {
+        updateFilter(instId);
       } else {
-        return;
+        var instruments = SL.audio && SL.audio.getInstruments ? SL.audio.getInstruments() : null;
+        var inst = instruments ? instruments[instId] : null;
+        var destination;
+        var isDestinationResolved = false;
+
+        if (inst && inst.masterOutput) {
+          destination = inst.masterOutput;
+          isDestinationResolved = true;
+        } else if (audioContext) {
+          destination = audioContext.destination;
+          isDestinationResolved = true;
+        }
+
+        if (isDestinationResolved) {
+          var filterNode = getOrCreateFilterNode(instId);
+          updateFilter(instId);
+
+          if (filterNode) {
+            granularOutputNodes[instId].connect(filterNode);
+            filterNode.connect(destination);
+          } else {
+            granularOutputNodes[instId].connect(destination);
+          }
+
+          connectedInsts[instId] = true;
+        }
       }
-
-      var filterNode = getOrCreateFilterNode(instId);
-      updateFilter(instId);
-
-      if (filterNode) {
-        granularOutputNodes[instId].connect(filterNode);
-        filterNode.connect(destination);
-      } else {
-        granularOutputNodes[instId].connect(destination);
-      }
-
-      connectedInsts[instId] = true;
     }
   }
 
@@ -741,15 +742,15 @@
     if (!voice) {
       // Prefer stealing a voice in release state over one still sustaining
       var stealIdx = 0;
-      var foundReleasing = false;
+      var hasFoundReleasing = false;
       for (var si = 0; si < voices.length; si++) {
         if (voices[si].releasing) {
           stealIdx = si;
-          foundReleasing = true;
+          hasFoundReleasing = true;
           break;
         }
       }
-      if (!foundReleasing) {
+      if (!hasFoundReleasing) {
         // Steal the voice with the lowest envelope level (quietest)
         var lowestLevel = 2.0;
         for (var qi = 0; qi < voices.length; qi++) {
@@ -806,7 +807,7 @@
 
   function setWindowShape(instId, shape) {
     var settings = getOrCreateSettings(instId);
-    if (shape === 'hann' || shape === 'triangle' || shape === 'rectangle') {
+    if (VALID_WINDOW_SHAPES[shape]) {
       settings.windowShape = shape;
     }
   }
@@ -814,7 +815,7 @@
   function setFreeze(instId, frozen) {
     var settings = getOrCreateSettings(instId);
     var wasFrozen = settings.freeze;
-    settings.freeze = !!frozen;
+    settings.freeze = Boolean(frozen);
 
     if (settings.freeze && !wasFrozen) {
       // Capture the current buffer state as a frozen snapshot
@@ -827,7 +828,7 @@
 
   function isFreeze(instId) {
     var settings = getOrCreateSettings(instId);
-    return !!settings.freeze;
+    return Boolean(settings.freeze);
   }
 
   /**
@@ -836,40 +837,38 @@
    * any subsequent waveform changes.
    */
   function captureFreeze(instId) {
-    if (!audioContext) {
-      return;
-    }
-    var srcBuffer = getSourceBuffer(instId);
-    if (!srcBuffer) {
-      return;
-    }
-    var settings = getOrCreateSettings(instId);
-    var sr = audioContext.sampleRate;
-    var srcData = srcBuffer.getChannelData(0);
-    var length = srcData.length;
+    if (audioContext) {
+      var srcBuffer = getSourceBuffer(instId);
+      if (srcBuffer) {
+        var settings = getOrCreateSettings(instId);
+        var sr = audioContext.sampleRate;
+        var srcData = srcBuffer.getChannelData(0);
+        var length = srcData.length;
 
-    // Create a copy of the source buffer
-    var frozenBuffer = audioContext.createBuffer(1, length, sr);
-    var frozenData = frozenBuffer.getChannelData(0);
-    for (var i = 0; i < length; i++) {
-      frozenData[i] = srcData[i];
-    }
+        // Create a copy of the source buffer
+        var frozenBuffer = audioContext.createBuffer(1, length, sr);
+        var frozenData = frozenBuffer.getChannelData(0);
+        for (var i = 0; i < length; i++) {
+          frozenData[i] = srcData[i];
+        }
 
-    frozenSnapshots[instId] = {
-      buffer: frozenBuffer,
-      position: settings.position
-    };
+        frozenSnapshots[instId] = {
+          buffer: frozenBuffer,
+          position: settings.position
+        };
 
-    // Update all active voices for this instrument to use the frozen buffer
-    var voices = voicesByInst[instId];
-    if (voices) {
-      for (var v = 0; v < voices.length; v++) {
-        if (voices[v].active && voices[v].instId === instId) {
-          voices[v].sourceBuffer = frozenBuffer;
-          voices[v].sourceData = frozenData;
-          voices[v].sourceLength = length;
-          voices[v].freeze = true;
-          voices[v].position = settings.position / 100;
+        // Update all active voices for this instrument to use the frozen buffer
+        var voices = voicesByInst[instId];
+        if (voices) {
+          for (var v = 0; v < voices.length; v++) {
+            if (voices[v].active && voices[v].instId === instId) {
+              voices[v].sourceBuffer = frozenBuffer;
+              voices[v].sourceData = frozenData;
+              voices[v].sourceLength = length;
+              voices[v].freeze = true;
+              voices[v].position = settings.position / 100;
+            }
+          }
         }
       }
     }
@@ -894,7 +893,7 @@
 
   function setSourceWaveform(instId, waveform) {
     var settings = getOrCreateSettings(instId);
-    if (waveform === 'sine' || waveform === 'saw' || waveform === 'square' || waveform === 'triangle' || waveform === 'noise') {
+    if (VALID_SOURCE_WAVEFORMS[waveform]) {
       settings.sourceWaveform = waveform;
       invalidateSourceBuffer(instId);
     }
@@ -934,7 +933,7 @@
   }
 
   function isReady() {
-    return engineReady;
+    return isEngineReady;
   }
 
   function getDefaultSettings() {

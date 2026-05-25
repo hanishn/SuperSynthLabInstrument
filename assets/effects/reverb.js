@@ -2,22 +2,29 @@
 // Multiple reverb algorithms: convolution, room (Freeverb), plate (Dattorro), hall (FDN), spring, shimmer
 
 (function() {
-  const SL = window.SynthLab;
-  const BaseEffect = SL.effects.BaseEffect;
+  var SL = window.SynthLab;
+  var BaseEffect = SL.effects.BaseEffect;
 
   // Comb filter delay times for Freeverb (in samples at 44100Hz)
   // Slightly different for L/R channels for stereo width
-  const COMB_TUNINGS_L = [1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617];
-  const COMB_TUNINGS_R = [1116 + 23, 1188 + 23, 1277 + 23, 1356 + 23, 1422 + 23, 1491 + 23, 1557 + 23, 1617 + 23];
+  var COMB_TUNINGS_L = [1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617];
+  var COMB_TUNINGS_R = [1116 + 23, 1188 + 23, 1277 + 23, 1356 + 23, 1422 + 23, 1491 + 23, 1557 + 23, 1617 + 23];
 
   // Allpass filter delay times for Freeverb
-  const ALLPASS_TUNINGS = [556, 441, 341, 225];
+  var ALLPASS_TUNINGS = [556, 441, 341, 225];
 
   // Prime number delay times for FDN Hall (in ms)
-  const FDN_DELAY_TIMES = [29, 37, 43, 53, 67, 79, 89, 97];
+  var FDN_DELAY_TIMES = [29, 37, 43, 53, 67, 79, 89, 97];
 
   // Spring reverb chirp frequencies
-  const SPRING_CHIRP_FREQS = [180, 220, 280, 340];
+  var SPRING_CHIRP_FREQS = [180, 220, 280, 340];
+
+  function _makeMixGainRow() {
+    return [];
+  }
+  function _makeSpringChain() {
+    return [];
+  }
 
   /**
    * ReverbEffect - Multiple reverb algorithms
@@ -88,12 +95,10 @@
      */
     _cleanupAlgorithmNodes() {
       // Disconnect and release all algorithm-specific nodes
-      this._algorithmNodes.forEach(node => {
+      this._algorithmNodes.forEach(function(node) {
         try {
           node.disconnect();
-        } catch (e) {
-          // Node may already be disconnected
-        }
+        } catch (e) { /* node may already be disconnected */ }
       });
       this._algorithmNodes = [];
 
@@ -170,24 +175,24 @@
     }
 
     _generateIR() {
-      const sampleRate = this.ctx.sampleRate;
-      const duration = this._getDuration();
-      const decayRate = this._getDecayRate();
-      const dampingCoeff = this._getDampingCoeff();
+      var sampleRate = this.ctx.sampleRate;
+      var duration = this._getDuration();
+      var decayRate = this._getDecayRate();
+      var dampingCoeff = this._getDampingCoeff();
 
-      const length = Math.floor(sampleRate * duration);
-      const buffer = this.ctx.createBuffer(2, length, sampleRate);
+      var length = Math.floor(sampleRate * duration);
+      var buffer = this.ctx.createBuffer(2, length, sampleRate);
 
-      for (let channel = 0; channel < 2; channel++) {
-        const data = buffer.getChannelData(channel);
-        const channelDecayOffset = channel === 0 ? 0.95 : 1.05;
-        const effectiveDecay = decayRate * channelDecayOffset;
-        let lpState = 0;
+      for (var channel = 0; channel < 2; channel++) {
+        var data = buffer.getChannelData(channel);
+        var channelDecayOffset = channel === 0 ? 0.95 : 1.05;
+        var effectiveDecay = decayRate * channelDecayOffset;
+        var lpState = 0;
 
-        for (let i = 0; i < length; i++) {
-          const t = i / sampleRate;
-          const envelope = Math.exp(-effectiveDecay * t);
-          let sample = (Math.random() * 2 - 1) * envelope;
+        for (var i = 0; i < length; i++) {
+          var t = i / sampleRate;
+          var envelope = Math.exp(-effectiveDecay * t);
+          var sample = (Math.random() * 2 - 1) * envelope;
 
           if (dampingCoeff > 0) {
             sample = (1 - dampingCoeff) * sample + dampingCoeff * lpState;
@@ -197,9 +202,9 @@
           data[i] = sample;
         }
 
-        const earlyReflectionSamples = Math.floor(sampleRate * 0.05);
-        for (let i = 0; i < earlyReflectionSamples && i < length; i++) {
-          const boost = 1 + (1 - i / earlyReflectionSamples) * 0.3;
+        var earlyReflectionSamples = Math.floor(sampleRate * 0.05);
+        for (var i = 0; i < earlyReflectionSamples && i < length; i++) {
+          var boost = 1 + (1 - i / earlyReflectionSamples) * 0.3;
           data[i] *= boost;
         }
       }
@@ -212,16 +217,17 @@
         clearTimeout(this._irDebounceTimer);
       }
 
-      this._irDebounceTimer = setTimeout(() => {
+      var self = this;
+      this._irDebounceTimer = setTimeout(function() {
         try {
-          if (this.convolver) {
-            const ir = this._generateIR();
-            this.convolver.buffer = ir;
+          if (self.convolver) {
+            var ir = self._generateIR();
+            self.convolver.buffer = ir;
           }
         } catch (e) {
           console.error('Reverb: Error generating impulse response:', e);
         }
-        this._irDebounceTimer = null;
+        self._irDebounceTimer = null;
       }, this._irDebounceDelay);
     }
 
@@ -230,9 +236,9 @@
     //==========================================================================
 
     _buildRoomReverb() {
-      const ctx = this.ctx;
-      const sampleRate = ctx.sampleRate;
-      const scaleFactor = sampleRate / 44100;
+      var ctx = this.ctx;
+      var sampleRate = ctx.sampleRate;
+      var scaleFactor = sampleRate / 44100;
 
       // Create stereo splitter and merger
       this.splitter = ctx.createChannelSplitter(2);
@@ -254,16 +260,16 @@
 
       var REVERB_FEEDBACK_BASE = 0.75;
       var REVERB_FEEDBACK_RANGE = 0.10;
-      const feedback = REVERB_FEEDBACK_BASE + (this.params.size / 100) * REVERB_FEEDBACK_RANGE;
-      const dampingValue = this.params.damping / 100;
+      var feedback = REVERB_FEEDBACK_BASE + (this.params.size / 100) * REVERB_FEEDBACK_RANGE;
+      var dampingValue = this.params.damping / 100;
 
-      for (let i = 0; i < 8; i++) {
+      for (var i = 0; i < 8; i++) {
         // Left channel comb
-        const delayL = ctx.createDelay(1);
+        var delayL = ctx.createDelay(1);
         delayL.delayTime.value = (COMB_TUNINGS_L[i] * scaleFactor) / sampleRate;
-        const gainL = ctx.createGain();
+        var gainL = ctx.createGain();
         gainL.gain.value = feedback;
-        const dampL = ctx.createBiquadFilter();
+        var dampL = ctx.createBiquadFilter();
         dampL.type = 'lowpass';
         dampL.frequency.value = 20000 * (1 - dampingValue * 0.8);
 
@@ -273,11 +279,11 @@
         this._algorithmNodes.push(delayL, gainL, dampL);
 
         // Right channel comb
-        const delayR = ctx.createDelay(1);
+        var delayR = ctx.createDelay(1);
         delayR.delayTime.value = (COMB_TUNINGS_R[i] * scaleFactor) / sampleRate;
-        const gainR = ctx.createGain();
+        var gainR = ctx.createGain();
         gainR.gain.value = feedback;
-        const dampR = ctx.createBiquadFilter();
+        var dampR = ctx.createBiquadFilter();
         dampR.type = 'lowpass';
         dampR.frequency.value = 20000 * (1 - dampingValue * 0.8);
 
@@ -291,15 +297,15 @@
       this.allpassFiltersL = [];
       this.allpassFiltersR = [];
 
-      for (let i = 0; i < 4; i++) {
-        const apDelayL = ctx.createDelay(0.1);
+      for (var i = 0; i < 4; i++) {
+        var apDelayL = ctx.createDelay(0.1);
         apDelayL.delayTime.value = (ALLPASS_TUNINGS[i] * scaleFactor) / sampleRate;
-        const apGainL = ctx.createGain();
+        var apGainL = ctx.createGain();
         apGainL.gain.value = 0.5;
 
-        const apDelayR = ctx.createDelay(0.1);
+        var apDelayR = ctx.createDelay(0.1);
         apDelayR.delayTime.value = (ALLPASS_TUNINGS[i] * scaleFactor) / sampleRate;
-        const apGainR = ctx.createGain();
+        var apGainR = ctx.createGain();
         apGainR.gain.value = 0.5;
 
         this.allpassFiltersL.push({ delay: apDelayL, gain: apGainL });
@@ -324,7 +330,7 @@
       this.predelayNode.connect(this.monoSum);
 
       // Connect comb filters in parallel with feedback loops
-      for (let i = 0; i < 8; i++) {
+      for (var i = 0; i < 8; i++) {
         // Left channel
         this.monoSum.connect(this.combFiltersL[i]);
         this.combFiltersL[i].connect(this.combDampingL[i]);
@@ -341,9 +347,9 @@
       }
 
       // Connect allpass filters in series for each channel
-      let prevL = this.combSumL;
-      let prevR = this.combSumR;
-      for (let i = 0; i < 4; i++) {
+      var prevL = this.combSumL;
+      var prevR = this.combSumR;
+      for (var i = 0; i < 4; i++) {
         // Simplified allpass: just delay with feedback
         prevL.connect(this.allpassFiltersL[i].delay);
         this.allpassFiltersL[i].delay.connect(this.widthGainL);
@@ -362,7 +368,7 @@
 
     _updateRoomWidth() {
       if (!this.widthGainL || !this.widthGainR) return;
-      const width = this.params.width / 100;
+      var width = this.params.width / 100;
       this.widthGainL.gain.value = 0.5 + width * 0.5;
       this.widthGainR.gain.value = 0.5 + width * 0.5;
     }
@@ -372,11 +378,11 @@
 
       var REVERB_FEEDBACK_BASE = 0.75;
       var REVERB_FEEDBACK_RANGE = 0.10;
-      const feedback = REVERB_FEEDBACK_BASE + (this.params.size / 100) * REVERB_FEEDBACK_RANGE;
-      const dampingValue = this.params.damping / 100;
-      const dampFreq = 20000 * (1 - dampingValue * 0.8);
+      var feedback = REVERB_FEEDBACK_BASE + (this.params.size / 100) * REVERB_FEEDBACK_RANGE;
+      var dampingValue = this.params.damping / 100;
+      var dampFreq = 20000 * (1 - dampingValue * 0.8);
 
-      for (let i = 0; i < 8; i++) {
+      for (var i = 0; i < 8; i++) {
         this.combGainsL[i].gain.setTargetAtTime(feedback, this.ctx.currentTime, 0.01);
         this.combGainsR[i].gain.setTargetAtTime(feedback, this.ctx.currentTime, 0.01);
         this.combDampingL[i].frequency.setTargetAtTime(dampFreq, this.ctx.currentTime, 0.01);
@@ -389,18 +395,18 @@
     //==========================================================================
 
     _buildPlateReverb() {
-      const ctx = this.ctx;
-      const sampleRate = ctx.sampleRate;
+      var ctx = this.ctx;
+      var sampleRate = ctx.sampleRate;
 
       // Input diffusers (4 allpass filters in series)
       this.inputDiffusers = [];
-      const diffuserTimes = [142, 107, 379, 277];
-      const diffuserGain = 0.5 + (this.params.diffusion / 100) * 0.25;
+      var diffuserTimes = [142, 107, 379, 277];
+      var diffuserGain = 0.5 + (this.params.diffusion / 100) * 0.25;
 
-      for (let i = 0; i < 4; i++) {
-        const delay = ctx.createDelay(0.1);
+      for (var i = 0; i < 4; i++) {
+        var delay = ctx.createDelay(0.1);
         delay.delayTime.value = diffuserTimes[i] / sampleRate;
-        const gain = ctx.createGain();
+        var gain = ctx.createGain();
         gain.gain.value = diffuserGain;
         this.inputDiffusers.push({ delay, gain });
         this._algorithmNodes.push(delay, gain);
@@ -411,17 +417,17 @@
       this.tankDelaysR = [];
       this.tankGainsL = [];
       this.tankGainsR = [];
-      const tankTimes = [672, 1800, 908, 2656];
+      var tankTimes = [672, 1800, 908, 2656];
 
-      for (let i = 0; i < 2; i++) {
-        const delayL = ctx.createDelay(0.5);
+      for (var i = 0; i < 2; i++) {
+        var delayL = ctx.createDelay(0.5);
         delayL.delayTime.value = (tankTimes[i] * (0.8 + this.params.size / 500)) / sampleRate;
-        const gainL = ctx.createGain();
+        var gainL = ctx.createGain();
         gainL.gain.value = 0.55 + (this.params.decay / 100) * 0.30;
 
-        const delayR = ctx.createDelay(0.5);
+        var delayR = ctx.createDelay(0.5);
         delayR.delayTime.value = (tankTimes[i + 2] * (0.8 + this.params.size / 500)) / sampleRate;
-        const gainR = ctx.createGain();
+        var gainR = ctx.createGain();
         gainR.gain.value = 0.55 + (this.params.decay / 100) * 0.30;
 
         this.tankDelaysL.push(delayL);
@@ -469,14 +475,14 @@
       this._algorithmNodes.push(this.plateMerger);
 
       // Connect input diffusers in series
-      let prev = this.predelayNode;
-      for (let i = 0; i < 4; i++) {
+      var prev = this.predelayNode;
+      for (var i = 0; i < 4; i++) {
         prev.connect(this.inputDiffusers[i].delay);
         prev = this.inputDiffusers[i].delay;
       }
 
       // Connect to tank (cross-coupled feedback)
-      const diffuserOut = this.inputDiffusers[3].delay;
+      var diffuserOut = this.inputDiffusers[3].delay;
 
       // Left tank path
       diffuserOut.connect(this.tankDelaysL[0]);
@@ -503,10 +509,10 @@
     _updatePlateParams() {
       if (!this.tankGainsL) return;
 
-      const decay = 0.55 + (this.params.decay / 100) * 0.30;
-      const dampFreq = 20000 * (1 - this.params.damping / 100 * 0.7);
+      var decay = 0.55 + (this.params.decay / 100) * 0.30;
+      var dampFreq = 20000 * (1 - this.params.damping / 100 * 0.7);
 
-      for (let i = 0; i < 2; i++) {
+      for (var i = 0; i < 2; i++) {
         this.tankGainsL[i].gain.setTargetAtTime(decay, this.ctx.currentTime, 0.01);
         this.tankGainsR[i].gain.setTargetAtTime(decay, this.ctx.currentTime, 0.01);
       }
@@ -525,11 +531,11 @@
     //==========================================================================
 
     _buildHallReverb() {
-      const ctx = this.ctx;
-      const sampleRate = ctx.sampleRate;
+      var ctx = this.ctx;
+      var sampleRate = ctx.sampleRate;
 
       // Use 4 delay lines for efficiency
-      const numDelays = 4;
+      var numDelays = 4;
       this.fdnDelays = [];
       this.fdnGains = [];
       this.fdnLowFilters = [];
@@ -537,34 +543,34 @@
       this.fdnInputGains = [];
 
       // Hadamard-like mixing matrix for 4x4
-      const mixMatrix = [
+      var mixMatrix = [
         [1, 1, 1, 1],
         [1, -1, 1, -1],
         [1, 1, -1, -1],
         [1, -1, -1, 1]
       ];
-      const matrixScale = 0.5;
+      var matrixScale = 0.5;
 
-      for (let i = 0; i < numDelays; i++) {
-        const delay = ctx.createDelay(0.5);
-        const baseTime = FDN_DELAY_TIMES[i] / 1000;
+      for (var i = 0; i < numDelays; i++) {
+        var delay = ctx.createDelay(0.5);
+        var baseTime = FDN_DELAY_TIMES[i] / 1000;
         delay.delayTime.value = baseTime * (0.5 + this.params.size / 100);
 
-        const gain = ctx.createGain();
+        var gain = ctx.createGain();
         gain.gain.value = 0.65 + (this.params.decay / 100) * 0.20;
 
         // Per-band decay control
-        const lowFilter = ctx.createBiquadFilter();
+        var lowFilter = ctx.createBiquadFilter();
         lowFilter.type = 'lowshelf';
         lowFilter.frequency.value = 500;
         lowFilter.gain.value = (this.params.lowDecay - 50) / 5;
 
-        const highFilter = ctx.createBiquadFilter();
+        var highFilter = ctx.createBiquadFilter();
         highFilter.type = 'highshelf';
         highFilter.frequency.value = 4000;
         highFilter.gain.value = (this.params.highDecay - 50) / 5;
 
-        const inputGain = ctx.createGain();
+        var inputGain = ctx.createGain();
         inputGain.gain.value = 0.25;
 
         this.fdnDelays.push(delay);
@@ -577,10 +583,10 @@
 
       // Create mixing gains for the matrix
       this.fdnMixGains = [];
-      for (let i = 0; i < numDelays; i++) {
-        const rowGains = [];
-        for (let j = 0; j < numDelays; j++) {
-          const mixGain = ctx.createGain();
+      for (var i = 0; i < numDelays; i++) {
+        var rowGains = _makeMixGainRow();
+        for (var j = 0; j < numDelays; j++) {
+          var mixGain = ctx.createGain();
           mixGain.gain.value = mixMatrix[i][j] * matrixScale;
           rowGains.push(mixGain);
           this._algorithmNodes.push(mixGain);
@@ -597,19 +603,19 @@
       this._algorithmNodes.push(this.fdnSumL, this.fdnSumR, this.fdnMerger);
 
       // Connect input to all delay lines
-      for (let i = 0; i < numDelays; i++) {
+      for (var i = 0; i < numDelays; i++) {
         this.predelayNode.connect(this.fdnInputGains[i]);
         this.fdnInputGains[i].connect(this.fdnDelays[i]);
       }
 
       // Connect each delay through its processing and back via mixing matrix
-      for (let i = 0; i < numDelays; i++) {
+      for (var i = 0; i < numDelays; i++) {
         this.fdnDelays[i].connect(this.fdnLowFilters[i]);
         this.fdnLowFilters[i].connect(this.fdnHighFilters[i]);
         this.fdnHighFilters[i].connect(this.fdnGains[i]);
 
         // Connect to mix matrix (feedback to all other delays)
-        for (let j = 0; j < numDelays; j++) {
+        for (var j = 0; j < numDelays; j++) {
           this.fdnGains[i].connect(this.fdnMixGains[j][i]);
           this.fdnMixGains[j][i].connect(this.fdnDelays[j]);
         }
@@ -630,12 +636,12 @@
     _updateHallParams() {
       if (!this.fdnGains) return;
 
-      const decayGain = 0.65 + (this.params.decay / 100) * 0.20;
+      var decayGain = 0.65 + (this.params.decay / 100) * 0.20;
 
-      for (let i = 0; i < this.fdnGains.length; i++) {
+      for (var i = 0; i < this.fdnGains.length; i++) {
         this.fdnGains[i].gain.setTargetAtTime(decayGain, this.ctx.currentTime, 0.01);
 
-        const baseTime = FDN_DELAY_TIMES[i] / 1000;
+        var baseTime = FDN_DELAY_TIMES[i] / 1000;
         this.fdnDelays[i].delayTime.setTargetAtTime(
           baseTime * (0.5 + this.params.size / 100),
           this.ctx.currentTime,
@@ -652,8 +658,8 @@
     //==========================================================================
 
     _buildSpringReverb() {
-      const ctx = this.ctx;
-      const sampleRate = ctx.sampleRate;
+      var ctx = this.ctx;
+      var sampleRate = ctx.sampleRate;
 
       // Spring reverb characteristics:
       // - Chirped allpass chains for dispersion
@@ -664,20 +670,20 @@
       this.springGains = [];
 
       // Create multiple allpass chains for the "sproingy" character
-      const numChains = 4;
-      const tensionFactor = 0.5 + (this.params.tension / 100) * 0.5;
+      var numChains = 4;
+      var tensionFactor = 0.5 + (this.params.tension / 100) * 0.5;
 
-      for (let i = 0; i < numChains; i++) {
-        const chain = [];
+      for (var i = 0; i < numChains; i++) {
+        var chain = _makeSpringChain();
         // Each chain has 6-8 allpasses with chirped delay times
-        const baseDelay = (SPRING_CHIRP_FREQS[i] / 1000) * tensionFactor;
+        var baseDelay = (SPRING_CHIRP_FREQS[i] / 1000) * tensionFactor;
 
-        for (let j = 0; j < 6; j++) {
-          const delay = ctx.createDelay(0.1);
+        for (var j = 0; j < 6; j++) {
+          var delay = ctx.createDelay(0.1);
           // Chirped: delay times increase through the chain
           delay.delayTime.value = baseDelay * (1 + j * 0.15 * (1 + this.params.diffusion / 100));
 
-          const gain = ctx.createGain();
+          var gain = ctx.createGain();
           gain.gain.value = 0.5;
 
           chain.push({ delay, gain });
@@ -686,12 +692,12 @@
         this.springAllpasses.push(chain);
 
         // Add a delay line for overall reverb time
-        const reverbDelay = ctx.createDelay(0.5);
+        var reverbDelay = ctx.createDelay(0.5);
         reverbDelay.delayTime.value = 0.02 + (this.params.size / 100) * 0.08;
         this.springDelays.push(reverbDelay);
         this._algorithmNodes.push(reverbDelay);
 
-        const feedbackGain = ctx.createGain();
+        var feedbackGain = ctx.createGain();
         feedbackGain.gain.value = 0.5 + (this.params.decay / 100) * 0.35;
         this.springGains.push(feedbackGain);
         this._algorithmNodes.push(feedbackGain);
@@ -723,11 +729,11 @@
       this._algorithmNodes.push(this.springSummer);
 
       // Connect chains in parallel
-      for (let i = 0; i < numChains; i++) {
-        let prev = this.predelayNode;
+      for (var i = 0; i < numChains; i++) {
+        var prev = this.predelayNode;
 
         // Connect allpass chain
-        for (let j = 0; j < this.springAllpasses[i].length; j++) {
+        for (var j = 0; j < this.springAllpasses[i].length; j++) {
           prev.connect(this.springAllpasses[i][j].delay);
           prev = this.springAllpasses[i][j].delay;
         }
@@ -751,9 +757,9 @@
     _updateSpringParams() {
       if (!this.springGains) return;
 
-      const tensionFactor = 0.5 + (this.params.tension / 100) * 0.5;
+      var tensionFactor = 0.5 + (this.params.tension / 100) * 0.5;
 
-      for (let i = 0; i < this.springGains.length; i++) {
+      for (var i = 0; i < this.springGains.length; i++) {
         this.springGains[i].gain.setTargetAtTime(
           0.5 + (this.params.decay / 100) * 0.35,
           this.ctx.currentTime,
@@ -767,8 +773,8 @@
         );
 
         // Update chirped delays in allpass chains
-        const baseDelay = (SPRING_CHIRP_FREQS[i] / 1000) * tensionFactor;
-        for (let j = 0; j < this.springAllpasses[i].length; j++) {
+        var baseDelay = (SPRING_CHIRP_FREQS[i] / 1000) * tensionFactor;
+        for (var j = 0; j < this.springAllpasses[i].length; j++) {
           this.springAllpasses[i][j].delay.delayTime.setTargetAtTime(
             baseDelay * (1 + j * 0.15 * (1 + this.params.diffusion / 100)),
             this.ctx.currentTime,
@@ -791,7 +797,7 @@
     //==========================================================================
 
     _buildShimmerReverb() {
-      const ctx = this.ctx;
+      var ctx = this.ctx;
 
       // Build a basic reverb base (using FDN approach)
       this._buildShimmerBase();
@@ -801,18 +807,18 @@
     }
 
     _buildShimmerBase() {
-      const ctx = this.ctx;
+      var ctx = this.ctx;
 
       // Simple reverb core using delays
       this.shimmerDelays = [];
       this.shimmerGains = [];
-      const delayTimes = [0.037, 0.053, 0.071, 0.089];
+      var delayTimes = [0.037, 0.053, 0.071, 0.089];
 
-      for (let i = 0; i < 4; i++) {
-        const delay = ctx.createDelay(0.5);
+      for (var i = 0; i < 4; i++) {
+        var delay = ctx.createDelay(0.5);
         delay.delayTime.value = delayTimes[i] * (0.5 + this.params.size / 200);
 
-        const gain = ctx.createGain();
+        var gain = ctx.createGain();
         gain.gain.value = 0.55 + (this.params.decay / 100) * 0.30;
 
         this.shimmerDelays.push(delay);
@@ -832,7 +838,7 @@
       this._algorithmNodes.push(this.shimmerSum);
 
       // Connect delays in parallel with cross-feedback
-      for (let i = 0; i < 4; i++) {
+      for (var i = 0; i < 4; i++) {
         this.predelayNode.connect(this.shimmerDelays[i]);
         this.shimmerDelays[i].connect(this.shimmerDamp);
         this.shimmerDamp.connect(this.shimmerGains[i]);
@@ -843,19 +849,19 @@
     }
 
     _buildShimmerPitchPath() {
-      const ctx = this.ctx;
+      var ctx = this.ctx;
 
       // Granular pitch shift for shimmer effect
       // Use two grains with different offsets for smooth shifting
       this.shimmerGrains = [];
-      const pitchRatio = Math.pow(2, this.params.shimmerPitch / 12);
-      const grainSize = 0.1; // 100ms grains
+      var pitchRatio = Math.pow(2, this.params.shimmerPitch / 12);
+      var grainSize = 0.1; // 100ms grains
 
-      for (let i = 0; i < 2; i++) {
-        const delay = ctx.createDelay(0.5);
+      for (var i = 0; i < 2; i++) {
+        var delay = ctx.createDelay(0.5);
         delay.delayTime.value = grainSize * i / 2;
 
-        const gain = ctx.createGain();
+        var gain = ctx.createGain();
         gain.gain.value = 0.5;
 
         this.shimmerGrains.push({ delay, gain });
@@ -881,7 +887,7 @@
       this._algorithmNodes.push(this.shimmerLFO, this.shimmerLFOGain);
 
       // Connect pitch-shifted path from reverb output back to input
-      for (let i = 0; i < 2; i++) {
+      for (var i = 0; i < 2; i++) {
         this.shimmerSum.connect(this.shimmerGrains[i].delay);
         this.shimmerLFOGain.connect(this.shimmerGrains[i].delay.delayTime);
         this.shimmerGrains[i].delay.connect(this.shimmerGrains[i].gain);
@@ -898,11 +904,11 @@
     _updateShimmerParams() {
       if (!this.shimmerGains) return;
 
-      const decay = 0.55 + (this.params.decay / 100) * 0.30;
-      const dampFreq = 20000 * (1 - this.params.damping / 100 * 0.7);
-      const delayTimes = [0.037, 0.053, 0.071, 0.089];
+      var decay = 0.55 + (this.params.decay / 100) * 0.30;
+      var dampFreq = 20000 * (1 - this.params.damping / 100 * 0.7);
+      var delayTimes = [0.037, 0.053, 0.071, 0.089];
 
-      for (let i = 0; i < 4; i++) {
+      for (var i = 0; i < 4; i++) {
         this.shimmerGains[i].gain.setTargetAtTime(decay, this.ctx.currentTime, 0.01);
         this.shimmerDelays[i].delayTime.setTargetAtTime(
           delayTimes[i] * (0.5 + this.params.size / 200),
@@ -924,8 +930,8 @@
       }
 
       if (this.shimmerLFO) {
-        const pitchRatio = Math.pow(2, this.params.shimmerPitch / 12);
-        const grainSize = 0.1;
+        var pitchRatio = Math.pow(2, this.params.shimmerPitch / 12);
+        var grainSize = 0.1;
         this.shimmerLFO.frequency.setTargetAtTime(
           1 / grainSize * Math.abs(1 - 1/pitchRatio),
           this.ctx.currentTime,
@@ -946,9 +952,10 @@
         clearTimeout(this._rebuildDebounceTimer);
       }
 
-      this._rebuildDebounceTimer = setTimeout(() => {
-        this._buildAlgorithm();
-        this._rebuildDebounceTimer = null;
+      var self = this;
+      this._rebuildDebounceTimer = setTimeout(function() {
+        self._buildAlgorithm();
+        self._rebuildDebounceTimer = null;
       }, this._rebuildDebounceDelay);
     }
 
@@ -973,7 +980,7 @@
 
         case 'predelay':
           this.params.predelay = value;
-          const delaySeconds = Math.max(0, Math.min(200, value)) / 1000;
+          var delaySeconds = Math.max(0, Math.min(200, value)) / 1000;
           this.predelayNode.delayTime.setTargetAtTime(
             delaySeconds,
             this.ctx.currentTime,
@@ -1077,13 +1084,13 @@
 
       // Stop any oscillators
       if (this.modLFO1) {
-        try { this.modLFO1.stop(); } catch (e) {}
+        try { this.modLFO1.stop(); } catch (e) { /* LFO may not have started */ }
       }
       if (this.modLFO2) {
-        try { this.modLFO2.stop(); } catch (e) {}
+        try { this.modLFO2.stop(); } catch (e) { /* LFO may not have started */ }
       }
       if (this.shimmerLFO) {
-        try { this.shimmerLFO.stop(); } catch (e) {}
+        try { this.shimmerLFO.stop(); } catch (e) { /* LFO may not have started */ }
       }
 
       // Disconnect predelay
