@@ -303,14 +303,15 @@ SL.screens = (function () {
         // Hide all screens first to prevent stacking from prior navigation
         _hideAllScreens();
 
-        // Restore saved screen or default to play
-        var savedScreen = _loadScreen();
-        _currentScreen = savedScreen;
-        _showScreen(savedScreen);
-        _setActiveButton(savedScreen);
+        // Always start on the default screen (Play) with default surface (Piano)
+        _currentScreen = DEFAULT_SCREEN;
+        try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* unavailable */ }
+        try { localStorage.removeItem('ssli-surface'); } catch (e) { /* unavailable */ }
+        _showScreen(DEFAULT_SCREEN);
+        _setActiveButton(DEFAULT_SCREEN);
 
         // Activate screen module
-        var mod = _screenModules[savedScreen];
+        var mod = _screenModules[DEFAULT_SCREEN];
         if (mod && mod.activate) {
             try {
                 mod.activate();
