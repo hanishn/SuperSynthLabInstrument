@@ -25574,7 +25574,7 @@ html[data-no-backgrounds] {
 <div class="ssl-about-panel">
 <button class="ssl-about-close" onclick="document.getElementById('ssliAboutOverlay').style.display='none';" aria-label="Close">&times;</button>
 <h2 class="ssl-about-title" data-i18n="dialog.about.title">Super Synth Lab - Instrument</h2>
-<p id="ssliAboutVersion" class="ssl-about-version">Version: Super Synth Lab - Instrument v1.10.1163</p>
+<p id="ssliAboutVersion" class="ssl-about-version">Version: Super Synth Lab - Instrument v1.10.1165</p>
 <div class="ssl-about-body">
 <p data-i18n="dialog.about.description">Super Synth Lab - Instrument is a focused synthesizer with 17+ synth engines, effects chain, and MIDI support. Play, shape your sound, and perform -- all from 5 streamlined screens.</p>
 <details class="ssl-about-details"><summary data-i18n="dialog.about.features_header">What can Super Synth Lab - Instrument do?</summary>
@@ -25623,7 +25623,7 @@ html[data-no-backgrounds] {
 <div class="ssli-landing-edition" data-i18n="app.edition">Public Build</div>
 <div class="ssli-landing-subtitle" data-i18n="app.tagline">Every Sound. One Instrument.</div>
 <div class="ssli-landing-credit">Created by Nathan Hanish 2026</div>
-<div class="ssli-landing-version">v1.10.1163</div>
+<div class="ssli-landing-version">v1.10.1165</div>
 </div>
 <svg class="ssl-waveform-divider" viewBox="0 0 400 30" preserveAspectRatio="none" style="width:80%;max-width:500px;height:30px;margin:12px auto;display:block;opacity:0.3;"><path d="M0,15 Q25,5 50,15 T100,15 T150,15 T200,15 T250,15 T300,15 T350,15 T400,15" fill="none" stroke="url(#ssliWaveGrad)" stroke-width="1.5"/><defs><linearGradient id="ssliWaveGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#4cc9f0"/><stop offset="50%" stop-color="#7209b7"/><stop offset="100%" stop-color="#f72585"/></linearGradient></defs></svg>
 <div class="ssli-landing-actions">
@@ -26171,8 +26171,9 @@ FormantVoice.prototype.processSample = function() {
 
   var glottalSample = 0;
   var pw = this.glottalPulseWidth;
+  var safePw = pw || 0.001;
   if (this.glottalPhase < pw) {
-    var openPhase = this.glottalPhase / pw;
+    var openPhase = this.glottalPhase / safePw;
     glottalSample = Math.sin(Math.PI * openPhase);
   }
 
@@ -26333,13 +26334,14 @@ class FormantWorkletProcessor extends AudioWorkletProcessor {
     var shouldCycleVowelSeq = this.vowelSequenceEnabled && hasVowelSeq;
     if (shouldCycleVowelSeq) {
       var seqLen = this.vowelSequence.length;
+      var safeSeqLen = seqLen || 1;
       var samplesPerVowel = Math.max(1, Math.round(this.sr / this.vowelSequenceRate));
       this._seqCounter += blockSize;
       if (this._seqCounter >= samplesPerVowel) {
         this._seqCounter -= samplesPerVowel;
-        this._seqIndex = (this._seqIndex + 1) % seqLen;
+        this._seqIndex = (this._seqIndex + 1) % safeSeqLen;
         this.vowel = this.vowelSequence[this._seqIndex];
-        this.vowelTarget = this.vowelSequence[(this._seqIndex + 1) % seqLen];
+        this.vowelTarget = this.vowelSequence[(this._seqIndex + 1) % safeSeqLen];
         formants = interpolateFormants(
           this.vowel,
           this.vowelTarget,
@@ -26566,7 +26568,8 @@ class PluckModel {
 
   noteOn(freq, velocity) {
     this.active = true;
-    var period = this.sampleRate / freq;
+    var safeFreq = freq || 0.001;
+    var period = this.sampleRate / safeFreq;
     this.delayLength = period - 0.5; // compensate for averaging filter group delay
 
     // Brightness -> loop filter coefficient (higher = brighter)
@@ -26607,10 +26610,12 @@ class PluckModel {
     } else if (this.excitation === 'pick') {
       // Triangle-ish pick excitation with half-Hann window
       var half = Math.floor(excLen / 2);
+      var safeHalf = half || 1;
       for (var i = 0; i < excLen; i++) {
-        var env = i < half ? i / half : (excLen - i) / (excLen - half);
+        var env = i < half ? i / safeHalf : (excLen - i) / ((excLen - half) || 1);
         // Half-Hann window for smoother onset
-        var hann = 0.5 * (1 - Math.cos(Math.PI * i / excLen));
+        var safeExcLenPick = excLen || 1;
+        var hann = 0.5 * (1 - Math.cos(Math.PI * i / safeExcLenPick));
         var noise = (Math.random() * 2 - 1) * 0.15;
         this.delayLine.write((env + noise) * hann * vel * 0.5);
       }
@@ -26618,10 +26623,12 @@ class PluckModel {
       // Shaped noise burst: mix of filtered noise + short sine burst at fundamental
       // Apply a half-Hann window for smoother onset
       var sineLen = Math.min(intPeriod, Math.floor(period * 0.5));
+      var safeSineLen = sineLen || 1;
       var prevNoise = 0;
       for (var i = 0; i < excLen; i++) {
         // Half-Hann window
-        var hann = 0.5 * (1 - Math.cos(Math.PI * i / excLen));
+        var safeExcLen = excLen || 1;
+        var hann = 0.5 * (1 - Math.cos(Math.PI * i / safeExcLen));
         // Noise component (simple one-pole lowpass for shaping)
         var rawNoise = (Math.random() * 2 - 1);
         var filteredNoise = 0.6 * rawNoise + 0.4 * prevNoise;
@@ -26629,7 +26636,7 @@ class PluckModel {
         // Sine burst at fundamental (fades out after half the period)
         var sineBurst = 0;
         if (i < sineLen) {
-          var sineEnv = 1 - (i / sineLen);
+          var sineEnv = 1 - (i / safeSineLen);
           sineBurst = Math.sin(2 * Math.PI * freq * i / this.sampleRate) * sineEnv * 0.4;
         }
         var sample = (filteredNoise * 0.6 + sineBurst) * hann * vel * 0.5;
@@ -26751,7 +26758,8 @@ class BowModel {
   noteOn(freq, velocity) {
     this.active = true;
     this.bowing = true;
-    var period = this.sampleRate / freq;
+    var safeFreq = freq || 0.001;
+    var period = this.sampleRate / safeFreq;
 
     // Bow position: split string at 12-42% from bridge
     var bowPos = 0.12 + (this.bowPosition / 100) * 0.3;
@@ -26830,11 +26838,12 @@ class BowModel {
       this.vibratoPhase += vibratoFreqNow / this.sampleRate;
       if (this.vibratoPhase > 1) this.vibratoPhase -= 1;
       var rampSamples = this.sampleRate * 0.3;
+      var safeRampSamples = rampSamples || 1;
       var vibratoTarget = 0.3;
       // Vibrato depth drift: wander +/- 40%
       vibratoTarget = vibratoTarget * (1 + drift2 * 0.80 * this.humanization);
       if (this.decayCounter < rampSamples) {
-        this.vibratoDepth = vibratoTarget * (this.decayCounter / rampSamples);
+        this.vibratoDepth = vibratoTarget * (this.decayCounter / safeRampSamples);
       } else {
         this.vibratoDepth = vibratoTarget;
       }
@@ -26955,7 +26964,8 @@ class BlowModel {
     this.active = true;
     this.blowing = true;
 
-    var period = this.sampleRate / freq;
+    var safeFreq = freq || 0.001;
+    var period = this.sampleRate / safeFreq;
 
     // STK Flute::setFrequency: bore delay = full period minus filter compensation
     // The bore delay determines the PITCH (direct endReflection feedback path).
@@ -27197,7 +27207,8 @@ class StrikeModel {
     var w0 = 2 * Math.PI * freq / sr;
     var cosw0 = Math.cos(w0);
     var sinw0 = Math.sin(w0);
-    var alpha = sinw0 / (2 * (freq / bandwidth));
+    var safeBandwidth = bandwidth || 0.001;
+    var alpha = sinw0 / (2 * (freq / safeBandwidth));
 
     var a0 = 1 + alpha;
     mode.b0 = (sinw0 / 2) / a0;
@@ -28364,11 +28375,12 @@ class SynthWorkletProcessor extends AudioWorkletProcessor {
    * PolyBLEP correction for anti-aliasing at discontinuities
    */
   polyBlep(t, dt) {
+    var safeDt = dt || 0.001;
     if (t < dt) {
-      t /= dt;
+      t /= safeDt;
       return t + t - t * t - 1;
     } else if (t > 1 - dt) {
-      t = (t - 1) / dt;
+      t = (t - 1) / safeDt;
       return t * t + t + t + 1;
     }
     return 0;
@@ -115694,26 +115706,31 @@ SynthLab._data.langUk = {
      * e.g. resolve('ui.panic', {ui: {panic: 'Stop'}}) => 'Stop'
      * Returns undefined if any segment is missing.
      */
+    function _walkKeyPath(parts, obj) {
+        var cursor = obj;
+        var found = true;
+        var partIndex = 0;
+        while (partIndex < parts.length && found) {
+            var isCursorObject = (cursor !== NO_VALUE) && (typeof cursor === 'object');
+            var hasCursorKey = isCursorObject && (parts[partIndex] in cursor);
+            if (hasCursorKey) {
+                cursor = cursor[parts[partIndex]];
+            } else {
+                found = false;
+            }
+            partIndex = partIndex + 1;
+        }
+        var result;
+        if (found) {
+            result = cursor;
+        }
+        return result;
+    }
+
     function _resolve(key, obj) {
         var result;
         if (obj) {
-            var parts = key.split('.');
-            var cursor = obj;
-            var found = true;
-            var partIndex = 0;
-            while (partIndex < parts.length && found) {
-                var isCursorObject = cursor !== NO_VALUE && typeof cursor === 'object';
-                var hasCursorKey = isCursorObject && parts[partIndex] in cursor;
-                if (hasCursorKey) {
-                    cursor = cursor[parts[partIndex]];
-                } else {
-                    found = false;
-                }
-                partIndex = partIndex + 1;
-            }
-            if (found) {
-                result = cursor;
-            }
+            result = _walkKeyPath(key.split('.'), obj);
         }
         return result;
     }
@@ -115748,6 +115765,18 @@ SynthLab._data.langUk = {
         return value;
     }
 
+    function _notifyLanguageChange(langCode) {
+        var callbackIndex = 0;
+        while (callbackIndex < _changeCallbacks.length) {
+            try {
+                _changeCallbacks[callbackIndex](langCode);
+            } catch (e) {
+                console.error('Localization change callback error:', e);
+            }
+            callbackIndex = callbackIndex + 1;
+        }
+    }
+
     SL.localization = {
         _currentLang: _currentLang,
         _strings: _strings,
@@ -115774,15 +115803,7 @@ SynthLab._data.langUk = {
                 localStorage.setItem(STORAGE_KEY, langCode);
             } catch (e) { /* localStorage may be unavailable */ }
 
-            var callbackIndex = 0;
-            while (callbackIndex < _changeCallbacks.length) {
-                try {
-                    _changeCallbacks[callbackIndex](langCode);
-                } catch (e) {
-                    console.error('Localization change callback error:', e);
-                }
-                callbackIndex = callbackIndex + 1;
-            }
+            _notifyLanguageChange(langCode);
         },
 
         /**
@@ -116024,24 +116045,71 @@ SynthLab._data.langUk = {
      */
     SL.localization._applyDomTranslations = function() {
         var elements = document.querySelectorAll('[data-i18n]');
-        var idx = 0;
-        while (idx < elements.length) {
-            var el = elements[idx];
-            var key = el.getAttribute('data-i18n');
-            if (key) {
-                var translated = SL.t(key);
-                if (translated !== key) {
-                    el.textContent = translated;
-                }
-            }
-            idx = idx + 1;
-        }
+        _translateElements(elements);
     };
 
     /**
      * Wire up the landing-screen language selector buttons.
      * Each button has data-lang="xx" and gets an active highlight.
      */
+    function _translateElement(el) {
+        var key = el.getAttribute('data-i18n');
+        if (key) {
+            var translated = SL.t(key);
+            var isDifferent = (translated !== key);
+            if (isDifferent) {
+                el.textContent = translated;
+            }
+        }
+    }
+
+    function _translateElements(elements) {
+        var idx = 0;
+        while (idx < elements.length) {
+            _translateElement(elements[idx]);
+            idx = idx + 1;
+        }
+    }
+
+    function _findLangButton(startEl, container) {
+        var target = startEl;
+        while (target && target !== container) {
+            var isLangBtn = target.classList && target.classList.contains('ssl-lang-btn');
+            if (isLangBtn) {
+                return target;
+            }
+            target = target.parentElement;
+        }
+        return null;
+    }
+
+    function _syncLangButtons(container, activeLang) {
+        var allBtns = container.querySelectorAll('.ssl-lang-btn');
+        var j = 0;
+        while (j < allBtns.length) {
+            var bl = allBtns[j].getAttribute('data-lang');
+            if (bl === activeLang) {
+                allBtns[j].classList.add('ssl-lang-active');
+            } else {
+                allBtns[j].classList.remove('ssl-lang-active');
+            }
+            j = j + 1;
+        }
+    }
+
+    function _onLangSelectorClick(e, container) {
+        var target = _findLangButton(e.target, container);
+        var isLangButton = target && target.classList && target.classList.contains('ssl-lang-btn');
+        if (isLangButton) {
+            var lang = target.getAttribute('data-lang');
+            if (lang) {
+                _syncLangButtons(container, lang);
+                SL.localization.setLanguage(lang);
+                SL.localization._applyDomTranslations();
+            }
+        }
+    }
+
     function _initLangSelector() {
         var container = document.getElementById('sslLangSelector');
         if (container) {
@@ -116063,50 +116131,12 @@ SynthLab._data.langUk = {
 
         // Click handler — delegated on the container
         container.addEventListener('click', function(e) {
-            var target = e.target;
-            // Walk up to find the button element
-            while (target && target !== container) {
-                if (target.classList && target.classList.contains('ssl-lang-btn')) {
-                    break;
-                }
-                target = target.parentElement;
-            }
-
-            var isLangButton = target && target.classList && target.classList.contains('ssl-lang-btn');
-            if (isLangButton) {
-              var lang = target.getAttribute('data-lang');
-              if (lang) {
-                // Update active class on all buttons
-                var allBtns = container.querySelectorAll('.ssl-lang-btn');
-                var i = 0;
-                while (i < allBtns.length) {
-                    allBtns[i].classList.remove('ssl-lang-active');
-                    i = i + 1;
-                }
-                target.classList.add('ssl-lang-active');
-
-                // Set the language (fires callbacks, stores to localStorage)
-                SL.localization.setLanguage(lang);
-
-                // Refresh data-i18n elements in the DOM
-                SL.localization._applyDomTranslations();
-              }
-            }
+            _onLangSelectorClick(e, container);
         });
 
         // Also listen for programmatic language changes to keep selector in sync
         SL.localization.onLanguageChange(function(newLang) {
-            var allBtns = container.querySelectorAll('.ssl-lang-btn');
-            var j = 0;
-            while (j < allBtns.length) {
-                var bl = allBtns[j].getAttribute('data-lang');
-                if (bl === newLang) {
-                    allBtns[j].classList.add('ssl-lang-active');
-                } else {
-                    allBtns[j].classList.remove('ssl-lang-active');
-                }
-                j = j + 1;
-            }
+            _syncLangButtons(container, newLang);
         });
         } // end if (container)
     }
@@ -116636,88 +116666,91 @@ window.SynthLab = SynthLab;
 
 var SynthLab = window.SynthLab || {};
 
+// SVG path data for each icon. viewBox is 0 0 24 24 unless noted.
+// Defined at module scope to avoid deep-nesting lint violations.
+var _SSLI_ICONS = {
+    // Transport
+    play:       '<polygon points="6,4 20,12 6,20"/>',
+    pause:      '<rect x="5" y="4" width="4" height="16"/><rect x="15" y="4" width="4" height="16"/>',
+    stop:       '<rect x="5" y="5" width="14" height="14" rx="1"/>',
+    record:     '<circle cx="12" cy="12" r="7"/>',
+
+    // File operations
+    save:       '<path d="M17 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V7l-4-4z"/>' +
+        '<path d="M7 3v5h8V3" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
+        '<rect x="7" y="14" width="10" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>',
+    load:       '<path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>',
+    trash:      '<polyline points="3,6 5,6 21,6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
+        '<path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" fill="none" stroke="currentColor" stroke-width="2"/>',
+    'import':   '<path d="M12 3v12m0 0l-4-4m4 4l4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" fill="none" stroke="currentColor" stroke-width="2"/>',
+    'export':   '<path d="M12 19V7m0 0l-4 4m4-4l4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" fill="none" stroke="currentColor" stroke-width="2"/>',
+
+    // Actions
+    clear:      '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>' +
+        '<line x1="8" y1="8" x2="16" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
+        '<line x1="16" y1="8" x2="8" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    dice:       '<rect x="3" y="3" width="18" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="2"/>' +
+        '<circle cx="8" cy="8" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="16" cy="16" r="1.5"/>' +
+        '<circle cx="16" cy="8" r="1.5"/><circle cx="8" cy="16" r="1.5"/>',
+    refresh:    '<path d="M1 4v6h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<path d="M3.51 15a9 9 0 1014.85-3.36L23 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    settings:   '<circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/>' +
+        '<path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33' +
+        ' 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83' +
+        'l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82' +
+        'l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51' +
+        ' 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4' +
+        'h-.09a1.65 1.65 0 00-1.51 1z" fill="none" stroke="currentColor" stroke-width="2"/>',
+
+    // Toggles
+    loop:       '<path d="M17 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<path d="M3 11V9a4 4 0 014-4h14" fill="none" stroke="currentColor" stroke-width="2"/>' +
+        '<path d="M7 22l-4-4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<path d="M21 13v2a4 4 0 01-4 4H3" fill="none" stroke="currentColor" stroke-width="2"/>',
+    metronome:  '<path d="M12 2L7 22h10L12 2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>' +
+        '<line x1="12" y1="10" x2="18" y2="5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    arp:        '<polyline points="3,18 7,6 11,14 15,4 19,12 23,8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    hold:       '<rect x="4" y="12" width="16" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>' +
+        '<path d="M8 12V8a4 4 0 018 0v4" fill="none" stroke="currentColor" stroke-width="2"/>',
+
+    // Navigation
+    arrowRight: '<line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
+        '<polyline points="12,5 19,12 12,19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    arrowUp:    '<line x1="12" y1="19" x2="12" y2="5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
+        '<polyline points="5,12 12,5 19,12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    arrowDown:  '<line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
+        '<polyline points="5,12 12,19 19,12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+
+    // Info/UI
+    info:       '<circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>' +
+        '<line x1="12" y1="16" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
+        '<circle cx="12" cy="8" r="0.5"/>',
+    contrast:   '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 010 18z"/>',
+
+    // Music-specific
+    octaveUp:   '<polyline points="6,15 12,9 18,15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<text x="12" y="22" text-anchor="middle" font-size="7" fill="currentColor">8va</text>',
+    octaveDown: '<polyline points="6,6 12,12 18,6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<text x="12" y="22" text-anchor="middle" font-size="7" fill="currentColor">8vb</text>',
+
+    // Tabs / categories
+    patch:      '<rect x="3" y="3" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="2"/>' +
+        '<rect x="14" y="3" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="2"/>' +
+        '<rect x="3" y="14" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="2"/>' +
+        '<line x1="17.5" y1="14" x2="17.5" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    score:      '<path d="M9 3v18m0-18l8 2v14l-8-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+
+    // Sampler
+    upload:     '<path d="M12 15V3m0 0l-4 4m4-4l4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" fill="none" stroke="currentColor" stroke-width="2"/>'
+};
+
 SynthLab.icons = (function() {
     'use strict';
 
-    // SVG path data for each icon. viewBox is 0 0 24 24 unless noted.
-    var ICONS = {
-        // Transport
-        play:       '<polygon points="6,4 20,12 6,20"/>',
-        pause:      '<rect x="5" y="4" width="4" height="16"/><rect x="15" y="4" width="4" height="16"/>',
-        stop:       '<rect x="5" y="5" width="14" height="14" rx="1"/>',
-        record:     '<circle cx="12" cy="12" r="7"/>',
-
-        // File operations
-        save:       '<path d="M17 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V7l-4-4z"/>' +
-                    '<path d="M7 3v5h8V3" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
-                    '<rect x="7" y="14" width="10" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>',
-        load:       '<path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>',
-        trash:      '<polyline points="3,6 5,6 21,6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
-                    '<path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" fill="none" stroke="currentColor" stroke-width="2"/>',
-        'import':   '<path d="M12 3v12m0 0l-4-4m4 4l4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
-                    '<path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" fill="none" stroke="currentColor" stroke-width="2"/>',
-        'export':   '<path d="M12 19V7m0 0l-4 4m4-4l4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
-                    '<path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" fill="none" stroke="currentColor" stroke-width="2"/>',
-
-        // Actions
-        clear:      '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>' +
-                    '<line x1="8" y1="8" x2="16" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
-                    '<line x1="16" y1="8" x2="8" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
-        dice:       '<rect x="3" y="3" width="18" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="2"/>' +
-                    '<circle cx="8" cy="8" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="16" cy="16" r="1.5"/>' +
-                    '<circle cx="16" cy="8" r="1.5"/><circle cx="8" cy="16" r="1.5"/>',
-        refresh:    '<path d="M1 4v6h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
-                    '<path d="M3.51 15a9 9 0 1014.85-3.36L23 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
-        settings:   '<circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/>' +
-                    '<path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33' +
-                    ' 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83' +
-                    'l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82' +
-                    'l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51' +
-                    ' 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4' +
-                    'h-.09a1.65 1.65 0 00-1.51 1z" fill="none" stroke="currentColor" stroke-width="2"/>',
-
-        // Toggles
-        loop:       '<path d="M17 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
-                    '<path d="M3 11V9a4 4 0 014-4h14" fill="none" stroke="currentColor" stroke-width="2"/>' +
-                    '<path d="M7 22l-4-4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
-                    '<path d="M21 13v2a4 4 0 01-4 4H3" fill="none" stroke="currentColor" stroke-width="2"/>',
-        metronome:  '<path d="M12 2L7 22h10L12 2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>' +
-                    '<line x1="12" y1="10" x2="18" y2="5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
-        arp:        '<polyline points="3,18 7,6 11,14 15,4 19,12 23,8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
-        hold:       '<rect x="4" y="12" width="16" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>' +
-                    '<path d="M8 12V8a4 4 0 018 0v4" fill="none" stroke="currentColor" stroke-width="2"/>',
-
-        // Navigation
-        arrowRight: '<line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
-                    '<polyline points="12,5 19,12 12,19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
-        arrowUp:    '<line x1="12" y1="19" x2="12" y2="5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
-                    '<polyline points="5,12 12,5 19,12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
-        arrowDown:  '<line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
-                    '<polyline points="5,12 12,19 19,12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
-
-        // Info/UI
-        info:       '<circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>' +
-                    '<line x1="12" y1="16" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
-                    '<circle cx="12" cy="8" r="0.5"/>',
-        contrast:   '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 010 18z"/>',
-
-        // Music-specific
-        octaveUp:   '<polyline points="6,15 12,9 18,15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
-                    '<text x="12" y="22" text-anchor="middle" font-size="7" fill="currentColor">8va</text>',
-        octaveDown: '<polyline points="6,6 12,12 18,6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
-                    '<text x="12" y="22" text-anchor="middle" font-size="7" fill="currentColor">8vb</text>',
-
-        // Tabs / categories
-        patch:      '<rect x="3" y="3" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="2"/>' +
-                    '<rect x="14" y="3" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="2"/>' +
-                    '<rect x="3" y="14" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="2"/>' +
-                    '<line x1="17.5" y1="14" x2="17.5" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
-        score:      '<path d="M9 3v18m0-18l8 2v14l-8-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
-
-        // Sampler
-        upload:     '<path d="M12 15V3m0 0l-4 4m4-4l4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
-                    '<path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" fill="none" stroke="currentColor" stroke-width="2"/>'
-    };
+    var ICONS = _SSLI_ICONS;
 
     /**
      * Get SVG markup for an icon.
@@ -116989,6 +117022,25 @@ SynthLab.quad = (function() {
         return _activeQuadIndex < 2 ? 0 : 1;
     }
 
+    function _applyPhoneLayout(quads) {
+        for (var j = 0; j < quads.length; j++) {
+            if (quads[j]) {
+                var isActive = (j === _activeQuadIndex);
+                quads[j].style.display = isActive ? '' : 'none';
+                quads[j].classList.toggle('sslu-quad-active', isActive);
+            }
+        }
+    }
+
+    function _applyGridLayout(quads) {
+        for (var k = 0; k < quads.length; k++) {
+            if (quads[k]) {
+                quads[k].style.display = '';
+                quads[k].classList.remove('sslu-quad-active');
+            }
+        }
+    }
+
     function _applyLayout() {
         if (!_activeWorkflow || !_workflows[_activeWorkflow]) return;
 
@@ -116996,22 +117048,10 @@ SynthLab.quad = (function() {
         var quads = wf.quads;
 
         if (_isPhoneTier()) {
-            // Phone (portrait + landscape): single-pane mode, show only the active quad
-            for (var j = 0; j < quads.length; j++) {
-                if (quads[j]) {
-                    quads[j].style.display = (j === _activeQuadIndex) ? '' : 'none';
-                    quads[j].classList.toggle('sslu-quad-active', j === _activeQuadIndex);
-                }
-            }
+            _applyPhoneLayout(quads);
             _showDotToggle(wf);
         } else {
-            // Grid mode: show all quads
-            for (var k = 0; k < quads.length; k++) {
-                if (quads[k]) {
-                    quads[k].style.display = '';
-                    quads[k].classList.remove('sslu-quad-active');
-                }
-            }
+            _applyGridLayout(quads);
             _hideDotToggle();
         }
     }
@@ -117068,6 +117108,26 @@ SynthLab.quad = (function() {
         document.body.appendChild(_dotToggle);
     }
 
+    function _buildDotButtonHTML(wf, i) {
+        var isActive = (i === _activeQuadIndex);
+        var label = (wf.labels && wf.labels[i]) ? wf.labels[i] : ('Q' + (i + 1));
+        var dotIcon = QUAD_ICONS[label] || QUAD_ICONS['default'];
+        var activeClass = isActive ? ' active' : '';
+        var ariaCurrent = isActive ? ' aria-current="true"' : '';
+        return '<button class="sslu-dot' + activeClass +
+            '" data-quad="' + i + '" title="' + label +
+            '" aria-label="' + label + '"' +
+            ariaCurrent + '>' + dotIcon + '</button>';
+    }
+
+    function _wireDotButton(dot) {
+        dot.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var index = parseInt(dot.getAttribute('data-quad'), 10);
+            _switchQuad(index);
+        });
+    }
+
     function _showDotToggle(wf) {
         _createDotToggle();
         if (wf.count < 2) {
@@ -117078,14 +117138,7 @@ SynthLab.quad = (function() {
         _dotToggle.classList.remove('sslu-dot-toggle-rows');
         for (var i = 0; i < wf.quads.length; i++) {
             if (!wf.quads[i]) continue;
-            var isActive = (i === _activeQuadIndex);
-            var label = (wf.labels && wf.labels[i]) ? wf.labels[i] : ('Q' + (i + 1));
-            var dotIcon = QUAD_ICONS[label] || QUAD_ICONS['default'];
-            html += '<button class="sslu-dot' + (isActive ? ' active' : '') +
-                    '" data-quad="' + i + '" title="' + label +
-                    '" aria-label="' + label + '"' +
-                    (isActive ? ' aria-current="true"' : '') +
-                    '>' + dotIcon + '</button>';
+            html += _buildDotButtonHTML(wf, i);
         }
         _dotToggle.innerHTML = html; /* trusted: computed from internal state (QUAD_ICONS + labels) */
         _dotToggle.style.display = '';
@@ -117093,13 +117146,7 @@ SynthLab.quad = (function() {
         // Attach click handlers
         var dots = _dotToggle.querySelectorAll('.sslu-dot');
         for (var d = 0; d < dots.length; d++) {
-            (function(dot) {
-                dot.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    var index = parseInt(dot.getAttribute('data-quad'), 10);
-                    _switchQuad(index);
-                });
-            })(dots[d]);
+            _wireDotButton(dots[d]);
         }
         } // end else (wf.count >= 2)
     }
@@ -117302,38 +117349,52 @@ SynthLab.quad = (function() {
         });
     }
 
+    function _onAudioCtxStateChange(ctx) {
+        var isSuspended = (ctx.state === 'suspended');
+        var isPageVisible = (document.visibilityState === 'visible');
+        if (isSuspended && isPageVisible) {
+            ctx.resume();
+        }
+    }
+
+    function _attachCtxStateListener(ctx) {
+        if (ctx && !ctx._ssluStateListener) {
+            ctx._ssluStateListener = true;
+            ctx.addEventListener('statechange', function() {
+                _onAudioCtxStateChange(ctx);
+            });
+        }
+    }
+
     function _tryResumeAudio() {
         var hasSynthLabAudio = window.SynthLab && SynthLab.audio;
         var canGetAudioCtx = hasSynthLabAudio && SynthLab.audio.getCtx;
-        if (canGetAudioCtx) {
-            try {
-                var ctx = SynthLab.audio.getCtx();
-                if (ctx && ctx.state === 'suspended') {
-                    ctx.resume();
-                }
-                // Listen for future suspensions
-                if (ctx && !ctx._ssluStateListener) {
-                    ctx._ssluStateListener = true;
-                    ctx.addEventListener('statechange', function() {
-                        if (ctx.state === 'suspended' && document.visibilityState === 'visible') {
-                            ctx.resume();
-                        }
-                    });
-                }
-            } catch (e) { /* audio context may not be ready yet */ }
-        }
+        if (!canGetAudioCtx) { return; }
+        try {
+            var ctx = SynthLab.audio.getCtx();
+            var isSuspended = ctx && (ctx.state === 'suspended');
+            if (isSuspended) {
+                ctx.resume();
+            }
+            _attachCtxStateListener(ctx);
+        } catch (e) { /* audio context may not be ready yet */ }
     }
 
     // Screen Wake Lock API — prevents screen from sleeping during audio playback
     var _wakeLock = null;
+    function _onWakeLockAcquired(lock) {
+        _wakeLock = lock;
+        _wakeLock.addEventListener('release', function() {
+            _wakeLock = null;
+        });
+    }
+
     function _requestWakeLock() {
-        if ('wakeLock' in navigator) {
-            navigator.wakeLock.request('screen').then(function(lock) {
-                _wakeLock = lock;
-                _wakeLock.addEventListener('release', function() {
-                    _wakeLock = null;
-                });
-            }).catch(function() { /* wake lock not available or denied */ });
+        var hasWakeLock = ('wakeLock' in navigator);
+        if (hasWakeLock) {
+            navigator.wakeLock.request('screen')
+              .then(_onWakeLockAcquired)
+              .catch(function() { /* wake lock not available or denied */ });
         }
     }
 
@@ -117377,6 +117438,22 @@ SynthLab.quad = (function() {
         }
     }
 
+    function _onGlobalKeydown(e) {
+        var isEscape = (e.key === 'Escape');
+        if (!isEscape) { return; }
+        var hasScreenPanic = SL.screens && SL.screens.panic;
+        if (hasScreenPanic) {
+            SL.screens.panic();
+        } else {
+            if (SL.audio && SL.audio.stopAllSustained) {
+                SL.audio.stopAllSustained();
+            }
+            if (SL.midi && SL.midi.panic) {
+                SL.midi.panic();
+            }
+        }
+    }
+
     function init() {
         _currentTier = _detectTier();
         document.documentElement.setAttribute('data-layout', _currentTier);
@@ -117399,20 +117476,7 @@ SynthLab.quad = (function() {
         });
 
         // Global panic: Escape kills all notes (delegates to screen manager if available)
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                if (SL.screens && SL.screens.panic) {
-                    SL.screens.panic();
-                } else {
-                    if (SL.audio && SL.audio.stopAllSustained) {
-                        SL.audio.stopAllSustained();
-                    }
-                    if (SL.midi && SL.midi.panic) {
-                        SL.midi.panic();
-                    }
-                }
-            }
-        });
+        document.addEventListener('keydown', _onGlobalKeydown);
     }
 
     // ========================================================================
@@ -117484,6 +117548,66 @@ SL.state = (function () {
         notify: notify
     };
 })();
+
+// ============================================================
+// Module-scope helpers (no IIFE closure needed — use globals only)
+// ============================================================
+
+function _ssliReleaseAllControllers() {
+    if (SL.controllers) {
+        var ctrlNames = Object.keys(SL.controllers);
+        for (var ci = 0; ci < ctrlNames.length; ci++) {
+            var ctrl = SL.controllers[ctrlNames[ci]];
+            if (ctrl && ctrl.release) {
+                try { ctrl.release(); } catch (releaseErr) { /* release is best-effort */ }
+            }
+        }
+    }
+}
+
+function _ssliResumeAudioContext() {
+    var ctx = null;
+    if (SL.audio && SL.audio.getCtx) {
+        ctx = SL.audio.getCtx();
+        var isSuspended = ctx && (ctx.state === 'suspended');
+        if (isSuspended) {
+            ctx.resume().catch(function(resumeErr) {
+                console.error('[ssli] AudioContext resume failed:', resumeErr);
+            });
+        }
+    }
+}
+
+function _ssliInitEffectChainIfNeeded() {
+    var canInitEffectChain = SL.audio && SL.audio.initEffectChain;
+    var shouldInitEffectChain = canInitEffectChain && !SL.audio.effectChain;
+    if (shouldInitEffectChain) {
+        SL.audio.initEffectChain();
+        if (SL.effectsUI && SL.effectsUI.init) {
+            SL.effectsUI.init();
+        }
+    }
+}
+
+function _ssliResolvePresetName() {
+    var name = 'Preset';
+    var canQueryPresetInstrument = SL.audio && SL.audio.getInstruments;
+    var hasPresetInstrumentQuery = canQueryPresetInstrument && SL.audio.getCurrentInstrument;
+    if (hasPresetInstrumentQuery) {
+        var insts = SL.audio.getInstruments();
+        var id = SL.audio.getCurrentInstrument();
+        var inst = (insts && insts[id]) ? insts[id] : null;
+        if (inst) {
+            var hasPresetName = inst.settings && inst.settings.presetName;
+            if (hasPresetName) {
+                name = inst.settings.presetName;
+            } else if (inst.name) {
+                name = inst.name;
+            }
+        }
+    }
+    return name;
+}
 
 // ============================================================
 // Screen Manager
@@ -117572,19 +117696,25 @@ SL.screens = (function () {
         } catch (e) { /* localStorage may be unavailable */ }
     }
 
+    function _isValidScreenId(id) {
+        var found = false;
+        for (var i = 0; i < SCREEN_IDS.length; i++) {
+            if (SCREEN_IDS[i] === id) {
+                found = true;
+            }
+        }
+        return found;
+    }
+
     function _loadScreen() {
+        var result = DEFAULT_SCREEN;
         try {
             var saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) {
-                // Validate it is one of our screens
-                for (var i = 0; i < SCREEN_IDS.length; i++) {
-                    if (SCREEN_IDS[i] === saved) {
-                        return saved;
-                    }
-                }
+            if (saved && _isValidScreenId(saved)) {
+                result = saved;
             }
         } catch (e) { /* localStorage may be unavailable */ }
-        return DEFAULT_SCREEN;
+        return result;
     }
 
     function switchTo(screenId) {
@@ -117626,65 +117756,52 @@ SL.screens = (function () {
     // Audio Initialization (deferred to first user gesture)
     // --------------------------------------------------------
 
+    var ENGINES = [
+        'fm', 'physical', 'additive', 'granular', 'vocoderSynth',
+        'wavefolder', 'formant', 'modal', 'ringmod', 'chord',
+        'superwave', 'wavetableSynth', 'phasedist', 'chip',
+        'bytebeat', 'vector', 'drumsyn', 'pulsar', 'bodyResonance', 'reed'
+    ];
+
+    function _initAllEngines() {
+        for (var ei = 0; ei < ENGINES.length; ei++) {
+            var hasInit = SL[ENGINES[ei]] && SL[ENGINES[ei]].init;
+            if (hasInit) {
+                try { SL[ENGINES[ei]].init(); } catch (engineErr) { /* engine init failure is non-fatal; retried on first note */ }
+            }
+        }
+    }
+
+    function _retryUnreadyEngines() {
+        // Note: worklet engines (physical, FM, formant) have on-demand
+        // fallback init in their noteOn() — if worklet isn't ready when a
+        // note fires, they auto-init fallback voices and retry.
+        for (var ri = 0; ri < ENGINES.length; ri++) {
+            var eng = SL[ENGINES[ri]];
+            var hasEngineInit = eng && eng.init && eng.isReady;
+            var engineNeedsInit = hasEngineInit && !eng.isReady();
+            if (engineNeedsInit) {
+                try { eng.init(); } catch (retryErr) { /* best-effort retry; engine will init on first note if needed */ }
+            }
+        }
+    }
+
+    function _onVisibilityChange() {
+        var isVisible = (document.visibilityState === 'visible');
+        if (isVisible && isAudioInitialized) {
+            _acquireWakeLock();
+        }
+    }
+
     function _initAudioIfNeeded() {
         if (!isAudioInitialized) {
         isAudioInitialized = true;
 
         try {
-            // Create and resume AudioContext on this user gesture
-            var ctx = null;
-            if (SL.audio && SL.audio.getCtx) {
-                ctx = SL.audio.getCtx();
-                if (ctx && ctx.state === 'suspended') {
-                    ctx.resume().catch(function(resumeErr) {
-                        console.error('[ssli] AudioContext resume failed:', resumeErr);
-                    });
-                }
-            }
-
-            // Initialize the effect chain (audio routing) BEFORE engine inits.
-            var canInitEffectChain = SL.audio && SL.audio.initEffectChain;
-            var shouldInitEffectChain = canInitEffectChain && !SL.audio.effectChain;
-            if (shouldInitEffectChain) {
-                SL.audio.initEffectChain();
-                if (SL.effectsUI && SL.effectsUI.init) {
-                    SL.effectsUI.init();
-                }
-            }
-
-            // Initialize synth engines (first pass — may partially fail if
-            // AudioContext hasn't fully resumed yet; _ensureEngineReady in
-            // ssli-screen-sound.js will re-init on first preset apply)
-            var ENGINES = [
-                'fm', 'physical', 'additive', 'granular', 'vocoderSynth',
-                'wavefolder', 'formant', 'modal', 'ringmod', 'chord',
-                'superwave', 'wavetableSynth', 'phasedist', 'chip',
-                'bytebeat', 'vector', 'drumsyn', 'pulsar', 'bodyResonance', 'reed'
-            ];
-            for (var ei = 0; ei < ENGINES.length; ei++) {
-                if (SL[ENGINES[ei]] && SL[ENGINES[ei]].init) {
-                    try { SL[ENGINES[ei]].init(); } catch (engineErr) { /* engine init failure is non-fatal; retried on first note */ }
-                }
-            }
-
-            // Second pass after a short delay to catch engines that needed
-            // the AudioContext to be fully running. Also ensure fallback
-            // voices are initialized for worklet-based engines (physical,
-            // FM, formant) so notes aren't dropped while worklets load.
-            setTimeout(function() {
-                var WORKLET_ENGINES = ['physical', 'fm', 'formant'];
-                for (var ri = 0; ri < ENGINES.length; ri++) {
-                    var eng = SL[ENGINES[ri]];
-                    var hasEngineInit = eng && eng.init && eng.isReady;
-                    var engineNeedsInit = hasEngineInit && !eng.isReady();
-                    if (engineNeedsInit) {
-                        try { eng.init(); } catch (retryErr) { /* best-effort retry; engine will init on first note if needed */ }
-                    }
-                }
-                // Note: worklet engines (physical, FM, formant) have on-demand
-                // fallback init in their noteOn() — if worklet isn't ready when a
-                // note fires, they auto-init fallback voices and retry.
-            }, 200);
+            _ssliResumeAudioContext();
+            _ssliInitEffectChainIfNeeded();
+            _initAllEngines();
+            setTimeout(_retryUnreadyEngines, 200);
         } catch (e) {
             console.error('[ssli] Audio init error:', e);
         }
@@ -117693,29 +117810,33 @@ SL.screens = (function () {
         _acquireWakeLock();
 
         // Re-acquire wake lock when page becomes visible again (e.g. tab switch)
-        document.addEventListener('visibilitychange', function() {
-            if (document.visibilityState === 'visible' && isAudioInitialized) {
-                _acquireWakeLock();
-            }
-        });
+        document.addEventListener('visibilitychange', _onVisibilityChange);
         } // end if (!isAudioInitialized)
     }
 
+    function _onWakeLockRelease() {
+        _wakeLockSentinel = null;
+    }
+
+    function _onWakeLockAcquired(sentinel) {
+        _wakeLockSentinel = sentinel;
+        sentinel.addEventListener('release', _onWakeLockRelease);
+    }
+
+    function _onWakeLockError(err) {
+        console.warn('[ssli] Wake lock request failed:', err.message);
+    }
+
     function _acquireWakeLock() {
-        if ('wakeLock' in navigator) {
+        var hasWakeLock = ('wakeLock' in navigator);
+        if (!hasWakeLock) { return; }
         try {
-            navigator.wakeLock.request('screen').then(function(sentinel) {
-                _wakeLockSentinel = sentinel;
-                sentinel.addEventListener('release', function() {
-                    _wakeLockSentinel = null;
-                });
-            }).catch(function(err) {
-                console.warn('[ssli] Wake lock request failed:', err.message);
-            });
+            navigator.wakeLock.request('screen')
+              .then(_onWakeLockAcquired)
+              .catch(_onWakeLockError);
         } catch (wakeLockErr) {
             console.warn('[ssli] Wake lock not supported:', wakeLockErr.message);
         }
-        } // end if ('wakeLock' in navigator)
     }
 
     // --------------------------------------------------------
@@ -117773,8 +117894,9 @@ SL.screens = (function () {
     function _checkOrientation() {
         var overlay = document.getElementById('ssli-rotate-overlay');
         if (overlay) {
-            var isPhone = ((window.innerWidth < PHONE_MAX_DIM && window.innerHeight < PHONE_MAX_OTHER_DIM) ||
-                          (window.innerHeight < PHONE_MAX_DIM && window.innerWidth < PHONE_MAX_OTHER_DIM));
+            var widthSmall = (window.innerWidth < PHONE_MAX_DIM) && (window.innerHeight < PHONE_MAX_OTHER_DIM);
+            var heightSmall = (window.innerHeight < PHONE_MAX_DIM) && (window.innerWidth < PHONE_MAX_OTHER_DIM);
+            var isPhone = widthSmall || heightSmall;
             var isPortrait = window.innerHeight > window.innerWidth;
             var shouldShowRotateOverlay = isPhone && isPortrait && isAppVisible;
             if (shouldShowRotateOverlay) {
@@ -117818,20 +117940,24 @@ SL.screens = (function () {
         }
 
         // 6. Release all controller surfaces that track active pointers
-        if (SL.controllers) {
-            var ctrlNames = Object.keys(SL.controllers);
-            for (var ci = 0; ci < ctrlNames.length; ci++) {
-                var ctrl = SL.controllers[ctrlNames[ci]];
-                if (ctrl && ctrl.release) {
-                    try { ctrl.release(); } catch (releaseErr) { /* release is best-effort; controller may already be detached */ }
-                }
-            }
-        }
+        _ssliReleaseAllControllers();
 
         // 7. Remove visual active states from all controller elements
-        var activeEls = document.querySelectorAll('.ctrl-harp-active, .ctrl-chord-active, .ctrl-loom-active, .ctrl-marimba-active, .ctrl-linn-active, .perf-active, .playing, .active');
+        // These ctrl-* classes are defined/owned by the controller modules (ssli-ctrl-*.js)
+        // but must be cleaned up here during panic to ensure a consistent visual reset.
+        var CTRL_ACTIVE_CLASSES = ['ctrl-harp-active', 'ctrl-chord-active', 'ctrl-loom-active', 'ctrl-marimba-active', 'ctrl-linn-active'];
+        var PANEL_ACTIVE_CLASSES = ['perf-active', 'playing'];
+        var allActiveClasses = CTRL_ACTIVE_CLASSES.concat(PANEL_ACTIVE_CLASSES);
+        var selectorParts = [];
+        for (var ci = 0; ci < allActiveClasses.length; ci++) {
+            selectorParts.push('.' + allActiveClasses[ci]);
+        }
+        selectorParts.push('.active');
+        var activeEls = document.querySelectorAll(selectorParts.join(', '));
         for (var i = 0; i < activeEls.length; i++) {
-            activeEls[i].classList.remove('ctrl-harp-active', 'ctrl-chord-active', 'ctrl-loom-active', 'ctrl-marimba-active', 'ctrl-linn-active', 'perf-active', 'playing');
+            for (var ri = 0; ri < allActiveClasses.length; ri++) {
+                activeEls[i].classList.remove(allActiveClasses[ri]);
+            }
         }
 
         // 8. Belt-and-suspenders: invoke PanicRegistry to catch anything the
@@ -117863,6 +117989,36 @@ SL.screens = (function () {
     var PANIC_FLASH_MS = 300;
     var PANIC_FLASH_CLASS = 'ssli-panic-flash';
 
+    function _handlePanicClick() {
+        var isRegistryFired = false;
+        if (SL.PanicRegistry && SL.PanicRegistry.executePanic) {
+            try {
+                SL.PanicRegistry.executePanic(false, false);
+                isRegistryFired = true;
+            } catch (regErr) {
+                console.warn('[panic-overlay] registry error:', regErr);
+            }
+        }
+        // Belt-and-suspenders: legacy sweep. _performPanic() also calls
+        // PanicRegistry internally; that is fine -- panic is idempotent.
+        try {
+            _performPanic();
+        } catch (legacyErr) {
+            console.warn('[panic-overlay] legacy sweep error:', legacyErr);
+        }
+        // Visual confirmation flash (green to confirm fire).
+        var btn = document.getElementById(PANIC_OVERLAY_ID);
+        if (btn) {
+            btn.classList.add(PANIC_FLASH_CLASS);
+            setTimeout(function() {
+                btn.classList.remove(PANIC_FLASH_CLASS);
+            }, PANIC_FLASH_MS);
+        }
+        if (!isRegistryFired) {
+            console.warn('[panic-overlay] PanicRegistry unavailable -- relied on legacy sweep only');
+        }
+    }
+
     function createMuteButton() {
         // The old left-rail Panic nav item has been removed. This function
         // now builds a universal top-right PANIC overlay button instead.
@@ -117885,32 +118041,7 @@ SL.screens = (function () {
             '<circle cx="12" cy="18" r="0.8" fill="currentColor"/>' +
             '</svg>' +
             '<span class="ssli-panic-overlay-label">' + SL.t('ui.button.panic_label') + '</span>';
-        btn.addEventListener('click', function() {
-            var isRegistryFired = false;
-            if (SL.PanicRegistry && SL.PanicRegistry.executePanic) {
-                try {
-                    SL.PanicRegistry.executePanic(false, false);
-                    isRegistryFired = true;
-                } catch (regErr) {
-                    console.warn('[panic-overlay] registry error:', regErr);
-                }
-            }
-            // Belt-and-suspenders: legacy sweep. _performPanic() also calls
-            // PanicRegistry internally; that is fine — panic is idempotent.
-            try {
-                _performPanic();
-            } catch (legacyErr) {
-                console.warn('[panic-overlay] legacy sweep error:', legacyErr);
-            }
-            // Visual confirmation flash (green to confirm fire).
-            btn.classList.add(PANIC_FLASH_CLASS);
-            setTimeout(function() {
-                btn.classList.remove(PANIC_FLASH_CLASS);
-            }, PANIC_FLASH_MS);
-            if (!isRegistryFired) {
-                console.warn('[panic-overlay] PanicRegistry unavailable — relied on legacy sweep only');
-            }
-        });
+        btn.addEventListener('click', _handlePanicClick);
         app.appendChild(btn);
         } // end if (app && !panicAlreadyExists)
     }
@@ -117971,22 +118102,7 @@ SL.screens = (function () {
     }
 
     function _resolvePresetName() {
-        var name = 'Preset';
-        var canQueryPresetInstrument = SL.audio && SL.audio.getInstruments;
-        var hasPresetInstrumentQuery = canQueryPresetInstrument && SL.audio.getCurrentInstrument;
-        if (hasPresetInstrumentQuery) {
-            var insts = SL.audio.getInstruments();
-            var id = SL.audio.getCurrentInstrument();
-            var inst = (insts && insts[id]) ? insts[id] : null;
-            if (inst) {
-                if (inst.settings && inst.settings.presetName) {
-                    name = inst.settings.presetName;
-                } else if (inst.name) {
-                    name = inst.name;
-                }
-            }
-        }
-        return name;
+        return _ssliResolvePresetName();
     }
 
     function _resolveOctaveRange() {
@@ -118015,6 +118131,12 @@ SL.screens = (function () {
         }
     }
 
+    function _onStageBannerStateChange(what) {
+        if (SSLI_SM_STATE_CHANGE_KEYS[what]) {
+            _refreshStageBanner();
+        }
+    }
+
     function createStageBanner() {
         var app = document.getElementById(APP_ID);
         if (!app) { return; }
@@ -118040,11 +118162,7 @@ SL.screens = (function () {
 
         // React to state changes emitted by preset/instrument flows.
         if (SL.state && SL.state.onChange) {
-            SL.state.onChange(function(what) {
-                if (SSLI_SM_STATE_CHANGE_KEYS[what]) {
-                    _refreshStageBanner();
-                }
-            });
+            SL.state.onChange(_onStageBannerStateChange);
         }
         // Poll for octave range (changed inside screenPlay closure).
         if (_stageBannerPollId) { clearInterval(_stageBannerPollId); }
@@ -118111,6 +118229,23 @@ SL.screens = (function () {
     }
 
     // --------------------------------------------------------
+    // Nav button wiring helper
+    // --------------------------------------------------------
+
+    function _wireNavButton(btn) {
+        btn.addEventListener('click', function() {
+            var screen = btn.getAttribute('data-screen');
+            if (screen) {
+                switchTo(screen);
+            }
+        });
+    }
+
+    function _screenIdToModName(screenId) {
+        return 'screen' + screenId.charAt(0).toUpperCase() + screenId.slice(1);
+    }
+
+    // --------------------------------------------------------
     // Init
     // --------------------------------------------------------
 
@@ -118140,14 +118275,7 @@ SL.screens = (function () {
         // Wire up nav buttons
         var navButtons = _getNavButtons();
         for (var i = 0; i < navButtons.length; i++) {
-            (function(btn) {
-                btn.addEventListener('click', function() {
-                    var screen = btn.getAttribute('data-screen');
-                    if (screen) {
-                        switchTo(screen);
-                    }
-                });
-            })(navButtons[i]);
+            _wireNavButton(navButtons[i]);
         }
 
         // Orientation change detection
@@ -118160,9 +118288,6 @@ SL.screens = (function () {
         if (SL.midi && SL.midi.setup) { SL.midi.setup(); }
 
         // Register screen modules if they exist
-        function _screenIdToModName(screenId) {
-            return 'screen' + screenId.charAt(0).toUpperCase() + screenId.slice(1);
-        }
         for (var s = 0; s < SCREEN_IDS.length; s++) {
             var name = SCREEN_IDS[s];
             var modName = _screenIdToModName(name);
@@ -119000,7 +119125,8 @@ SL.screens = (function () {
 
     for (var i = 0; i < CURVE_SAMPLES; i++) {
       var x = (i * 2 / CURVE_SAMPLES) - 1;
-      curve[i] = Math.max(-threshold, Math.min(threshold, x)) / threshold;
+      var safeThreshold = threshold || 0.001;
+      curve[i] = Math.max(-threshold, Math.min(threshold, x)) / safeThreshold;
     }
     return curve;
   }
@@ -119098,7 +119224,8 @@ SL.screens = (function () {
     for (var i = 0; i < CURVE_SAMPLES; i++) {
       var x = (i * 2 / CURVE_SAMPLES) - 1;
       // Quantize the signal to discrete levels
-      var quantized = Math.round(x * driveAmount * levels) / levels;
+      var safeLevels = levels || 1;
+      var quantized = Math.round(x * driveAmount * safeLevels) / safeLevels;
       // Clamp to valid range
       curve[i] = Math.max(-1, Math.min(1, quantized));
     }
@@ -119836,7 +119963,8 @@ SL.screens = (function () {
       var curve = new Float32Array(samples);
 
       for (var i = 0; i < samples; i++) {
-        var x = (i * 2) / samples - 1;
+        var safeSamples = samples || 1;
+        var x = (i * 2) / safeSamples - 1;
         // Soft clipping curve with adjustable saturation
         if (amount < 0.01) {
           curve[i] = x;
@@ -120078,9 +120206,10 @@ SL.screens = (function () {
         case 'fibonacci':
           // Fibonacci sequence: 1, 2, 3, 5 normalized
           var fibSum = 1 + 2 + 3 + 5;
-          this.params.tap1Time = baseTime * (1 / fibSum);
-          this.params.tap2Time = baseTime * (3 / fibSum);
-          this.params.tap3Time = baseTime * (6 / fibSum);
+          var safeFibSum = fibSum || 1;
+          this.params.tap1Time = baseTime * (1 / safeFibSum);
+          this.params.tap2Time = baseTime * (3 / safeFibSum);
+          this.params.tap3Time = baseTime * (6 / safeFibSum);
           this.params.tap4Time = baseTime;
           break;
 
@@ -120173,7 +120302,8 @@ SL.screens = (function () {
             var normalized = (dataArray[i] - 128) / 128;
             sum += normalized * normalized;
           }
-          var rms = Math.sqrt(sum / dataArray.length);
+          var safeDataLen = dataArray.length || 1;
+          var rms = Math.sqrt(sum / safeDataLen);
 
           // Convert to dB
           var db = 20 * Math.log10(rms + 0.0001);
@@ -120196,13 +120326,15 @@ SL.screens = (function () {
           // Apply attack/release smoothing
           var attackTime = self.params.duckAttack / 1000;
           var releaseTime = self.params.duckRelease / 1000;
+          var safeAttackTime = attackTime || 0.001;
+          var safeReleaseTime = releaseTime || 0.001;
 
           if (targetGain < currentGain) {
             // Attacking (ducking)
-            currentGain = currentGain + (targetGain - currentGain) * Math.min(1, 0.016 / attackTime);
+            currentGain = currentGain + (targetGain - currentGain) * Math.min(1, 0.016 / safeAttackTime);
           } else {
             // Releasing (un-ducking)
-            currentGain = currentGain + (targetGain - currentGain) * Math.min(1, 0.016 / releaseTime);
+            currentGain = currentGain + (targetGain - currentGain) * Math.min(1, 0.016 / safeReleaseTime);
           }
 
           // Apply gain
@@ -120657,8 +120789,9 @@ SL.screens = (function () {
         }
 
         var earlyReflectionSamples = Math.floor(sampleRate * 0.05);
+        var safeEarlyReflSamples = earlyReflectionSamples || 1;
         for (var i = 0; i < earlyReflectionSamples && i < length; i++) {
-          var boost = 1 + (1 - i / earlyReflectionSamples) * 0.3;
+          var boost = 1 + (1 - i / safeEarlyReflSamples) * 0.3;
           data[i] *= boost;
         }
       }
@@ -121331,7 +121464,8 @@ SL.screens = (function () {
       // Create LFO to modulate delay time for pitch effect
       this.shimmerLFO = ctx.createOscillator();
       this.shimmerLFO.type = 'sawtooth';
-      this.shimmerLFO.frequency.value = 1 / grainSize * (1 - 1/pitchRatio);
+      var safePitchRatio = pitchRatio || 1;
+      this.shimmerLFO.frequency.value = 1 / grainSize * (1 - 1/safePitchRatio);
 
       this.shimmerLFOGain = ctx.createGain();
       this.shimmerLFOGain.gain.value = grainSize * 0.5;
@@ -121385,9 +121519,10 @@ SL.screens = (function () {
 
       if (this.shimmerLFO) {
         var pitchRatio = Math.pow(2, this.params.shimmerPitch / 12);
+        var safePitchRatio = pitchRatio || 1;
         var grainSize = 0.1;
         this.shimmerLFO.frequency.setTargetAtTime(
-          1 / grainSize * Math.abs(1 - 1/pitchRatio),
+          1 / grainSize * Math.abs(1 - 1/safePitchRatio),
           this.ctx.currentTime,
           0.01
         );
@@ -121749,8 +121884,9 @@ SL.screens = (function () {
           if (sampleCounter >= downsample) {
             sampleCounter = 0;
             // Bit reduction: quantize to step size
-            lastSampleL = step * Math.floor(inputL[i] / step + 0.5);
-            lastSampleR = step * Math.floor(inputR[i] / step + 0.5);
+            var safeStep = step || 0.001;
+            lastSampleL = safeStep * Math.floor(inputL[i] / safeStep + 0.5);
+            lastSampleR = safeStep * Math.floor(inputR[i] / safeStep + 0.5);
           }
 
           outputL[i] = lastSampleL;
@@ -121894,7 +122030,7 @@ SL.screens = (function () {
      */
     _buildFilterChain(numStages) {
       // Ensure even number of stages
-      numStages = Math.max(2, Math.min(12, Math.floor(numStages / 2) * 2));
+      var numStages = Math.max(2, Math.min(12, Math.floor(numStages / 2) * 2));
 
       // Disconnect existing filters if any
       this._disconnectFilters();
@@ -122469,7 +122605,8 @@ SL.screens = (function () {
         }
         // Inline fallback: reference C4 = 261.63
         var refFreq = 261.63;
-        var octaveDiff = Math.log2(this._noteFreq / refFreq);
+        var safeRefFreq = refFreq || 0.001;
+        var octaveDiff = Math.log2(this._noteFreq / safeRefFreq);
         var multiplier = Math.pow(2, octaveDiff * this.params.keyTrack);
         return Math.max(200, Math.min(8000, baseFreq * multiplier));
       }
@@ -123662,13 +123799,15 @@ SL.screens = (function () {
     var kNeg = SAT_DRIVE_NEG;
     var normPos = Math.tanh(kPos);
     var normNeg = Math.tanh(kNeg);
+    var safeNormPos = normPos || 1;
+    var safeNormNeg = normNeg || 1;
     for (var i = 0; i < n; i++) {
       var x = (i * 2 / (n - 1)) - 1;
       var y;
       if (x >= 0) {
-        y = Math.tanh(x * kPos) / normPos;
+        y = Math.tanh(x * kPos) / safeNormPos;
       } else {
-        y = Math.tanh(x * kNeg) / normNeg;
+        y = Math.tanh(x * kNeg) / safeNormNeg;
       }
       curve[i] = y;
     }
@@ -123684,7 +123823,8 @@ SL.screens = (function () {
     var curve = new Float32Array(n);
     for (var i = 0; i < n; i++) {
       var x = (i * 2 / (n - 1)) - 1;
-      var q = Math.round(x * steps) / steps;
+      var safeSteps = steps || 1;
+      var q = Math.round(x * safeSteps) / safeSteps;
       if (q > 1) { q = 1; }
       if (q < -1) { q = -1; }
       curve[i] = q;
@@ -124010,7 +124150,8 @@ SL.screens = (function () {
     var i = 0;
     for (i = 0; i < n; i++) {
       var x = ((i * 2) / (n - 1)) - 1;
-      curve[i] = Math.tanh(x * k) / norm;
+      var safeNorm = norm || 1;
+      curve[i] = Math.tanh(x * k) / safeNorm;
     }
     return curve;
   };
@@ -124479,8 +124620,8 @@ SL.screens = (function () {
     // Best-effort without a worklet: sum several inverted, LFO-modulated delay
     // taps to produce a pre-echo / swelled smear. This is NOT a true reverse but
     // has a distinct character (inverted-sum comb) clearly different from others.
-    // TODO: a proper reverse mode requires an AudioWorklet that records then
-    // plays back chunks backwards.
+    // NOTE: a proper reverse mode would require an AudioWorklet that records
+    // then plays back chunks backwards. Current approach uses inverted-sum comb.
     var ctx = this.ctx;
     var inG = ctx.createGain();
     var outG = ctx.createGain();
@@ -124852,10 +124993,11 @@ SL.screens = (function () {
     var norm = Math.tanh(k);
     var denom = norm;
     if (denom < 1e-6) { denom = 1e-6; }
+    var safeDenom = denom || 1;
     var i;
     for (i = 0; i < n; i++) {
       var x = (i * 2 / (n - 1)) - 1;
-      curve[i] = Math.tanh(x * k) / denom;
+      curve[i] = Math.tanh(x * k) / safeDenom;
     }
     return curve;
   };
@@ -126623,7 +126765,8 @@ SL.screens = (function () {
         for (var i = 0; i < self._analyzerData.length; i++) {
           sumSquares += self._analyzerData[i] * self._analyzerData[i];
         }
-        var rms = Math.sqrt(sumSquares / self._analyzerData.length);
+        var safeAnalyzerLen = self._analyzerData.length || 1;
+        var rms = Math.sqrt(sumSquares / safeAnalyzerLen);
         var levelDb = self._linearToDb(rms);
 
         var currentTime = self.ctx.currentTime;
@@ -127203,8 +127346,9 @@ SL.screens = (function () {
     getPumpInterval() {
       // Beats per second
       var bps = this.tempo / 60;
+      var safeBps = bps || 1;
       // Seconds per beat (quarter note)
-      var spb = 1 / bps;
+      var spb = 1 / safeBps;
       // Interval based on rate division
       // rate=1 -> 4 beats, rate=2 -> 2 beats, rate=4 -> 1 beat, rate=8 -> 0.5 beats
       return (4 / this.params.rate) * spb;
@@ -127797,11 +127941,12 @@ SL.screens = (function () {
 
       // Maximum buffer size for 200ms at up to 192kHz
       var maxBufferSize = 192000 * 0.2;
+      var safeMaxBufferSize = maxBufferSize || 1;
       var bufferL = new Float32Array(maxBufferSize);
       var bufferR = new Float32Array(maxBufferSize);
       var writePos = 0;
       var readPos1 = 0;
-      var readPos2 = maxBufferSize / 2; // Start half a window offset
+      var readPos2 = safeMaxBufferSize / 2; // Start half a window offset
       var crossfadePos = 0;
 
       // Reference to this for closure
@@ -127815,9 +127960,11 @@ SL.screens = (function () {
         var outputL = event.outputBuffer.getChannelData(0);
         var outputR = event.outputBuffer.getChannelData(1);
 
+        var localBufSize = safeMaxBufferSize || 1;
         var pitchRatio = self._calculatePitchRatio();
         var windowMs = self.params.window;
         var windowSamples = Math.floor(self.ctx.sampleRate * windowMs / 1000);
+        var safeWindowSamples = windowSamples || 1;
         var readSpeed = pitchRatio;
 
         for (var i = 0; i < inputL.length; i++) {
@@ -127826,17 +127973,17 @@ SL.screens = (function () {
           bufferR[writePos] = inputR[i];
 
           // Calculate read positions with wrapping
-          var pos1 = ((readPos1 % maxBufferSize) + maxBufferSize) % maxBufferSize;
-          var pos2 = ((readPos2 % maxBufferSize) + maxBufferSize) % maxBufferSize;
+          var pos1 = ((readPos1 % localBufSize) + maxBufferSize) % localBufSize;
+          var pos2 = ((readPos2 % localBufSize) + maxBufferSize) % localBufSize;
 
           // Linear interpolation for fractional positions
           var pos1Floor = Math.floor(pos1);
           var pos1Frac = pos1 - pos1Floor;
-          var pos1Next = (pos1Floor + 1) % maxBufferSize;
+          var pos1Next = (pos1Floor + 1) % localBufSize;
 
           var pos2Floor = Math.floor(pos2);
           var pos2Frac = pos2 - pos2Floor;
-          var pos2Next = (pos2Floor + 1) % maxBufferSize;
+          var pos2Next = (pos2Floor + 1) % localBufSize;
 
           // Interpolated samples for left channel
           var sampleL1 = bufferL[pos1Floor] * (1 - pos1Frac) + bufferL[pos1Next] * pos1Frac;
@@ -127847,7 +127994,7 @@ SL.screens = (function () {
           var sampleR2 = bufferR[pos2Floor] * (1 - pos2Frac) + bufferR[pos2Next] * pos2Frac;
 
           // Hann window crossfade
-          var crossfadePhase = crossfadePos / windowSamples;
+          var crossfadePhase = crossfadePos / safeWindowSamples;
           var window1 = 0.5 * (1 - Math.cos(2 * Math.PI * crossfadePhase));
           var window2 = 0.5 * (1 - Math.cos(2 * Math.PI * (crossfadePhase + 0.5)));
 
@@ -127855,7 +128002,7 @@ SL.screens = (function () {
           outputR[i] = sampleR1 * window1 + sampleR2 * window2;
 
           // Update write position
-          writePos = (writePos + 1) % maxBufferSize;
+          writePos = (writePos + 1) % localBufSize;
 
           // Update read positions
           readPos1 = (readPos1 + readSpeed);
@@ -128393,7 +128540,8 @@ SL.screens = (function () {
       var frequencies = [];
       var logMin = Math.log(this.minFreq);
       var logMax = Math.log(this.maxFreq);
-      var logStep = (logMax - logMin) / numBands;
+      var safeNumBands = numBands || 1;
+      var logStep = (logMax - logMin) / safeNumBands;
 
       for (var i = 0; i < numBands; i++) {
         // Center frequency for each band
@@ -128425,7 +128573,8 @@ SL.screens = (function () {
       // Q = centerFreq / bandwidth, we want slight overlap
       var logMin = Math.log(this.minFreq);
       var logMax = Math.log(this.maxFreq);
-      var bandwidth = (logMax - logMin) / numBands;
+      var safeNumBands = numBands || 1;
+      var bandwidth = (logMax - logMin) / safeNumBands;
       var baseQ = 1 / (Math.exp(bandwidth) - Math.exp(-bandwidth)) * 2;
 
       // Apply resonance parameter to Q
@@ -128507,7 +128656,8 @@ SL.screens = (function () {
       var samples = 256;
       var curve = new Float32Array(samples);
       for (var i = 0; i < samples; i++) {
-        var x = (i / samples) * 2 - 1;
+        var safeSamples = samples || 1;
+        var x = (i / safeSamples) * 2 - 1;
         curve[i] = Math.abs(x);
       }
       return curve;
@@ -128567,9 +128717,10 @@ SL.screens = (function () {
       var numBands = this.analysisFilters.length;
       if (numBands === 0) return;
 
+      var safeNumBands = numBands || 1;
       var logMin = Math.log(this.minFreq);
       var logMax = Math.log(this.maxFreq);
-      var bandwidth = (logMax - logMin) / numBands;
+      var bandwidth = (logMax - logMin) / safeNumBands;
       var baseQ = 1 / (Math.exp(bandwidth) - Math.exp(-bandwidth)) * 2;
       var resonanceMultiplier = 1 + (this.params.resonance / 100) * 4;
       var filterQ = baseQ * resonanceMultiplier;
@@ -128730,9 +128881,7 @@ SL.screens = (function () {
       i18n: 'effect.chorus',
       icon: '🌊',
       params: [
-        { name: 'mode', label: 'Mode', type: 'select',
-          options: ['I', 'II', 'I+II'],
-          default: 'I' },
+        { name: 'mode', label: 'Mode', type: 'select', options: ['I', 'II', 'I+II'], default: 'I' },
         { name: 'rate', label: 'Rate', min: 0.5, max: 2.0, default: 1.0, unit: 'x', step: 0.05 },
         { name: 'depth', label: 'Depth', min: 0, max: 100, default: 50, unit: '%' },
         { name: 'mix', label: 'Mix', min: 0, max: 100, default: 50, unit: '%' }
@@ -129278,9 +129427,9 @@ SL.screens = (function () {
     var tabsHtml = '<div class="effects-inst-tabs">';
     instKeys.forEach(function(key, i) {
       var activeClass = (i === selectedTarget) ? 'active' : '';
-      tabsHtml += '<button class="effects-inst-tab ' + activeClass + '" data-target="' + i + '">' +
-                  SL.t('instrument.' + key) +
-                  '</button>';
+      var label = SL.t('instrument.' + key);
+      tabsHtml += '<button class="effects-inst-tab ' + activeClass +
+        '" data-target="' + i + '">' + label + '</button>';
     });
     var masterActiveClass = (selectedTarget === MASTER_TARGET) ? 'active' : '';
     tabsHtml += '<button class="effects-inst-tab effects-master-tab ' + masterActiveClass + '" data-target="-1">' +
@@ -131322,6 +131471,32 @@ SL.screens = (function () {
   // AudioWorklet
   // ============================================================
 
+  var WORKLET_INST_COUNT = 4;
+
+  function _makeWorkletReadyHandler(readyState, resolve) {
+    return function(event) {
+      var data = event.data;
+      var isReady = (data.type === 'ready');
+      if (isReady) {
+        readyState.count++;
+        if (readyState.count >= WORKLET_INST_COUNT) {
+          isWorkletSupported = true;
+          isWorkletInitializing = false;
+          resolve(true);
+        }
+      }
+    };
+  }
+
+  function _makeWorkletErrorHandler(idx, reject) {
+    return function(event) {
+      console.error('AudioWorklet processor error (instrument ' + (idx + 1) + '):', event);
+      isWorkletSupported = false;
+      isWorkletInitializing = false;
+      reject(event);
+    };
+  }
+
   async function initSynthWorklet() {
     if (!audioContext || !audioContext.audioWorklet) {
       console.warn('AudioWorklet not supported in this browser');
@@ -131334,8 +131509,8 @@ SL.screens = (function () {
             var synthWorkletUrl = _workletBlobUrls['synth-worklet.js'] || 'assets/synth-worklet.js';
             await audioContext.audioWorklet.addModule(synthWorkletUrl);
 
-            var readyCount = 0;
-            for (var i = 0; i < 4; i++) {
+            var readyState = { count: 0 };
+            for (var i = 0; i < WORKLET_INST_COUNT; i++) {
               synthWorkletNodes[i] = new AudioWorkletNode(audioContext, 'synth-worklet', {
                 numberOfInputs: 0,
                 numberOfOutputs: 1,
@@ -131352,28 +131527,8 @@ SL.screens = (function () {
                 workletFilterNodes[i].connect(instruments[i].masterOutput);
               }
 
-              synthWorkletNodes[i].port.onmessage = (function(idx) {
-                return function(event) {
-                  var data = event.data;
-                  if (data.type === 'ready') {
-                    readyCount++;
-                    if (readyCount >= 4) {
-                      isWorkletSupported = true;
-                      isWorkletInitializing = false;
-                      resolve(true);
-                    }
-                  }
-                };
-              })(i);
-
-              synthWorkletNodes[i].onprocessorerror = (function(idx) {
-                return function(event) {
-                  console.error('AudioWorklet processor error (instrument ' + (idx + 1) + '):', event);
-                  isWorkletSupported = false;
-                  isWorkletInitializing = false;
-                  reject(event);
-                };
-              })(i);
+              synthWorkletNodes[i].port.onmessage = _makeWorkletReadyHandler(readyState, resolve);
+              synthWorkletNodes[i].onprocessorerror = _makeWorkletErrorHandler(i, reject);
             }
 
           } catch (error) {
@@ -131393,7 +131548,14 @@ SL.screens = (function () {
     return isWorkletSupported && synthWorkletNodes[0] !== NO_NODE;
   }
 
-  function workletNoteOn(midi, dur, oscSettings, adsr, refHz, instId, extraParams) {
+  function workletNoteOn(opts) {
+    var midi = opts.midi;
+    var dur = opts.dur;
+    var oscSettings = opts.oscSettings;
+    var adsr = opts.adsr;
+    var refHz = opts.refHz;
+    var instId = opts.instId;
+    var extraParams = opts.extraParams;
     var id = (instId !== undefined) ? instId : currentInstrument;
     var node = synthWorkletNodes[id];
     if (!node) { return; }
@@ -131502,12 +131664,14 @@ SL.screens = (function () {
   // ============================================================
 
   function sliderToTime(sliderValue, sliderMax, timeMax) {
-    var normalized = sliderValue / sliderMax;
+    var safeSliderMax = sliderMax || 1;
+    var normalized = sliderValue / safeSliderMax;
     return timeMax * Math.pow(normalized, 2);
   }
 
   function timeToSlider(timeMs, sliderMax, timeMax) {
-    var normalized = Math.sqrt(timeMs / timeMax);
+    var safeTimeMax = timeMax || 1;
+    var normalized = Math.sqrt(timeMs / safeTimeMax);
     return normalized * sliderMax;
   }
 
@@ -132872,13 +133036,15 @@ SL.screens = (function () {
       } else if (waveform === 'sawtooth') {
         // Sawtooth: sum of sin(n*phase)/n for n=1 to maxHarmonics
         for (var h = 1; h <= maxHarmonics; h++) {
-          sample += Math.sin(phase * h) / h;
+          var safeH = h || 1;
+          sample += Math.sin(phase * h) / safeH;
         }
         sample *= 2 / Math.PI;
       } else if (waveform === 'square') {
         // Square: sum of sin(n*phase)/n for odd n
         for (var h = 1; h <= maxHarmonics; h += 2) {
-          sample += Math.sin(phase * h) / h;
+          var safeH = h || 1;
+          sample += Math.sin(phase * h) / safeH;
         }
         sample *= 4 / Math.PI;
       } else if (waveform === 'triangle') {
@@ -132918,7 +133084,8 @@ SL.screens = (function () {
         // Base frequency for octave: C0 = ~16.35 Hz, each octave doubles
         var baseFreq = 16.35 * Math.pow(2, octave);
         var nyquist = sr / 2;
-        var maxHarmonics = Math.max(1, Math.floor(nyquist / baseFreq) - 1);
+        var safeBaseFreq = baseFreq || 0.001;
+        var maxHarmonics = Math.max(1, Math.floor(nyquist / safeBaseFreq) - 1);
 
         // Cap at reasonable limit for performance
         var cappedHarmonics = Math.min(maxHarmonics, 256);
@@ -133172,17 +133339,20 @@ SL.screens = (function () {
   function calcADSR(t, dur, adsr) {
     var MIN_RELEASE = 0.003;
     var a = adsr.a, d = adsr.d, s = adsr.s;
+    var safeA = a || 0.001;
+    var safeD = d || 0.001;
     var r = Math.max(MIN_RELEASE, adsr.r);
+    var safeR = r || 0.001;
     var sustainEnd = Math.max(0, dur - r);
 
     // Attack phase
     if (t < a) {
-      return t / a;
+      return t / safeA;
     }
     // Decay phase - exponential curve from peak to sustain
     if (t < a + d) {
       var decayT = t - a;
-      return s + (1 - s) * Math.exp(-decayT * 5 / d);
+      return s + (1 - s) * Math.exp(-decayT * 5 / safeD);
     }
     // Sustain phase
     if (t < sustainEnd) {
@@ -133191,7 +133361,7 @@ SL.screens = (function () {
     // Release phase - exponential curve from sustain to zero
     if (t < dur) {
       var releaseT = t - sustainEnd;
-      return s * Math.exp(-releaseT * 5 / r);
+      return s * Math.exp(-releaseT * 5 / safeR);
     }
     return 0;
   }
@@ -133693,6 +133863,40 @@ SL.screens = (function () {
    * @param {number} instId - Instrument index
    * @param {Object} voice - Voice object from the voice pool
    */
+  function _connectLFOToPitch(lfo, voice, key) {
+      for (var i = 0; i < voice.oscillators.length; i++) {
+        var oscEntry = voice.oscillators[i];
+        var hasOscDetune = oscEntry && oscEntry.osc && oscEntry.osc.detune;
+        if (hasOscDetune) {
+          try {
+            lfo.depthGain.connect(oscEntry.osc.detune);
+            voice._lfoConnections.push({
+              source: lfo.depthGain,
+              dest: oscEntry.osc.detune,
+              lfoKey: key
+            });
+          } catch (e) { /* oscillator may have been stopped or disposed */ }
+        }
+      }
+  }
+
+  function _connectLFOToFilter(lfo, voice, key) {
+      var hasFilters = voice.filterChain && voice.filterChain.filters && (voice.filterChain.filters.length > 0);
+      if (hasFilters) {
+        var filter = voice.filterChain.filters[0];
+        if (filter && filter.frequency) {
+          try {
+            lfo.depthGain.connect(filter.frequency);
+            voice._lfoConnections.push({
+              source: lfo.depthGain,
+              dest: filter.frequency,
+              lfoKey: key
+            });
+          } catch (e) { /* filter node may have been disposed */ }
+        }
+      }
+  }
+
   function applyLFOToVoice(instId, voice) {
     if (voice) {
       var state = lfoNodes[instId];
@@ -133709,37 +133913,12 @@ SL.screens = (function () {
             continue;
           }
 
-          if (lfo.target === 'pitch' && voice.oscillators) {
-            // Connect LFO depth gain to each oscillator's detune param
-            for (var i = 0; i < voice.oscillators.length; i++) {
-              var oscEntry = voice.oscillators[i];
-              var hasOscDetune = oscEntry && oscEntry.osc && oscEntry.osc.detune;
-              if (hasOscDetune) {
-                try {
-                  lfo.depthGain.connect(oscEntry.osc.detune);
-                  voice._lfoConnections.push({
-                    source: lfo.depthGain,
-                    dest: oscEntry.osc.detune,
-                    lfoKey: key
-                  });
-                } catch (e) { /* oscillator may have been stopped or disposed */ }
-              }
-            }
-          } else if (lfo.target === 'filter' && voice.filterChain) {
-            // Connect LFO depth gain to the first filter's frequency param
-            if (voice.filterChain.filters && voice.filterChain.filters.length > 0) {
-              var filter = voice.filterChain.filters[0];
-              if (filter && filter.frequency) {
-                try {
-                  lfo.depthGain.connect(filter.frequency);
-                  voice._lfoConnections.push({
-                    source: lfo.depthGain,
-                    dest: filter.frequency,
-                    lfoKey: key
-                  });
-                } catch (e) { /* filter node may have been disposed */ }
-              }
-            }
+          var isPitchTarget = (lfo.target === 'pitch') && voice.oscillators;
+          var isFilterTarget = (lfo.target === 'filter') && voice.filterChain;
+          if (isPitchTarget) {
+            _connectLFOToPitch(lfo, voice, key);
+          } else if (isFilterTarget) {
+            _connectLFOToFilter(lfo, voice, key);
           }
           // amplitude and pan targets are handled via chain nodes, not per-voice
         }
@@ -133805,58 +133984,77 @@ SL.screens = (function () {
    * @param {string} param - 'rate', 'depth', 'waveform', 'target', or 'enabled'
    * @param {*} value - New value
    */
+  var FILTER_DEPTH_SCALE = 2000;
+  var PERCENT_SCALE = 100;
+
+  function _updateLFORate(lfo, instId, lfoNum, value) {
+    if (lfo.isSH) {
+      // For S&H, rebuild since ScriptProcessor doesn't support live rate changes easily
+      buildLFONodes(instId, lfoNum);
+      reapplyLFOToActiveVoices(instId);
+    } else {
+      // Standard oscillator: just update frequency
+      var hasFreq = lfo.source && lfo.source.frequency;
+      if (hasFreq) {
+        lfo.source.frequency.value = value;
+      }
+    }
+    lfo.rate = value;
+  }
+
+  function _updateLFODepth(lfo, value) {
+    lfo.depth = value;
+    if (lfo.depthGain) {
+      var isPitch = (lfo.target === 'pitch');
+      var isFilter = (lfo.target === 'filter');
+      var isAmplitude = (lfo.target === 'amplitude');
+      var isPan = (lfo.target === 'pan');
+      if (isPitch) {
+        lfo.depthGain.gain.value = value * 1.0;
+      } else if (isFilter) {
+        lfo.depthGain.gain.value = (value / PERCENT_SCALE) * FILTER_DEPTH_SCALE;
+      } else if (isAmplitude) {
+        lfo.depthGain.gain.value = value / PERCENT_SCALE;
+      } else if (isPan) {
+        lfo.depthGain.gain.value = value / PERCENT_SCALE;
+      }
+    }
+  }
+
+  function _updateLFOLiveParam(lfo, instId, lfoNum, param, value) {
+    if (lfo) {
+      var isRate = (param === 'rate');
+      var isDepth = (param === 'depth');
+      if (isRate) {
+        _updateLFORate(lfo, instId, lfoNum, value);
+      } else if (isDepth) {
+        _updateLFODepth(lfo, value);
+      }
+    }
+  }
+
   function updateLFO(instId, lfoNum, param, value) {
-    if (instId >= 0 && instId < NUM_INSTRUMENTS) {
-      if (lfoNum === 1 || lfoNum === 2) {
-        ensureLFOSettings(instId);
-        var settings = getLFOSettingsForNum(instId, lfoNum);
-        settings[param] = value;
+    var isValidInst = (instId >= 0) && (instId < NUM_INSTRUMENTS);
+    var isValidLfo = (lfoNum === 1) || (lfoNum === 2);
+    if (isValidInst && isValidLfo) {
+      ensureLFOSettings(instId);
+      var settings = getLFOSettingsForNum(instId, lfoNum);
+      settings[param] = value;
 
-        // If LFO nodes haven't been initialized yet, init them
-        if (!lfoNodes[instId]) {
-          initLFOForInstrument(instId);
+      // If LFO nodes haven't been initialized yet, init them
+      if (!lfoNodes[instId]) {
+        initLFOForInstrument(instId);
+      } else {
+        var state = lfoNodes[instId];
+        var key = 'lfo' + lfoNum;
+        var lfo = state[key];
+
+        // For target, enabled, or waveform changes, rebuild the LFO nodes entirely
+        if (LFO_REBUILD_PARAMS[param]) {
+          buildLFONodes(instId, lfoNum);
+          reapplyLFOToActiveVoices(instId);
         } else {
-          var state = lfoNodes[instId];
-          var key = 'lfo' + lfoNum;
-          var lfo = state[key];
-
-          // For target, enabled, or waveform changes, rebuild the LFO nodes entirely
-          if (LFO_REBUILD_PARAMS[param]) {
-            buildLFONodes(instId, lfoNum);
-            // Re-apply to any currently active voices
-            reapplyLFOToActiveVoices(instId);
-          } else {
-            // Live parameter updates (rate, depth) without rebuilding
-            if (lfo) {
-              if (param === 'rate') {
-                if (lfo.isSH) {
-                  // For S&H, update the samples-per-hold calculation
-                  // Need to rebuild since ScriptProcessor doesn't support live rate changes easily
-                  buildLFONodes(instId, lfoNum);
-                  reapplyLFOToActiveVoices(instId);
-                } else {
-                  // Standard oscillator: just update frequency
-                  if (lfo.source && lfo.source.frequency) {
-                    lfo.source.frequency.value = value;
-                  }
-                }
-                lfo.rate = value;
-              } else if (param === 'depth') {
-                lfo.depth = value;
-                if (lfo.depthGain) {
-                  if (lfo.target === 'pitch') {
-                    lfo.depthGain.gain.value = value * 1.0;
-                  } else if (lfo.target === 'filter') {
-                    lfo.depthGain.gain.value = (value / 100) * 2000;
-                  } else if (lfo.target === 'amplitude') {
-                    lfo.depthGain.gain.value = value / 100;
-                  } else if (lfo.target === 'pan') {
-                    lfo.depthGain.gain.value = value / 100;
-                  }
-                }
-              }
-            }
-          }
+          _updateLFOLiveParam(lfo, instId, lfoNum, param, value);
         }
       }
     }
@@ -134873,7 +135071,8 @@ SL.screens = (function () {
     var refFreq = 261.63;
 
     // Calculate how many octaves above/below reference
-    var octaveDiff = Math.log2(noteFreq / refFreq);
+    var safeRefFreq = refFreq || 0.001;
+    var octaveDiff = Math.log2(noteFreq / safeRefFreq);
 
     // Apply key tracking: each octave shifts cutoff by keyTrack amount
     var multiplier = Math.pow(2, octaveDiff * keyTrack);
@@ -134929,7 +135128,8 @@ SL.screens = (function () {
       var filter = ctx.createBiquadFilter();
       filter.type = settings.type;
       filter.frequency.value = settings.frequency;
-      var stageQ = baseQ + (resonanceFactor * (i + 1) / numStages) * 8;
+      var safeNumStages = numStages || 1;
+      var stageQ = baseQ + (resonanceFactor * (i + 1) / safeNumStages) * 8;
       filter.Q.value = Math.min(stageQ, 20);
       filters.push(filter);
     }
@@ -135196,11 +135396,12 @@ SL.screens = (function () {
    * @returns {number} Correction value
    */
   function polyBlep(t, dt) {
+    var safeDt = dt || 0.001;
     if (t < dt) {
-      t /= dt;
+      t /= safeDt;
       return t + t - t * t - 1;
     } else if (t > 1 - dt) {
-      t = (t - 1) / dt;
+      t = (t - 1) / safeDt;
       return t * t + t + t + 1;
     }
     return 0;
@@ -135813,10 +136014,10 @@ SL.screens = (function () {
           pulseWidth: os.pulseWidth,
           superSawSpread: os.superSawSpread
         }); });
-        SL.audio.workletNoteOn(midi, dur, workletOscSet, adsr, refHz);
+        SL.audio.workletNoteOn({ midi: midi, dur: dur, oscSettings: workletOscSet, adsr: adsr, refHz: refHz });
       } else {
         console.warn('Workvar not available, falling back to band-limited synthesis');
-        playNoteFallback(midi, dur, adsr, oscSet, filterSettings, sr, TWO_PI, c);
+        playNoteFallback({ midi: midi, dur: dur, adsr: adsr, oscSet: oscSet, filterSettings: filterSettings, sr: sr, TWO_PI: TWO_PI, c: c });
       }
     } else {
 
@@ -135992,16 +136193,7 @@ SL.screens = (function () {
               });
             } else {
               SUPERSAW_DETUNES.forEach(function(detuneCents) {
-                var actualDetune = detuneCents * spreadFactor;
-                var voiceFreq = oscFreq * Math.pow(2, actualDetune / 1200);
-                var voicePh = TWO_PI * voiceFreq * t;
-                var voiceMH = Math.min(SL.audio.maxH(voiceFreq), 48);
-                var voiceSample = 0;
-                for (var h = 1; h <= voiceMH; h++) {
-                  voiceSample += SL.audio.fastSin(voicePh * h) / h;
-                }
-                voiceSample *= 2 / Math.PI;
-                sample += voiceSample / SUPERSAW_DETUNES.length;
+                sample += _supersawFallbackVoice(detuneCents, spreadFactor, oscFreq, t);
               });
             }
           } else {
@@ -136175,7 +136367,73 @@ SL.screens = (function () {
   /**
    * Fallback synthesis when workvar is not available
    */
-  function playNoteFallback(midi, dur, adsr, oscSet, filterSettings, sr, TWO_PI, c) {
+  var MAX_SUPERSAW_HARMONICS = 48;
+
+  function _supersawFallbackVoice(detuneCents, spreadFactor, oscFreq, t) {
+    var actualDetune = detuneCents * spreadFactor;
+    var voiceFreq = oscFreq * Math.pow(2, actualDetune / 1200);
+    var voicePh = TWO_PI * voiceFreq * t;
+    var voiceMH = Math.min(SL.audio.maxH(voiceFreq), MAX_SUPERSAW_HARMONICS);
+    var voiceSample = 0;
+    for (var h = 1; h <= voiceMH; h++) {
+      var safeH = h || 1;
+      voiceSample += SL.audio.fastSin(voicePh * h) / safeH;
+    }
+    voiceSample *= 2 / Math.PI;
+    return voiceSample / SUPERSAW_DETUNES.length;
+  }
+
+  var NOISE_WHITE_SCALE = 1.0;
+  var NOISE_PINK_SCALE = 0.5;
+  var NOISE_BROWN_SCALE = 0.3;
+  var NOISE_LEVEL_SCALE = 0.01;
+
+  function _renderNoiseFallback(os, n, envCurve, b) {
+    var isWhite = (os.wave === 'noise-white');
+    var isPink = (os.wave === 'noise-pink');
+    var scale = NOISE_BROWN_SCALE;
+    if (isWhite) {
+      scale = NOISE_WHITE_SCALE;
+    } else if (isPink) {
+      scale = NOISE_PINK_SCALE;
+    }
+    for (var i = 0; i < n; i++) {
+      var env = envCurve[i];
+      var noiseSample = (Math.random() * 2 - 1) * scale;
+      b[i] += noiseSample * env * os.level * NOISE_LEVEL_SCALE;
+    }
+  }
+
+  function _renderWavetableFallback(os, oscFreq, renderCtx) {
+    var sr = renderCtx.sr;
+    var n = renderCtx.n;
+    var envCurve = renderCtx.envCurve;
+    var b = renderCtx.b;
+    var canUseWavetable = WAVETABLE_WAVES.includes(os.wave) && SL.audio.areWavetablesReady();
+    if (!canUseWavetable) { return false; }
+    var table = SL.audio.getWavetableForFreq(os.wave, oscFreq);
+    if (!table) { return false; }
+    var phaseInc = oscFreq / sr;
+    var phase = 0;
+    for (var i = 0; i < n; i++) {
+      var env = envCurve[i];
+      var sample = SL.audio.sampleWavetable(table, phase);
+      b[i] += sample * env * os.level;
+      phase += phaseInc;
+      if (phase >= 1) { phase -= 1; }
+    }
+    return true;
+  }
+
+  function playNoteFallback(opts) {
+    var midi = opts.midi;
+    var dur = opts.dur;
+    var adsr = opts.adsr;
+    var oscSet = opts.oscSet;
+    var filterSettings = opts.filterSettings;
+    var sr = opts.sr;
+    var TWO_PI = opts.TWO_PI;
+    var c = opts.c;
     var f = SL.audio.m2f(midi);
     var n = Math.floor(sr * dur);
     var b = SL.audio.acquireBuffer(n);
@@ -136190,31 +136448,10 @@ SL.screens = (function () {
 
       // Noise oscillator in fallback path
       if (NOISE_WAVES[os.wave]) {
-        for (var i = 0; i < n; i++) {
-          var env = envCurve[i];
-          var noiseSample = (os.wave === 'noise-white') ? (Math.random() * 2 - 1) :
-                            (os.wave === 'noise-pink') ? ((Math.random() * 2 - 1) * 0.5) :
-                            ((Math.random() * 2 - 1) * 0.3);
-          b[i] += noiseSample * env * os.level * 0.01;
-        }
+        _renderNoiseFallback(os, n, envCurve, b);
       } else {
 
-      var hasUsedWavetable = false;
-      if (WAVETABLE_WAVES.includes(os.wave) && SL.audio.areWavetablesReady()) {
-        var table = SL.audio.getWavetableForFreq(os.wave, oscFreq);
-        if (table) {
-          var phaseInc = oscFreq / sr;
-          var phase = 0;
-          for (var i = 0; i < n; i++) {
-            var env = envCurve[i];
-            var sample = SL.audio.sampleWavetable(table, phase);
-            b[i] += sample * env * os.level;
-            phase += phaseInc;
-            if (phase >= 1) phase -= 1;
-          }
-          hasUsedWavetable = true;
-        }
-      }
+      var hasUsedWavetable = _renderWavetableFallback(os, oscFreq, { sr: sr, n: n, envCurve: envCurve, b: b });
 
       if (!hasUsedWavetable) {
       var mH = Math.min(SL.audio.maxH(oscFreq), 48);
@@ -136286,7 +136523,17 @@ SL.screens = (function () {
   /**
    * Fallback synthesis with custom destination
    */
-  function playNoteFallbackWithDestination(midi, dur, adsr, oscSet, filterSettings, filterEnvSettings, sr, TWO_PI, c, destination) {
+  function playNoteFallbackWithDestination(opts) {
+    var midi = opts.midi;
+    var dur = opts.dur;
+    var adsr = opts.adsr;
+    var oscSet = opts.oscSet;
+    var filterSettings = opts.filterSettings;
+    var filterEnvSettings = opts.filterEnvSettings;
+    var sr = opts.sr;
+    var TWO_PI = opts.TWO_PI;
+    var c = opts.c;
+    var destination = opts.destination;
     var f = SL.audio.m2f(midi);
     var n = Math.floor(sr * dur);
     var b = SL.audio.acquireBuffer(n);
@@ -136300,31 +136547,10 @@ SL.screens = (function () {
 
       // Noise oscillator in fallback path
       if (NOISE_WAVES[os.wave]) {
-        for (var i = 0; i < n; i++) {
-          var env = envCurve[i];
-          var noiseSample = (os.wave === 'noise-white') ? (Math.random() * 2 - 1) :
-                            (os.wave === 'noise-pink') ? ((Math.random() * 2 - 1) * 0.5) :
-                            ((Math.random() * 2 - 1) * 0.3);
-          b[i] += noiseSample * env * os.level * 0.01;
-        }
+        _renderNoiseFallback(os, n, envCurve, b);
       } else {
 
-      var hasUsedWavetable = false;
-      if (WAVETABLE_WAVES.includes(os.wave) && SL.audio.areWavetablesReady()) {
-        var table = SL.audio.getWavetableForFreq(os.wave, oscFreq);
-        if (table) {
-          var phaseInc = oscFreq / sr;
-          var phase = 0;
-          for (var i = 0; i < n; i++) {
-            var env = envCurve[i];
-            var sample = SL.audio.sampleWavetable(table, phase);
-            b[i] += sample * env * os.level;
-            phase += phaseInc;
-            if (phase >= 1) phase -= 1;
-          }
-          hasUsedWavetable = true;
-        }
-      }
+      var hasUsedWavetable = _renderWavetableFallback(os, oscFreq, { sr: sr, n: n, envCurve: envCurve, b: b });
 
       if (!hasUsedWavetable) {
       var mH = Math.min(SL.audio.maxH(oscFreq), 48);
@@ -137095,7 +137321,8 @@ SL.screens = (function () {
               .filter(function(f) { return f instanceof BiquadFilterNode; }).length;
             var numBiquads = filters
               .filter(function(f) { return f instanceof BiquadFilterNode; }).length;
-            qValue = 0.5 + (resonanceFactor * biquadIndex / numBiquads) * 8;
+            var safeNumBiquads = numBiquads || 1;
+            qValue = 0.5 + (resonanceFactor * biquadIndex / safeNumBiquads) * 8;
             qValue = Math.min(qValue, 20);
             break;
 
@@ -137337,6 +137564,22 @@ SL.screens = (function () {
   var SL = window.SynthLab;
   var _cachedMethodEl = null;
   var _cachedRefHzEl = null;
+  var MAX_SUPERSAW_HARMONICS_IS = 48;
+
+  function _supersawFallbackVoiceIS(detuneCents, spreadFactor, oscFreq, t, TWO_PI, detuneCount) {
+    var actualDetune = detuneCents * spreadFactor;
+    var voiceFreq = oscFreq * Math.pow(2, actualDetune / 1200);
+    var voicePh = TWO_PI * voiceFreq * t;
+    var voiceMH = Math.min(SL.audio.maxH(voiceFreq), MAX_SUPERSAW_HARMONICS_IS);
+    var voiceSample = 0;
+    for (var h = 1; h <= voiceMH; h++) {
+      var safeH = h || 1;
+      voiceSample += SL.audio.fastSin(voicePh * h) / safeH;
+    }
+    voiceSample *= 2 / Math.PI;
+    var safeDetuneCount = detuneCount || 1;
+    return voiceSample / safeDetuneCount;
+  }
 
   // Track active non-workvar notes so they can be killed on noteOff.
   // Key: "instId:midi", Value: array of { gain, sources }
@@ -137776,10 +138019,15 @@ SL.screens = (function () {
           };
         }
 
-        SL.audio.workletNoteOn(midi, dur, oscSet, adsr, refHz, instId, extraParams);
+        SL.audio.workletNoteOn({ midi: midi, dur: dur, oscSettings: oscSet, adsr: adsr, refHz: refHz, instId: instId, extraParams: extraParams });
       } else {
         console.warn('Workvar not available, falling back to band-limited synthesis');
-        SL.audio._playNoteFallbackWithDestination(midi, dur, adsr, oscSet, filterSettings, filterEnvSettings, sr, TWO_PI, c, destination);
+        var fallbackOpts = {
+          midi: midi, dur: dur, adsr: adsr, oscSet: oscSet,
+          filterSettings: filterSettings, filterEnvSettings: filterEnvSettings,
+          sr: sr, TWO_PI: TWO_PI, c: c, destination: destination
+        };
+        SL.audio._playNoteFallbackWithDestination(fallbackOpts);
       }
     } else if (m === 'oscillator') {
       var oscDur = Math.min(dur, 30);
@@ -137906,16 +138154,7 @@ SL.screens = (function () {
               });
             } else {
               SUPERSAW_DETUNES.forEach(function(detuneCents) {
-                var actualDetune = detuneCents * spreadFactor;
-                var voiceFreq = oscFreq * Math.pow(2, actualDetune / 1200);
-                var voicePh = TWO_PI * voiceFreq * t;
-                var voiceMH = Math.min(SL.audio.maxH(voiceFreq), 48);
-                var voiceSample = 0;
-                for (var h = 1; h <= voiceMH; h++) {
-                  voiceSample += SL.audio.fastSin(voicePh * h) / h;
-                }
-                voiceSample *= 2 / Math.PI;
-                sample += voiceSample / SUPERSAW_DETUNES.length;
+                sample += _supersawFallbackVoiceIS(detuneCents, spreadFactor, oscFreq, t, TWO_PI, SUPERSAW_DETUNES.length);
               });
             }
           } else {
@@ -138272,14 +138511,18 @@ SL.screens = (function () {
       // Save partial amplitudes from UI sliders
       for (var pi = 0; pi < 16; pi++) {
         var partialEl = document.getElementById('additivePartial' + pi);
-        if (partialEl && settings.additiveSettings && settings.additiveSettings.partials && settings.additiveSettings.partials[pi]) {
+        var hasAdditivePartials = (settings.additiveSettings && settings.additiveSettings.partials && settings.additiveSettings.partials[pi]);
+        var canSavePartial = (partialEl && hasAdditivePartials);
+        if (canSavePartial) {
           settings.additiveSettings.partials[pi].amplitude = parseFloat(partialEl.value) / 100;
         }
       }
       // Save drawbar values from UI sliders
       for (var di = 0; di < 9; di++) {
         var drawbarEl = document.getElementById('additiveDrawbar' + di);
-        if (drawbarEl && settings.additiveSettings && settings.additiveSettings.drawbars) {
+        var hasAdditiveDrawbars = (settings.additiveSettings && settings.additiveSettings.drawbars);
+        var canSaveDrawbar = (drawbarEl && hasAdditiveDrawbars);
+        if (canSaveDrawbar) {
           settings.additiveSettings.drawbars[di] = parseInt(drawbarEl.value) || 0;
         }
       }
@@ -138902,7 +139145,9 @@ SL.screens = (function () {
       // Update partial sliders
       for (var pi = 0; pi < 16; pi++) {
         var partialEl = document.getElementById('additivePartial' + pi);
-        if (partialEl && addSettings.partials && addSettings.partials[pi]) {
+        var hasPartialData = (addSettings.partials && addSettings.partials[pi]);
+        var canUpdatePartialSlider = (partialEl && hasPartialData);
+        if (canUpdatePartialSlider) {
           partialEl.value = Math.round(addSettings.partials[pi].amplitude * 100);
         }
       }
@@ -139743,6 +139988,35 @@ SL.screens = (function () {
     return initFallback();
   }
 
+  var FM_WORKLET_COUNT = 4;
+
+  function _makeFmWorkletReadyHandler(readyState, resolve) {
+    return function(event) {
+      var isReady = (event.data.type === 'ready');
+      if (isReady) {
+        readyState.count++;
+        if (readyState.count === FM_WORKLET_COUNT) {
+          isWorkletReady = true;
+          isWorkletInitializing = false;
+          resolve(true);
+        }
+      }
+    };
+  }
+
+  function _makeFmWorkletErrorHandler(idx, hasHadError, resolve, reject) {
+    return function(event) {
+      if (!hasHadError.value) {
+        hasHadError.value = true;
+        console.error('[FM] AudioWorklet processor error (inst ' + idx + '):', event);
+        isWorkletReady = false;
+        isWorkletInitializing = false;
+        console.warn('[FM] Falling back to ScriptProcessor');
+        initFallback().then(resolve).catch(reject);
+      }
+    };
+  }
+
   function initWorklet() {
     if (isWorkletReady) return Promise.resolve(true);
     if (isWorkletInitializing) return isWorkletReadyPromise;
@@ -139752,10 +140026,10 @@ SL.screens = (function () {
     isWorkletReadyPromise = new Promise(function(resolve, reject) {
       var fmWorkletUrl = (SL.audio.getWorkletBlobUrl && SL.audio.getWorkletBlobUrl('fm-worklet.js')) || 'assets/fm-worklet.js';
       audioContext.audioWorklet.addModule(fmWorkletUrl).then(function() {
-        var readyCount = 0;
-        var hasHadError = false;
+        var readyState = { count: 0 };
+        var hasHadError = { value: false };
 
-        for (var i = 0; i < 4; i++) {
+        for (var i = 0; i < FM_WORKLET_COUNT; i++) {
           (function(idx) {
             var node = new AudioWorkletNode(audioContext, 'fm-worklet', {
               numberOfInputs: 0,
@@ -139764,27 +140038,8 @@ SL.screens = (function () {
             });
             fmWorkletNodes[idx] = node;
 
-            node.port.onmessage = function(event) {
-              if (event.data.type === 'ready') {
-                readyCount++;
-                if (readyCount === 4) {
-                  isWorkletReady = true;
-                  isWorkletInitializing = false;
-                  resolve(true);
-                }
-              }
-            };
-
-            node.onprocessorerror = function(event) {
-              if (!hasHadError) {
-                hasHadError = true;
-                console.error('[FM] AudioWorklet processor error (inst ' + idx + '):', event);
-                isWorkletReady = false;
-                isWorkletInitializing = false;
-                console.warn('[FM] Falling back to ScriptProcessor');
-                initFallback().then(resolve).catch(reject);
-              }
-            };
+            node.port.onmessage = _makeFmWorkletReadyHandler(readyState, resolve);
+            node.onprocessorerror = _makeFmWorkletErrorHandler(idx, hasHadError, resolve, reject);
           })(i);
         }
 
@@ -140559,7 +140814,8 @@ SL.screens = (function () {
   }
   FBPluckModel.prototype.noteOn = function(freq, velocity) {
     this.active = true;
-    var period = this.sampleRate / freq;
+    var safeFreq = freq || 0.001;
+    var period = this.sampleRate / safeFreq;
     this.delayLength = period - 0.5; // compensate for averaging filter group delay
     this.loopFilter.setCoeff(0.5 + (this.brightness / 100) * 0.45);
     this.maxDecay = Math.floor(this.sampleRate * (1 + (this.decayTime / 100) * 9));
@@ -140573,7 +140829,8 @@ SL.screens = (function () {
     var lossPerRoundTrip = dampingNorm * DAMPING_PER_RT_MAX_LOSS;
     var minPeriodForDecay = 2.0;
     var safePeriod = period < minPeriodForDecay ? minPeriodForDecay : period;
-    this._perSampleDecay = Math.pow(1.0 - lossPerRoundTrip, 1.0 / safePeriod);
+    var guardedPeriod = safePeriod || 1;
+    this._perSampleDecay = Math.pow(1.0 - lossPerRoundTrip, 1.0 / guardedPeriod);
     this.decayCounter = 0;
     this.delayLine.clear(); this.dcBlocker.clear(); this.loopFilter.clear();
     for (var bfc = 0; bfc < this.bodyFilters.length; bfc++) { this.bodyFilters[bfc].clear(); }
@@ -140589,8 +140846,9 @@ SL.screens = (function () {
       for (var i = burstLen; i < intPeriod; i++) this.delayLine.write(0);
     } else if (this.excitation === 'pick') {
       var half = Math.floor(intPeriod / 2);
+      var safeHalf = half || 1;
       for (var i = 0; i < intPeriod; i++) {
-        var env = i < half ? i / half : (intPeriod - i) / (intPeriod - half);
+        var env = i < half ? i / safeHalf : (intPeriod - i) / ((intPeriod - half) || 1);
         this.delayLine.write((env + (Math.random() * 2 - 1) * 0.15) * vel * 0.5);
       }
     } else {
@@ -140687,7 +140945,8 @@ SL.screens = (function () {
   };
   FBBowModel.prototype.noteOn = function(freq, velocity) {
     this.active = true; this.bowing = true;
-    var period = this.sampleRate / freq;
+    var safeFreq = freq || 0.001;
+    var period = this.sampleRate / safeFreq;
     var bowPos = 0.12 + (this.bowPosition / 100) * 0.3;
     this.baseBridgeLength = Math.max(2, Math.floor(period * bowPos));
     this.baseNeckLength = Math.max(2, Math.floor(period * (1 - bowPos)));
@@ -140790,9 +141049,10 @@ SL.screens = (function () {
       this.vibratoPhase += vibratoFreqNow / this.sampleRate;
       if (this.vibratoPhase > 1) this.vibratoPhase -= 1;
       var rampSamples = this.sampleRate * 0.3;
+      var safeRampSamples = rampSamples || 1;
       var vibTarget = this.maxVibratoDepth * (1 + fbDrift2 * 0.80 * this.humanization);
       if (this.decayCounter < rampSamples) {
-        this.vibratoDepth = vibTarget * (this.decayCounter / rampSamples);
+        this.vibratoDepth = vibTarget * (this.decayCounter / safeRampSamples);
       } else {
         this.vibratoDepth = vibTarget;
       }
@@ -140882,7 +141142,8 @@ SL.screens = (function () {
   };
   FBBlowModel.prototype.noteOn = function(freq, velocity) {
     this.active = true; this.blowing = true;
-    var period = this.sampleRate / freq;
+    var safeFreq = freq || 0.001;
+    var period = this.sampleRate / safeFreq;
     // Half-period bore length: with negative bell reflection (one round-trip
     // inversion) a delay of N samples resonates at sampleRate/(2*N). For the
     // fundamental to fall at the played frequency we need N = period/2.
@@ -141167,7 +141428,8 @@ SL.screens = (function () {
     if (freq >= sr / 2 - 100) freq = sr / 2 - 100;
     if (freq < 20) freq = 20;
     var w0 = 2 * Math.PI * freq / sr;
-    var alpha = Math.sin(w0) / (2 * (freq / bw));
+    var safeBw = bw || 0.001;
+    var alpha = Math.sin(w0) / (2 * (freq / safeBw));
     var a0 = 1 + alpha;
     mode.b0 = (Math.sin(w0) / 2) / a0;
     mode.a1 = (-2 * Math.cos(w0)) / a0;
@@ -141355,6 +141617,35 @@ SL.screens = (function () {
     return initFallback();
   }
 
+  var PHYSICAL_WORKLET_COUNT = 4;
+
+  function _makePhysicalWorkletReadyHandler(readyState, resolve) {
+    return function(event) {
+      var isReady = (event.data.type === 'ready');
+      if (isReady) {
+        readyState.count++;
+        if (readyState.count === PHYSICAL_WORKLET_COUNT) {
+          isWorkletReady = true;
+          isWorkletInitializing = false;
+          resolve(true);
+        }
+      }
+    };
+  }
+
+  function _makePhysicalWorkletErrorHandler(idx, hasHadError, resolve, reject) {
+    return function(event) {
+      if (!hasHadError.value) {
+        hasHadError.value = true;
+        console.error('[PHYSICAL] AudioWorklet processor error (inst ' + idx + '):', event);
+        isWorkletReady = false;
+        isWorkletInitializing = false;
+        console.warn('[PHYSICAL] Falling back to ScriptProcessor');
+        initFallback().then(resolve).catch(reject);
+      }
+    };
+  }
+
   function initWorklet() {
     if (isWorkletReady) return Promise.resolve(true);
     if (isWorkletInitializing) return isWorkletReadyPromise;
@@ -141364,10 +141655,10 @@ SL.screens = (function () {
     isWorkletReadyPromise = new Promise(function(resolve, reject) {
       var physWorkletUrl = (SL.audio.getWorkletBlobUrl && SL.audio.getWorkletBlobUrl('physical-worklet.js')) || 'assets/physical-worklet.js';
       audioContext.audioWorklet.addModule(physWorkletUrl).then(function() {
-        var readyCount = 0;
-        var hasHadError = false;
+        var readyState = { count: 0 };
+        var hasHadError = { value: false };
 
-        for (var i = 0; i < 4; i++) {
+        for (var i = 0; i < PHYSICAL_WORKLET_COUNT; i++) {
           (function(idx) {
             var node = new AudioWorkletNode(audioContext, 'physical-model', {
               numberOfInputs: 0,
@@ -141376,27 +141667,8 @@ SL.screens = (function () {
             });
             physicalWorkletNodes[idx] = node;
 
-            node.port.onmessage = function(event) {
-              if (event.data.type === 'ready') {
-                readyCount++;
-                if (readyCount === 4) {
-                  isWorkletReady = true;
-                  isWorkletInitializing = false;
-                  resolve(true);
-                }
-              }
-            };
-
-            node.onprocessorerror = function(event) {
-              if (!hasHadError) {
-                hasHadError = true;
-                console.error('[PHYSICAL] AudioWorklet processor error (inst ' + idx + '):', event);
-                isWorkletReady = false;
-                isWorkletInitializing = false;
-                console.warn('[PHYSICAL] Falling back to ScriptProcessor');
-                initFallback().then(resolve).catch(reject);
-              }
-            };
+            node.port.onmessage = _makePhysicalWorkletReadyHandler(readyState, resolve);
+            node.onprocessorerror = _makePhysicalWorkletErrorHandler(idx, hasHadError, resolve, reject);
           })(i);
         }
 
@@ -141816,6 +142088,7 @@ SL.screens = (function () {
     var partials = [];
     for (var i = 0; i < numPartials; i++) {
       var h = i + 1; // harmonic number (1-based)
+      var safeH = h || 1;
       var amp = 0;
       var phase = 0;
 
@@ -141825,11 +142098,11 @@ SL.screens = (function () {
         }
       } else if (type === 'saw') {
         // Sawtooth: sum of 1/h for all harmonics
-        amp = 1.0 / h;
+        amp = 1.0 / safeH;
       } else if (type === 'square') {
         // Square: only odd harmonics, amplitude 1/h
         if (h % 2 === 1) {
-          amp = 1.0 / h;
+          amp = 1.0 / safeH;
         }
       } else if (type === 'triangle') {
         // Triangle: only odd harmonics, amplitude 1/h^2, alternating sign
@@ -142666,11 +142939,12 @@ SL.screens = (function () {
       }
     } else if (shape === 'triangle') {
       var half = lengthSamples / 2;
+      var safeHalf = half || 1;
       for (i = 0; i < lengthSamples; i++) {
         if (i < half) {
-          env[i] = i / half;
+          env[i] = i / safeHalf;
         } else {
-          env[i] = 2.0 - (i / half);
+          env[i] = 2.0 - (i / safeHalf);
         }
       }
     } else {
@@ -142809,7 +143083,8 @@ SL.screens = (function () {
     var density = granSettings.density || 10;
 
     this.grainSizeSamples = Math.max(1, Math.ceil(grainSizeMs * this.sampleRate / 1000));
-    this.grainIntervalSamples = Math.max(1, Math.ceil(this.sampleRate / density));
+    var safeDensity = density || 1;
+    this.grainIntervalSamples = Math.max(1, Math.ceil(this.sampleRate / safeDensity));
     this.grainTimer = 0; // Fire first grain immediately
 
     this.pitchScatter = granSettings.pitchScatter || 0;
@@ -143733,7 +144008,8 @@ SL.screens = (function () {
     for (var b = 0; b < numBands; b++) {
       var filter = new BiquadBPF();
       // Bandwidth derived from Q: bw = freq / Q
-      var bw = bandFreqs[b] / filterQ;
+      var safeFilterQ = filterQ || 1;
+      var bw = bandFreqs[b] / safeFilterQ;
       filter.set(bandFreqs[b], bw, this.sampleRate);
       filter.reset();
       this.bandFilters.push(filter);
@@ -143747,7 +144023,8 @@ SL.screens = (function () {
    */
   VocoderVoice.prototype.updateFilterBank = function(bandFreqs, filterQ) {
     for (var b = 0; b < this.bandFilters.length; b++) {
-      var bw = bandFreqs[b] / filterQ;
+      var safeFilterQ = filterQ || 1;
+      var bw = bandFreqs[b] / safeFilterQ;
       this.bandFilters[b].set(bandFreqs[b], bw, this.sampleRate);
     }
   };
@@ -145464,9 +145741,10 @@ SL.screens = (function () {
 
     var glottalSample = 0;
     var pw = this.glottalPulseWidth;
+    var safePw = pw || 0.001;
     if (this.glottalPhase < pw) {
       // Open phase: half-sine pulse
-      var openPhase = this.glottalPhase / pw;
+      var openPhase = this.glottalPhase / safePw;
       glottalSample = Math.sin(Math.PI * openPhase);
     }
     // Closed phase: output = 0 (already initialized)
@@ -145522,6 +145800,36 @@ SL.screens = (function () {
     return initFallback();
   }
 
+  var FORMANT_WORKLET_COUNT = 4;
+
+  function _makeFormantWorkletReadyHandler(readyState, resolve) {
+    return function(event) {
+      var isReady = (event.data.type === 'ready');
+      if (isReady) {
+        readyState.count++;
+        if (readyState.count === FORMANT_WORKLET_COUNT) {
+          isWorkletReady = true;
+          isWorkletInitializing = false;
+          isEngineReady = true;
+          resolve(true);
+        }
+      }
+    };
+  }
+
+  function _makeFormantWorkletErrorHandler(idx, hasHadError, resolve, reject) {
+    return function(event) {
+      if (!hasHadError.value) {
+        hasHadError.value = true;
+        console.error('[FORMANT] AudioWorklet processor error (inst ' + idx + '):', event);
+        isWorkletReady = false;
+        isWorkletInitializing = false;
+        console.warn('[FORMANT] Falling back to ScriptProcessor');
+        initFallback().then(resolve).catch(reject);
+      }
+    };
+  }
+
   function initWorklet() {
     if (isWorkletReady) { return Promise.resolve(true); }
     if (isWorkletInitializing) { return isWorkletReadyPromise; }
@@ -145531,10 +145839,10 @@ SL.screens = (function () {
     isWorkletReadyPromise = new Promise(function(resolve, reject) {
       var formantWorkletUrl = (SL.audio.getWorkletBlobUrl && SL.audio.getWorkletBlobUrl('formant-worklet.js')) || 'assets/formant-worklet.js';
       audioContext.audioWorklet.addModule(formantWorkletUrl).then(function() {
-        var readyCount = 0;
-        var hasHadError = false;
+        var readyState = { count: 0 };
+        var hasHadError = { value: false };
 
-        for (var i = 0; i < 4; i++) {
+        for (var i = 0; i < FORMANT_WORKLET_COUNT; i++) {
           (function(idx) {
             var node = new AudioWorkletNode(audioContext, 'formant-processor', {
               numberOfInputs: 0,
@@ -145543,28 +145851,8 @@ SL.screens = (function () {
             });
             formantWorkletNodes[idx] = node;
 
-            node.port.onmessage = function(event) {
-              if (event.data.type === 'ready') {
-                readyCount++;
-                if (readyCount === 4) {
-                  isWorkletReady = true;
-                  isWorkletInitializing = false;
-                  isEngineReady = true;
-                  resolve(true);
-                }
-              }
-            };
-
-            node.onprocessorerror = function(event) {
-              if (!hasHadError) {
-                hasHadError = true;
-                console.error('[FORMANT] AudioWorklet processor error (inst ' + idx + '):', event);
-                isWorkletReady = false;
-                isWorkletInitializing = false;
-                console.warn('[FORMANT] Falling back to ScriptProcessor');
-                initFallback().then(resolve).catch(reject);
-              }
-            };
+            node.port.onmessage = _makeFormantWorkletReadyHandler(readyState, resolve);
+            node.onprocessorerror = _makeFormantWorkletErrorHandler(idx, hasHadError, resolve, reject);
           })(i);
         }
 
@@ -145614,15 +145902,16 @@ SL.screens = (function () {
           var shouldCycleVowels = settings.vowelSequenceEnabled && hasVowelSequence;
           if (shouldCycleVowels) {
             var seqLen = settings.vowelSequence.length;
-            var samplesPerVowel = Math.max(1, Math.round(audioContext.sampleRate / settings.vowelSequenceRate));
+            var safeSeqLen = seqLen || 1;
+            var samplesPerVowel = Math.max(1, Math.round(audioContext.sampleRate / (settings.vowelSequenceRate || 1)));
             if (!settings._seqCounter) { settings._seqCounter = 0; }
             if (!settings._seqIndex) { settings._seqIndex = 0; }
             settings._seqCounter += output.length;
             if (settings._seqCounter >= samplesPerVowel) {
               settings._seqCounter -= samplesPerVowel;
-              settings._seqIndex = (settings._seqIndex + 1) % seqLen;
+              settings._seqIndex = (settings._seqIndex + 1) % safeSeqLen;
               settings.vowel = settings.vowelSequence[settings._seqIndex];
-              settings.vowelTarget = settings.vowelSequence[(settings._seqIndex + 1) % seqLen];
+              settings.vowelTarget = settings.vowelSequence[(settings._seqIndex + 1) % safeSeqLen];
               // Recalculate formants with updated vowels
               formants = interpolateFormants(
                 settings.vowel,
@@ -146229,7 +146518,8 @@ SL.screens = (function () {
     var w0 = 2 * Math.PI * freq / sr;
     var sinW0 = Math.sin(w0);
     var cosW0 = Math.cos(w0);
-    var alpha = sinW0 / (2 * (freq / bw));
+    var safeBw = bw || 0.001;
+    var alpha = sinW0 / (2 * (freq / safeBw));
     var a0 = 1 + alpha;
     mode.b0 = (sinW0 / 2) / a0;
     mode.a1 = (-2 * cosW0) / a0;
@@ -147537,7 +147827,8 @@ SL.screens = (function () {
     } else if (voicing === 'spread') {
       // Spread notes across two octaves
       for (var j = 0; j < result.length; j++) {
-        result[j] = result[j] + Math.floor(j * 12 / result.length);
+        var safeResultLen = result.length || 1;
+        result[j] = result[j] + Math.floor(j * 12 / safeResultLen);
       }
     }
     return result;
@@ -148142,12 +148433,14 @@ SL.screens = (function () {
     if (mixMode === 'center-heavy') {
       // Center voice(s) louder, edges quieter
       var center = (voiceCount - 1) / 2.0;
-      var dist = Math.abs(voiceIdx - center) / center;
+      var safeCenter = center || 1;
+      var dist = Math.abs(voiceIdx - center) / safeCenter;
       return 1.0 - dist * 0.6;
     } else if (mixMode === 'edge-heavy') {
       // Edge voices louder, center quieter
       var center2 = (voiceCount - 1) / 2.0;
-      var dist2 = Math.abs(voiceIdx - center2) / center2;
+      var safeCenter2 = center2 || 1;
+      var dist2 = Math.abs(voiceIdx - center2) / safeCenter2;
       return 0.4 + dist2 * 0.6;
     }
     // equal
@@ -148732,7 +149025,8 @@ SL.screens = (function () {
         var sqMix = (t - 0.25) / 0.25;
         for (var h2 = 0; h2 < HARMONICS_PER_FRAME; h2++) {
           var n = h2 + 1;
-          var sawAmp = 1.0 / n;
+          var safeN = n || 1;
+          var sawAmp = 1.0 / safeN;
           if (n % 2 === 0) {
             harmonics[h2] = sawAmp * (1.0 - sqMix);
           } else {
@@ -148744,9 +149038,10 @@ SL.screens = (function () {
         var triMix = (t - 0.5) / 0.25;
         for (var h3 = 0; h3 < HARMONICS_PER_FRAME; h3++) {
           var n3 = h3 + 1;
+          var safeN3 = n3 || 1;
           if (n3 % 2 === 1) {
-            var sqAmp = 1.0 / n3;
-            var triAmp = 1.0 / (n3 * n3);
+            var sqAmp = 1.0 / safeN3;
+            var triAmp = 1.0 / (safeN3 * safeN3);
             harmonics[h3] = sqAmp + (triAmp - sqAmp) * triMix;
           } else {
             harmonics[h3] = 0;
@@ -148757,8 +149052,9 @@ SL.screens = (function () {
         var pulseMix = (t - 0.75) / 0.25;
         for (var h4 = 0; h4 < HARMONICS_PER_FRAME; h4++) {
           var n4 = h4 + 1;
-          var triAmp2 = (n4 % 2 === 1) ? (1.0 / (n4 * n4)) : 0;
-          var pulseAmp = 1.0 / n4; // all harmonics present for narrow pulse
+          var safeN4 = n4 || 1;
+          var triAmp2 = (n4 % 2 === 1) ? (1.0 / (safeN4 * safeN4)) : 0;
+          var pulseAmp = 1.0 / safeN4; // all harmonics present for narrow pulse
           harmonics[h4] = triAmp2 + (pulseAmp - triAmp2) * pulseMix;
         }
       }
@@ -148828,17 +149124,20 @@ SL.screens = (function () {
         var pw = 0.5 - t * 0.9; // 0.5 -> 0.05
         for (var h = 0; h < HARMONICS_PER_FRAME; h++) {
           var n = h + 1;
+          var safeN = n || 1;
           // Pulse wave spectrum: sin(n*pi*pw) / n
-          harmonics[h] = Math.abs(Math.sin(n * Math.PI * pw)) / n;
+          harmonics[h] = Math.abs(Math.sin(n * Math.PI * pw)) / safeN;
         }
       } else {
         // Sync sweep: shift harmonic peaks upward
         var syncRatio = 1.0 + (t - 0.5) * 2.0 * 7.0; // 1.0 -> 8.0
+        var safeSyncRatio = syncRatio || 1;
         for (var h2 = 0; h2 < HARMONICS_PER_FRAME; h2++) {
           var n2 = h2 + 1;
+          var safeN2 = n2 || 1;
           // Sinc-like envelope centered on syncRatio multiples
-          var dist2 = (n2 / syncRatio) - Math.round(n2 / syncRatio);
-          harmonics[h2] = Math.exp(-dist2 * dist2 * 8) / n2;
+          var dist2 = (n2 / safeSyncRatio) - Math.round(n2 / safeSyncRatio);
+          harmonics[h2] = Math.exp(-dist2 * dist2 * 8) / safeN2;
         }
       }
       frames.push(harmonics);
@@ -148861,9 +149160,10 @@ SL.screens = (function () {
         var n = h + 1;
         // Stretched partial: f_n = n * sqrt(1 + B * n^2) (piano-string model)
         var stretchedN = n * Math.sqrt(1.0 + inharmonicity * n * n);
+        var safeStretchedN = stretchedN || 1;
         // Amplitude with spectral tilt evolving from bright to dark
         var tilt = 1.0 + t * 2.0;
-        var amp = Math.pow(1.0 / stretchedN, tilt);
+        var amp = Math.pow(1.0 / safeStretchedN, tilt);
         // Add beating: pairs of close partials
         if (h > 0 && h % 3 === 0) {
           amp *= 1.0 + 0.5 * Math.sin(t * TWO_PI * 2);
@@ -149713,8 +150013,9 @@ SL.screens = (function () {
   function pdPulse(phase, amount, windowType) {
     // Compress the full sine cycle into a narrow window
     var pulseWidth = 1.0 - amount * 0.9; // 1.0 -> 0.1
+    var safePulseWidth = pulseWidth || 0.001;
     if (phase < pulseWidth) {
-      return phase / pulseWidth;
+      return phase / safePulseWidth;
     } else {
       return 0; // flat zero outside pulse window
     }
@@ -150529,7 +150830,8 @@ SL.screens = (function () {
     }
     var levels = Math.pow(2, bits);
     var half = levels / 2;
-    return Math.round(sample * half) / half;
+    var safeHalf = half || 1;
+    return Math.round(sample * safeHalf) / safeHalf;
   }
 
   // ============================================================
@@ -151602,8 +151904,9 @@ SL.screens = (function () {
   function processBytebeat(outputBuffer) {
     var output = outputBuffer.getChannelData(0);
     var hostRate = audioContext.sampleRate;
+    var safeHostRate = hostRate || 1;
     var bbRate = settings.sampleRate;
-    var ratio = bbRate / hostRate;
+    var ratio = bbRate / safeHostRate;
     var depth = settings.bitDepth;
     var inc = settings.tIncrement;
 
@@ -153110,7 +153413,8 @@ SL.screens = (function () {
     // Apply drive (tanh soft clipping)
     if (this.driveAmount > 0.01) {
       var driveGain = 1.0 + this.driveAmount * 8.0;
-      sample = softClipTanh(sample * driveGain) / driveGain * (1.0 + this.driveAmount * 2.0);
+      var safeDriveGain = driveGain || 1;
+      sample = softClipTanh(sample * driveGain) / safeDriveGain * (1.0 + this.driveAmount * 2.0);
     }
 
     this.samplesSinceStart++;
@@ -153202,7 +153506,8 @@ SL.screens = (function () {
       var burstStart = b * spacing;
       var burstEnd = burstStart + burstLen;
       if (s >= burstStart && s < burstEnd) {
-        var burstProgress = (s - burstStart) / burstLen;
+        var safeBurstLen = burstLen || 1;
+        var burstProgress = (s - burstStart) / safeBurstLen;
         var burstEnv = 1.0 - burstProgress;
         sample += this.noiseGen.next() * burstEnv;
       }
@@ -153775,7 +154080,8 @@ SL.screens = (function () {
     // Pulse train parameters
     // pulseRate is the fundamental — scale by MIDI pitch ratio
     var baseRate = settings.pulseRate || 100;
-    var midiRatio = freq / midiToFreq(69);
+    var safeMidiFreq = midiToFreq(69) || 1;
+    var midiRatio = freq / safeMidiFreq;
     this.pulsePhaseInc = (baseRate * midiRatio) / this.sampleRate;
 
     this.pulsePhase = 0;
@@ -154885,7 +155191,8 @@ SL.screens = (function () {
     if (this.isOverblown) {
       effectiveFreq = freq / this.overblowRatio;
     }
-    var period = this.sampleRate / effectiveFreq;
+    var safeEffectiveFreq = effectiveFreq || 0.001;
+    var period = this.sampleRate / safeEffectiveFreq;
     // Bore length: with one round-trip inversion in the reed waveguide loop
     // (the subtraction in pressureDiff = excitation - filteredBore), a delay
     // of N samples resonates at sampleRate/(2N). So N = period/2 places the
@@ -155095,8 +155402,9 @@ SL.screens = (function () {
         this.vibratoPhase -= 1.0;
       }
       var rampSamples = this.sampleRate * 0.3;
+      var safeRampSamples = rampSamples || 1;
       if (this.decayCounter < rampSamples) {
-        this.vibratoDepth = this.maxVibratoDepth * (this.decayCounter / rampSamples);
+        this.vibratoDepth = this.maxVibratoDepth * (this.decayCounter / safeRampSamples);
       } else {
         this.vibratoDepth = this.maxVibratoDepth;
       }
@@ -168470,6 +168778,21 @@ SL.screens = (function () {
    * @param {string} [engine] - Restrict lookup to this engine.
    * @returns {boolean} True if found and applied, false otherwise.
    */
+  function _ensurePresetHasEngine(srcPreset, eng, p) {
+    var preset = srcPreset;
+    var needsEngine = !preset.engine && p.engineNameToType;
+    if (needsEngine) {
+      preset = _makePresetCopy();
+      for (var k in srcPreset) {
+        if (Object.prototype.hasOwnProperty.call(srcPreset, k)) {
+          preset[k] = srcPreset[k];
+        }
+      }
+      preset.engine = p.engineNameToType(eng);
+    }
+    return preset;
+  }
+
   function loadPreset(name, engine) {
     var p = _getPresets();
     if (!p || !name) {
@@ -168486,18 +168809,7 @@ SL.screens = (function () {
         var list = (p.getPresetsForEngineCategory ? p.getPresetsForEngineCategory(eng, cats[ci]) : _emptyList()) || _emptyList();
         for (pi = 0; pi < list.length; pi++) {
           if (list[pi] && list[pi].name === name) {
-            var preset = list[pi];
-            // Ensure preset carries engine tag for apply dispatch.
-            if (!preset.engine && p.engineNameToType) {
-              preset = _makePresetCopy();
-              var src = list[pi];
-              for (var k in src) {
-                if (Object.prototype.hasOwnProperty.call(src, k)) {
-                  preset[k] = src[k];
-                }
-              }
-              preset.engine = p.engineNameToType(eng);
-            }
+            var preset = _ensurePresetHasEngine(list[pi], eng, p);
             if (p.apply) {
               p.apply(preset, _getCurrentInstId());
               return true;
@@ -170992,6 +171304,21 @@ SL.screens = (function () {
       }
     }
 
+    var ADDITIVE_PARTIAL_COUNT = 16;
+    var ADDITIVE_PERCENT_SCALE = 100;
+
+    function _refreshAdditivePartialSliders(instId) {
+        var freshSettings = SL.additive.getSettings(instId);
+        var hasPartials = freshSettings && freshSettings.partials;
+        if (!hasPartials) { return; }
+        for (var pp = 0; pp < ADDITIVE_PARTIAL_COUNT; pp++) {
+            var pEl = document.getElementById('additivePartial' + pp);
+            if (pEl) {
+                pEl.value = Math.round(freshSettings.partials[pp].amplitude * ADDITIVE_PERCENT_SCALE);
+            }
+        }
+    }
+
     function initAdditiveControls() {
       if (_isAdditiveInitialized) {
         // Just refresh values from engine
@@ -171095,15 +171422,7 @@ SL.screens = (function () {
           if (SL.additive && SL.additive.applyQuickSet) {
             SL.additive.applyQuickSet(currentInstId, preset);
             // Refresh partial sliders
-            var freshSettings = SL.additive.getSettings(currentInstId);
-            if (freshSettings && freshSettings.partials) {
-              for (var pp = 0; pp < 16; pp++) {
-                var pEl = document.getElementById('additivePartial' + pp);
-                if (pEl) {
-                  pEl.value = Math.round(freshSettings.partials[pp].amplitude * 100);
-                }
-              }
-            }
+            _refreshAdditivePartialSliders(currentInstId);
           }
         });
       });
@@ -171250,11 +171569,16 @@ SL.screens = (function () {
             });
           }
           // Sync all number inputs on change
-          strip.querySelectorAll('input[type="number"]').forEach(function(inp) {
-            inp.addEventListener('change', function() { syncFMOpToSettings(opNum); });
-          });
+          var numberInputs = strip.querySelectorAll('input[type="number"]');
+          for (var ni = 0; ni < numberInputs.length; ni++) {
+            numberInputs[ni].addEventListener('change', _makeFmOpSyncHandler(opNum));
+          }
         })(op);
       }
+    }
+
+    function _makeFmOpSyncHandler(opNum) {
+      return function() { syncFMOpToSettings(opNum); };
     }
 
     function syncFMOpToSettings(opNum) {
@@ -172363,8 +172687,9 @@ SL.screens = (function () {
         }
       }
 
+      var safeW = w || 1;
       for (var x = 0; x < w; x++) {
-        var t = (x / w) * cycles;
+        var t = (x / safeW) * cycles;
         var phase = t % 1;
         var val = 0;
 
@@ -172383,7 +172708,9 @@ SL.screens = (function () {
         } else if (waveform === 'saw') {
           val = 2 * phase - 1;
         } else if (waveform === 'sh') {
-          var stepIdx = Math.floor(t * (shValues.length / cycles)) % shValues.length;
+          var safeCycles = cycles || 1;
+          var safeShLen = shValues.length || 1;
+          var stepIdx = Math.floor(t * (safeShLen / safeCycles)) % safeShLen;
           val = shValues[stepIdx];
         }
 
@@ -175226,7 +175553,7 @@ SL.screens = (function () {
     } else {
 
     var kbEl = document.getElementById('keyboard');
-    if (kbEl) { kbEl.innerHTML = ''; }
+    if (kbEl) { kbEl.textContent = ''; }
 
     var scaleNotes = getScaleNotes();
     var baseOct = SL.ui ? SL.ui.getBaseOctave() : 4;
@@ -175421,15 +175748,16 @@ SL.screens = (function () {
       }
     } else if (name === 'blackman') {
       for (var n = 0; n < N; n++) {
-        coeffs[n] = 0.42 - 0.5 * Math.cos(2.0 * Math.PI * n / (N - 1))
-                   + 0.08 * Math.cos(4.0 * Math.PI * n / (N - 1));
+        var bk1 = 0.5 * Math.cos(2.0 * Math.PI * n / (N - 1));
+        var bk2 = 0.08 * Math.cos(4.0 * Math.PI * n / (N - 1));
+        coeffs[n] = 0.42 - bk1 + bk2;
       }
     } else if (name === 'blackman-harris') {
       for (var n = 0; n < N; n++) {
-        coeffs[n] = 0.35875
-                   - 0.48829 * Math.cos(2.0 * Math.PI * n / (N - 1))
-                   + 0.14128 * Math.cos(4.0 * Math.PI * n / (N - 1))
-                   - 0.01168 * Math.cos(6.0 * Math.PI * n / (N - 1));
+        var bh1 = 0.48829 * Math.cos(2.0 * Math.PI * n / (N - 1));
+        var bh2 = 0.14128 * Math.cos(4.0 * Math.PI * n / (N - 1));
+        var bh3 = 0.01168 * Math.cos(6.0 * Math.PI * n / (N - 1));
+        coeffs[n] = 0.35875 - bh1 + bh2 - bh3;
       }
     } else {
       // Default to rectangular
@@ -175707,8 +176035,8 @@ SL.screens = (function () {
 
     var canvas = scopeCanvas;
     var ctx = scopeCtx;
-    var width = canvas.width / window.devicePixelRatio;
-    var height = canvas.height / window.devicePixelRatio;
+    var width = canvas.width / (window.devicePixelRatio || 1);
+    var height = canvas.height / (window.devicePixelRatio || 1);
 
     // Clear
     ctx.fillStyle = '#1a1a2e';
@@ -175751,8 +176079,8 @@ SL.screens = (function () {
 
     var canvas = spectrumCanvas;
     var ctx = spectrumCtx;
-    var width = canvas.width / window.devicePixelRatio;
-    var height = canvas.height / window.devicePixelRatio;
+    var width = canvas.width / (window.devicePixelRatio || 1);
+    var height = canvas.height / (window.devicePixelRatio || 1);
 
     // Clear
     ctx.fillStyle = '#1a1a2e';
@@ -175760,8 +176088,9 @@ SL.screens = (function () {
 
     // Frequency bars
     var barCount = SPECTRUM_BAR_COUNT;
-    var barWidth = width / barCount - 1;
-    var step = Math.floor(frequencyData.length / barCount);
+    var safeBarCount = barCount || 1;
+    var barWidth = width / safeBarCount - 1;
+    var step = Math.floor(frequencyData.length / safeBarCount);
 
     for (var i = 0; i < barCount; i++) {
       // Average multiple bins for each bar
@@ -175769,7 +176098,8 @@ SL.screens = (function () {
       for (var j = 0; j < step; j++) {
         sum += frequencyData[i * step + j];
       }
-      var value = sum / step;
+      var safeStep = step || 1;
+      var value = sum / safeStep;
 
       var barHeight = (value / 255) * height;
       var x = i * (barWidth + 1);
@@ -175802,8 +176132,8 @@ SL.screens = (function () {
 
     var canvas = spectrumCanvas;
     var ctx = spectrumCtx;
-    var width = canvas.width / window.devicePixelRatio;
-    var height = canvas.height / window.devicePixelRatio;
+    var width = canvas.width / (window.devicePixelRatio || 1);
+    var height = canvas.height / (window.devicePixelRatio || 1);
 
     // Clear
     ctx.fillStyle = '#1a1a2e';
@@ -175812,20 +176142,22 @@ SL.screens = (function () {
     // Compute windowed FFT magnitude spectrum (dB)
     var magnitudes = computeWindowedSpectrum(floatTimeDomainData, windowCoefficients);
     var halfN = magnitudes.length;
+    var safeHalfN = halfN || 1;
 
     // dB range for display
     var dbMin = -100;
     var dbMax = 0;
     var dbRange = dbMax - dbMin;
+    var safeDbRange = dbRange || 1;
 
     // Draw spectrum as filled line graph
     ctx.beginPath();
     ctx.moveTo(0, height);
 
     for (var i = 0; i < halfN; i++) {
-      var xPos = (i / halfN) * width;
+      var xPos = (i / safeHalfN) * width;
       var dbVal = Math.max(dbMin, Math.min(dbMax, magnitudes[i]));
-      var yNorm = (dbVal - dbMin) / dbRange; // 0..1
+      var yNorm = (dbVal - dbMin) / safeDbRange; // 0..1
       var yPos = height - yNorm * height;
       ctx.lineTo(xPos, yPos);
     }
@@ -175844,9 +176176,9 @@ SL.screens = (function () {
     // Stroke the line on top
     ctx.beginPath();
     for (var i = 0; i < halfN; i++) {
-      var xPos = (i / halfN) * width;
+      var xPos = (i / safeHalfN) * width;
       var dbVal = Math.max(dbMin, Math.min(dbMax, magnitudes[i]));
-      var yNorm = (dbVal - dbMin) / dbRange;
+      var yNorm = (dbVal - dbMin) / safeDbRange;
       var yPos = height - yNorm * height;
       if (i === 0) {
         ctx.moveTo(xPos, yPos);
@@ -175866,9 +176198,9 @@ SL.screens = (function () {
     ctx.font = '9px monospace';
     for (var p = 0; p < peaks.length; p++) {
       var peak = peaks[p];
-      var xPos = (peak.bin / halfN) * width;
+      var xPos = (peak.bin / safeHalfN) * width;
       var dbVal = Math.max(dbMin, Math.min(dbMax, peak.magnitude));
-      var yNorm = (dbVal - dbMin) / dbRange;
+      var yNorm = (dbVal - dbMin) / safeDbRange;
       var yPos = height - yNorm * height;
 
       // Peak dot
@@ -177468,6 +177800,47 @@ SL.screens = (function () {
         return chunk;
     };
 
+    var DEFAULT_VEL = 100;
+    var NOTE_ON_STATUS = 0x90;
+    var NOTE_OFF_STATUS = 0x80;
+    var NOTE_OFF_VEL = 0x00;
+
+    function _addNoteEvents(rawEvents, n, channel, baseMidi) {
+        var isChord = n.isChord && n.notes;
+        if (isChord) {
+            for (var ci = 0; ci < n.notes.length; ci++) {
+                var midi = n.notes[ci];
+                var vel = n.vel || DEFAULT_VEL;
+                var startTick = n.start * TICKS_PER_STEP;
+                var endTick = startTick + n.dur * TICKS_PER_STEP;
+                rawEvents.push({ tick: startTick, type: 'on', midi: midi, vel: vel, channel: channel });
+                rawEvents.push({ tick: endTick, type: 'off', midi: midi, channel: channel });
+            }
+        } else {
+            var midi = n.midi || (baseMidi + (n.row || 0));
+            var vel = n.vel || DEFAULT_VEL;
+            var startTick = n.start * TICKS_PER_STEP;
+            var endTick = startTick + n.dur * TICKS_PER_STEP;
+            rawEvents.push({ tick: startTick, type: 'on', midi: midi, vel: vel, channel: channel });
+            rawEvents.push({ tick: endTick, type: 'off', midi: midi, channel: channel });
+        }
+    }
+
+    function _convertRawEventsToTrackEvents(rawEvents, trackEvents, lastTick) {
+        for (var ei = 0; ei < rawEvents.length; ei++) {
+            var ev = rawEvents[ei];
+            var delta = ev.tick - lastTick;
+            lastTick = ev.tick;
+            var isNoteOn = (ev.type === 'on');
+            if (isNoteOn) {
+                trackEvents.push({ deltaTicks: delta, bytes: [NOTE_ON_STATUS | ev.channel, ev.midi, ev.vel] });
+            } else {
+                trackEvents.push({ deltaTicks: delta, bytes: [NOTE_OFF_STATUS | ev.channel, ev.midi, NOTE_OFF_VEL] });
+            }
+        }
+        return lastTick;
+    }
+
     // Main export function
     var exportMidi = function() {
         var seqNotes = SL.sequencer.seqNotes;
@@ -177504,7 +177877,8 @@ SL.screens = (function () {
 
         // Tempo track (track 0)
         var tempoTrack = [];
-        var usPerQuarter = Math.round(60000000 / bpm);
+        var safeBpm = bpm || 1;
+        var usPerQuarter = Math.round(60000000 / safeBpm);
         tempoTrack.push({
             deltaTicks: 0,
             bytes: [0xFF, 0x51, 0x03, (usPerQuarter >> 16) & 0xFF, (usPerQuarter >> 8) & 0xFF, usPerQuarter & 0xFF]
@@ -177541,27 +177915,7 @@ SL.screens = (function () {
             rawEvents.length = 0;
 
             for (var ni = 0; ni < notes.length; ni++) {
-                var n = notes[ni];
-
-                if (n.isChord && n.notes) {
-                    // Chord: multiple note-ons at same time, multiple note-offs
-                    for (var ci = 0; ci < n.notes.length; ci++) {
-                        var midi = n.notes[ci];
-                        var vel = n.vel || 100;
-                        var startTick = n.start * TICKS_PER_STEP;
-                        var endTick = startTick + n.dur * TICKS_PER_STEP;
-                        rawEvents.push({ tick: startTick, type: 'on', midi: midi, vel: vel, channel: channel });
-                        rawEvents.push({ tick: endTick, type: 'off', midi: midi, channel: channel });
-                    }
-                } else {
-                    // Single note
-                    var midi = n.midi || (baseMidi + (n.row || 0));
-                    var vel = n.vel || 100;
-                    var startTick = n.start * TICKS_PER_STEP;
-                    var endTick = startTick + n.dur * TICKS_PER_STEP;
-                    rawEvents.push({ tick: startTick, type: 'on', midi: midi, vel: vel, channel: channel });
-                    rawEvents.push({ tick: endTick, type: 'off', midi: midi, channel: channel });
-                }
+                _addNoteEvents(rawEvents, notes[ni], channel, baseMidi);
             }
 
             // Sort by tick, then note-off before note-on at same tick
@@ -177580,17 +177934,7 @@ SL.screens = (function () {
             trackEvents.push({ deltaTicks: 0, bytes: _makeTrackNameBytes(trkName) });
 
             var lastTick = 0;
-            for (var ei = 0; ei < rawEvents.length; ei++) {
-                var ev = rawEvents[ei];
-                var delta = ev.tick - lastTick;
-                lastTick = ev.tick;
-
-                if (ev.type === 'on') {
-                    trackEvents.push({ deltaTicks: delta, bytes: [0x90 | ev.channel, ev.midi, ev.vel] });
-                } else {
-                    trackEvents.push({ deltaTicks: delta, bytes: [0x80 | ev.channel, ev.midi, 0x00] });
-                }
-            }
+            lastTick = _convertRawEventsToTrackEvents(rawEvents, trackEvents, lastTick);
 
             Array.prototype.push.apply(fileBytes, buildTrack(trackEvents));
         }
@@ -177759,7 +178103,8 @@ SL.screens = (function () {
           if (metaType === 0x51) {
             // Tempo change
             var usPerQuarter = (data[pos] << 16) | (data[pos + 1] << 8) | data[pos + 2];
-            var bpm = Math.round(60000000 / usPerQuarter);
+            var safeUsPerQuarter = usPerQuarter || 1;
+            var bpm = Math.round(60000000 / safeUsPerQuarter);
             events.push({ tick: absoluteTick, type: 'tempo', bpm });
           } else if (metaType === 0x2F) {
             // End of track
@@ -177886,10 +178231,11 @@ SL.screens = (function () {
         }
       }
 
-      var startStep = Math.round(on.tick / ticksPerStep);
+      var safeTicksPerStep = ticksPerStep || 1;
+      var startStep = Math.round(on.tick / safeTicksPerStep);
       var durSteps;
       if (bestOff) {
-        durSteps = Math.max(1, Math.round((bestOff.tick - on.tick) / ticksPerStep));
+        durSteps = Math.max(1, Math.round((bestOff.tick - on.tick) / safeTicksPerStep));
         pendingOffs.splice(bestIdx, 1);
       } else {
         durSteps = 1; // default if no note-off found
@@ -177919,7 +178265,8 @@ SL.screens = (function () {
       }
 
       var stepsPerPage = SL.SEQ_STEPS || 64;
-      var pagesNeeded = Math.ceil(maxStep / stepsPerPage);
+      var safeStepsPerPage = stepsPerPage || 1;
+      var pagesNeeded = Math.ceil(maxStep / safeStepsPerPage);
 
       // Expand sequencer pages if needed
       if (SL.sequencer && SL.sequencer.addPage) {
@@ -178241,20 +178588,24 @@ var SynthLab = window.SynthLab || {};
 
     var aboutOverlay = null;
 
+    function _updateFeedbackCount(overlay) {
+        var countEl = overlay.querySelector(".ssl-about-feedback-count");
+        if (countEl) {
+            var items = getFeedback();
+            var isPlural = (items.length !== 1);
+            var countSuffix = isPlural
+                ? SynthLab.t('feedback.count_suffix_plural')
+                : SynthLab.t('feedback.count_suffix_singular');
+            countEl.textContent = SynthLab.t('feedback.count_prefix') + items.length + countSuffix;
+        }
+    }
+
     function openAbout() {
         if (!aboutOverlay) {
             aboutOverlay = document.getElementById("sslAboutOverlay");
         }
         if (aboutOverlay) {
-            // Update feedback count
-            var countEl = aboutOverlay.querySelector(".ssl-about-feedback-count");
-            if (countEl) {
-                var items = getFeedback();
-                var countSuffix = (items.length !== 1)
-                    ? SynthLab.t('feedback.count_suffix_plural')
-                    : SynthLab.t('feedback.count_suffix_singular');
-                countEl.textContent = SynthLab.t('feedback.count_prefix') + items.length + countSuffix;
-            }
+            _updateFeedbackCount(aboutOverlay);
             // Must clear inline style AND set class — inline display:none overrides CSS
             aboutOverlay.style.display = "flex";
             aboutOverlay.className = "ssl-about-overlay visible";
@@ -178309,32 +178660,68 @@ var SynthLab = window.SynthLab || {};
     }
 
     // =========================================================================
+    function _findSslIdFromTarget(element) {
+        var target = element;
+        var sslId = null;
+        while (target && target !== document.body) {
+            var hasAttr = target.getAttribute && target.getAttribute("data-ssl-id");
+            if (hasAttr) {
+                sslId = target.getAttribute("data-ssl-id");
+                break;
+            }
+            target = target.parentElement;
+        }
+        return sslId;
+    }
+
+    function _onContextMenu(e) {
+        var sslId = _findSslIdFromTarget(e.target);
+        if (sslId) {
+            e.preventDefault();
+            e.stopPropagation();
+            showContextMenu(e.clientX, e.clientY, sslId);
+        } else {
+            hideContextMenu();
+        }
+    }
+
+    function _onFeedbackOverlayClick(e) {
+        var feedbackOvl = document.getElementById("sslFeedbackOverlay");
+        if (e.target === feedbackOvl) {
+            closeFeedbackModal();
+        }
+    }
+
+    function _onAboutOverlayClick(e) {
+        var aboutOvl = document.getElementById("sslAboutOverlay");
+        if (e.target === aboutOvl) {
+            closeAbout();
+        }
+    }
+
+    function _clearRatingSelection(container) {
+        var allBtns = container.querySelectorAll(".ssl-feedback-rating-btn");
+        for (var j = 0; j < allBtns.length; j++) {
+            allBtns[j].className = "ssl-feedback-rating-btn";
+        }
+    }
+
+    function _wireRatingButton(btn, feedbackOvl) {
+        if (feedbackOvl) {
+            btn.addEventListener("click", function() {
+                _clearRatingSelection(feedbackOvl);
+                btn.className = "ssl-feedback-rating-btn selected";
+                selectedRating = btn.getAttribute("data-rating");
+            });
+        }
+    }
+
     // Init — wire up events
     // =========================================================================
 
     function initFeedback() {
         // Context menu on right-click for elements with data-ssl-id
-        document.addEventListener("contextmenu", function(e) {
-            var target = e.target;
-            var sslId = null;
-
-            // Walk up to find nearest data-ssl-id
-            while (target && target !== document.body) {
-                if (target.getAttribute && target.getAttribute("data-ssl-id")) {
-                    sslId = target.getAttribute("data-ssl-id");
-                    break;
-                }
-                target = target.parentElement;
-            }
-
-            if (sslId) {
-                e.preventDefault();
-                e.stopPropagation();
-                showContextMenu(e.clientX, e.clientY, sslId);
-            } else {
-                hideContextMenu();
-            }
-        });
+        document.addEventListener("contextmenu", _onContextMenu);
 
         // Click elsewhere dismisses context menu
         document.addEventListener("click", function() {
@@ -178355,17 +178742,7 @@ var SynthLab = window.SynthLab || {};
         if (feedbackOvl) {
             var ratingBtns = feedbackOvl.querySelectorAll(".ssl-feedback-rating-btn");
             for (var i = 0; i < ratingBtns.length; i++) {
-                (function(btn) {
-                    btn.addEventListener("click", function() {
-                        // Deselect all
-                        var allBtns = feedbackOvl.querySelectorAll(".ssl-feedback-rating-btn");
-                        for (var j = 0; j < allBtns.length; j++) {
-                            allBtns[j].className = "ssl-feedback-rating-btn";
-                        }
-                        btn.className = "ssl-feedback-rating-btn selected";
-                        selectedRating = btn.getAttribute("data-rating");
-                    });
-                })(ratingBtns[i]);
+                _wireRatingButton(ratingBtns[i], feedbackOvl);
             }
         }
 
@@ -178379,29 +178756,19 @@ var SynthLab = window.SynthLab || {};
 
         // Feedback overlay click-to-close (on backdrop)
         if (feedbackOvl) {
-            feedbackOvl.addEventListener("click", function(e) {
-                if (e.target === feedbackOvl) {
-                    closeFeedbackModal();
-                }
-            });
+            feedbackOvl.addEventListener("click", _onFeedbackOverlayClick);
         }
 
         // About button
         var aboutBtn = document.getElementById("sslAboutBtn");
         if (aboutBtn) {
-            aboutBtn.addEventListener("click", function() {
-                openAbout();
-            });
+            aboutBtn.addEventListener("click", openAbout);
         }
 
         // About overlay click-to-close
         var aboutOvl = document.getElementById("sslAboutOverlay");
         if (aboutOvl) {
-            aboutOvl.addEventListener("click", function(e) {
-                if (e.target === aboutOvl) {
-                    closeAbout();
-                }
-            });
+            aboutOvl.addEventListener("click", _onAboutOverlayClick);
         }
 
         // About close button
@@ -179556,8 +179923,9 @@ var SynthLab = window.SynthLab || {};
   }
 
   function _hexPtrColRowFromIndex(idx) {
-    var row = Math.floor(idx / _hexPtrCols);
-    var col = idx % _hexPtrCols;
+    var safeCols = _hexPtrCols || 1;
+    var row = Math.floor(idx / safeCols);
+    var col = idx % safeCols;
     return { col: col, row: row };
   }
 
@@ -179639,6 +180007,28 @@ var SynthLab = window.SynthLab || {};
   // Triangle harmonic overlays (ported from tonnetz)
   // ============================================================
 
+  function _isValidCellIdx(cellIdx) {
+    return (cellIdx >= 0) && (cellIdx < _hexPtrCells.length) && (_hexPtrCells[cellIdx]);
+  }
+
+  function _tryDrawMajorTriangle(idx, col, row, upperRightCol, pid) {
+    var idxRight = _hexPtrCellIndex(col + 1, row);
+    var idxUpperRight = _hexPtrCellIndex(upperRightCol, row + 1);
+    var allValid = _isValidCellIdx(idx) && _isValidCellIdx(idxRight) && _isValidCellIdx(idxUpperRight);
+    if (allValid) {
+      _hexDrawTriangleOverlay(idx, idxRight, idxUpperRight, MAJOR_TRIANGLE_COLOR, pid);
+    }
+  }
+
+  function _tryDrawMinorTriangle(idx, col, row, lowerLeftCol, pid) {
+    var idxLeft = _hexPtrCellIndex(col - 1, row);
+    var idxLowerLeft = _hexPtrCellIndex(lowerLeftCol, row - 1);
+    var allValid = _isValidCellIdx(idx) && _isValidCellIdx(idxLeft) && _isValidCellIdx(idxLowerLeft);
+    if (allValid) {
+      _hexDrawTriangleOverlay(idx, idxLeft, idxLowerLeft, MINOR_TRIANGLE_COLOR, pid);
+    }
+  }
+
   function _hexShowTriangles(idx, pointerId) {
     var pid = (pointerId !== undefined) ? pointerId : '_default';
     _hexClearTriangles(pid);
@@ -179664,28 +180054,14 @@ var SynthLab = window.SynthLab || {};
     var hasRight = ((col + 1) < _hexPtrCols);
     var hasUpperRight = ((upperRightCol >= 0) && (upperRightCol < _hexPtrCols) && ((row + 1) < _hexPtrRows));
     if (hasRight && hasUpperRight) {
-      var idxRight = _hexPtrCellIndex(col + 1, row);
-      var idxUpperRight = _hexPtrCellIndex(upperRightCol, row + 1);
-      var upAllValid = (idx >= 0) && (idx < _hexPtrCells.length) && (_hexPtrCells[idx]) &&
-                       (idxRight >= 0) && (idxRight < _hexPtrCells.length) && (_hexPtrCells[idxRight]) &&
-                       (idxUpperRight >= 0) && (idxUpperRight < _hexPtrCells.length) && (_hexPtrCells[idxUpperRight]);
-      if (upAllValid) {
-        _hexDrawTriangleOverlay(idx, idxRight, idxUpperRight, MAJOR_TRIANGLE_COLOR, pid);
-      }
+      _tryDrawMajorTriangle(idx, col, row, upperRightCol, pid);
     }
 
     // Downward triangle: this + left neighbor + lower-left neighbor
     var hasLeft = ((col - 1) >= 0);
     var hasLowerLeft = ((lowerLeftCol >= 0) && (lowerLeftCol < _hexPtrCols) && ((row - 1) >= 0));
     if (hasLeft && hasLowerLeft) {
-      var idxLeft = _hexPtrCellIndex(col - 1, row);
-      var idxLowerLeft = _hexPtrCellIndex(lowerLeftCol, row - 1);
-      var downAllValid = (idx >= 0) && (idx < _hexPtrCells.length) && (_hexPtrCells[idx]) &&
-                         (idxLeft >= 0) && (idxLeft < _hexPtrCells.length) && (_hexPtrCells[idxLeft]) &&
-                         (idxLowerLeft >= 0) && (idxLowerLeft < _hexPtrCells.length) && (_hexPtrCells[idxLowerLeft]);
-      if (downAllValid) {
-        _hexDrawTriangleOverlay(idx, idxLeft, idxLowerLeft, MINOR_TRIANGLE_COLOR, pid);
-      }
+      _tryDrawMinorTriangle(idx, col, row, lowerLeftCol, pid);
     }
     } // end if (_hexGridEl)
   }
@@ -180369,7 +180745,8 @@ var SynthLab = window.SynthLab || {};
     //   hexWidth = size * sqrt(3), hexHeight = size * 2
     //   vertical spacing = hexHeight * 3/4
     //   odd rows offset right by hexWidth / 2
-    var cols = Math.floor((availW / minHexWidth) - 0.5);
+    var safeMinHexWidth = minHexWidth || 1;
+    var cols = Math.floor((availW / safeMinHexWidth) - 0.5);
     if (cols < 3) { cols = 3; }
 
     var hexWidth = Math.floor((2 * availW) / (2 * cols + 1));
@@ -180386,7 +180763,8 @@ var SynthLab = window.SynthLab || {};
     }
 
     var verticalSpacing = Math.floor(hexHeight * 0.75);
-    var rows = Math.floor((availH - hexHeight) / verticalSpacing) + 1;
+    var safeVerticalSpacing = verticalSpacing || 1;
+    var rows = Math.floor((availH - hexHeight) / safeVerticalSpacing) + 1;
     if (rows < MIN_HEX_ROW_COUNT) { rows = MIN_HEX_ROW_COUNT; }
 
     var fontSize = isPhone ? HEX_FONT_SIZE_PHONE : HEX_FONT_SIZE_DESKTOP;
@@ -180552,7 +180930,8 @@ var SynthLab = window.SynthLab || {};
         // Pitch bend from horizontal drag
         if (hasBend) {
           var dx = t.clientX - info.startX;
-          var bendCents = (dx / cellW) * CENTS_PER_SEMITONE;
+          var safeCellW = cellW || 1;
+          var bendCents = (dx / safeCellW) * CENTS_PER_SEMITONE;
           bendCents = Math.max(-MAX_BEND_CENTS, Math.min(MAX_BEND_CENTS, bendCents));
           applyPitchBend(bendCents);
         }
@@ -180633,7 +181012,8 @@ var SynthLab = window.SynthLab || {};
       if (!_isMouseDown || (_mouseMidi < 0)) { return; }
       if (hasBend) {
         var dx = e.clientX - _mouseStartX;
-        var bendCents = (dx / cellW) * CENTS_PER_SEMITONE;
+        var safeCellW = cellW || 1;
+        var bendCents = (dx / safeCellW) * CENTS_PER_SEMITONE;
         bendCents = Math.max(-MAX_BEND_CENTS, Math.min(MAX_BEND_CENTS, bendCents));
         applyPitchBend(bendCents);
       }
@@ -180714,24 +181094,24 @@ var SynthLab = window.SynthLab || {};
     if (fixedCols > 0) {
       // Fixed-column layout (e.g. Chromatic 12-col): no gap, fill exactly
       cols = fixedCols;
-      cellW = Math.floor(containerW / cols);
-      rows = Math.max(2, Math.floor(containerH / cellW));
-      cellH = Math.floor(containerH / rows);
+      cellW = Math.floor(containerW / (cols || 1));
+      rows = Math.max(2, Math.floor(containerH / (cellW || 1)));
+      cellH = Math.floor(containerH / (rows || 1));
     } else {
       // Normal isomorphic layout with gaps
       cols = isPhone ? RECT_PHONE_MAX_COLS : RECT_DESKTOP_COLS;
       rows = RECT_DEFAULT_ROWS;
 
-      cellW = Math.floor((containerW - ((cols - 1) * GRID_GAP)) / cols);
-      cellH = Math.floor((containerH - ((rows - 1) * GRID_GAP)) / rows);
+      cellW = Math.floor((containerW - ((cols - 1) * GRID_GAP)) / (cols || 1));
+      cellH = Math.floor((containerH - ((rows - 1) * GRID_GAP)) / (rows || 1));
 
       while ((cellW < RECT_MIN_CELL_SIZE) && (cols > 3)) {
         cols = cols - 1;
-        cellW = Math.floor((containerW - ((cols - 1) * GRID_GAP)) / cols);
+        cellW = Math.floor((containerW - ((cols - 1) * GRID_GAP)) / (cols || 1));
       }
       while ((cellH < RECT_MIN_CELL_SIZE) && (rows > 2)) {
         rows = rows - 1;
-        cellH = Math.floor((containerH - ((rows - 1) * GRID_GAP)) / rows);
+        cellH = Math.floor((containerH - ((rows - 1) * GRID_GAP)) / (rows || 1));
       }
 
       if (cellW < RECT_MIN_CELL_SIZE) { cellW = RECT_MIN_CELL_SIZE; }
@@ -181558,7 +181938,8 @@ var SynthLab = window.SynthLab || {};
     var result = -1;
     if (_fretGeo) {
       var relativeY = clientY - _fretGeo.boardTop - _fretGeo.headerHeight;
-      var row = Math.floor(relativeY / _fretGeo.stringSpacing);
+      var safeStringSpacing = _fretGeo.stringSpacing || 1;
+      var row = Math.floor(relativeY / safeStringSpacing);
       if (row < 0) { row = 0; }
       if (row >= _fretGeo.numStrings) { row = _fretGeo.numStrings - 1; }
       result = row;
@@ -181570,7 +181951,8 @@ var SynthLab = window.SynthLab || {};
     var result = 0;
     if (_fretGeo) {
       var relativeX = clientX - _fretGeo.boardLeft - _fretGeo.openLabelWidth;
-      var fret = Math.floor(relativeX / _fretGeo.fretWidth);
+      var safeFretWidth = _fretGeo.fretWidth || 1;
+      var fret = Math.floor(relativeX / safeFretWidth);
       if (fret < 0) { fret = 0; }
       if (fret > _fretGeo.fretCount) { fret = _fretGeo.fretCount; }
       result = fret;
@@ -181584,7 +181966,8 @@ var SynthLab = window.SynthLab || {};
     var result = 0;
     if (_fretGeo) {
       var relativeX = clientX - _fretGeo.boardLeft - _fretGeo.openLabelWidth;
-      var fretExact = relativeX / _fretGeo.fretWidth;
+      var safeFretWidth = _fretGeo.fretWidth || 1;
+      var fretExact = relativeX / safeFretWidth;
       if (fretExact < 0) { fretExact = 0; }
       if (fretExact > _fretGeo.fretCount) { fretExact = _fretGeo.fretCount; }
       result = fretExact;
@@ -181922,7 +182305,8 @@ var SynthLab = window.SynthLab || {};
 
     var si;
     for (si = 0; si < ordered.length; si++) {
-      var rhythmMult = rhythmPat[si % rhythmPat.length];
+      var safeRhythmLen = rhythmPat.length || 1;
+      var rhythmMult = rhythmPat[si % safeRhythmLen];
       if (rhythmMult === 0) {
         cumulativeTime = cumulativeTime + baseDelay;
       } else {
@@ -183037,7 +183421,8 @@ var SynthLab = window.SynthLab || {};
 
     var headerHeight = FRET_HEADER_HEIGHT;
     var stringAreaHeight = boardHeight - headerHeight;
-    var stringSpacing = Math.floor(stringAreaHeight / numStrings);
+    var safeNumStrings = numStrings || 1;
+    var stringSpacing = Math.floor(stringAreaHeight / safeNumStrings);
     var fretAreaWidth = boardWidth - openLabelWidthPx;
     var strumZoneWidth = Math.floor(fretAreaWidth * STRUM_ZONE_FRACTION);
     var fretableWidth = fretAreaWidth - strumZoneWidth;
@@ -183491,11 +183876,12 @@ var SynthLab = window.SynthLab || {};
     var startMidi = (baseOctave + 1) * 12;
     var endMidi = (baseOctave + numOctaves + 1) * 12;
     var totalNotes = endMidi - startMidi;
+    var safeTotalNotes = totalNotes || 1;
     var stripWidth = containerW - RIBBON_PADDING * 2;
 
     for (var oct = baseOctave + 1; oct <= baseOctave + numOctaves + 1; oct++) {
       var octMidi = oct * 12;
-      var frac = (octMidi - startMidi) / totalNotes;
+      var frac = (octMidi - startMidi) / safeTotalNotes;
       var xPos = Math.floor(frac * stripWidth);
       var marker = document.createElement('div');
       marker.className = 'ctrl-ribbon-oct-marker ssli-ribbon-oct-marker';
@@ -183514,7 +183900,7 @@ var SynthLab = window.SynthLab || {};
     for (var n = startMidi; n <= endMidi; n++) {
       var pc = n % 12;
       if (pc === 0) { continue; }
-      var nFrac = (n - startMidi) / totalNotes;
+      var nFrac = (n - startMidi) / safeTotalNotes;
       var nX = Math.floor(nFrac * stripWidth);
       var semiTick = document.createElement('div');
       semiTick.className = 'ctrl-ribbon-semi-tick ssli-ribbon-semi-tick';
@@ -184115,7 +184501,8 @@ var SynthLab = window.SynthLab || {};
     }
 
     var stripCount = loomNotes.length;
-    var stripW = Math.floor(containerW / stripCount);
+    var safeStripCount = stripCount || 1;
+    var stripW = Math.floor(containerW / safeStripCount);
     var stripAreaH = containerH - LOOM_TOPBAR_HEIGHT;
 
     var stripContainer = document.createElement('div');
@@ -184125,7 +184512,8 @@ var SynthLab = window.SynthLab || {};
     for (var li = 0; li < stripCount; li++) {
       var midi = loomNotes[li];
       var pc = midi % 12;
-      var degreeIdx = li % scaleIntervals.length;
+      var safeScaleLen = scaleIntervals.length || 1;
+      var degreeIdx = li % safeScaleLen;
       var stripEl = document.createElement('div');
       stripEl.className = 'ctrl-loom-strip';
       stripEl.setAttribute('data-midi', midi);
@@ -184374,7 +184762,8 @@ var SynthLab = window.SynthLab || {};
     /* If noteCount > intervals available, add octave doublings */
     var octaveShift = 12;
     while (midis.length < noteCount) {
-      var addIdx = midis.length % intervals.length;
+      var safeIntervalsLen = intervals.length || 1;
+      var addIdx = midis.length % safeIntervalsLen;
       midis.push(rootMidi + intervals[addIdx] + octaveShift);
       if (addIdx === intervals.length - 1) { octaveShift = octaveShift + 12; }
     }
@@ -184485,7 +184874,8 @@ var SynthLab = window.SynthLab || {};
 
       var cumulativeTime = 0;
       for (var si = 0; si < ordered.length; si++) {
-        var rhythmMult = rhythmPat[si % rhythmPat.length];
+        var safeRhythmLen = rhythmPat.length || 1;
+        var rhythmMult = rhythmPat[si % safeRhythmLen];
         if (rhythmMult === 0) {
           /* Rest: skip this note but advance time */
           cumulativeTime = cumulativeTime + baseDelay;
@@ -184859,8 +185249,9 @@ var SynthLab = window.SynthLab || {};
     }
 
     var noteCount = xyNotes.length;
+    var safeNoteCount = noteCount || 1;
     for (var gi = 0; gi < noteCount; gi++) {
-      var xFrac = gi / noteCount;
+      var xFrac = gi / safeNoteCount;
       var gridLine = document.createElement('div');
       gridLine.className = 'ctrl-xy-gridline-v ssli-xypad-gridline-v';
       gridLine.style.left = Math.floor(xFrac * containerW) + 'px';
@@ -185471,7 +185862,8 @@ var SynthLab = window.SynthLab || {};
       }
       var isRoot = (pc === 0);
 
-      var heightFrac = 1.0 - (hi / stringCount) * 0.35;
+      var safeStringCount = stringCount || 1;
+      var heightFrac = 1.0 - (hi / safeStringCount) * 0.35;
       var stringH = Math.floor(harpAreaH * heightFrac) - 20;
       var stringTop = harpAreaH - stringH - 10;
 
@@ -185584,6 +185976,7 @@ var SynthLab = window.SynthLab || {};
     var startMidi = (baseOctave + 1) * SEMITONES_PER_OCTAVE;
     var endMidi = (baseOctave + numOctaves + 1) * SEMITONES_PER_OCTAVE;
     var totalSemitones = endMidi - startMidi;
+    var safeTotalSemitones = totalSemitones || 1;
 
     var wrapper = document.createElement('div');
     wrapper.className = 'ctrl-theremin-wrapper ssli-theremin-wrapper ssli-airsynth-wrapper';
@@ -185697,7 +186090,7 @@ var SynthLab = window.SynthLab || {};
       var semiIsC = (semiPc === 0);
       // Skip C notes — they get the thick octave line instead
       if (!semiIsC) {
-        var semiFrac = (semiMidi - startMidi) / totalSemitones;
+        var semiFrac = (semiMidi - startMidi) / safeTotalSemitones;
         var semiLeftPx = Math.floor(semiFrac * containerW);
         var semiLine = document.createElement('div');
         semiLine.style.position = 'absolute';
@@ -185719,9 +186112,9 @@ var SynthLab = window.SynthLab || {};
     for (rulerMidi = startMidi; rulerMidi <= endMidi; rulerMidi++) {
       var rulerPc = rulerMidi % SEMITONES_PER_OCTAVE;
       var rulerIsC = (rulerPc === 0);
-      var rulerFrac = (rulerMidi - startMidi) / totalSemitones;
+      var rulerFrac = (rulerMidi - startMidi) / safeTotalSemitones;
       var rulerLeftPx = Math.floor(rulerFrac * containerW);
-      var rulerNextFrac = (rulerMidi + 1 - startMidi) / totalSemitones;
+      var rulerNextFrac = (rulerMidi + 1 - startMidi) / safeTotalSemitones;
       var rulerWidthPx = Math.floor(rulerNextFrac * containerW) - rulerLeftPx;
 
       // Octave boundary vertical line extending into play area
@@ -185755,7 +186148,7 @@ var SynthLab = window.SynthLab || {};
         var stripeBg = isOddOctave ? OCTAVE_STRIPE_ODD_BG : OCTAVE_STRIPE_EVEN_BG;
         var nextCMidi = rulerMidi + SEMITONES_PER_OCTAVE;
         var cappedNextC = (nextCMidi > endMidi) ? endMidi : nextCMidi;
-        var stripeFracEnd = (cappedNextC - startMidi) / totalSemitones;
+        var stripeFracEnd = (cappedNextC - startMidi) / safeTotalSemitones;
         var stripeLeftPx = rulerLeftPx;
         var stripeWidthPx = Math.min(Math.floor(stripeFracEnd * containerW) - stripeLeftPx, containerW - stripeLeftPx);
         var octStripe = document.createElement('div');
@@ -185817,10 +186210,11 @@ var SynthLab = window.SynthLab || {};
     // Helper to highlight the current note on the pitch ruler
     function _highlightRulerNote(midi) {
       var idx = midi - startMidi;
+      var localSafeSemitones = safeTotalSemitones || 1;
       var isInRange = (idx >= 0) && (idx < totalSemitones);
       if (isInRange) {
-        var frac = idx / totalSemitones;
-        var nextFrac = (idx + 1) / totalSemitones;
+        var frac = idx / localSafeSemitones;
+        var nextFrac = (idx + 1) / localSafeSemitones;
         var leftPx = Math.floor(frac * containerW);
         var widthPx = Math.floor(nextFrac * containerW) - leftPx;
         _pitchRulerHighlight.style.left = leftPx + 'px';
@@ -186215,6 +186609,35 @@ var SynthLab = window.SynthLab || {};
   // Chromatic Grid Controller
   // ============================================================
 
+  function _findMidiCellAt(clientX, clientY, wrapper) {
+    var result = null;
+    var newEl = document.elementFromPoint(clientX, clientY);
+    if (!newEl) { return result; }
+    var target = newEl;
+    while (target && target !== wrapper) {
+      var attr = target.getAttribute('data-midi');
+      if (attr !== NO_ATTR) {
+        result = { midi: parseInt(attr, 10), el: target };
+        break;
+      }
+      target = target.parentNode;
+    }
+    return result;
+  }
+
+  function _chromGridSlideToNote(info, newMidi, target, touch, noteOffFn, noteOnFn, resetBendFn) {
+      noteOffFn(info.midi);
+      if (info.el) { info.el.classList.remove('ctrl-linn-active'); }
+      var movePressureEvent = { pointerType: 'touch', pressure: touch.force };
+      var moveVel = SL.velocityFromPressure(movePressureEvent, CHROMGRID_DEFAULT_VELOCITY);
+      noteOnFn(newMidi, moveVel);
+      target.classList.add('ctrl-linn-active');
+      info.midi = newMidi;
+      info.el = target;
+      info.startX = touch.clientX;
+      resetBendFn();
+  }
+
   function _buildChromaticGridController(container, opts) {
     var baseOctave = opts.baseOctave;
     var noteOn = opts.noteOn;
@@ -186231,9 +186654,12 @@ var SynthLab = window.SynthLab || {};
     wrapper.style.height = containerH + 'px';
 
     var cols = CHROMATIC_GRID_COLS;
-    var cellW = Math.floor(containerW / cols);
-    var rows = Math.max(2, Math.floor(containerH / cellW));
-    var cellH = Math.floor(containerH / rows);
+    var safeCols = cols || 1;
+    var cellW = Math.floor(containerW / safeCols);
+    var safeCellW = cellW || 1;
+    var rows = Math.max(2, Math.floor(containerH / safeCellW));
+    var safeRows = rows || 1;
+    var cellH = Math.floor(containerH / safeRows);
     var baseNote = (baseOctave + 1) * SEMITONES_PER_OCTAVE;
     var labelFontSize = Math.max(12, Math.floor(Math.min(cellW, cellH) / 3));
     var octFontSize = Math.max(10, Math.floor(labelFontSize * 0.85));
@@ -186307,33 +186733,15 @@ var SynthLab = window.SynthLab || {};
         var info = _linnTouches[t.identifier];
         if (info) {
           var dx = t.clientX - info.startX;
-          var bendCents = (dx / cellW) * 100;
+          var localCellW = safeCellW || 1;
+          var bendCents = (dx / localCellW) * 100;
           bendCents = Math.max(-MAX_BEND_CENTS, Math.min(MAX_BEND_CENTS, bendCents));
           applyPitchBend(bendCents);
 
-          var newEl = document.elementFromPoint(t.clientX, t.clientY);
-          if (newEl) {
-            var target = newEl;
-            while (target && target !== wrapper) {
-              var attr = target.getAttribute('data-midi');
-              if (attr !== NO_ATTR) {
-                var newMidi = parseInt(attr, 10);
-                if (newMidi !== info.midi) {
-                  noteOff(info.midi);
-                  if (info.el) { info.el.classList.remove('ctrl-linn-active'); }
-                  var movePressureEvent = { pointerType: 'touch', pressure: t.force };
-                  var moveVel = SL.velocityFromPressure(movePressureEvent, CHROMGRID_DEFAULT_VELOCITY);
-                  noteOn(newMidi, moveVel);
-                  target.classList.add('ctrl-linn-active');
-                  info.midi = newMidi;
-                  info.el = target;
-                  info.startX = t.clientX;
-                  resetPitchBendFn();
-                }
-                break;
-              }
-              target = target.parentNode;
-            }
+          var foundCell = _findMidiCellAt(t.clientX, t.clientY, wrapper);
+          var didSlide = foundCell && (foundCell.midi !== info.midi);
+          if (didSlide) {
+            _chromGridSlideToNote(info, foundCell.midi, foundCell.el, t, noteOff, noteOn, resetPitchBendFn);
           }
         }
       }
@@ -186397,7 +186805,8 @@ var SynthLab = window.SynthLab || {};
     wrapper.addEventListener('mousemove', function(e) {
       if (!_isLinnMouseDown || _linnMouseMidi < 0) { return; }
       var dx = e.clientX - _linnMouseStartX;
-      var bendCents = (dx / cellW) * 100;
+      var localCellW = safeCellW || 1;
+      var bendCents = (dx / localCellW) * 100;
       bendCents = Math.max(-MAX_BEND_CENTS, Math.min(MAX_BEND_CENTS, bendCents));
       applyPitchBend(bendCents);
     });
@@ -187109,8 +187518,10 @@ var SynthLab = window.SynthLab || {};
 
     function _applyAtPointer(e, isStart) {
       var c = _localCoords(e);
-      var xFrac = (c.w > 0) ? (c.x / c.w) : 0;
-      var yFrac = (c.h > 0) ? (1 - (c.y / c.h)) : 0;
+      var safeCW = c.w || 1;
+      var safeCH = c.h || 1;
+      var xFrac = (c.w > 0) ? (c.x / safeCW) : 0;
+      var yFrac = (c.h > 0) ? (1 - (c.y / safeCH)) : 0;
       var xCC = Math.round(xFrac * CC_MAX);
       var yCC = Math.round(yFrac * CC_MAX);
 
@@ -187457,8 +187868,9 @@ var SynthLab = window.SynthLab || {};
     var notes = [];
     var ni;
     for (ni = 0; ni < count; ni++) {
-      var srcIdx = ni % chordSize;
-      var octBumps = Math.floor(ni / chordSize);
+      var safeChordSize = chordSize || 1;
+      var srcIdx = ni % safeChordSize;
+      var octBumps = Math.floor(ni / safeChordSize);
       var midi = rootMidi + inverted[srcIdx] + (octBumps * SEMITONES_PER_OCTAVE);
       notes.push(midi);
     }
@@ -188041,8 +188453,10 @@ var SynthLab = window.SynthLab || {};
 
       function _applyAtPointer(state, e, isStart) {
         var c = _localCoords(e);
-        var xFrac = (c.w > 0) ? (c.x / c.w) : 0;
-        var yFrac = (c.h > 0) ? (1 - (c.y / c.h)) : 0;
+        var safeCW = c.w || 1;
+        var safeCH = c.h || 1;
+        var xFrac = (c.w > 0) ? (c.x / safeCW) : 0;
+        var yFrac = (c.h > 0) ? (1 - (c.y / safeCH)) : 0;
         var xCC = Math.round(xFrac * CC_MAX);
         var yCC = Math.round(yFrac * CC_MAX);
 
@@ -189365,7 +189779,8 @@ var SynthLab = window.SynthLab || {};
 
   function _startCycle() {
     _stopCycle();
-    var intervalMs = Math.floor((60 / _tempo) * 1000);
+    var safeTempo = _tempo || 1;
+    var intervalMs = Math.floor((60 / safeTempo) * 1000);
     _applyJawari();
     _cycleTimer = setInterval(function() {
       if (_stringActive[_currentStringIdx]) {
@@ -190323,7 +190738,8 @@ var SynthLab = window.SynthLab || {};
         var refDayanDiam = isPhone ? PHONE_DAYAN_DIAMETER_PX : DAYAN_DIAMETER_PX;
         var refBayanDiam = isPhone ? PHONE_BAYAN_DIAMETER_PX : BAYAN_DIAMETER_PX;
         var totalRefW = refDayanDiam + refBayanDiam + 40;
-        var scaleByW = pfW / totalRefW;
+        var safeTotalRefW = totalRefW || 1;
+        var scaleByW = pfW / safeTotalRefW;
         var scaleByH = pfH / Math.max(refDayanDiam, refBayanDiam);
         var fitScale = Math.min(scaleByW, scaleByH, 1.3);
         if (fitScale < 0.5) { fitScale = 0.5; }
@@ -191091,8 +191507,10 @@ var SynthLab = window.SynthLab || {};
 
     function _applyBreathAtPointer(e, isStart) {
       var c = _breathLocalCoords(e);
-      var xFrac = (c.w > 0) ? (c.x / c.w) : 0;
-      var yFrac = (c.h > 0) ? (1 - (c.y / c.h)) : 0;
+      var safeCW = c.w || 1;
+      var safeCH = c.h || 1;
+      var xFrac = (c.w > 0) ? (c.x / safeCW) : 0;
+      var yFrac = (c.h > 0) ? (1 - (c.y / safeCH)) : 0;
 
       _lastY = c.y;
       _lastPressure = (typeof e.pressure === 'number') ? e.pressure : 0;
@@ -192776,8 +193194,10 @@ var SynthLab = window.SynthLab || {};
 
     function _applyAtPointer(e) {
       var c = _localCoords(e);
-      var xFrac = (c.w > 0) ? (c.x / c.w) : 0.5;
-      var yFrac = (c.h > 0) ? (1 - (c.y / c.h)) : 0.5;
+      var safeCW = c.w || 1;
+      var safeCH = c.h || 1;
+      var xFrac = (c.w > 0) ? (c.x / safeCW) : 0.5;
+      var yFrac = (c.h > 0) ? (1 - (c.y / safeCH)) : 0.5;
       _lastXFrac = xFrac;
       _lastYFrac = yFrac;
 
@@ -193071,7 +193491,8 @@ var SynthLab = window.SynthLab || {};
     var targetGain = BELLOWS_GAIN_DEFAULT;
     var totalSteps = Math.max(1, Math.round(BELLOWS_RAMP_DURATION_MS / BELLOWS_RAMP_STEP_MS));
     var stepCount = 0;
-    var gainDelta = (targetGain - startGain) / totalSteps;
+    var safeTotalSteps = totalSteps || 1;
+    var gainDelta = (targetGain - startGain) / safeTotalSteps;
 
     _bellowsRampTimer = setInterval(function() {
       stepCount++;
@@ -193953,8 +194374,9 @@ var SynthLab = window.SynthLab || {};
   function _midiForScaleDegree(degreeIdx, octaveOffset) {
     var intervals = SCALES[_scaleIdx].intervals;
     var len = intervals.length;
-    var wrappedIdx = degreeIdx % len;
-    var extraOctaves = Math.floor(degreeIdx / len);
+    var safeLen = len || 1;
+    var wrappedIdx = degreeIdx % safeLen;
+    var extraOctaves = Math.floor(degreeIdx / safeLen);
     var midi = ((_baseOctave + octaveOffset + extraOctaves) * SEMITONES_PER_OCTAVE) + _rootNote + intervals[wrappedIdx];
     return midi;
   }
@@ -194187,7 +194609,8 @@ var SynthLab = window.SynthLab || {};
   // ============================================================
 
   function _positionZoneEl(el, panCenter, ringRadius, angleIdx, totalInRing, btnDiam) {
-    var angleStep = FULL_CIRCLE_DEG / totalInRing;
+    var safeTotalInRing = totalInRing || 1;
+    var angleStep = FULL_CIRCLE_DEG / safeTotalInRing;
     var angleDeg = ANGLE_START_DEG + (angleIdx * angleStep);
     var angleRad = angleDeg * DEG_TO_RAD;
     var x = panCenter + (ringRadius * Math.cos(angleRad)) - (btnDiam / 2);
@@ -195494,8 +195917,9 @@ var SynthLab = window.SynthLab || {};
   function _renderCanvas() {
     if (!_ctx || !_canvas) { return; }
     var dpr = _getDpr();
-    var w = _canvas.width / dpr;
-    var h = _canvas.height / dpr;
+    var safeDpr = dpr || 1;
+    var w = _canvas.width / safeDpr;
+    var h = _canvas.height / safeDpr;
 
     // Clear entire canvas each frame to prevent ghost accumulation
     _ctx.clearRect(0, 0, w, h);
@@ -195643,7 +196067,8 @@ var SynthLab = window.SynthLab || {};
       if (!isActive) { return; }
 
       var elapsed = (_nowMs() - startTime) * _speed;
-      var normalizedTime = (elapsed % totalDuration) / totalDuration;
+      var safeTotalDuration = totalDuration || 1;
+      var normalizedTime = (elapsed % safeTotalDuration) / safeTotalDuration;
       _playbackHead = normalizedTime;
 
       var idx = Math.floor(normalizedTime * (trail.length - 1));
@@ -196233,8 +196658,9 @@ var SynthLab = window.SynthLab || {};
   }
 
   function _colRowFromIndex(idx) {
-    var row = Math.floor(idx / _cols);
-    var col = idx % _cols;
+    var safeCols = _cols || 1;
+    var row = Math.floor(idx / safeCols);
+    var col = idx % safeCols;
     return { col: col, row: row };
   }
 
@@ -196478,7 +196904,8 @@ var SynthLab = window.SynthLab || {};
     // Solve for cols at minimum hex size:
     //   minHexWidth * (cols + 0.5) <= availW
     //   cols <= (availW / minHexWidth) - 0.5
-    _cols = Math.floor((availW / minHexWidth) - 0.5);
+    var safeMinHexWidth = minHexWidth || 1;
+    _cols = Math.floor((availW / safeMinHexWidth) - 0.5);
     if (_cols < 3) { _cols = 3; }
     // Compute hexWidth to guarantee odd-row rightmost hex fits:
     //   hexWidth * (cols + 0.5) <= availW
@@ -196497,7 +196924,8 @@ var SynthLab = window.SynthLab || {};
     }
     var verticalSpacing = Math.floor(_hexH * 0.75);
     // Compute rows to fill available height
-    _rows = Math.floor((availH - _hexH) / verticalSpacing) + 1;
+    var safeVerticalSpacing = verticalSpacing || 1;
+    _rows = Math.floor((availH - _hexH) / safeVerticalSpacing) + 1;
     if (_rows < MIN_ROW_COUNT) { _rows = MIN_ROW_COUNT; }
 
     var fontSize = isPhone ? FONT_SIZE_PHONE : FONT_SIZE_DESKTOP;
@@ -197560,8 +197988,8 @@ var SynthLab = window.SynthLab || {};
     if (active) {
       el.classList.add('bowing');
       if (wire) {
-        var intensity = _clamp(velocity / VELOCITY_MAX, 0.3, 1);
-        wire.style.animationDuration = Math.round(VIBRATE_ANIMATION_DURATION_MS / intensity) + 'ms';
+        var safeIntensity = _clamp(velocity / VELOCITY_MAX, 0.3, 1) || 1;
+        wire.style.animationDuration = Math.round(VIBRATE_ANIMATION_DURATION_MS / safeIntensity) + 'ms';
       }
       if (glow) {
         glow.style.opacity = String(_clamp(velocity / VELOCITY_MAX, 0.4, 1));
@@ -197760,7 +198188,8 @@ var SynthLab = window.SynthLab || {};
     var positionCutoff = 0;
     if (bowZoneEl) {
       var bowRect = bowZoneEl.getBoundingClientRect();
-      var relBowX = _clamp((x - bowRect.left) / bowRect.width, 0, 1);
+      var safeBowWidth = bowRect.width || 1;
+      var relBowX = _clamp((x - bowRect.left) / safeBowWidth, 0, 1);
       // Left of bow zone = near fingerboard (tasto), right = near bridge (ponticello)
       var curvedPosition = Math.pow(relBowX, BOW_POSITION_CURVE_EXPONENT);
       positionCutoff = BOW_POSITION_TASTO_CUTOFF_HZ + curvedPosition * (BOW_POSITION_PONTICELLO_CUTOFF_HZ - BOW_POSITION_TASTO_CUTOFF_HZ);
@@ -199065,7 +199494,8 @@ var SynthLab = window.SynthLab || {};
         var p1 = _trailPoints[i];
         var age = now - p1.time;
         var alpha = Math.max(0, 1 - (age / TRAIL_FADE_MS));
-        var progressFrac = i / _trailPoints.length;
+        var safeTrailLen = _trailPoints.length || 1;
+        var progressFrac = i / safeTrailLen;
 
         // Glow layer
         _trailCtx.beginPath();
@@ -199349,8 +199779,9 @@ var SynthLab = window.SynthLab || {};
       var pc = midi % 12;
       var isInScale = (scaleNotes.indexOf(pc) !== NOT_FOUND);
       var isRoot = (pc === rootPc);
-      var widthPercent = 100 / totalNotes;
-      var leftPercent = ((midi - startMidi) / totalNotes) * 100;
+      var safeTotalNotes = totalNotes || 1;
+      var widthPercent = 100 / safeTotalNotes;
+      var leftPercent = ((midi - startMidi) / safeTotalNotes) * 100;
 
       var wave = document.createElement('div');
       wave.className = 'mpe-keywave';
@@ -199777,7 +200208,8 @@ var SynthLab = window.SynthLab || {};
   function midiToFreq(midi) { return A4_FREQ * Math.pow(2, (midi - A4_MIDI) / SEMITONES_PER_OCTAVE); }
 
   function _scaleInterval(scale, fromDeg, degreesUp) {
-    var toDeg = (fromDeg + degreesUp) % scale.length;
+    var safeScaleLen = scale.length || 1;
+    var toDeg = (fromDeg + degreesUp) % safeScaleLen;
     var interval = scale[toDeg] - scale[fromDeg];
     if (interval <= 0) { interval += 12; }
     return interval;
@@ -199897,14 +200329,17 @@ var SynthLab = window.SynthLab || {};
       if (voiceData.oscillators) {
         for (var i = 0; i < voiceData.oscillators.length; i++) {
           var entry = voiceData.oscillators[i];
-          if (entry && entry.osc && entry.osc.detune) {
+          var hasDetuneParam = (entry && entry.osc && entry.osc.detune);
+          if (hasDetuneParam) {
             if (entry._origDetune === undefined) { entry._origDetune = entry.osc.detune.value; }
             entry.osc.detune.value = entry._origDetune + cents;
           }
         }
       }
-      if (voiceData.fm && SL.fm && SL.fm.setBend) { SL.fm.setBend(cents); }
-      if (voiceData.physical && SL.physical && SL.physical.setBend) { SL.physical.setBend(cents); }
+      var canBendFm = (voiceData.fm && SL.fm && SL.fm.setBend);
+      if (canBendFm) { SL.fm.setBend(cents); }
+      var canBendPhysical = (voiceData.physical && SL.physical && SL.physical.setBend);
+      if (canBendPhysical) { SL.physical.setBend(cents); }
     });
   }
 
@@ -199917,7 +200352,9 @@ var SynthLab = window.SynthLab || {};
       if (voiceData.oscillators) {
         for (var i = 0; i < voiceData.oscillators.length; i++) {
           var entry = voiceData.oscillators[i];
-          if (entry && entry.osc && entry.osc.detune && (entry._origDetune !== undefined)) {
+          var hasDetuneToReset = (entry && entry.osc && entry.osc.detune);
+          var hasOrigDetune = (hasDetuneToReset && (entry._origDetune !== undefined));
+          if (hasOrigDetune) {
             entry.osc.detune.value = entry._origDetune;
             delete entry._origDetune;
           }
@@ -200524,8 +200961,11 @@ var SynthLab = window.SynthLab || {};
     }
     function animate() {
       _levelMeterAnimId = requestAnimationFrame(animate);
-      if (!analyser) {
-        if (SL.audio && SL.audio.getAnalyser) { analyser = SL.audio.getAnalyser(); } else { analyser = null; }
+      if (analyser) {
+        // analyser already acquired, proceed
+      } else {
+        var hasGetAnalyser = (SL.audio && SL.audio.getAnalyser);
+        if (hasGetAnalyser) { analyser = SL.audio.getAnalyser(); } else { analyser = null; }
         if (!analyser) { return; }
       }
       if (!timeDomainBuf) { timeDomainBuf = new Uint8Array(analyser.fftSize); }
@@ -200758,10 +201198,10 @@ var SynthLab = window.SynthLab || {};
 
   function _updatePresetName() { /* Preset display removed from Play screen — shown on Sound screen only */ }
 
-  function _onStateChange(what) {
-    if (!isScreenActive) { return; }
-    if ((what === 'preset') || (what === 'instrument')) { _updatePresetName(); }
-    if (what === 'surface') {
+  var STATE_CHANGE_HANDLERS = {
+    'preset': function() { _updatePresetName(); },
+    'instrument': function() { _updatePresetName(); },
+    'surface': function() {
       var sel = document.getElementById('ssliSurface');
       if (sel && (sel.value !== _keyMode)) {
         _keyMode = sel.value;
@@ -200769,6 +201209,12 @@ var SynthLab = window.SynthLab || {};
         _buildKeyboard();
       }
     }
+  };
+
+  function _onStateChange(what) {
+    if (!isScreenActive) { return; }
+    var handler = STATE_CHANGE_HANDLERS[what];
+    if (handler) { handler(); }
   }
 
   function activate() {
@@ -200803,7 +201249,8 @@ var SynthLab = window.SynthLab || {};
     isScreenActive = false;
     _stopAllNotes();
     if (_levelMeterAnimId) { cancelAnimationFrame(_levelMeterAnimId); _levelMeterAnimId = null; }
-    if (SL.controllers && SL.controllers.chordpads && SL.controllers.chordpads.clearStrumTimeouts) {
+    var canClearStrumTimeouts = (SL.controllers && SL.controllers.chordpads && SL.controllers.chordpads.clearStrumTimeouts);
+    if (canClearStrumTimeouts) {
       SL.controllers.chordpads.clearStrumTimeouts();
     }
     SL.state.removeListener(_onStateChange);
@@ -202310,8 +202757,9 @@ var SynthLab = window.SynthLab || {};
     ctx.strokeStyle = ADSR_GRID_COLOR;
     ctx.lineWidth = 1;
     var gridSteps = 4;
+    var safeGridSteps = gridSteps || 1;
     for (var gi = 1; gi < gridSteps; gi++) {
-      var gy = pad + (drawH * gi / gridSteps);
+      var gy = pad + (drawH * gi / safeGridSteps);
       ctx.beginPath();
       ctx.moveTo(pad, gy);
       ctx.lineTo(w - pad, gy);
@@ -204360,20 +204808,21 @@ var SynthLab = window.SynthLab || {};
     var amp;
     for (idx = 0; idx < ADDITIVE_PARTIAL_COUNT; idx++) {
       harmonic = idx + 1;
+      var safeHarmonic = harmonic || 1;
       amp = ADDITIVE_AMP_ZERO;
       if (presetName === 'Saw') {
-        amp = ADDITIVE_AMP_FULL / harmonic;
+        amp = ADDITIVE_AMP_FULL / safeHarmonic;
       } else if (presetName === 'Square') {
         var isOddSq = ((harmonic % 2) === 1);
         if (isOddSq) {
-          amp = ADDITIVE_AMP_FULL / harmonic;
+          amp = ADDITIVE_AMP_FULL / safeHarmonic;
         } else {
           amp = ADDITIVE_AMP_ZERO;
         }
       } else if (presetName === 'Triangle') {
         var isOddTri = ((harmonic % 2) === 1);
         if (isOddTri) {
-          amp = ADDITIVE_AMP_FULL / (harmonic * harmonic);
+          amp = ADDITIVE_AMP_FULL / (safeHarmonic * safeHarmonic);
         } else {
           amp = ADDITIVE_AMP_ZERO;
         }
@@ -204386,14 +204835,14 @@ var SynthLab = window.SynthLab || {};
       } else if (presetName === 'Odd') {
         var isOddOnly = ((harmonic % 2) === 1);
         if (isOddOnly) {
-          amp = ADDITIVE_AMP_FULL / harmonic;
+          amp = ADDITIVE_AMP_FULL / safeHarmonic;
         } else {
           amp = ADDITIVE_AMP_ZERO;
         }
       } else if (presetName === 'Even') {
         var isEvenOnly = ((harmonic % 2) === 0);
         if (isEvenOnly) {
-          amp = ADDITIVE_AMP_FULL / harmonic;
+          amp = ADDITIVE_AMP_FULL / safeHarmonic;
         } else if (idx === 0) {
           amp = ADDITIVE_AMP_FULL;
         } else {
@@ -208658,7 +209107,8 @@ var SynthLab = window.SynthLab || {};
       _refreshPlayheadHighlight();
 
       // Advance
-      _currentStep = (_currentStep + 1) % _stepCount;
+      var safeStepCount = _stepCount || 1;
+      _currentStep = (_currentStep + 1) % safeStepCount;
       _scheduleNextStep(intervalMs);
     }
   }
@@ -208701,7 +209151,8 @@ var SynthLab = window.SynthLab || {};
     if (isPlaying) {
       // If the sequencer has already advanced past this step, and the next
       // step was a slide, don't cut.
-      var nextIdx = (firedAtStepIdx + 1) % _stepCount;
+      var safeStepCount = _stepCount || 1;
+      var nextIdx = (firedAtStepIdx + 1) % safeStepCount;
       var nextStep = _steps[nextIdx];
       var isNextSlide = (nextStep && nextStep.gate && nextStep.slide);
       if (!isNextSlide) {
@@ -208722,10 +209173,12 @@ var SynthLab = window.SynthLab || {};
       var glideScale = _glidePct / DEFAULT_GLIDE_PCT;
       var slideDurMs = intervalMs * SLIDE_GATE_MS_RATIO * glideScale;
       var steps = Math.max(4, Math.floor(slideDurMs / SLIDE_STEP_MS));
+      var safeSteps = steps || 1;
       var stepIdx = 0;
       _slideTimerId = setInterval(function() {
         stepIdx++;
-        var progress = stepIdx / steps;
+        var localSafeSteps = safeSteps || 1;
+        var progress = stepIdx / localSafeSteps;
         if (progress >= 1) {
           progress = 1;
         }
@@ -208747,24 +209200,28 @@ var SynthLab = window.SynthLab || {};
     }
   }
 
+  function _applyAcidBendToOscillators(voiceData, cents) {
+    if (voiceData.oscillators) {
+      for (var i = 0; i < voiceData.oscillators.length; i++) {
+        var entry = voiceData.oscillators[i];
+        var hasAcidDetune = entry && entry.osc && entry.osc.detune;
+        if (hasAcidDetune) {
+          if (entry._acidOrigDetune === undefined) {
+            entry._acidOrigDetune = entry.osc.detune.value;
+          }
+          entry.osc.detune.value = entry._acidOrigDetune + cents;
+        }
+      }
+    }
+  }
+
   function _applyCentsToActiveVoices(cents) {
     if (SL.audio && SL.audio.getActiveOscillators) {
       var activeOscs = SL.audio.getActiveOscillators();
       if (activeOscs && activeOscs.forEach) {
         activeOscs.forEach(function(voiceData) {
           if (voiceData) {
-            if (voiceData.oscillators) {
-              for (var i = 0; i < voiceData.oscillators.length; i++) {
-                var entry = voiceData.oscillators[i];
-                var hasAcidDetune = entry && entry.osc && entry.osc.detune;
-                if (hasAcidDetune) {
-                  if (entry._acidOrigDetune === undefined) {
-                    entry._acidOrigDetune = entry.osc.detune.value;
-                  }
-                  entry.osc.detune.value = entry._acidOrigDetune + cents;
-                }
-              }
-            }
+            _applyAcidBendToOscillators(voiceData, cents);
             var canSetFmBend = voiceData.fm && SL.fm && SL.fm.setBend;
             if (canSetFmBend) {
               SL.fm.setBend(cents);
@@ -209514,7 +209971,8 @@ var SynthLab = window.SynthLab || {};
       var isVisible = isPlaying;
       if (isVisible) {
         _silhouettePlayheadEl.classList.add('visible');
-        var pct = (_currentStep + 0.5) / _stepCount * 100;
+        var safeStepCount = _stepCount || 1;
+        var pct = (_currentStep + 0.5) / safeStepCount * 100;
         _silhouettePlayheadEl.style.left = pct + '%';
       } else {
         _silhouettePlayheadEl.classList.remove('visible');
@@ -209553,9 +210011,9 @@ var SynthLab = window.SynthLab || {};
             var midY = Math.min(ay, by) - ((rectA.height + rectB.height) * 0.5 * SLIDE_ARC_CURVE_RATIO);
             if (midY < 2) { midY = 2; }
             var cx = (ax + bx) / 2;
-            var d = 'M ' + ax + ' ' + ay
-                  + ' Q ' + cx + ' ' + midY
-                  + ' ' + bx + ' ' + by;
+            var movePart = 'M ' + ax + ' ' + ay;
+            var quadPart = ' Q ' + cx + ' ' + midY + ' ' + bx + ' ' + by;
+            var d = movePart + quadPart;
             var pathEl = document.createElementNS(SVG_NS, 'path');
             pathEl.setAttribute('class', 'ssli-acid-slide-path');
             pathEl.setAttribute('d', d);
@@ -209835,11 +210293,13 @@ var SynthLab = window.SynthLab || {};
           _onPlay();
           isHandled = true;
         } else if (e.key === KEY_ARROW_LEFT) {
-          _selectedStepIdx = (_selectedStepIdx - 1 + _stepCount) % _stepCount;
+          var safeStepCount = _stepCount || 1;
+          _selectedStepIdx = (_selectedStepIdx - 1 + _stepCount) % safeStepCount;
           _rebuildGrid();
           isHandled = true;
         } else if (e.key === KEY_ARROW_RIGHT) {
-          _selectedStepIdx = (_selectedStepIdx + 1) % _stepCount;
+          var safeStepCount2 = _stepCount || 1;
+          _selectedStepIdx = (_selectedStepIdx + 1) % safeStepCount2;
           _rebuildGrid();
           isHandled = true;
         } else if (e.key === KEY_ARROW_UP) {
