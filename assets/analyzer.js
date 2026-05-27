@@ -68,15 +68,16 @@
       }
     } else if (name === 'blackman') {
       for (var n = 0; n < N; n++) {
-        coeffs[n] = 0.42 - 0.5 * Math.cos(2.0 * Math.PI * n / (N - 1))
-                   + 0.08 * Math.cos(4.0 * Math.PI * n / (N - 1));
+        var bk1 = 0.5 * Math.cos(2.0 * Math.PI * n / (N - 1));
+        var bk2 = 0.08 * Math.cos(4.0 * Math.PI * n / (N - 1));
+        coeffs[n] = 0.42 - bk1 + bk2;
       }
     } else if (name === 'blackman-harris') {
       for (var n = 0; n < N; n++) {
-        coeffs[n] = 0.35875
-                   - 0.48829 * Math.cos(2.0 * Math.PI * n / (N - 1))
-                   + 0.14128 * Math.cos(4.0 * Math.PI * n / (N - 1))
-                   - 0.01168 * Math.cos(6.0 * Math.PI * n / (N - 1));
+        var bh1 = 0.48829 * Math.cos(2.0 * Math.PI * n / (N - 1));
+        var bh2 = 0.14128 * Math.cos(4.0 * Math.PI * n / (N - 1));
+        var bh3 = 0.01168 * Math.cos(6.0 * Math.PI * n / (N - 1));
+        coeffs[n] = 0.35875 - bh1 + bh2 - bh3;
       }
     } else {
       // Default to rectangular
@@ -354,8 +355,8 @@
 
     var canvas = scopeCanvas;
     var ctx = scopeCtx;
-    var width = canvas.width / window.devicePixelRatio;
-    var height = canvas.height / window.devicePixelRatio;
+    var width = canvas.width / (window.devicePixelRatio || 1);
+    var height = canvas.height / (window.devicePixelRatio || 1);
 
     // Clear
     ctx.fillStyle = '#1a1a2e';
@@ -398,8 +399,8 @@
 
     var canvas = spectrumCanvas;
     var ctx = spectrumCtx;
-    var width = canvas.width / window.devicePixelRatio;
-    var height = canvas.height / window.devicePixelRatio;
+    var width = canvas.width / (window.devicePixelRatio || 1);
+    var height = canvas.height / (window.devicePixelRatio || 1);
 
     // Clear
     ctx.fillStyle = '#1a1a2e';
@@ -407,8 +408,9 @@
 
     // Frequency bars
     var barCount = SPECTRUM_BAR_COUNT;
-    var barWidth = width / barCount - 1;
-    var step = Math.floor(frequencyData.length / barCount);
+    var safeBarCount = barCount || 1;
+    var barWidth = width / safeBarCount - 1;
+    var step = Math.floor(frequencyData.length / safeBarCount);
 
     for (var i = 0; i < barCount; i++) {
       // Average multiple bins for each bar
@@ -416,7 +418,8 @@
       for (var j = 0; j < step; j++) {
         sum += frequencyData[i * step + j];
       }
-      var value = sum / step;
+      var safeStep = step || 1;
+      var value = sum / safeStep;
 
       var barHeight = (value / 255) * height;
       var x = i * (barWidth + 1);
@@ -449,8 +452,8 @@
 
     var canvas = spectrumCanvas;
     var ctx = spectrumCtx;
-    var width = canvas.width / window.devicePixelRatio;
-    var height = canvas.height / window.devicePixelRatio;
+    var width = canvas.width / (window.devicePixelRatio || 1);
+    var height = canvas.height / (window.devicePixelRatio || 1);
 
     // Clear
     ctx.fillStyle = '#1a1a2e';
@@ -459,20 +462,22 @@
     // Compute windowed FFT magnitude spectrum (dB)
     var magnitudes = computeWindowedSpectrum(floatTimeDomainData, windowCoefficients);
     var halfN = magnitudes.length;
+    var safeHalfN = halfN || 1;
 
     // dB range for display
     var dbMin = -100;
     var dbMax = 0;
     var dbRange = dbMax - dbMin;
+    var safeDbRange = dbRange || 1;
 
     // Draw spectrum as filled line graph
     ctx.beginPath();
     ctx.moveTo(0, height);
 
     for (var i = 0; i < halfN; i++) {
-      var xPos = (i / halfN) * width;
+      var xPos = (i / safeHalfN) * width;
       var dbVal = Math.max(dbMin, Math.min(dbMax, magnitudes[i]));
-      var yNorm = (dbVal - dbMin) / dbRange; // 0..1
+      var yNorm = (dbVal - dbMin) / safeDbRange; // 0..1
       var yPos = height - yNorm * height;
       ctx.lineTo(xPos, yPos);
     }
@@ -491,9 +496,9 @@
     // Stroke the line on top
     ctx.beginPath();
     for (var i = 0; i < halfN; i++) {
-      var xPos = (i / halfN) * width;
+      var xPos = (i / safeHalfN) * width;
       var dbVal = Math.max(dbMin, Math.min(dbMax, magnitudes[i]));
-      var yNorm = (dbVal - dbMin) / dbRange;
+      var yNorm = (dbVal - dbMin) / safeDbRange;
       var yPos = height - yNorm * height;
       if (i === 0) {
         ctx.moveTo(xPos, yPos);
@@ -513,9 +518,9 @@
     ctx.font = '9px monospace';
     for (var p = 0; p < peaks.length; p++) {
       var peak = peaks[p];
-      var xPos = (peak.bin / halfN) * width;
+      var xPos = (peak.bin / safeHalfN) * width;
       var dbVal = Math.max(dbMin, Math.min(dbMax, peak.magnitude));
-      var yNorm = (dbVal - dbMin) / dbRange;
+      var yNorm = (dbVal - dbMin) / safeDbRange;
       var yPos = height - yNorm * height;
 
       // Peak dot

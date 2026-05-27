@@ -1,6 +1,29 @@
 // Super Synth Lab - Voice Pool & Buffer Pool Module
 // Extracted from audio-engine.js for modularity
 // Loads AFTER audio-engine.js and extends SL.audio
+//
+// ── Educational Background ──────────────────────────────────────
+// Voice allocation is one of the oldest problems in digital synthesis.
+// Early polysynths like the Sequential Circuits Prophet-5 (1978) had
+// just 5 voices; the Yamaha DX7 (1983) offered 16 — revolutionary
+// for its era. When a player holds more notes than voices exist, the
+// synth must decide which voice to "steal." Common strategies:
+//   - Oldest-note / LRU (used here): steal the voice that started
+//     earliest. Simple and predictable.
+//   - Lowest-priority: assign priorities to notes (e.g., bass notes
+//     are more important) and steal the least important.
+//   - Quietest: steal the voice closest to silence.
+//
+// This module also pre-allocates all voice and buffer objects at init
+// time to avoid garbage-collection pauses during live playback — a
+// standard real-time audio technique.
+//
+// References:
+//   Roads, C. (1996) The Computer Music Tutorial, MIT Press
+//     — Ch. 6 covers voice management in digital synthesizers.
+//   Cook, P. (2002) Real Sound Synthesis for Interactive
+//     Applications, AK Peters — practical voice-pool patterns.
+// ─────────────────────────────────────────────────────────────────
 (function() {
   'use strict';
 
@@ -12,7 +35,15 @@
   // ============================================================
   // Voice Pool System
   // ============================================================
+  // The voice pool is a fixed-size array of pre-allocated voice
+  // structures managed via a free-list stack. Acquiring a voice
+  // pops from the stack; releasing pushes back. This avoids
+  // per-note object creation and keeps GC pressure near zero
+  // during playback — critical for glitch-free audio.
+  // ============================================================
 
+  // 16 voices per instrument matches the DX7's landmark polyphony.
+  // For a 5-instrument setup this yields 80 total voice slots.
   /** Maximum voices per instrument */
   var MAX_VOICES_PER_INSTRUMENT = 16;
 
@@ -38,6 +69,15 @@
 
   // ============================================================
   // RAF-Driven Release Queue (replaces per-voice setTimeout)
+  // ============================================================
+  // When a note is released, the voice enters a fade-out phase
+  // (the "R" in ADSR). Rather than spawning a setTimeout per
+  // voice — which can drift and pile up timer callbacks — this
+  // module uses a single requestAnimationFrame loop. Voices are
+  // inserted into a time-sorted queue; each frame sweeps expired
+  // entries, disconnects their audio nodes, and returns them to
+  // the pool. The RAF loop self-terminates when the queue empties,
+  // so it costs zero CPU when no notes are releasing.
   // ============================================================
 
   /** Time-sorted release queue: { voice, releaseTime, fadeTime } */
@@ -129,6 +169,14 @@
     }
   }
 
+  // ── Voice Structure ─────────────────────────────────────────
+  // Each voice pre-allocates a masterGain and three oscGains at
+  // init. Oscillator nodes themselves cannot be pooled (Web Audio
+  // OscillatorNodes are single-use: once stopped, they cannot be
+  // restarted), so they are created per-note in acquireVoice and
+  // disconnected on release.
+  // ────────────────────────────────────────────────────────────
+
   /**
    * Create a single voice structure with pre-allocated nodes
    * @param {AudioContext} ctx - Audio context
@@ -191,6 +239,15 @@
     voicePoolStats.totalAllocated = VOICE_POOL_SIZE;
   }
 
+  // ── Voice Acquisition & Stealing ────────────────────────────
+  // The acquire path follows the classic LRU (Least Recently Used)
+  // stealing strategy: if no free voice is available, the oldest
+  // active voice is killed to make room. This is the same approach
+  // used by the Prophet-5 and most modern soft-synths. The key
+  // insight is that the oldest note is usually the least musically
+  // important — the player's attention has moved on.
+  // ─────────────────────────────────────────────────────────────
+
   /**
    * Acquire a voice from the pool
    * Uses voice stealing if pool is exhausted
@@ -199,7 +256,8 @@
    * @returns {Object} Voice structure
    */
   function acquireVoice(instrumentId, midiNote) {
-    // First, check if this note is already playing (retrigger)
+    // Retrigger: if this exact note is already playing, release it
+    // first. This prevents "note pile-up" from rapid retriggering.
     var key = instrumentId + ':' + midiNote;
     if (activeVoices.has(key)) {
       var existingVoice = activeVoices.get(key);
@@ -258,7 +316,10 @@
    * @returns {Object} Stolen voice
    */
   function stealVoice(instrumentId) {
-    // Find voices for this instrument first, then any voice
+    // Collect all active voices as steal candidates.
+    // A more sophisticated approach could prefer stealing from the
+    // same instrument, or factor in amplitude — but oldest-first
+    // is simple, predictable, and what players expect.
     var candidates = [];
 
     activeVoices.forEach(function(voice, key) {
@@ -289,14 +350,24 @@
     return newVoice;
   }
 
+  // ── Release & Fade-out ──────────────────────────────────────
+  // Releasing a voice involves two phases: (1) scheduling a gain
+  // fade-out via Web Audio's automation timeline, and (2) deferred
+  // cleanup via the RAF release queue. The fade prevents clicks
+  // (a sudden jump to zero amplitude creates a discontinuity that
+  // the ear perceives as a pop). The exponential decay using
+  // setTargetAtTime models a capacitor discharge — the same curve
+  // as an analog VCA release controlled by an RC circuit.
+  // ─────────────────────────────────────────────────────────────
+
   /**
    * Release a voice back to the pool
    * @param {Object} voice - Voice to release
    * @param {boolean} quick - If true, use quick fade (for stealing/retrigger)
    */
-  var QUICK_RELEASE_S = 0.01;
-  var FALLBACK_RELEASE_S = 0.05;
-  var SILENCE_FLOOR = 0.001;
+  var QUICK_RELEASE_S = 0.01;    // 10ms — fast enough to sound instant
+  var FALLBACK_RELEASE_S = 0.05; // 50ms — default when no ADSR release set
+  var SILENCE_FLOOR = 0.001;     // -60 dB — below audibility threshold
   // Minimum release time to avoid audible gate/click on finger-up (seconds).
   // 80ms provides a perceptible fade even for short ADSR release settings.
   var MIN_AUDIBLE_RELEASE_S = 0.08;
@@ -371,6 +442,14 @@
 
   // ============================================================
   // Buffer Pool System
+  // ============================================================
+  // Float32Array buffers are used throughout the audio engine for
+  // noise generation, wavetable storage, and DSP scratch space.
+  // Allocating typed arrays triggers GC, so this pool pre-creates
+  // buffers in four size tiers and hands them out on demand. The
+  // same acquire/release pattern used for voices applies here.
+  // Buffers are zeroed on acquire (not release) so the cost is
+  // paid only when actually needed.
   // ============================================================
 
   /** Buffer size categories for pooling */

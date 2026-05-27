@@ -1,5 +1,33 @@
 // Synth Lab - Phaser Effect
 // Creates sweeping notch filters using allpass filter stages modulated by an LFO
+//
+// -----------------------------------------------------------------------
+// EDUCATIONAL NOTES: Phaser — Cascaded Allpass Filters [FX-041]
+// -----------------------------------------------------------------------
+// A phaser creates sweeping notches by cascading allpass filters whose
+// cutoff frequencies are modulated by an LFO. Each allpass stage shifts
+// the phase of the signal (0 to pi radians) without changing its amplitude.
+// When the phase-shifted signal is mixed with the original, cancellation
+// creates notches at frequencies where the phase shift equals pi (180 deg).
+//
+// Key relationship: 2 allpass stages = 1 notch.
+//   4 stages (default) = 2 notches, 6 stages = 3 notches, etc.
+//   The notches are NOT harmonically related (not evenly spaced),
+//   which is the key perceptual difference from a flanger, where the
+//   comb filter places notches at exact harmonic intervals.
+//
+// Reference:
+//   Hartmann, W.M. (1978) "Flanging and Phasers", JAES 26(6)
+//   Roads, C. (1996) The Computer Music Tutorial, MIT Press
+//
+// Classic hardware phasers:
+//   MXR Phase 90 (1974): 4 allpass stages = 2 notches, simple and warm
+//   EHX Small Stone (1974): 6 stages = 3 notches, richer sweep
+//   MXR Phase 100: 12 stages = 6 notches, very dense movement
+//
+// Feedback: Routing the output back to the input deepens the notches
+// and creates resonant peaks between them, intensifying the effect.
+// -----------------------------------------------------------------------
 
 (function() {
   var SL = window.SynthLab;
@@ -31,6 +59,11 @@
       };
 
       // Allpass filter stages
+      // Each BiquadFilter in 'allpass' mode passes all frequencies at equal
+      // amplitude but shifts their phase. The phase shift varies with
+      // frequency — near the filter's center frequency, it approaches 180
+      // degrees. Cascading multiple stages accumulates the phase shift,
+      // creating deeper, more complex notch patterns.
       this.allpassFilters = [];
 
       // LFO for modulation
@@ -64,8 +97,10 @@
      * @param {number} numStages - Number of allpass stages (will be forced to even)
      */
     _buildFilterChain(numStages) {
-      // Ensure even number of stages
-      numStages = Math.max(2, Math.min(12, Math.floor(numStages / 2) * 2));
+      // Ensure even number of stages — each pair of allpass filters creates
+      // one notch in the frequency response, so odd numbers would leave a
+      // "half-notch" (incomplete cancellation). Even counts give clean nulls.
+      var numStages = Math.max(2, Math.min(12, Math.floor(numStages / 2) * 2));
 
       // Disconnect existing filters if any
       this._disconnectFilters();
@@ -84,7 +119,11 @@
 
         // Create LFO gain for this stage with slight variation for richer sound
         var lfoGain = this.ctx.createGain();
-        // Each stage gets slightly different modulation depth for complexity
+        // Each stage gets slightly different modulation depth for complexity.
+        // This spreads the notch positions apart during the LFO sweep,
+        // preventing them from clustering together and creating a richer,
+        // more organic sweep — similar to analog phasers where component
+        // tolerances cause natural stage-to-stage variation.
         var stageDepthFactor = 1 + (i * 0.1);
         lfoGain.gain.value = this._calculateLfoDepth() * stageDepthFactor;
         this.lfoGains.push(lfoGain);
@@ -154,6 +193,9 @@
       currentNode.connect(this.wetGain);
 
       // Connect feedback path: last filter -> feedbackGain -> inputMixer
+      // Feedback recirculates the phase-shifted signal, deepening the notches
+      // and creating resonant peaks between them. At high feedback, the phaser
+      // takes on a vocal, almost "talking" quality as the resonant peaks sweep.
       currentNode.connect(this.feedbackGain);
       this.feedbackGain.connect(this.inputMixer);
 

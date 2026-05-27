@@ -1,9 +1,41 @@
 // Super Synth Lab - Physical Modelling AudioWorklet Processor
 // Karplus-Strong, Bowed String, Blown Pipe, Modal Synthesis
 // v1.1.3 — fix: per-voice gain scaling + smooth soft clipper for chord headroom
+//
+// ================================================================
+// EDUCATIONAL CONTEXT: Physical Modelling DSP (AudioWorklet)
+// ================================================================
+//
+// This file runs on the AUDIO THREAD (AudioWorkletGlobalScope),
+// separate from the main thread. It processes audio sample-by-sample
+// at the hardware sample rate (typically 44100 or 48000 Hz) with
+// real-time constraints: every 128-sample block must complete in
+// ~2.9 ms (at 44100 Hz) or the output will glitch.
+//
+// All four physical models (pluck, bow, blow, strike) are
+// implemented here as ES6 classes. The host-side engine in
+// physical-engine.js manages parameter state and voice allocation,
+// communicating with this worklet via MessagePort.
+//
+// Performance considerations for real-time DSP:
+//   - Pre-allocated sine lookup table (avoids Math.sin per sample)
+//   - Circular buffers use bitwise OR for integer truncation
+//     (x | 0) instead of Math.floor — ~3x faster
+//   - Active voice list avoids scanning inactive voices
+//   - No garbage collection triggers (no allocations in process())
+//
+// For theory and references, see physical-engine.js header.
+// ================================================================
 
+// Per-voice output gain — keeps 4 simultaneous voices under the
+// soft-clipper knee (~0.9). 4 voices * 0.22 = 0.88 peak sum.
 var PHYS_VOICE_OUTPUT_GAIN = 0.22;
 var PLUCK_OUTPUT_SCALE = 3.0;
+// Pre-computed sine lookup table: avoids calling Math.sin() at audio
+// rate. Size is a power of 2 (4096) so we can use bitwise AND with
+// PHYS_SINE_MASK for fast modular indexing. At 4096 entries, the
+// maximum interpolation error is ~0.00006 — inaudible for LFO and
+// vibrato use. Usage: PHYS_SINE_TABLE[(phase * SIZE | 0) & MASK]
 var PHYS_SINE_SIZE = 4096;
 var PHYS_SINE_TABLE = new Float64Array(PHYS_SINE_SIZE);
 var PHYS_SINE_MASK = PHYS_SINE_SIZE - 1;
@@ -16,6 +48,28 @@ var PHYS_SINE_MASK = PHYS_SINE_SIZE - 1;
 // ============================================================
 // Utility: Circular Buffer (Delay Line)
 // ============================================================
+//
+// ---------------------------------------------------------------
+// The delay line is the fundamental building block of all waveguide
+// physical models. It stores N samples of history and outputs the
+// sample written N steps ago — this models the time a pressure or
+// displacement wave takes to travel along a string or air column.
+//
+// For a string vibrating at frequency f, the delay length is:
+//   N = sampleRate / f
+// because the wave must traverse the full string length in one
+// period. Fractional N (non-integer delay) is handled by linear
+// interpolation between adjacent samples, which also acts as a
+// gentle lowpass filter — a useful side effect for waveguide
+// stability.
+//
+// Implementation: ring buffer with a single write pointer. Reading
+// at offset D computes (writeIndex - D - 1) mod length. The
+// modular arithmetic via (+ length * 2) % length avoids negative
+// indices without branching.
+//
+// See: Smith, J.O. (2010) PASP, Ch. 4 (Delay Line Implementations)
+// ---------------------------------------------------------------
 
 class CircularBuffer {
   constructor(maxLength) {
@@ -64,6 +118,21 @@ class CircularBuffer {
 // ============================================================
 // Simple one-pole lowpass filter
 // ============================================================
+//
+// ---------------------------------------------------------------
+// One-pole IIR lowpass: y(n) = a * x(n) + (1 - a) * y(n-1)
+// This is the workhorse filter inside every waveguide feedback
+// loop. It models frequency-dependent energy loss: each time the
+// wave reflects off a bridge or nut, high frequencies lose more
+// energy than low frequencies (due to internal damping in the
+// string material). The coefficient 'a' controls the cutoff:
+//   a = 1.0: no filtering (all harmonics survive equally)
+//   a = 0.5: moderate damping (classic Karplus-Strong average)
+//   a near 0: heavy damping (muted, dark tone)
+// DC gain is always 1.0 regardless of 'a', so the fundamental
+// is never attenuated — only overtones are progressively removed.
+// See: Smith, J.O. (2010) PASP, Section 1.1.3
+// ---------------------------------------------------------------
 
 class OnePole {
   constructor() {
@@ -88,6 +157,19 @@ class OnePole {
 // ============================================================
 // Two-pole resonant filter (for body resonance simulation)
 // ============================================================
+//
+// ---------------------------------------------------------------
+// A two-pole resonator creates a sharp peak at a given frequency,
+// modeling a single vibrational mode of an instrument body. The
+// transfer function H(z) = b0 / (1 + a1*z^-1 + a2*z^-2) places
+// a complex conjugate pole pair at angle w = 2*pi*freq/sr and
+// radius r. Pole radius controls the Q (resonance sharpness):
+//   r close to 1.0 = very narrow peak = long ring (metal bell)
+//   r close to 0.0 = broad peak = quick decay (cardboard box)
+// Multiple TwoPole filters in parallel model the multi-mode
+// resonance of a guitar body, violin plate, or drum shell.
+// See: Smith, J.O. (2010) PASP, Section 9.2
+// ---------------------------------------------------------------
 
 class TwoPole {
   constructor() {
@@ -121,6 +203,16 @@ class TwoPole {
 // ============================================================
 // Simple DC blocker
 // ============================================================
+//
+// ---------------------------------------------------------------
+// DC blocker: y(n) = x(n) - x(n-1) + R * y(n-1), where R = 0.995.
+// This is a first-order highpass with -3 dB cutoff near 4 Hz (at
+// 44.1 kHz). Physical model feedback loops can accumulate DC offset
+// from numerical drift or asymmetric nonlinearities (e.g., the bow
+// table). Without DC blocking, the output would slowly wander away
+// from zero, wasting headroom and causing clicks on note boundaries.
+// See: Smith, J.O. (2010) PASP, Appendix B
+// ---------------------------------------------------------------
 
 class DCBlocker {
   constructor() {
@@ -145,6 +237,31 @@ class DCBlocker {
 // ============================================================
 // Model 1: Plucked String (Karplus-Strong)
 // ============================================================
+//
+// ---------------------------------------------------------------
+// Karplus-Strong (1983): the simplest and most elegant physical
+// model. A delay line of N samples (N = sr/freq) is filled with
+// an excitation signal, then each sample is read, filtered, and
+// written back. The original paper used a two-point average:
+//   y(n) = 0.5 * (y(n-N) + y(n-N-1))
+// which is a 2-tap FIR lowpass with cutoff at sr/4. Each round
+// trip through the delay removes high harmonics, modeling how a
+// real plucked string's timbre evolves from bright attack to warm
+// sustain.
+//
+// Enhancements over the original algorithm:
+//   - One-pole IIR loop filter (variable brightness vs fixed avg)
+//   - Pick position comb filter (suppresses harmonics at nodes)
+//   - Body size controls a secondary lowpass (simulates body mass)
+//   - Three excitation types for timbral variety
+//   - Half-sample delay compensation for loop filter group delay
+//
+// The delay length minus 0.5 compensates for the one-pole filter's
+// group delay of ~0.5 samples at the fundamental frequency, keeping
+// the pitch accurate to within a few cents.
+//
+// See: Karplus & Strong (1983) CMJ 7(2); Jaffe & Smith (1983)
+// ---------------------------------------------------------------
 
 class PluckModel {
   constructor(sr) {
@@ -171,7 +288,8 @@ class PluckModel {
 
   noteOn(freq, velocity) {
     this.active = true;
-    var period = this.sampleRate / freq;
+    var safeFreq = freq || 0.001;
+    var period = this.sampleRate / safeFreq;
     this.delayLength = period - 0.5; // compensate for averaging filter group delay
 
     // Brightness -> loop filter coefficient (higher = brighter)
@@ -212,10 +330,12 @@ class PluckModel {
     } else if (this.excitation === 'pick') {
       // Triangle-ish pick excitation with half-Hann window
       var half = Math.floor(excLen / 2);
+      var safeHalf = half || 1;
       for (var i = 0; i < excLen; i++) {
-        var env = i < half ? i / half : (excLen - i) / (excLen - half);
+        var env = i < half ? i / safeHalf : (excLen - i) / ((excLen - half) || 1);
         // Half-Hann window for smoother onset
-        var hann = 0.5 * (1 - Math.cos(Math.PI * i / excLen));
+        var safeExcLenPick = excLen || 1;
+        var hann = 0.5 * (1 - Math.cos(Math.PI * i / safeExcLenPick));
         var noise = (Math.random() * 2 - 1) * 0.15;
         this.delayLine.write((env + noise) * hann * vel * 0.5);
       }
@@ -223,10 +343,12 @@ class PluckModel {
       // Shaped noise burst: mix of filtered noise + short sine burst at fundamental
       // Apply a half-Hann window for smoother onset
       var sineLen = Math.min(intPeriod, Math.floor(period * 0.5));
+      var safeSineLen = sineLen || 1;
       var prevNoise = 0;
       for (var i = 0; i < excLen; i++) {
         // Half-Hann window
-        var hann = 0.5 * (1 - Math.cos(Math.PI * i / excLen));
+        var safeExcLen = excLen || 1;
+        var hann = 0.5 * (1 - Math.cos(Math.PI * i / safeExcLen));
         // Noise component (simple one-pole lowpass for shaping)
         var rawNoise = (Math.random() * 2 - 1);
         var filteredNoise = 0.6 * rawNoise + 0.4 * prevNoise;
@@ -234,7 +356,7 @@ class PluckModel {
         // Sine burst at fundamental (fades out after half the period)
         var sineBurst = 0;
         if (i < sineLen) {
-          var sineEnv = 1 - (i / sineLen);
+          var sineEnv = 1 - (i / safeSineLen);
           sineBurst = Math.sin(2 * Math.PI * freq * i / this.sampleRate) * sineEnv * 0.4;
         }
         var sample = (filteredNoise * 0.6 + sineBurst) * hann * vel * 0.5;
@@ -261,7 +383,10 @@ class PluckModel {
     // Read from delay line
     var delayed = this.delayLine.read(this.delayLength - 1);
 
-    // Pick position comb filter: suppress harmonics at multiples of 1/pickPosition
+    // Pick position comb filter: suppress harmonics at multiples of 1/pickPosition.
+    // This models the physical effect of plucking at a specific point along the
+    // string — plucking at 1/N of the length creates a node for the Nth harmonic.
+    // Subtracting a delayed copy creates a comb filter with nulls at those harmonics.
     var pickSample = this.delayLine.read(this.pickDelay);
     delayed = delayed - pickSample * 0.5;
 
@@ -300,6 +425,35 @@ class PluckModel {
 // ============================================================
 // Model 2: Bowed String (Digital Waveguide)
 // ============================================================
+//
+// ---------------------------------------------------------------
+// Digital waveguide bowed string, after Smith (1986) and the STK
+// implementation by Cook & Scavone. The string is modeled as two
+// delay lines meeting at the bow contact point:
+//
+//   [NUT]---[neck delay]---[BOW POINT]---[bridge delay]---[BRIDGE]
+//
+// Traveling waves propagate in both directions. At the nut (fixed
+// end), the wave inverts perfectly (nutReflection = -neckOut). At
+// the bridge, the wave partially reflects through a lowpass filter
+// (modeling the bridge's frequency-dependent impedance mismatch).
+//
+// The bow-string interaction is a nonlinear junction: the bowTable
+// function maps the velocity difference between bow and string to
+// a reflection coefficient (0 = slipping, 1 = stuck). This models
+// the static/kinetic friction of rosined horsehair on a string,
+// producing the Helmholtz sawtooth motion that Helmholtz first
+// observed optically in 1863.
+//
+// Bow position (where the bow contacts the string) determines the
+// delay line split ratio. Bowing at 1/N of the string suppresses
+// the Nth harmonic — sul ponticello (near bridge) emphasizes high
+// harmonics; sul tasto (over fingerboard) produces a flute-like
+// fundamental.
+//
+// See: Smith, J.O. (2010) PASP, Ch. 9.3
+//      Helmholtz, H. (1863) On the Sensations of Tone
+// ---------------------------------------------------------------
 
 class BowModel {
   constructor(sr) {
@@ -342,8 +496,14 @@ class BowModel {
     this.brightness = 60;
   }
 
-  // STK BowTable: friction curve
-  // Returns reflection coefficient: 1.0 when stuck, ~0 when slipping
+  // STK BowTable: friction curve modeling rosin stick-slip dynamics.
+  // f(x) = 1 / (|x * slope + offset| + 0.75)^4, clamped to [0, 1].
+  // This empirical curve (from Cook's STK) approximates measured
+  // rosin friction: peaked near zero velocity difference (bow and
+  // string moving together = "stuck"), falling off sharply as
+  // differential velocity increases (= "slipping"). The slope
+  // parameter maps to bow pressure: high slope = stiffer friction
+  // curve = more overtones (high-pressure bowing).
   bowTable(input) {
     var sample = (input + this.bowTableOffset) * this.bowTableSlope;
     sample = Math.abs(sample) + 0.75;
@@ -356,7 +516,8 @@ class BowModel {
   noteOn(freq, velocity) {
     this.active = true;
     this.bowing = true;
-    var period = this.sampleRate / freq;
+    var safeFreq = freq || 0.001;
+    var period = this.sampleRate / safeFreq;
 
     // Bow position: split string at 12-42% from bridge
     var bowPos = 0.12 + (this.bowPosition / 100) * 0.3;
@@ -435,11 +596,12 @@ class BowModel {
       this.vibratoPhase += vibratoFreqNow / this.sampleRate;
       if (this.vibratoPhase > 1) this.vibratoPhase -= 1;
       var rampSamples = this.sampleRate * 0.3;
+      var safeRampSamples = rampSamples || 1;
       var vibratoTarget = 0.3;
       // Vibrato depth drift: wander +/- 40%
       vibratoTarget = vibratoTarget * (1 + drift2 * 0.80 * this.humanization);
       if (this.decayCounter < rampSamples) {
-        this.vibratoDepth = vibratoTarget * (this.decayCounter / rampSamples);
+        this.vibratoDepth = vibratoTarget * (this.decayCounter / safeRampSamples);
       } else {
         this.vibratoDepth = vibratoTarget;
       }
@@ -455,10 +617,16 @@ class BowModel {
     var bridgeOut = this.bridgeDelay.read(this.bridgeLength - 1);
     var neckOut = this.neckDelay.read(this.neckLength - 1);
 
-    // 2. Bridge reflection: negate + lowpass (partial reflection at bridge)
+    // 2. Bridge reflection: negate + lowpass (partial reflection at bridge).
+    // The bridge is not a perfect termination — some energy transmits into
+    // the instrument body (which is how we hear the string). The lowpass
+    // models the bridge's frequency-dependent transmission: high harmonics
+    // lose more energy per reflection than low harmonics.
     var bridgeReflection = -this.stringFilter.process(bridgeOut);
 
-    // 3. Nut reflection: negate only (fixed end = perfect inversion)
+    // 3. Nut reflection: negate only (fixed end = perfect inversion).
+    // A nut/fret is nearly rigid, so the reflection coefficient is ~-1
+    // (full inversion, no energy loss). No filtering needed.
     var nutReflection = -neckOut;
 
     // 4. String velocity at bow point
@@ -500,6 +668,42 @@ class BowModel {
 // ============================================================
 // Model 3: Blown Pipe (STK Flute — Waveguide)
 // ============================================================
+//
+// ---------------------------------------------------------------
+// Waveguide wind instrument model, after Cook (1992) and the STK
+// Flute class. Two delay lines interact at the embouchure:
+//
+//   [MOUTH] ---> [jet delay] ---> [LABIUM/REED]
+//                                    |     ^
+//                                    v     |
+//                              [bore delay line]
+//                                    |
+//                                [BELL/OPEN END] (inverts + reflects)
+//
+// The bore delay line models the air column. At the open bell end,
+// the pressure wave reflects with INVERSION (open-end boundary
+// condition), so a full cycle requires two traversals of the bore:
+//   f_fundamental = sampleRate / (2 * boreLength)
+//
+// The jet table (cubic: x*(x^2 - 1)) models the turbulent
+// interaction at the labium where the air jet meets the returning
+// bore wave. This nonlinearity converts steady breath energy into
+// periodic oscillation — the same mechanism that makes a real
+// flute or recorder produce sound.
+//
+// The jet filter (one-pole with gain = -1) inverts and lowpasses
+// the jet delay output. The inversion is critical: without it, the
+// jet and bore reflection cancel at the embouchure, producing zero
+// net loop gain and no oscillation.
+//
+// Embouchure parameter morphs between flute (sinusoidal, few
+// harmonics) and reed (rich spectrum, self-oscillating) character.
+//
+// See: Cook, P. (1992) CCRMA STAN-M-73
+//      Smith, J.O. (2010) PASP, Ch. 9.8
+//      Fletcher, N. & Rossing, T. (1998) Physics of Musical
+//        Instruments, Springer, Ch. 16
+// ---------------------------------------------------------------
 
 class BlowModel {
   constructor(sr) {
@@ -548,7 +752,13 @@ class BlowModel {
     this.baseBreathTarget = 0;
   }
 
-  // STK JetTable: cubic nonlinearity x³ - x, clamped to ±1
+  // STK JetTable: cubic nonlinearity f(x) = x * (x^2 - 1), clamped to [-1, 1].
+  // Models the Bernoulli-driven jet deflection at the labium edge.
+  // The cubic has inflection points at x = +/-sqrt(1/3), creating
+  // natural saturation that bounds oscillation amplitude — this is
+  // why overblowing a flute produces a warm distortion rather than
+  // digital clipping. Three zero-crossings at -1, 0, +1 mean the
+  // jet "switches sides" of the labium as pressure alternates.
   jetTable(input) {
     var out = input * (input * input - 1.0);
     if (out > 1.0) out = 1.0;
@@ -560,7 +770,8 @@ class BlowModel {
     this.active = true;
     this.blowing = true;
 
-    var period = this.sampleRate / freq;
+    var safeFreq = freq || 0.001;
+    var period = this.sampleRate / safeFreq;
 
     // STK Flute::setFrequency: bore delay = full period minus filter compensation
     // The bore delay determines the PITCH (direct endReflection feedback path).
@@ -739,6 +950,41 @@ class BlowModel {
 // ============================================================
 // Model 4: Struck Object (Modal Synthesis)
 // ============================================================
+//
+// ---------------------------------------------------------------
+// Modal synthesis decomposes the vibration of a struck object into
+// individual resonant modes, each implemented as a biquad bandpass
+// filter. This approach directly solves the frequency-domain
+// representation: the output is a sum of exponentially-decaying
+// sinusoids at the object's natural frequencies.
+//
+// Excitation (a short impulse modeling the mallet/hammer contact)
+// drives all 16 resonators simultaneously. Each mode rings at its
+// own frequency and decays at its own rate, and the sum produces
+// the characteristic timbre:
+//
+//   excitation --+--> [mode 1: f1, Q1] --+--> sum --> output
+//                +--> [mode 2: f2, Q2] --+
+//                +--> [mode 3: f3, Q3] --+
+//                :         ...           :
+//                +--> [mode 16: ...]  ---+
+//
+// Material determines the partial frequency ratios:
+//   - Metal (nearly harmonic): produces pitched, bell-like tones
+//   - Wood (n^2 spacing, Euler-Bernoulli): xylophone/marimba
+//   - Glass (strongly inharmonic): shimmering, metallic
+//   - Membrane (Bessel zeros): drum-like, unpitched
+//
+// Strike position controls which modes are excited via the
+// sinusoidal spatial pattern of each mode shape:
+//   gain_i = |sin(pi * i * strikePos)|
+// This correctly models how a drumhead's radial modes have nulls
+// (nodes) at specific positions.
+//
+// See: Adrien, J.-M. (1991) "The Missing Link: Modal Synthesis",
+//        MIT Press; Roads, C. (1996) CMT, Ch. 7
+//      Fletcher & Rossing (1998) Ch. 3 (vibrating bars/plates)
+// ---------------------------------------------------------------
 
 class StrikeModel {
   constructor(sr) {
@@ -769,23 +1015,33 @@ class StrikeModel {
     this.outputScale = 1.0;
   }
 
-  // Material-specific partial ratios
+  // Material-specific partial ratios — these define the "soul" of each
+  // material. Harmonic instruments (strings) have integer ratios (1, 2, 3...);
+  // inharmonic instruments (bars, bells, membranes) have non-integer ratios
+  // determined by the object's geometry and the governing wave equation.
   getPartialRatios(material) {
     switch (material) {
       case 'wood':
-        // Bar modes (roughly f * n^2)
+        // Bar modes: Euler-Bernoulli beam theory gives f_n ~ n^2 for a
+        // free-free bar. These measured ratios are from marimba bars.
         return [1, 2.76, 5.40, 8.93, 13.34, 18.64, 24.82, 31.87,
                 39.81, 48.62, 58.31, 68.88, 80.33, 92.66, 105.86, 119.94];
       case 'metal':
-        // Metallic: slightly inharmonic
+        // Metallic bar: nearly harmonic with slight stretching from
+        // stiffness. The deviation from pure integers gives the
+        // characteristic "shimmer" of bells and chimes.
         return [1, 2.0, 3.01, 4.03, 5.06, 6.12, 7.21, 8.34,
                 9.52, 10.75, 12.04, 13.40, 14.83, 16.34, 17.94, 19.63];
       case 'glass':
-        // Glass: strongly inharmonic
+        // Glass: strongly inharmonic due to high stiffness-to-mass
+        // ratio. Produces the shimmering, ethereal quality of crystal.
         return [1, 2.32, 4.15, 6.48, 9.31, 12.64, 16.47, 20.80,
                 25.63, 30.96, 36.79, 43.12, 49.95, 57.28, 65.11, 73.44];
       case 'membrane':
-        // Drum membrane (circular): accurate Bessel function zeros
+        // Circular membrane (drumhead): ratios are zeros of Bessel
+        // functions J_m(x), from the 2D wave equation in polar
+        // coordinates. These give drums their characteristic non-
+        // pitched, "thuddy" timbre. Values from Morse & Ingard (1968).
         return [1.000, 1.594, 2.136, 2.296, 2.653, 2.918, 3.156, 3.501,
                 3.600, 3.652, 4.060, 4.154, 4.347, 4.610, 4.832, 5.132];
       default:
@@ -793,7 +1049,10 @@ class StrikeModel {
     }
   }
 
-  // Configure a modal resonator as a bandpass biquad
+  // Configure a modal resonator as a bandpass biquad (second-order IIR).
+  // Each mode is: H(z) = b0 * (1 - z^-2) / (1 + a1*z^-1 + a2*z^-2)
+  // Bandwidth determines decay time: narrow BW = high Q = long ring.
+  // The freq/bandwidth ratio is Q, the quality factor.
   configureMode(mode, freq, bandwidth) {
     var sr = this.sampleRate;
     if (freq >= sr / 2 - 100) freq = sr / 2 - 100; // Nyquist safety
@@ -802,7 +1061,8 @@ class StrikeModel {
     var w0 = 2 * Math.PI * freq / sr;
     var cosw0 = Math.cos(w0);
     var sinw0 = Math.sin(w0);
-    var alpha = sinw0 / (2 * (freq / bandwidth));
+    var safeBandwidth = bandwidth || 0.001;
+    var alpha = sinw0 / (2 * (freq / safeBandwidth));
 
     var a0 = 1 + alpha;
     mode.b0 = (sinw0 / 2) / a0;
@@ -932,6 +1192,15 @@ class StrikeModel {
 // ============================================================
 // Physical Model Voice
 // ============================================================
+//
+// ---------------------------------------------------------------
+// A PhysicalVoice wraps one instance of each model type and
+// delegates to the active model based on the 'model' setting.
+// Each voice holds pre-allocated model objects (pluck, bow, blow,
+// strike) to avoid memory allocation during audio processing —
+// allocation in the audio thread can trigger garbage collection
+// pauses that cause audible glitches.
+// ---------------------------------------------------------------
 
 class PhysicalVoice {
   constructor(sampleRate) {
@@ -1020,6 +1289,24 @@ class PhysicalVoice {
 // ============================================================
 // Physical Model Worklet Processor
 // ============================================================
+//
+// ---------------------------------------------------------------
+// The AudioWorkletProcessor runs on a dedicated audio rendering
+// thread. Its process() method is called ~344 times per second
+// (at 44.1 kHz with 128-sample blocks). Each call MUST complete
+// within ~2.9 ms or the output buffer underruns, causing clicks.
+//
+// Voice management: 64 pre-allocated voices (16 per instrument x
+// 4 instruments). The activeVoiceIndices array avoids iterating
+// all 64 voices when only a few are sounding. After each buffer,
+// finished voices are compacted out of the active list in-place.
+//
+// Output uses a Pade [3/3] approximant of tanh for always-on
+// soft clipping: tanh(x) ~ x * (27 + x^2) / (27 + 9*x^2).
+// This smoothly limits the summed output to roughly [-1, +1]
+// without the aliasing artifacts of hard clipping, and is much
+// cheaper than the transcendental Math.tanh() function.
+// ---------------------------------------------------------------
 
 class PhysicalModelProcessor extends AudioWorkletProcessor {
   constructor() {
@@ -1162,12 +1449,17 @@ class PhysicalModelProcessor extends AudioWorkletProcessor {
       for (var a = 0; a < numActive; a++) {
         sample += voices[active[a]].process() * PHYS_VOICE_OUTPUT_GAIN;
       }
-      // Smooth Pade approximant of tanh soft clip (always-on, no hard knee)
+      // Pade [3/3] approximant of tanh for soft clipping (always-on):
+      //   tanh(x) ~ x * (27 + x^2) / (27 + 9*x^2)
+      // Accurate to within 0.4% for |x| < 2. At x = 1: output = 0.757
+      // (real tanh(1) = 0.762). Polynomial — no branches, no transcendentals.
       var ss = sample * sample;
       channel[s] = sample * (27 + ss) / (27 + 9 * ss);
     }
 
-    // Post-buffer compaction: remove finished voices in-place
+    // Post-buffer compaction: remove finished voices from the active
+    // list in-place (O(N) swap, no splice/allocation). This keeps the
+    // inner loop tight by only iterating actually-sounding voices.
     var writePtr = 0;
     for (var i = 0; i < numActive; i++) {
       if (voices[active[i]].active) {

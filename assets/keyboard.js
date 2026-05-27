@@ -84,7 +84,7 @@
     } else {
 
     var kbEl = document.getElementById('keyboard');
-    if (kbEl) { kbEl.innerHTML = ''; }
+    if (kbEl) { kbEl.textContent = ''; }
 
     var scaleNotes = getScaleNotes();
     var baseOct = SL.ui ? SL.ui.getBaseOctave() : 4;

@@ -1,5 +1,29 @@
 // SSLI Controller: Hurdy-Gurdy (crank wheel + melody keys + drone toggles)
 // ES5 compatible (var, no arrow functions, no template literals)
+//
+// ---- What is a hurdy-gurdy? ----
+// A medieval stringed instrument where a rosined wheel, turned by a hand
+// crank, continuously bows multiple strings at once -- essentially an
+// infinite mechanical bow. The player's right hand turns the crank while
+// the left hand presses tangent keys that stop the melody (chanter)
+// strings at different pitches, similar to how frets work on a guitar
+// but actuated by wooden sliders rather than fingers on the string.
+//
+// Three types of strings:
+//   - Chanter strings: melody strings stopped by tangent keys
+//   - Drone strings: unstopped strings that sound a constant pitch
+//     (like bagpipe drones), typically tuned to tonic and fifth
+//   - Trompette string: a special rhythmic drone with a loose bridge
+//     (the "dog" or "chien") that buzzes against the soundboard when
+//     the crank is jerked, producing a percussive "brr" accent
+//
+// The crank provides continuous excitation: faster cranking = louder
+// and brighter tone. This surface maps a circular touch gesture to
+// crank speed, tangent keys to note selection, and toggle buttons to
+// drone string activation. Buzz is triggered by crank acceleration.
+//
+// Ref: Palmer, "The Hurdy-Gurdy" (David & Charles, 1980)
+// Ref: Baines, "European & American Musical Instruments" (1966)
 
 (function() {
   'use strict';
@@ -16,13 +40,18 @@
   var SEMITONES_PER_OCTAVE = 12;
   var OCTAVE_BASE_OFFSET = 1;
 
-  // Crank wheel
+  // Crank wheel -- represents the rosined wheel that bows the strings.
+  // On a real hurdy-gurdy, the wheel is ~15-20cm diameter and the player
+  // turns it steadily; faster cranking produces louder, brighter tone.
   var CRANK_DIAMETER_PX = 280;
   var CRANK_DIAMETER_PHONE_PX = 200;
   var CRANK_HANDLE_SIZE_PX = 12;
   var CRANK_HANDLE_COLOR = '#e8c87a';
 
-  // Speed mapping
+  // Speed mapping -- exponential moving average smooths the raw angular
+  // velocity from pointer events into a stable crank speed value.
+  // This models the physical inertia of the wheel: it does not start
+  // or stop instantly, but accelerates and decays gradually.
   var CRANK_SPEED_EMA_ALPHA = 0.15;
   var CRANK_SPEED_EMA_RETAIN = 0.85;
   var CRANK_DECAY_FACTOR = 0.92;
@@ -34,10 +63,16 @@
   var CRANK_VELOCITY_SCALE = 14.5;
   var CRANK_VELOCITY_MAX_ADD = 87;
 
-  // Buzz
+  // Buzz -- models the trompette string's "chien" (dog) bridge.
+  // On a real hurdy-gurdy, a sharp jerk of the crank causes the loose
+  // bridge to lift and buzz against the soundboard, producing a rhythmic
+  // "brr" accent. We detect this by monitoring crank acceleration.
   var BUZZ_ACCEL_THRESHOLD = 5.0;
 
-  // Melody keys
+  // Melody keys -- tangent keys on a real hurdy-gurdy are wooden sliders
+  // that press against the chanter strings to shorten their vibrating
+  // length, raising the pitch. Most hurdy-gurdies have 7-13 tangent keys
+  // covering one to two octaves of a diatonic scale.
   var MELODY_KEY_COUNT = 7;
   var MELODY_KEY_WIDTH_PX = 240;
   var MELODY_KEY_WIDTH_PHONE_PX = 160;
@@ -82,17 +117,24 @@
   var SCALE_MODE_NAMES = ['Major', 'Minor', 'Dorian', 'Mixolydian', 'Phrygian', 'Pentatonic', 'Blues'];
 
   // Drone intervals relative to root: tonic (0), fifth (+7), octave (+12)
+  // Real hurdy-gurdies typically have 2-4 drone strings tuned to the tonic
+  // and fifth of the key. Drones only sound when the wheel is turning --
+  // they stop as soon as the crank stops, unlike bagpipe drones which
+  // sustain as long as the bag has air.
   var DRONE_TONIC_INTERVAL = 0;
   var DRONE_FIFTH_INTERVAL = 7;
   var DRONE_OCTAVE_INTERVAL = 12;
   var DRONE_OCTAVE_OFFSET = -1;
 
-  // Buzz tremolo
+  // Buzz tremolo -- rapid amplitude modulation applied when the trompette
+  // string's buzz mode is active, simulating the rattling chien bridge.
   var BUZZ_TREMOLO_RATE = 30.0;
   var BUZZ_TREMOLO_DEPTH_MIN = 0.5;
   var BUZZ_TREMOLO_DEPTH_RANGE = 0.5;
 
-  // Buzz percussive hit
+  // Buzz percussive hit -- the short "brr" sound when the crank is jerked.
+  // Synthesized as stacked detuned sawtooths with rapid decay, modeling
+  // the broadband noise burst of the chien lifting off the soundboard.
   var BUZZ_HIT_DURATION_SEC = 0.12;
   var BUZZ_HIT_FREQ_HZ = 180;
   var BUZZ_HIT_HARMONICS = 4;
@@ -103,7 +145,9 @@
   var KEY_SELECTOR_BTN_SIZE_PX = 28;
   var MODE_SELECTOR_BTN_HEIGHT_PX = 28;
 
-  // Scriabin-ish pitch class colors for key borders
+  // Scriabin-ish pitch class colors for key borders.
+  // Loosely inspired by Scriabin's synesthetic color-to-pitch mapping
+  // (C=red, G=orange, D=yellow, etc.) for visual pitch identification.
   var PITCH_CLASS_COLORS = [
     '#ff0000', '#ff7700', '#ffff00', '#8eff00', '#00ff00', '#00ccff',
     '#0044ff', '#0000ff', '#7700ff', '#cc00ff', '#ff00cc', '#ff0066'
@@ -203,6 +247,9 @@
   // Expression
   // ============================================================
 
+  // Crank speed maps to both volume (gain) and tonal brightness (filter
+  // cutoff). This models how faster wheel rotation increases bow pressure
+  // on the strings, producing louder and harmonically richer sound.
   function _applyExpression(speed) {
     var gain = Math.min(1.0, speed / CRANK_SPEED_GAIN_DIVISOR);
     var cutoff = CRANK_CUTOFF_BASE_HZ * Math.pow(10, speed / CRANK_SPEED_CUTOFF_DIVISOR);
@@ -262,6 +309,10 @@
   // Buzz percussive hit (trompette "brr" on crank jerk)
   // ============================================================
 
+  // Synthesizes the percussive "brr" of the chien bridge lifting off.
+  // Multiple detuned sawtooth oscillators with exponential decay create
+  // the characteristic broadband buzz. A cooldown timer prevents rapid
+  // re-triggering from noisy pointer acceleration data.
   function _triggerBuzzHit(accelIntensity) {
     var now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
     var elapsed = now - _buzzLastHitTime;
@@ -410,6 +461,10 @@
   // ============================================================
   // Drone management
   // ============================================================
+  // Drones are tied to crank speed: they start sounding when the wheel
+  // spins fast enough and stop when it decays below threshold. This
+  // matches the real instrument where drone strings only vibrate while
+  // the wheel contacts them with sufficient pressure.
 
   function _startDrone(droneIdx) {
     var midi = -1;
@@ -488,6 +543,9 @@
   // Crank decay loop
   // ============================================================
 
+  // After the player releases the crank, the wheel's rotational inertia
+  // keeps it spinning but gradually decaying. When speed drops below
+  // threshold, all strings go silent -- melody, drones, and buzz alike.
   function _crankDecayTick() {
     if (_isCrankActive) { return; }
     _crankSpeedSmoothed = _crankSpeedSmoothed * CRANK_DECAY_FACTOR;
@@ -516,6 +574,10 @@
   // Melody keys
   // ============================================================
 
+  // Melody keys use legato transitions: the new note starts before the
+  // old note stops, ensuring no silence gap. On a real hurdy-gurdy the
+  // wheel never stops bowing the string, so pressing a new tangent key
+  // immediately changes pitch without any attack transient.
   function _playMelodyKey(keyIdx) {
     var crankSounding = (_crankSpeedSmoothed >= CRANK_MIN_SPEED);
     var keyInRange = (keyIdx < _activeIntervals.length);

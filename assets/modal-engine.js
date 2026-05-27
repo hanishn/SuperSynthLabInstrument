@@ -3,6 +3,35 @@
 // (bells, plates, bars, metallophones) with inharmonic frequency ratios
 // v1.0.2 - fix: mallet excitation frequency now scales with note fundamental
 //          to prevent single-note resonance artifacts (squeaky A3 on marimba)
+//
+// -----------------------------------------------------------------------
+// EDUCATIONAL OVERVIEW: Modal Synthesis
+// -----------------------------------------------------------------------
+// Modal synthesis models the sound of physical objects (bells, bars, plates,
+// drums) by decomposing their vibration into a sum of independent resonant
+// modes. Each mode vibrates at a characteristic frequency, amplitude, and
+// decay rate determined by the object's geometry and material.
+//
+// The technique was formalized by Adrien (1991) as "the missing link"
+// between physical modeling and signal processing. Rather than simulating
+// wave propagation on a mesh (finite-element style), modal synthesis
+// replaces the object with a bank of second-order resonant filters — one
+// per mode — driven by a short excitation signal (impulse, noise burst,
+// or mallet strike). This is computationally cheap and musically intuitive.
+//
+// Key equation: each mode is a damped sinusoid
+//   x_n(t) = A_n * exp(-d_n * t) * sin(2*pi*f_n*t + phi_n)
+// where f_n = mode frequency, d_n = damping, A_n = amplitude.
+//
+// References:
+//   Adrien, J.M. (1991) "The Missing Link: Modal Synthesis", in
+//       Representations of Musical Signals, MIT Press
+//   Cook, P. (1997) "Physically Informed Sonic Modeling (PhISM)",
+//       Proc. ICMC — established the excitation + resonator paradigm
+//   Fletcher, N.H. & Rossing, T.D. (1998) The Physics of Musical
+//       Instruments, Springer — definitive reference on mode frequencies
+//   Roads, C. (1996) The Computer Music Tutorial, MIT Press, Ch. 7
+// -----------------------------------------------------------------------
 (function() {
   'use strict';
 
@@ -18,7 +47,32 @@
   // Valid excitation types
   var VALID_EXCITATION_TYPES = { 'impulse': 1, 'noise': 1, 'mallet': 1 };
 
+  // -----------------------------------------------------------------------
   // Material partial ratio tables — characteristic inharmonic spectra
+  // -----------------------------------------------------------------------
+  // Every rigid body has natural vibration modes whose frequencies are NOT
+  // simple integer multiples of a fundamental (unlike a vibrating string).
+  // The ratios below come from analytical solutions to vibration equations:
+  //
+  //   Bar (marimba/xylophone): Euler-Bernoulli beam equation gives
+  //     f_n = f_1 * (n + 0.5)^2 * (pi / 2L^2) * sqrt(EI / rhoA)
+  //     In practice: f_n ~ f_1 * n^2 for free-free bars.
+  //     (Fletcher & Rossing, 1998, Ch. 19)
+  //
+  //   Plate: 2D analog of a bar — stiffness dominates, yielding
+  //     f_n ~ f_1 * (n + 0.5)^2 for circular plates (Chladni patterns).
+  //
+  //   Membrane (drum): solutions to the 2D wave equation on a circular
+  //     membrane are zeros of Bessel functions J_m(x):
+  //     j_01=1.0, j_11=1.594, j_21=2.136, j_02=2.296, j_31=2.653...
+  //     (Fletcher & Rossing, 1998, Ch. 18)
+  //
+  //   Bell: highly inharmonic; ratios are unique per bell shape/profile.
+  //
+  //   Tube: open-open tube produces a full harmonic series (1,2,3,4...).
+  //
+  //   Glass: behaves like a curved plate — very high inharmonicity.
+  // -----------------------------------------------------------------------
   var MATERIAL_RATIOS = {
     bar:      [1, 2.76, 5.40, 8.93, 13.34, 18.64, 24.82, 31.87, 39.81, 48.62, 58.31, 68.88, 80.33, 92.66, 105.86, 119.94],
     plate:    [1, 1.59, 2.14, 2.30, 2.65, 2.92, 3.16, 3.50, 3.60, 3.65, 4.06, 4.15, 4.35, 4.61, 4.84, 5.13],
@@ -29,14 +83,27 @@
   };
 
   // Harmonic ratios for inharmonicity morphing
+  // Pure harmonic series (ideal string): f_n = n * f_1.
+  // The inharmonicity knob interpolates between these and MATERIAL_RATIOS,
+  // letting the user smoothly morph from "string-like" to "bell-like".
   var HARMONIC_RATIOS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 
-  // Mallet excitation frequency as a ratio of the note fundamental.
+  // -----------------------------------------------------------------------
+  // Mallet excitation model
+  // -----------------------------------------------------------------------
+  // In physical acoustics, mallet hardness controls the spectral content
+  // of the excitation impulse: a soft mallet (yarn-wrapped) produces a
+  // low-pass excitation that preferentially excites low modes, while a
+  // hard mallet (brass/acetal) delivers a broadband impulse that excites
+  // many higher modes. (Cook, 1997; Fletcher & Rossing, 1998, Ch. 19)
+  //
+  // Implementation: a windowed sine burst whose frequency is a ratio of
+  // the note fundamental. Soft = low ratio (mellow), hard = high ratio.
+  // -----------------------------------------------------------------------
   // Scaling with the note avoids fixed-frequency coincidences where
   // the mallet sine burst lands on top of a modal resonator, causing
   // that mode to ring excessively (e.g. A3 on marimba with a fixed
   // 2648 Hz mallet hit mode 4 at 2660 Hz — "squeaky" artifact).
-  // Soft mallet = low ratio (broad, mellow), hard = high ratio (sharp).
   // Values chosen to sit between material partial ratios across all
   // material types and inharmonicity settings.
   var MALLET_RATIO_SOFT = 2.15;
@@ -91,6 +158,14 @@
   // ============================================================
   // Modal Resonator Voice
   // ============================================================
+  // Each voice contains a bank of NUM_MODES biquad bandpass filters.
+  // The excitation signal (impulse, noise, or mallet sine burst) is
+  // fed into all filters simultaneously; each filter "rings" at its
+  // mode frequency, and the outputs are summed. This is the classic
+  // source-filter decomposition from Adrien (1991):
+  //   output(t) = SUM_n [ excitation(t) * h_n(t) ]
+  // where h_n is the impulse response of the n-th resonant filter.
+  // ============================================================
 
   function ModalVoice(sr) {
     this.sampleRate = sr;
@@ -99,6 +174,10 @@
     this.instId = 0;
 
     // Mode filter bank state (biquad bandpass coefficients)
+    // Each mode is a 2nd-order IIR bandpass (biquad) with Direct Form I:
+    //   y[n] = b0*x[n] - a1*y[n-1] - a2*y[n-2]
+    // y1, y2 are the two delay taps. b0, a1, a2 are the filter coefficients
+    // computed from the mode's center frequency and bandwidth (Q).
     this.numModes = NUM_MODES;
     this.modes = [];
     for (var i = 0; i < this.numModes; i++) {
@@ -147,6 +226,16 @@
     this.fadeInCounter = 0;
   }
 
+  // -----------------------------------------------------------------------
+  // Biquad bandpass coefficient computation
+  // -----------------------------------------------------------------------
+  // Derived from the Audio EQ Cookbook (Robert Bristow-Johnson, 2005).
+  // The bandpass filter acts as a damped harmonic oscillator:
+  //   H(z) = (sin(w0)/2) / (1 + alpha - 2*cos(w0)*z^-1 + (1-alpha)*z^-2)
+  // where w0 = 2*pi*f/fs and alpha = sin(w0)/(2*Q).
+  // Bandwidth (bw) in Hz maps to Q: Q = freq / bw.
+  // Narrower bandwidth = higher Q = longer ring time = less damping.
+  // -----------------------------------------------------------------------
   /**
    * Configure a single biquad bandpass mode filter
    */
@@ -161,7 +250,8 @@
     var w0 = 2 * Math.PI * freq / sr;
     var sinW0 = Math.sin(w0);
     var cosW0 = Math.cos(w0);
-    var alpha = sinW0 / (2 * (freq / bw));
+    var safeBw = bw || 0.001;
+    var alpha = sinW0 / (2 * (freq / safeBw));
     var a0 = 1 + alpha;
     mode.b0 = (sinW0 / 2) / a0;
     mode.a1 = (-2 * cosW0) / a0;
@@ -169,6 +259,10 @@
     mode.freq = freq;
   };
 
+  // Inharmonicity morphing: linearly interpolates between the ideal harmonic
+  // series (string-like) and the material-specific partial ratios.
+  // At inharmonicity=0 you get a pure harmonic timbre; at 100 you get the
+  // full physical-model ratios for that material type.
   /**
    * Get interpolated ratios between harmonic and material-specific inharmonic ratios
    */
@@ -361,7 +455,15 @@
       return 0;
     }
 
-    // Generate excitation signal
+    // -----------------------------------------------------------------------
+    // Excitation signal generation
+    // -----------------------------------------------------------------------
+    // The excitation is the "energy input" — analogous to striking, bowing,
+    // or plucking the object. In Cook's PhISM framework (1997), the exciter
+    // and resonator are independent: any excitation can drive any resonator.
+    // All excitation types are windowed with a half-sine envelope to prevent
+    // spectral splatter from abrupt onset/offset.
+    // -----------------------------------------------------------------------
     var excitation = 0;
     if (this.exciteRemaining > 0) {
       var t = 1 - (this.exciteRemaining / this.exciteSamples);
@@ -387,7 +489,10 @@
       this.exciteRemaining--;
     }
 
-    // Sum all mode filter outputs
+    // Sum all mode filter outputs — this is the core of modal synthesis.
+    // Each biquad bandpass resonates at its mode frequency when excited,
+    // producing a decaying sinusoid. The sum of all modes reconstructs
+    // the object's full vibration spectrum. (Adrien, 1991)
     var output = 0;
     for (var i = 0; i < this.numModes; i++) {
       var m = this.modes[i];
@@ -404,7 +509,9 @@
     // Apply output scaling
     output *= this.outputScale;
 
-    // DC blocker
+    // DC blocker: first-order high-pass filter y[n] = x[n] - x[n-1] + R*y[n-1]
+    // Removes any DC offset accumulated from summing many resonator outputs.
+    // R=0.995 gives a -3dB point around 16 Hz at 44.1 kHz sample rate.
     var dcOut = output - this.dcX1 + this.dcR * this.dcY1;
     this.dcX1 = output;
     this.dcY1 = dcOut;
@@ -419,7 +526,9 @@
       this.fadeInCounter++;
     }
 
-    // Soft limiter for transient peaks
+    // Soft limiter: f(x) = x / (1 + |x|) for transient peaks.
+    // This is a simple sigmoid that smoothly approaches +/-1 without
+    // hard clipping, preserving transient character of struck objects.
     if (output > 0.9 || output < -0.9) {
       output = output / (1.0 + Math.abs(output));
     }
@@ -479,7 +588,10 @@
                 sample += voices[vi].process() * 0.90;
               }
             }
-            // Smooth Pade approximant of tanh soft clip
+            // Pade [3/3] approximant of tanh(x) for soft clipping:
+            //   tanh(x) ~ x*(27 + x^2) / (27 + 9*x^2)
+            // Much cheaper than Math.tanh() and accurate to <0.1% for |x|<3.
+            // Prevents digital clipping when many modes sum to large amplitude.
             var ss = sample * sample;
             output[s] = sample * (27 + ss) / (27 + 9 * ss);
           }

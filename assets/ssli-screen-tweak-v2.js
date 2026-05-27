@@ -1360,20 +1360,21 @@
     var amp;
     for (idx = 0; idx < ADDITIVE_PARTIAL_COUNT; idx++) {
       harmonic = idx + 1;
+      var safeHarmonic = harmonic || 1;
       amp = ADDITIVE_AMP_ZERO;
       if (presetName === 'Saw') {
-        amp = ADDITIVE_AMP_FULL / harmonic;
+        amp = ADDITIVE_AMP_FULL / safeHarmonic;
       } else if (presetName === 'Square') {
         var isOddSq = ((harmonic % 2) === 1);
         if (isOddSq) {
-          amp = ADDITIVE_AMP_FULL / harmonic;
+          amp = ADDITIVE_AMP_FULL / safeHarmonic;
         } else {
           amp = ADDITIVE_AMP_ZERO;
         }
       } else if (presetName === 'Triangle') {
         var isOddTri = ((harmonic % 2) === 1);
         if (isOddTri) {
-          amp = ADDITIVE_AMP_FULL / (harmonic * harmonic);
+          amp = ADDITIVE_AMP_FULL / (safeHarmonic * safeHarmonic);
         } else {
           amp = ADDITIVE_AMP_ZERO;
         }
@@ -1386,14 +1387,14 @@
       } else if (presetName === 'Odd') {
         var isOddOnly = ((harmonic % 2) === 1);
         if (isOddOnly) {
-          amp = ADDITIVE_AMP_FULL / harmonic;
+          amp = ADDITIVE_AMP_FULL / safeHarmonic;
         } else {
           amp = ADDITIVE_AMP_ZERO;
         }
       } else if (presetName === 'Even') {
         var isEvenOnly = ((harmonic % 2) === 0);
         if (isEvenOnly) {
-          amp = ADDITIVE_AMP_FULL / harmonic;
+          amp = ADDITIVE_AMP_FULL / safeHarmonic;
         } else if (idx === 0) {
           amp = ADDITIVE_AMP_FULL;
         } else {

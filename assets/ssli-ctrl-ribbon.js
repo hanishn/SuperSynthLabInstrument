@@ -125,11 +125,12 @@
     var startMidi = (baseOctave + 1) * 12;
     var endMidi = (baseOctave + numOctaves + 1) * 12;
     var totalNotes = endMidi - startMidi;
+    var safeTotalNotes = totalNotes || 1;
     var stripWidth = containerW - RIBBON_PADDING * 2;
 
     for (var oct = baseOctave + 1; oct <= baseOctave + numOctaves + 1; oct++) {
       var octMidi = oct * 12;
-      var frac = (octMidi - startMidi) / totalNotes;
+      var frac = (octMidi - startMidi) / safeTotalNotes;
       var xPos = Math.floor(frac * stripWidth);
       var marker = document.createElement('div');
       marker.className = 'ctrl-ribbon-oct-marker ssli-ribbon-oct-marker';
@@ -148,7 +149,7 @@
     for (var n = startMidi; n <= endMidi; n++) {
       var pc = n % 12;
       if (pc === 0) { continue; }
-      var nFrac = (n - startMidi) / totalNotes;
+      var nFrac = (n - startMidi) / safeTotalNotes;
       var nX = Math.floor(nFrac * stripWidth);
       var semiTick = document.createElement('div');
       semiTick.className = 'ctrl-ribbon-semi-tick ssli-ribbon-semi-tick';

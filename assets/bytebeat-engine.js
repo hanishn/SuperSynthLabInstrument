@@ -2,6 +2,32 @@
 // Evaluates mathematical expressions on an incrementing counter t to generate audio
 // Classic demoscene bytebeat: output = expression(t) & 255, scaled to -1..1
 // ScriptProcessor based, monophonic (bytebeat is inherently single-voice)
+//
+// -- Educational Notes: Bytebeat Synthesis --
+//
+// Bytebeat was discovered by Ville-Matias Heikkila (viznut) in September 2011
+// and presented in his blog post "Algorithmic symphonies from one line of code"
+// (countercomplex.blogspot.com). The core idea: a single mathematical expression,
+// evaluated once per sample with an incrementing counter t, produces complex
+// musical patterns with no oscillators, envelopes, or filters -- just integer
+// math on a counter.
+//
+// The canonical formula: output = f(t) & 255
+//   - t increments by 1 each sample (typically at 8000 Hz)
+//   - The result is truncated to 8 bits (0-255), then scaled to audio range
+//   - Bitwise operators (>>, |, &, ^) create rhythmic structure because
+//     each bit position cycles at a power-of-2 rate: bit N toggles every
+//     2^N samples, creating nested polyrhythms
+//
+// Example: t*(t>>5|t>>8) -- the classic bytebeat formula
+//   - t>>5 creates a ~250 Hz square wave (8000/2^5)
+//   - t>>8 creates a ~31 Hz square wave (8000/2^8)
+//   - OR combines them; multiplication with t creates pitch sweeps
+//   - The result: an emergent melodic loop from pure arithmetic
+//
+// Reference: Heikkila, V. (2011). "Algorithmic symphonies from one line of
+// code -- how and why?" Countercomplex blog and accompanying YouTube video.
+//
 (function() {
   'use strict';
 
@@ -11,6 +37,11 @@
   // Constants
   // ============================================================
 
+  // Bytebeat traditionally runs at 8000 Hz -- the telephone-quality sample
+  // rate that viznut used in his original experiments. This low rate is part
+  // of the aesthetic: higher rates make formulas sound different because the
+  // bit-shift rhythmic periods change proportionally. At 8 kHz, bit N of t
+  // cycles at 8000/2^N Hz (e.g., bit 8 = ~31 Hz, bit 12 = ~2 Hz).
   var DEFAULT_SAMPLE_RATE = 8000;
   var MIN_SAMPLE_RATE = 4000;
   var MAX_SAMPLE_RATE = 48000;
@@ -22,6 +53,13 @@
   /** Track consecutive formula errors */
   var _consecutiveErrors = 0;
 
+  // Built-in bytebeat formula library.
+  // Each formula is a single JavaScript expression using only: t (the counter),
+  // integer literals (decimal/hex), and operators (+, -, *, /, %, &, |, ^, ~, <<, >>).
+  // No function calls, no variables besides t. The beauty of bytebeat is that
+  // these terse expressions produce surprisingly complex, often musical, output.
+  // "Classic" formulas are from viznut's original 2011 collection.
+  // "Melodic" formulas emphasize pitch patterns; "Rhythmic" ones emphasize beats.
   /** Built-in bytebeat formula library */
   var FORMULA_LIBRARY = [
     { name: 'Classic',           expr: 't*(t>>5|t>>8)',                         category: 'Classic' },
@@ -86,6 +124,13 @@
   // ============================================================
   // Formula Compilation
   // ============================================================
+  // Bytebeat formulas are user-provided strings compiled into JavaScript
+  // functions via new Function(). This is inherently dangerous -- arbitrary
+  // code execution -- so we implement a strict token whitelist. Only integer
+  // literals, the variable t, arithmetic/bitwise operators, and parentheses
+  // are allowed. No identifiers (no window, document, eval), no function
+  // calls, no assignment operators. The compiled function is further wrapped
+  // in a try/catch sandbox for runtime error containment.
 
   /**
    * Validate a bytebeat expression string for safety.
@@ -125,6 +170,9 @@
     }
 
     try {
+      // The |0 at the end coerces the result to a 32-bit signed integer,
+      // which is essential: bytebeat operates on integer arithmetic, and
+      // JavaScript's default floating-point would break bit-shift semantics.
       /* jshint -W054 */
       var rawFn = new Function('t', 'return (' + expr + ')|0;');
       /* jshint +W054 */
@@ -151,12 +199,21 @@
   // ============================================================
   // Audio Processing
   // ============================================================
+  // The core rendering loop must solve a sample-rate conversion problem:
+  // bytebeat formulas expect to run at their own rate (typically 8 kHz),
+  // but the Web Audio API runs at the host rate (typically 44.1 or 48 kHz).
+  // We use a fractional accumulator: for each host sample, we advance by
+  // (bbRate / hostRate) bytebeat samples. When the accumulator crosses 1.0,
+  // we evaluate the formula and increment t. This is effectively a
+  // zero-order hold (sample-and-hold) resampler, which preserves the
+  // lo-fi character of the original 8 kHz bytebeat output.
 
   function processBytebeat(outputBuffer) {
     var output = outputBuffer.getChannelData(0);
     var hostRate = audioContext.sampleRate;
+    var safeHostRate = hostRate || 1;
     var bbRate = settings.sampleRate;
-    var ratio = bbRate / hostRate;
+    var ratio = bbRate / safeHostRate;
     var depth = settings.bitDepth;
     var inc = settings.tIncrement;
 
@@ -208,7 +265,11 @@
           }
 
           if (!hasTooManyErrors) {
-            // Scale based on bit depth
+            // Scale based on bit depth.
+            // 8-bit: mask to 0-255, then map to [-1, +1]. This is the classic
+            // bytebeat range -- the "& 255" is implicit in C's char type, which
+            // is how the original formulas were conceived (printf("%c", f(t))).
+            // 16-bit: mask to 0-65535 for higher dynamic range.
             if (depth === 8) {
               raw = (raw & 255);
               lastBytebeatSample = (raw / 127.5) - 1.0;
@@ -317,7 +378,9 @@
           var filterNode = getOrCreateFilterNode(instId);
           updateFilter(instId);
 
-          // DC blocking filter — bytebeat formulas often produce asymmetric waveforms
+          // DC blocking filter -- bytebeat formulas often produce asymmetric waveforms
+          // because the 0-255 range mapped to [-1,+1] rarely averages to zero.
+          // A 10 Hz highpass removes the DC offset without affecting audible content.
           var DC_BLOCK_FREQ = 10;
           var dcBlocker = audioContext.createBiquadFilter();
           dcBlocker.type = 'highpass';
@@ -377,6 +440,9 @@
   // Settings
   // ============================================================
 
+  // Setting a new formula resets the t counter to 0, restarting the pattern.
+  // This is intentional: bytebeat patterns are deterministic functions of t,
+  // so the same formula always produces the same audio from t=0.
   function setFormula(expr) {
     var fn = compileFormula(expr);
     if (fn) {
@@ -402,6 +468,11 @@
     setRate(sr);
   }
 
+  // t-increment controls how fast the counter advances per sample.
+  // At inc=1 (default), t advances by 1 each sample -- normal speed.
+  // Higher values speed up the entire pattern proportionally: inc=2
+  // doubles the pitch and tempo. This is equivalent to changing the
+  // bytebeat sample rate without affecting the host audio rate.
   function setTIncrement(inc) {
     settings.tIncrement = Math.max(1, Math.min(64, Math.round(inc)));
   }

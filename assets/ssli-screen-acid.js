@@ -5,6 +5,31 @@
 // compound widgets (pitch / octave / gate / slide / accent).
 //
 // ES5 only (var, no arrow functions, no template literals, no const/let).
+//
+// -----------------------------------------------------------------------
+// TB-303 STEP SEQUENCER
+// -----------------------------------------------------------------------
+// The Roland TB-303 Bassline (1981, designed by Tadao Kikumoto) was
+// intended as a bass accompaniment machine for solo guitarists. It was
+// a commercial failure until Chicago house DJs discovered that tweaking
+// its knobs while a pattern played produced hypnotic, squelchy bass
+// lines. Phuture's "Acid Tracks" (1987) launched the acid house genre.
+//   -- Roads, C. (1996) The Computer Music Tutorial, MIT Press, ch. 21
+//
+// This screen recreates the 303's 16-step sequencer paradigm with
+// per-step control of: pitch (scale degree), octave offset, gate
+// (note on/off), slide (legato portamento), and accent (emphasis).
+// The combination of slide + accent + resonant filter is what creates
+// the characteristic "acid" sound -- slide glides between notes without
+// retriggering, while accent boosts both velocity and filter cutoff
+// for the distinctive "squelch" on emphasized beats.
+//
+// Key differences from the original 303:
+//   - Scale-aware pitch quantization (303 was chromatic only)
+//   - Configurable swing percentage (303 had no swing)
+//   - Phrase preset library organized by genre
+//   - Glide speed control (303 had fixed portamento rate)
+// -----------------------------------------------------------------------
 (function() {
   'use strict';
 
@@ -31,9 +56,12 @@
   var STEPS_8 = 8;
   var STEPS_16 = 16;
   var DEFAULT_STEP_COUNT = 16;
+  // 128 BPM is the classic acid house tempo (Phuture, DJ Pierre).
   var DEFAULT_BPM = 128;
   var MIN_BPM = 60;
   var MAX_BPM = 240;
+  // Swing delays every other 16th note, creating a "shuffle" groove.
+  // 0% = straight time; 50% = maximum triplet-like feel.
   var DEFAULT_SWING_PCT = 0;
   var MIN_SWING_PCT = 0;
   var MAX_SWING_PCT = 50;
@@ -43,15 +71,22 @@
   var MAX_GLIDE_PCT = 200;
 
   var DEFAULT_ROOT_PC = 0;          // C
-  var DEFAULT_MODE = 'aeolian';     // minor — the 303 vibe
-  var DEFAULT_BASE_OCTAVE = 3;      // bass register
+  var DEFAULT_MODE = 'aeolian';     // natural minor -- the classic 303 vibe
+  var DEFAULT_BASE_OCTAVE = 3;      // bass register (C3 = MIDI 48)
   var MIN_OCTAVE_OFFSET = -1;
   var MAX_OCTAVE_OFFSET = 1;
 
+  // Accent on the 303 increases both VCA level and VCF cutoff, producing
+  // the signature "squelch". Here we model it as a velocity bump.
   var VELOCITY_NORMAL = 90;
   var VELOCITY_ACCENT = 120;
+  // Slide (portamento): pitch bends smoothly from the current note to
+  // the next, without retriggering the envelope. 100 cents = 1 semitone.
   var SLIDE_BEND_CENTS_PER_SEMI = 100;
   var SLIDE_STEP_MS = 12;             // pitch-bend animation tick during slide
+  // Gate timing: normal steps release before the next step (90% duty).
+  // Slide steps OVERLAP slightly (105%) so the voice never drops to
+  // silence -- this legato behavior is essential to the 303 slide sound.
   var BASE_GATE_MS_RATIO = 0.9;       // normal step keeps 90% of interval as note-on length
   var SLIDE_GATE_MS_RATIO = 1.05;     // slide step overlaps slightly so gate never drops
 
@@ -100,10 +135,13 @@
   var MODE_DORIAN = 'dorian';
   var MODE_PENTA_MIN = 'penta_min';
 
-  // Phrase presets: each entry is an array of per-step objects.
-  // Fields: pc (scale-degree index), oct (octave offset -1..+1),
-  // gate (bool), slide (bool), accent (bool).
-  // Optional hint fields: category, desc, modeHint, bpmHint, swingHint.
+  // Phrase presets: pre-defined genre patterns inspired by classic acid,
+  // techno, and electronic music styles. Each entry is an array of
+  // per-step objects with: pc (scale-degree index into the active scale),
+  // oct (octave offset -1..+1), gate (note on/off), slide (portamento
+  // to next note), accent (velocity + filter emphasis).
+  // Optional hint fields set the mode, BPM, and swing when loaded,
+  // providing genre-appropriate playback settings for each pattern.
   var PHRASE_PRESETS = {
     classicAcid: {
       label: 'Classic Acid',
@@ -1395,6 +1433,12 @@
     }
   }
 
+  // Scale-aware pitch: unlike the original 303 (chromatic only), this
+  // sequencer quantizes notes to the selected musical scale. The pc
+  // field in each step is a scale-degree index (0 = root, 1 = 2nd
+  // degree, etc.), not an absolute pitch class. Changing the mode
+  // remaps all steps to the new scale without losing their relative
+  // melodic contour.
   function _getScalePitchClasses() {
     var mode = SL.MODES[_modeKey];
     var result = [];
@@ -1426,6 +1470,8 @@
     return NOTES[pc];
   }
 
+  // Convert a step's scale-degree + octave offset into an absolute MIDI
+  // note number. MIDI = (baseOctave+1)*12 + rootPc + scalePc + octOffset*12.
   function _computeMidiForStep(step) {
     // step.pc as stored is a scale-degree index (0..scale.length-1).
     // We chose to represent user selections as scale indices so "mode" change remaps.
@@ -1443,9 +1489,18 @@
   }
 
   // ============================================================
-  // Transport
+  // Transport (Clock Engine)
   // ============================================================
+  // The sequencer clock uses setTimeout-based scheduling (not
+  // setInterval) so that each step's delay can vary independently
+  // to implement swing. This is the same model used by drum machines:
+  //   stepMs = 60000 / (bpm * 4) for 16th-note resolution.
+  // At 128 BPM: 60000 / (128*4) = ~117ms per step.
 
+  // Swing delays odd-numbered (off-beat) 16th notes by a percentage
+  // of the base interval, while shortening the preceding even step
+  // symmetrically. This creates the "shuffle" groove feel common in
+  // house and techno. 0% = straight, 50% = triplet-like maximum.
   function _computeStepIntervalMs(isOddStep) {
     // 16th notes at BPM: 60000 / (bpm * 4)
     var baseInterval = 60000 / (_bpm * 4);
@@ -1521,6 +1576,8 @@
     }
   }
 
+  // Main clock tick: fires the current step, advances the playhead,
+  // and schedules the next tick. Each tick is a single 16th note.
   function _tick() {
     if (isPlaying) {
       _clockTimerId = null;
@@ -1532,11 +1589,21 @@
       _refreshPlayheadHighlight();
 
       // Advance
-      _currentStep = (_currentStep + 1) % _stepCount;
+      var safeStepCount = _stepCount || 1;
+      _currentStep = (_currentStep + 1) % safeStepCount;
       _scheduleNextStep(intervalMs);
     }
   }
 
+  // Fire a single step: handles gate on/off, slide, accent, and
+  // gate-release scheduling. This is the core sequencer playback logic.
+  //
+  // Three cases:
+  //   1. Gate OFF: silence any held note immediately.
+  //   2. Gate ON + Slide: keep existing voice alive, animate pitch bend
+  //      from current note to the new target (303-style portamento).
+  //   3. Gate ON + no Slide: cut prior voice, start a fresh note with
+  //      normal or accent velocity.
   function _fireStep(step, intervalMs) {
     if (!step || !step.gate) {
       // Gate-off: cut any currently-sustained voice (unless the PREVIOUS
@@ -1571,11 +1638,16 @@
     }
   }
 
+  // Deferred gate-off: called at ~90% of the step interval. If the
+  // NEXT step has slide+gate, we must NOT cut the voice (the slide
+  // needs the voice alive to bend into the next pitch). Otherwise,
+  // release the note so there is a brief silence before the next step.
   function _maybeReleaseGate(firedAtStepIdx) {
     if (isPlaying) {
       // If the sequencer has already advanced past this step, and the next
       // step was a slide, don't cut.
-      var nextIdx = (firedAtStepIdx + 1) % _stepCount;
+      var safeStepCount = _stepCount || 1;
+      var nextIdx = (firedAtStepIdx + 1) % safeStepCount;
       var nextStep = _steps[nextIdx];
       var isNextSlide = (nextStep && nextStep.gate && nextStep.slide);
       if (!isNextSlide) {
@@ -1584,6 +1656,17 @@
     }
   }
 
+  // 303-style slide (portamento): smoothly glide the pitch of the
+  // currently-held voice from its current note to the target note.
+  // This is implemented as an animated pitch-bend in cents, applied
+  // directly to oscillator detune parameters. The voice is NOT
+  // retriggered -- this is what gives the 303 slide its liquid,
+  // connected quality. The glide duration scales with the step
+  // interval and the user's glide percentage setting.
+  //
+  // On completion, _activeSustainedMidi is updated to the target
+  // and the detune origin is reset so subsequent slides compose
+  // correctly (not cumulative bend-on-bend).
   function _startPitchSlideTo(targetMidi, intervalMs) {
     // Cancel any in-flight slide animation.
     if (_slideTimerId !== NO_TIMER) {
@@ -1596,10 +1679,12 @@
       var glideScale = _glidePct / DEFAULT_GLIDE_PCT;
       var slideDurMs = intervalMs * SLIDE_GATE_MS_RATIO * glideScale;
       var steps = Math.max(4, Math.floor(slideDurMs / SLIDE_STEP_MS));
+      var safeSteps = steps || 1;
       var stepIdx = 0;
       _slideTimerId = setInterval(function() {
         stepIdx++;
-        var progress = stepIdx / steps;
+        var localSafeSteps = safeSteps || 1;
+        var progress = stepIdx / localSafeSteps;
         if (progress >= 1) {
           progress = 1;
         }
@@ -1621,24 +1706,34 @@
     }
   }
 
+  // Apply pitch bend to oscillators by offsetting their detune parameter.
+  // Stores the original detune value on first call so bends are always
+  // relative to the note's natural pitch, not cumulative.
+  function _applyAcidBendToOscillators(voiceData, cents) {
+    if (voiceData.oscillators) {
+      for (var i = 0; i < voiceData.oscillators.length; i++) {
+        var entry = voiceData.oscillators[i];
+        var hasAcidDetune = entry && entry.osc && entry.osc.detune;
+        if (hasAcidDetune) {
+          if (entry._acidOrigDetune === undefined) {
+            entry._acidOrigDetune = entry.osc.detune.value;
+          }
+          entry.osc.detune.value = entry._acidOrigDetune + cents;
+        }
+      }
+    }
+  }
+
+  // Broadcast pitch-bend cents to all active voice types (subtractive
+  // oscillators, FM engine, physical modeling engine). This ensures
+  // slide works regardless of which synth engine is currently active.
   function _applyCentsToActiveVoices(cents) {
     if (SL.audio && SL.audio.getActiveOscillators) {
       var activeOscs = SL.audio.getActiveOscillators();
       if (activeOscs && activeOscs.forEach) {
         activeOscs.forEach(function(voiceData) {
           if (voiceData) {
-            if (voiceData.oscillators) {
-              for (var i = 0; i < voiceData.oscillators.length; i++) {
-                var entry = voiceData.oscillators[i];
-                var hasAcidDetune = entry && entry.osc && entry.osc.detune;
-                if (hasAcidDetune) {
-                  if (entry._acidOrigDetune === undefined) {
-                    entry._acidOrigDetune = entry.osc.detune.value;
-                  }
-                  entry.osc.detune.value = entry._acidOrigDetune + cents;
-                }
-              }
-            }
+            _applyAcidBendToOscillators(voiceData, cents);
             var canSetFmBend = voiceData.fm && SL.fm && SL.fm.setBend;
             if (canSetFmBend) {
               SL.fm.setBend(cents);
@@ -1653,6 +1748,9 @@
     }
   }
 
+  // After a slide completes, capture the current detune value as the
+  // new "origin" so the next slide starts from the correct pitch
+  // rather than accumulating bend offsets.
   function _resetDetuneOrigin() {
     if (SL.audio && SL.audio.getActiveOscillators) {
       var activeOscs = SL.audio.getActiveOscillators();
@@ -2388,7 +2486,8 @@
       var isVisible = isPlaying;
       if (isVisible) {
         _silhouettePlayheadEl.classList.add('visible');
-        var pct = (_currentStep + 0.5) / _stepCount * 100;
+        var safeStepCount = _stepCount || 1;
+        var pct = (_currentStep + 0.5) / safeStepCount * 100;
         _silhouettePlayheadEl.style.left = pct + '%';
       } else {
         _silhouettePlayheadEl.classList.remove('visible');
@@ -2427,9 +2526,9 @@
             var midY = Math.min(ay, by) - ((rectA.height + rectB.height) * 0.5 * SLIDE_ARC_CURVE_RATIO);
             if (midY < 2) { midY = 2; }
             var cx = (ax + bx) / 2;
-            var d = 'M ' + ax + ' ' + ay
-                  + ' Q ' + cx + ' ' + midY
-                  + ' ' + bx + ' ' + by;
+            var movePart = 'M ' + ax + ' ' + ay;
+            var quadPart = ' Q ' + cx + ' ' + midY + ' ' + bx + ' ' + by;
+            var d = movePart + quadPart;
             var pathEl = document.createElementNS(SVG_NS, 'path');
             pathEl.setAttribute('class', 'ssli-acid-slide-path');
             pathEl.setAttribute('d', d);
@@ -2709,11 +2808,13 @@
           _onPlay();
           isHandled = true;
         } else if (e.key === KEY_ARROW_LEFT) {
-          _selectedStepIdx = (_selectedStepIdx - 1 + _stepCount) % _stepCount;
+          var safeStepCount = _stepCount || 1;
+          _selectedStepIdx = (_selectedStepIdx - 1 + _stepCount) % safeStepCount;
           _rebuildGrid();
           isHandled = true;
         } else if (e.key === KEY_ARROW_RIGHT) {
-          _selectedStepIdx = (_selectedStepIdx + 1) % _stepCount;
+          var safeStepCount2 = _stepCount || 1;
+          _selectedStepIdx = (_selectedStepIdx + 1) % safeStepCount2;
           _rebuildGrid();
           isHandled = true;
         } else if (e.key === KEY_ARROW_UP) {

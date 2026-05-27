@@ -1,5 +1,32 @@
-// SSLI Controller: Pitch Ribbon (continuous pitch surface with bend + glide trails)
+// ======================================================================
+// SSLI Controller: MPE Pitch Ribbon
+// ======================================================================
+//
+// MIDI Polyphonic Expression (MPE) — per-note expressive control
+//
+// Standard MIDI applies pitch bend, aftertouch, and CC messages to
+// every note on a channel simultaneously. MPE solves this by giving
+// each note its own MIDI channel (member channels 2-15), so pitch
+// bend, pressure, and slide can vary independently per finger.
+//
+// MPE defines three per-note dimensions:
+//   X-axis (horizontal) -> Pitch Bend: continuous pitch between keys
+//   Y-axis (vertical)   -> Slide (CC74): typically mapped to timbre
+//   Z-axis (pressure)   -> Aftertouch/Velocity: touch force = dynamics
+//
+// This control surface implements these dimensions on a continuous
+// pitch ribbon. Touching anywhere produces a note with micro-pitch
+// (X = pitch bend in cents), timbral slide (Y = filter cutoff), and
+// pressure-sensitive velocity (Z = touch force -> MIDI velocity).
+//
+// References:
+//   MIDI Manufacturers Association (2017) "MIDI Polyphonic Expression
+//     (MPE)", Recommended Practice RP-053
+//   Linn, R. (2011) — LinnStrument, pioneering MPE controller
+//   Roli (2013) — Seaboard, continuous touch surface
+//
 // ES5 compatible (var, no arrow functions, no template literals)
+// ======================================================================
 
 (function() {
   'use strict';
@@ -13,6 +40,10 @@
   // Constants
   // ============================================================
 
+  // MPE Zone layout: the surface spans multiple octaves as a
+  // continuous strip. Unlike a piano keyboard, there are no discrete
+  // key boundaries — the player slides between pitches freely, and
+  // the fractional position within each semitone becomes pitch bend.
   var NUM_VISIBLE_OCTAVES = 3;
   var KEYWAVE_BORDER_RADIUS = 6;
 
@@ -24,6 +55,10 @@
   var MAX_MIDI = 108;  // C8
   var SEMITONES_PER_OCTAVE = 12;
   var OCTAVE_BASE_OFFSET = 1;
+  // Y-axis slide dimension: maps vertical finger position to filter
+  // cutoff, implementing MPE's CC74 "Slide" parameter. Moving the
+  // finger toward the top of the surface brightens the timbre (higher
+  // cutoff), while the bottom yields a darker, more muted tone.
   var Y_CUTOFF_MIN_HZ = 200;
   var Y_CUTOFF_MAX_HZ = 8000;
   var Y_CUTOFF_RANGE_HZ = Y_CUTOFF_MAX_HZ - Y_CUTOFF_MIN_HZ;
@@ -35,6 +70,11 @@
   var BEND_ARC_HEIGHT = 24;
   var BEND_ARC_COLOR = 'rgba(76, 201, 240, 0.7)';
   var BEND_ARC_GLOW = 'rgba(76, 201, 240, 0.25)';
+  // Z-axis pressure dimension: touch force maps to MIDI velocity.
+  // Heavier initial touch = louder note (higher velocity value).
+  // On devices that report Touch.force (e.g. iOS), this enables
+  // true pressure-sensitive dynamics. Fallback to DEFAULT_VELOCITY
+  // on devices without force sensing (most desktop browsers).
   var PRESSURE_MIN_VEL = 40;
   var PRESSURE_MAX_VEL = 127;
   var DEFAULT_VELOCITY = 100;
@@ -43,6 +83,10 @@
   // Module State
   // ============================================================
 
+  // MPE channel allocation pool: each active touch gets its own
+  // entry, analogous to how hardware MPE assigns each new note
+  // to the next available member channel (ch2-15). When a touch
+  // ends, its "channel" is freed for reuse by the next note.
   var _activeTouches = {};   // touchId -> { midi, element, rippleEl, startX, pressure }
   var _isMouseDown = false;
   var _mouseInfo = null;     // { midi, element, rippleEl }
@@ -113,8 +157,14 @@
   }
 
   // ============================================================
-  // Pressure -> Velocity
+  // Pressure -> Velocity (MPE Z-axis)
   // ============================================================
+  //
+  // Maps the Z-axis (touch force) to MIDI velocity. In MPE, initial
+  // strike force sets velocity (note-on loudness), while sustained
+  // pressure becomes channel aftertouch for ongoing expression.
+  // Here we use force for initial velocity only; aftertouch is
+  // handled separately through the slide (Y-axis) dimension.
 
   function _pressureToVelocity(force) {
     // force is 0..1 from Touch.force (or undefined on non-supporting devices)
@@ -157,8 +207,15 @@
   }
 
   // ============================================================
-  // Brightness / Slide (Y-axis)
+  // Brightness / Slide (Y-axis — MPE CC74)
   // ============================================================
+  //
+  // MPE's Y-axis dimension maps to MIDI CC74 ("Slide"). On physical
+  // MPE controllers like the Roli Seaboard or LinnStrument, sliding
+  // a finger forward/backward on a note surface controls timbre —
+  // typically routed to a low-pass filter cutoff. This gives each
+  // finger independent timbral control, unlike standard MIDI where
+  // CC74 would affect all notes on the channel simultaneously.
 
   function _applySlide(yFrac) {
     var cutoff = Y_CUTOFF_MIN_HZ + yFrac * Y_CUTOFF_RANGE_HZ;
@@ -174,8 +231,16 @@
   }
 
   // ============================================================
-  // Surface position -> MIDI mapping
+  // Surface position -> MIDI mapping (MPE X-axis)
   // ============================================================
+  //
+  // The X-axis is MPE's pitch dimension. On this continuous ribbon,
+  // horizontal position maps linearly to a floating-point MIDI note
+  // number. The integer part selects the note; the fractional part
+  // becomes pitch bend in cents (-50 to +50 around each semitone).
+  // This mirrors how MPE controllers send per-note pitch bend on
+  // each member channel, enabling smooth glissando and vibrato
+  // with per-finger independence.
 
   function _posToMidiFloat(clientX) {
     var rect = _surfaceEl.getBoundingClientRect();
@@ -252,6 +317,13 @@
   // ============================================================
   // Glide Trail
   // ============================================================
+  //
+  // Visual feedback for the continuous pitch glide. As the finger
+  // moves across the ribbon, a color-coded trail renders on the
+  // canvas overlay. Each trail point's hue is derived from its
+  // pitch class (30 degrees per semitone across the color wheel),
+  // making pitch motion visible — useful for learning intervals
+  // and for visual confirmation of vibrato/glissando gestures.
 
   function _addTrailPoint(clientX, clientY) {
     if (!_trailCanvas) { return; }
@@ -292,7 +364,8 @@
         var p1 = _trailPoints[i];
         var age = now - p1.time;
         var alpha = Math.max(0, 1 - (age / TRAIL_FADE_MS));
-        var progressFrac = i / _trailPoints.length;
+        var safeTrailLen = _trailPoints.length || 1;
+        var progressFrac = i / safeTrailLen;
 
         // Glow layer
         _trailCtx.beginPath();
@@ -392,8 +465,20 @@
   }
 
   // ============================================================
-  // Touch handlers
+  // Touch handlers (MPE note lifecycle)
   // ============================================================
+  //
+  // Each touch maps to an independent MPE "voice". On touch start,
+  // a member channel is implicitly allocated (via _activeTouches),
+  // a note-on fires with pressure-derived velocity, pitch bend is
+  // set from fractional position, and slide is set from Y position.
+  // On move, all three dimensions update continuously per-finger.
+  // On end, the channel is released (note-off + bend/slide reset).
+  //
+  // When a finger glides across a semitone boundary, the old note
+  // is released and a new one triggered — simulating how an MPE
+  // synth would re-trigger on a new key while maintaining the
+  // continuous pitch bend envelope.
 
   function _onTouchStart(clientX, clientY, touchId, force, touchObj) {
     // Resume AudioContext on user gesture
@@ -450,7 +535,8 @@
     if (midi > MAX_MIDI) { midi = MAX_MIDI; }
 
     if (midi !== info.midi) {
-      // Transition to new note
+      // Transition to new note: crossed a semitone boundary while sliding.
+      // Release old note, trigger new one — legato re-articulation.
       _noteOff(info.midi);
       if (info.element) {
         info.element.classList.remove('mpe-keywave-active');
@@ -549,6 +635,14 @@
   // ============================================================
   // Build keywaves
   // ============================================================
+  //
+  // "Keywaves" are the visual note strips that tile the ribbon
+  // surface. Unlike piano keys, they are all the same width — MPE
+  // treats the pitch axis as a linear continuum rather than the
+  // uneven black/white layout of a traditional keyboard. In-scale
+  // notes are highlighted to guide the player; root notes get
+  // additional emphasis. Color classes come from the chromatic
+  // palette shared across all SSLI controllers.
 
   function _buildKeywaves(surfaceEl) {
     var startMidi = _getStartMidi();
@@ -576,8 +670,9 @@
       var pc = midi % 12;
       var isInScale = (scaleNotes.indexOf(pc) !== NOT_FOUND);
       var isRoot = (pc === rootPc);
-      var widthPercent = 100 / totalNotes;
-      var leftPercent = ((midi - startMidi) / totalNotes) * 100;
+      var safeTotalNotes = totalNotes || 1;
+      var widthPercent = 100 / safeTotalNotes;
+      var leftPercent = ((midi - startMidi) / safeTotalNotes) * 100;
 
       var wave = document.createElement('div');
       wave.className = 'mpe-keywave';
@@ -850,6 +945,9 @@
     });
 
     // -- Touch handlers (multi-touch) --
+    // Multi-touch is essential for MPE: each finger is an independent
+    // voice with its own pitch/slide/pressure. Touch events use
+    // changedTouches to process only the fingers that moved this frame.
     // stopPropagation prevents the keyboard-level glide handler from double-firing
     surface.addEventListener('touchstart', function(e) {
       e.preventDefault();

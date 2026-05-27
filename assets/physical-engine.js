@@ -4,6 +4,66 @@
 //   pluck: per-round-trip damping (was per-sample, killing high notes)
 //   blow:  reduced cascaded loop filter attenuation + jet length floor + noise-seed boost
 //   strike: widened mode bandwidths + pluck-like excitation pulse at high notes
+//
+// ================================================================
+// EDUCATIONAL CONTEXT: Physical Modelling Synthesis
+// ================================================================
+//
+// Physical modelling synthesis generates sound by simulating the
+// physics of acoustic instruments rather than playing back samples
+// or shaping oscillators. The field was pioneered by Kevin Karplus
+// and Alex Strong (1983) with their plucked-string algorithm, then
+// formalized into digital waveguide theory by Julius O. Smith III
+// at Stanford's CCRMA in the late 1980s and 1990s.
+//
+// How it works:
+//   Instead of storing waveforms, we solve simplified versions of
+//   the wave equation in real time. A vibrating string becomes a
+//   delay line with feedback; a pipe becomes a delay line with
+//   reflection. The key insight is that traveling-wave solutions
+//   to the 1D wave equation can be computed with just delay lines,
+//   filters, and nonlinear junctions — no differential equations
+//   at audio rate.
+//
+// Four models are implemented here:
+//   1. Pluck (Karplus-Strong): delay line + averaging filter
+//   2. Bow (waveguide + friction): two delay lines + bow table
+//   3. Blow (waveguide + jet): bore delay + jet delay + cubic
+//   4. Strike (modal): bank of resonant bandpass filters
+//
+// Signal flow (Karplus-Strong, simplest case):
+//   noise burst --> [delay line, N samples] --+--> output
+//                        ^                    |
+//                        |   lowpass filter    |
+//                        +----<----<----<-----+
+//
+// Key formula (Karplus-Strong):
+//   y(n) = alpha * (y(n - N) + y(n - N - 1)) / 2
+//   where N = round(sampleRate / frequency), alpha = damping
+//   The two-point average is a simple FIR lowpass that removes
+//   high-frequency energy each round trip, modeling string damping.
+//
+// Hardware lineage:
+//   Yamaha VL1 (1994, first commercial PM synth),
+//   Korg OASYS (2005), Applied Acoustics Systems Tassman/Chromaphone
+//
+// Architecture note:
+//   This file is the HOST-SIDE engine (runs on main thread). It
+//   manages parameters, model selection, voice allocation, and
+//   audio routing. The real-time DSP runs in physical-worklet.js
+//   (AudioWorklet thread) or in the ScriptProcessor fallback
+//   classes defined below (FBPluckModel, FBBowModel, etc.).
+//
+// References:
+//   - Karplus, K. & Strong, A. (1983) "Digital Synthesis of
+//     Plucked-String and Drum Timbres", CMJ 7(2), pp. 43-55
+//   - Smith, J.O. (2010) Physical Audio Signal Processing, CCRMA
+//     (https://ccrma.stanford.edu/~jos/pasp/)
+//   - Valimaki, V. et al. (2010) "Digital Audio Effects", Wiley
+//   - Roads, C. (1996) The Computer Music Tutorial, MIT Press, Ch. 7
+//   - Jaffe, D. & Smith, J.O. (1983) "Extensions of the Karplus-
+//     Strong Plucked-String Algorithm", CMJ 7(2), pp. 56-69
+// ================================================================
 (function() {
   'use strict';
 
@@ -67,6 +127,18 @@
   // Fallback Voice Classes (for ScriptProcessor)
   // ============================================================
 
+  // ---------------------------------------------------------------
+  // Circular Buffer (Delay Line Implementation)
+  // A circular (ring) buffer is the standard way to implement a
+  // delay line in DSP. Instead of shifting all samples forward each
+  // tick (O(N) per sample), we advance a write pointer modulo the
+  // buffer length (O(1) per sample). Reading at offset D gives the
+  // sample written D steps ago. Fractional delays use linear
+  // interpolation between adjacent samples — this also provides
+  // implicit lowpass filtering that aids waveguide stability.
+  // See: Smith, J.O. (2010) Physical Audio Signal Processing, Ch. 4
+  // ---------------------------------------------------------------
+
   // Circular buffer for fallback
   function FBCircularBuffer(maxLen) {
     this.buffer = new Float64Array(maxLen);
@@ -89,11 +161,34 @@
     this.writeIndex = 0;
   };
 
+  // ---------------------------------------------------------------
+  // One-Pole Lowpass Filter
+  // The simplest IIR filter: y(n) = a * x(n) + (1 - a) * y(n-1).
+  // Coefficient 'a' near 0 = heavy smoothing (dark tone), near 1 =
+  // pass-through (bright). In physical models, this sits inside the
+  // feedback loop to simulate frequency-dependent energy loss: real
+  // strings lose high-frequency energy faster than low-frequency
+  // energy on each reflection, which is why a plucked string's
+  // timbre mellows over time.
+  // See: Smith, J.O. (2010) PASP, Section 1.1.3 (one-pole filters)
+  // ---------------------------------------------------------------
+
   // One-pole lowpass
   function FBOnePole() { this.a = 0.5; this.prev = 0; }
   FBOnePole.prototype.setCoeff = function(a) { this.a = Math.max(0, Math.min(1, a)); };
   FBOnePole.prototype.process = function(x) { this.prev = this.a * x + (1 - this.a) * this.prev; return this.prev; };
   FBOnePole.prototype.clear = function() { this.prev = 0; };
+
+  // ---------------------------------------------------------------
+  // DC Blocker
+  // A first-order highpass that removes any DC offset that
+  // accumulates in the feedback loop. Transfer function:
+  //   H(z) = (1 - z^-1) / (1 - R * z^-1)
+  // R = 0.995 places the pole very close to z = 1, giving a -3 dB
+  // point around 4 Hz at 44.1 kHz — inaudible, but prevents the
+  // output from drifting away from zero over time.
+  // See: Smith, J.O. (2010) PASP, Appendix B (DC Blocker)
+  // ---------------------------------------------------------------
 
   // DC blocker
   function FBDCBlocker() { this.x1 = 0; this.y1 = 0; this.R = 0.995; }
@@ -101,8 +196,33 @@
   FBDCBlocker.prototype.clear = function() { this.x1 = 0; this.y1 = 0; };
 
   // ============================================================
-  // Fallback: Pluck Model
+  // Fallback: Pluck Model (Karplus-Strong Algorithm)
   // ============================================================
+  //
+  // ---------------------------------------------------------------
+  // The Karplus-Strong algorithm (1983) is elegantly simple: fill a
+  // delay line of length N = sampleRate/freq with noise, then on
+  // each sample, read the oldest value, lowpass filter it, and write
+  // it back. The noise gradually converges to a periodic waveform
+  // whose pitch is determined by the delay length. The averaging
+  // filter (y = 0.5 * (y[n-N] + y[n-N-1])) removes high harmonics
+  // first, mimicking how a real plucked string's overtones die away
+  // faster than its fundamental — a phenomenon Helmholtz described
+  // in 1863 as frequency-dependent damping.
+  //
+  // The excitation type shapes the initial spectrum:
+  //   - noise: white noise burst (classic KS, rich harmonics)
+  //   - impulse: Hann-windowed pulse (fewer harmonics, harp-like)
+  //   - pick: triangular with noise (guitar pick scrape character)
+  //
+  // Body resonance filters model the acoustic body of the
+  // instrument. A guitar body has 5-10 prominent resonance modes
+  // (Helmholtz air mode ~100 Hz, top plate ~250 Hz, etc.) that
+  // color the string's output. We simulate these with parallel
+  // bandpass (two-pole) filters tuned to measured guitar body modes.
+  //
+  // See: Karplus & Strong (1983), CMJ 7(2); Jaffe & Smith (1983)
+  // ---------------------------------------------------------------
 
   // Guitar body resonance frequencies (Hz), Q values, and mix level
   var BODY_RES_FREQS = [100, 250, 450, 800, 2500];
@@ -133,7 +253,8 @@
   }
   FBPluckModel.prototype.noteOn = function(freq, velocity) {
     this.active = true;
-    var period = this.sampleRate / freq;
+    var safeFreq = freq || 0.001;
+    var period = this.sampleRate / safeFreq;
     this.delayLength = period - 0.5; // compensate for averaging filter group delay
     this.loopFilter.setCoeff(0.5 + (this.brightness / 100) * 0.45);
     this.maxDecay = Math.floor(this.sampleRate * (1 + (this.decayTime / 100) * 9));
@@ -147,7 +268,8 @@
     var lossPerRoundTrip = dampingNorm * DAMPING_PER_RT_MAX_LOSS;
     var minPeriodForDecay = 2.0;
     var safePeriod = period < minPeriodForDecay ? minPeriodForDecay : period;
-    this._perSampleDecay = Math.pow(1.0 - lossPerRoundTrip, 1.0 / safePeriod);
+    var guardedPeriod = safePeriod || 1;
+    this._perSampleDecay = Math.pow(1.0 - lossPerRoundTrip, 1.0 / guardedPeriod);
     this.decayCounter = 0;
     this.delayLine.clear(); this.dcBlocker.clear(); this.loopFilter.clear();
     for (var bfc = 0; bfc < this.bodyFilters.length; bfc++) { this.bodyFilters[bfc].clear(); }
@@ -163,8 +285,9 @@
       for (var i = burstLen; i < intPeriod; i++) this.delayLine.write(0);
     } else if (this.excitation === 'pick') {
       var half = Math.floor(intPeriod / 2);
+      var safeHalf = half || 1;
       for (var i = 0; i < intPeriod; i++) {
-        var env = i < half ? i / half : (intPeriod - i) / (intPeriod - half);
+        var env = i < half ? i / safeHalf : (intPeriod - i) / ((intPeriod - half) || 1);
         this.delayLine.write((env + (Math.random() * 2 - 1) * 0.15) * vel * 0.5);
       }
     } else {
@@ -197,8 +320,22 @@
   FBPluckModel.prototype.isFinished = function() { return !this.active; };
 
   // ============================================================
-  // Two-pole resonant filter (for body resonance simulation)
+  // Two-Pole Resonant Filter (Body Resonance Simulation)
   // ============================================================
+  //
+  // ---------------------------------------------------------------
+  // A two-pole filter creates a resonance peak at a specific
+  // frequency. The transfer function is:
+  //   H(z) = b0 / (1 + a1*z^-1 + a2*z^-2)
+  // The pole radius controls Q (bandwidth): closer to 1.0 = narrower
+  // peak = longer ring. We set coefficients from (frequency, radius):
+  //   a1 = -2 * radius * cos(2*pi*freq/sr)
+  //   a2 = radius^2
+  //   b0 = (1 - radius^2) / 2    (normalize DC gain)
+  // This is equivalent to a second-order IIR bandpass and is used
+  // here to model individual resonant modes of an instrument body.
+  // See: Smith, J.O. (2010) PASP, Section 9.2 (Biquad Filters)
+  // ---------------------------------------------------------------
 
   function FBTwoPole() {
     this.y1 = 0; this.y2 = 0;
@@ -218,8 +355,44 @@
   FBTwoPole.prototype.clear = function() { this.y1 = 0; this.y2 = 0; };
 
   // ============================================================
-  // Fallback: Bow Model
+  // Fallback: Bow Model (Digital Waveguide Bowed String)
   // ============================================================
+  //
+  // ---------------------------------------------------------------
+  // Bowed string synthesis uses Smith's digital waveguide approach
+  // with a nonlinear bow-string interaction. A real bowed string
+  // exhibits Helmholtz motion (discovered by Hermann von Helmholtz,
+  // 1863): the bow alternately sticks to and slips against the
+  // string, creating a sawtooth-like displacement wave that travels
+  // in both directions from the bow point.
+  //
+  // The model splits the string at the bow contact point into two
+  // delay lines: neck (nut to bow) and bridge (bow to bridge). At
+  // each sample, we compute the velocity difference between bow and
+  // string, look it up in a friction table (the "bow table"), and
+  // inject the resulting force into both delay lines.
+  //
+  // Signal flow:
+  //   [neck delay] ---> nut (invert) -------+
+  //                                          |---> bow table --+
+  //   [bridge delay] --> bridge (LP+invert) -+                 |
+  //        ^                                                   |
+  //        +---<--- newVelocity = deltaV * bowTable(deltaV) <--+
+  //
+  // The bow table maps velocity difference to reflection
+  // coefficient: when stuck (small deltaV), coefficient ~1.0
+  // (string follows bow); when slipping (large deltaV), coefficient
+  // drops toward 0 (string vibrates freely). This stick-slip
+  // transition is what produces the characteristic sustained tone.
+  //
+  // Bow position splits the delay line asymmetrically, suppressing
+  // harmonics whose nodes fall at the bow point (e.g., bowing at
+  // 1/7 of string length suppresses the 7th harmonic).
+  //
+  // See: Smith, J.O. (2010) PASP, Ch. 9.3 (Bowed String)
+  //      McIntyre, M. et al. (1983) "On the Oscillations of
+  //        Musical Instruments", JASA 74(5), pp. 1325-1345
+  // ---------------------------------------------------------------
 
   function FBBowModel(sr) {
     this.sampleRate = sr;
@@ -252,6 +425,13 @@
     this.driftRate2 = 0.22;
     this.baseMaxVelocity = 0.3;
   }
+  // Bow friction table: models the stick-slip behavior of rosin on a string.
+  // Returns a reflection coefficient (0 to 1): 1.0 = stuck (bow drags
+  // string), ~0 = slipping (string vibrates freely). The function
+  //   f(x) = (|x * slope + offset| + 0.75)^(-4)
+  // creates a bell-shaped friction curve peaked near zero velocity
+  // difference — this is the empirical friction model from the STK
+  // (Synthesis ToolKit) by Perry Cook and Gary Scavone.
   FBBowModel.prototype.bowTable = function(input) {
     var sample = (input + this.bowTableOffset) * this.bowTableSlope;
     sample = Math.abs(sample) + 0.75;
@@ -261,7 +441,8 @@
   };
   FBBowModel.prototype.noteOn = function(freq, velocity) {
     this.active = true; this.bowing = true;
-    var period = this.sampleRate / freq;
+    var safeFreq = freq || 0.001;
+    var period = this.sampleRate / safeFreq;
     var bowPos = 0.12 + (this.bowPosition / 100) * 0.3;
     this.baseBridgeLength = Math.max(2, Math.floor(period * bowPos));
     this.baseNeckLength = Math.max(2, Math.floor(period * (1 - bowPos)));
@@ -364,9 +545,10 @@
       this.vibratoPhase += vibratoFreqNow / this.sampleRate;
       if (this.vibratoPhase > 1) this.vibratoPhase -= 1;
       var rampSamples = this.sampleRate * 0.3;
+      var safeRampSamples = rampSamples || 1;
       var vibTarget = this.maxVibratoDepth * (1 + fbDrift2 * 0.80 * this.humanization);
       if (this.decayCounter < rampSamples) {
-        this.vibratoDepth = vibTarget * (this.decayCounter / rampSamples);
+        this.vibratoDepth = vibTarget * (this.decayCounter / safeRampSamples);
       } else {
         this.vibratoDepth = vibTarget;
       }
@@ -411,8 +593,40 @@
   FBBowModel.prototype.isFinished = function() { return !this.active; };
 
   // ============================================================
-  // Fallback: Blow Model
+  // Fallback: Blow Model (Digital Waveguide Wind Instrument)
   // ============================================================
+  //
+  // ---------------------------------------------------------------
+  // The blown pipe model simulates flutes, clarinets, and reed
+  // instruments using Smith's digital waveguide framework. The core
+  // is a bore delay line (modeling the air column inside the pipe)
+  // with a jet delay line (modeling the air jet from mouth to
+  // labium in flutes, or the reed-to-mouthpiece path in reeds).
+  //
+  // The bore resonates at f = sampleRate / (2 * boreLength) because
+  // an open pipe inverts the pressure wave at the bell (negative
+  // reflection), so the wave must travel TWO bore lengths for one
+  // complete cycle. This half-wavelength resonance is why a flute
+  // overblows at the octave (2x frequency) rather than the twelfth.
+  //
+  // The jet table (cubic nonlinearity: x*(x^2 - 1)) models the
+  // turbulent interaction between the air jet and the returning
+  // pressure wave at the embouchure hole. This nonlinearity is what
+  // injects energy into the bore to sustain oscillation — it acts
+  // as the "engine" that converts steady breath into periodic
+  // vibration.
+  //
+  // Embouchure controls instrument character:
+  //   Low (0-35%): flute family — cascaded lowpass, sinusoidal tone
+  //   Mid (35-55%): pan flute / shakuhachi — moderate harmonics
+  //   High (55-100%): reed family — rich harmonics, self-oscillation
+  //
+  // See: Smith, J.O. (2010) PASP, Ch. 9.8 (Single-Reed Instruments)
+  //      Cook, P. (1992) "A Meta-Wind-Instrument Physical Model
+  //        Controller", CCRMA Technical Report STAN-M-73
+  //      Fletcher, N. & Rossing, T. (1998) The Physics of Musical
+  //        Instruments, 2nd ed., Springer, Ch. 16 (Flutes)
+  // ---------------------------------------------------------------
 
   function FBBlowModel(sr) {
     this.sampleRate = sr;
@@ -448,6 +662,14 @@
     this.driftRate2 = 0.25;
     this.baseBreathTarget = 0;
   }
+  // Jet table: cubic nonlinearity f(x) = x * (x^2 - 1), clamped to [-1, 1].
+  // This approximates the Bernoulli-driven jet deflection at the labium
+  // (lip edge) of a flute. The cubic has three zero crossings (-1, 0, +1),
+  // creating a natural saturation that bounds the oscillation amplitude.
+  // At small amplitudes the cubic is nearly linear (startup regime); at
+  // large amplitudes it folds back, limiting energy injection and producing
+  // the characteristic warm saturation of overblown wind instruments.
+  // See: Cook, P. (1992), CCRMA STAN-M-73; STK Flute implementation
   FBBlowModel.prototype.jetTable = function(input) {
     var out = input * (input * input - 1.0);
     if (out > 1.0) out = 1.0;
@@ -456,7 +678,8 @@
   };
   FBBlowModel.prototype.noteOn = function(freq, velocity) {
     this.active = true; this.blowing = true;
-    var period = this.sampleRate / freq;
+    var safeFreq = freq || 0.001;
+    var period = this.sampleRate / safeFreq;
     // Half-period bore length: with negative bell reflection (one round-trip
     // inversion) a delay of N samples resonates at sampleRate/(2*N). For the
     // fundamental to fall at the played frequency we need N = period/2.
@@ -710,8 +933,41 @@
   FBBlowModel.prototype.isFinished = function() { return !this.active; };
 
   // ============================================================
-  // Fallback: Strike Model
+  // Fallback: Strike Model (Modal Synthesis)
   // ============================================================
+  //
+  // ---------------------------------------------------------------
+  // Modal synthesis models struck/percussion instruments as a bank
+  // of resonant filters, each tuned to one vibrational mode of the
+  // object. Unlike waveguide models (which simulate wave propagation),
+  // modal models directly implement the frequency-domain solution:
+  // each mode is an exponentially decaying sinusoid at a specific
+  // frequency, amplitude, and decay rate.
+  //
+  // A short excitation burst (the "strike") drives all filters
+  // simultaneously. Each filter rings at its natural frequency,
+  // and the sum produces the characteristic timbre of the material.
+  //
+  // Partial ratios define the material character:
+  //   - Metal: nearly harmonic (1, 2, 3.01, 4.03...) — bell-like
+  //   - Wood: quadratic spacing (1, 2.76, 5.40...) — marimba-like
+  //     (bar modes go as n^2 per Euler-Bernoulli beam theory)
+  //   - Glass: strongly inharmonic — shimmering, crystalline
+  //   - Membrane: Bessel function zeros (1, 1.59, 2.14, 2.30...)
+  //     from the 2D wave equation in polar coordinates (drumheads)
+  //
+  // Strike position modulates mode amplitudes via:
+  //   gain_i = |sin(pi * (i+1) * strikePos)|
+  // Striking at a node of mode i (where sin = 0) silences that
+  // mode — this is why hitting a drum at the center emphasizes the
+  // fundamental while hitting near the edge brings out overtones.
+  //
+  // See: Roads, C. (1996) Computer Music Tutorial, Ch. 7
+  //      Adrien, J.-M. (1991) "The Missing Link: Modal Synthesis",
+  //        in Representations of Musical Signals, MIT Press
+  //      Fletcher, N. & Rossing, T. (1998) Physics of Musical
+  //        Instruments, Ch. 3 (Bars and Plates)
+  // ---------------------------------------------------------------
 
   function FBStrikeModel(sr) {
     this.sampleRate = sr;
@@ -736,12 +992,21 @@
     };
     return ratios[material] || ratios.metal;
   };
+  // Configure a modal resonator as a bandpass biquad filter.
+  // Each mode is a second-order IIR (biquad) tuned to one resonance:
+  //   H(z) = b0 / (1 + a1*z^-1 + a2*z^-2)
+  // Bandwidth controls the decay rate of that mode — narrow bandwidth
+  // means high Q, which means the mode rings longer. This directly
+  // maps to the physical reality: a thick metal bar has narrow
+  // resonances (long sustain), while a wooden block has wide ones
+  // (quick decay). The freq/bandwidth ratio is Q.
   FBStrikeModel.prototype.configureMode = function(mode, freq, bw) {
     var sr = this.sampleRate;
     if (freq >= sr / 2 - 100) freq = sr / 2 - 100;
     if (freq < 20) freq = 20;
     var w0 = 2 * Math.PI * freq / sr;
-    var alpha = Math.sin(w0) / (2 * (freq / bw));
+    var safeBw = bw || 0.001;
+    var alpha = Math.sin(w0) / (2 * (freq / safeBw));
     var a0 = 1 + alpha;
     mode.b0 = (Math.sin(w0) / 2) / a0;
     mode.a1 = (-2 * Math.cos(w0)) / a0;
@@ -900,6 +1165,10 @@
   // MIDI / Frequency Helpers
   // ============================================================
 
+  // Standard MIDI-to-frequency conversion: f = 440 * 2^((n-69)/12)
+  // where n is the MIDI note number (69 = A4 = 440 Hz). This is
+  // 12-tone equal temperament (12-TET). The SynthLab tuning system
+  // can override this with alternate temperaments.
   function midiToFreq(midi) {
     var a4 = 440;
     var refEl = typeof document !== 'undefined' && document.getElementById('refHz');
@@ -929,6 +1198,35 @@
     return initFallback();
   }
 
+  var PHYSICAL_WORKLET_COUNT = 4;
+
+  function _makePhysicalWorkletReadyHandler(readyState, resolve) {
+    return function(event) {
+      var isReady = (event.data.type === 'ready');
+      if (isReady) {
+        readyState.count++;
+        if (readyState.count === PHYSICAL_WORKLET_COUNT) {
+          isWorkletReady = true;
+          isWorkletInitializing = false;
+          resolve(true);
+        }
+      }
+    };
+  }
+
+  function _makePhysicalWorkletErrorHandler(idx, hasHadError, resolve, reject) {
+    return function(event) {
+      if (!hasHadError.value) {
+        hasHadError.value = true;
+        console.error('[PHYSICAL] AudioWorklet processor error (inst ' + idx + '):', event);
+        isWorkletReady = false;
+        isWorkletInitializing = false;
+        console.warn('[PHYSICAL] Falling back to ScriptProcessor');
+        initFallback().then(resolve).catch(reject);
+      }
+    };
+  }
+
   function initWorklet() {
     if (isWorkletReady) return Promise.resolve(true);
     if (isWorkletInitializing) return isWorkletReadyPromise;
@@ -938,10 +1236,10 @@
     isWorkletReadyPromise = new Promise(function(resolve, reject) {
       var physWorkletUrl = (SL.audio.getWorkletBlobUrl && SL.audio.getWorkletBlobUrl('physical-worklet.js')) || 'assets/physical-worklet.js';
       audioContext.audioWorklet.addModule(physWorkletUrl).then(function() {
-        var readyCount = 0;
-        var hasHadError = false;
+        var readyState = { count: 0 };
+        var hasHadError = { value: false };
 
-        for (var i = 0; i < 4; i++) {
+        for (var i = 0; i < PHYSICAL_WORKLET_COUNT; i++) {
           (function(idx) {
             var node = new AudioWorkletNode(audioContext, 'physical-model', {
               numberOfInputs: 0,
@@ -950,27 +1248,8 @@
             });
             physicalWorkletNodes[idx] = node;
 
-            node.port.onmessage = function(event) {
-              if (event.data.type === 'ready') {
-                readyCount++;
-                if (readyCount === 4) {
-                  isWorkletReady = true;
-                  isWorkletInitializing = false;
-                  resolve(true);
-                }
-              }
-            };
-
-            node.onprocessorerror = function(event) {
-              if (!hasHadError) {
-                hasHadError = true;
-                console.error('[PHYSICAL] AudioWorklet processor error (inst ' + idx + '):', event);
-                isWorkletReady = false;
-                isWorkletInitializing = false;
-                console.warn('[PHYSICAL] Falling back to ScriptProcessor');
-                initFallback().then(resolve).catch(reject);
-              }
-            };
+            node.port.onmessage = _makePhysicalWorkletReadyHandler(readyState, resolve);
+            node.onprocessorerror = _makePhysicalWorkletErrorHandler(idx, hasHadError, resolve, reject);
           })(i);
         }
 
@@ -991,6 +1270,11 @@
 
   var fallbackVoicesByInst = [[], [], [], []];
 
+  // ScriptProcessor fallback: for browsers without AudioWorklet support,
+  // or when worklet loading races against noteOn messages. The
+  // ScriptProcessor API (deprecated but universally supported) runs DSP
+  // on the main thread in a callback. The trade-off is higher latency
+  // and potential UI jank, but it guarantees no dropped notes.
   function initFallback() {
     shouldUseFallback = true;
     var sr = audioContext.sampleRate;
@@ -1019,6 +1303,11 @@
                 sample += voices[vi].process() * VOICE_MIX_GAIN;
               }
             }
+            // Pade [3/3] approximant of tanh for soft clipping:
+            //   tanh(x) ~ x * (27 + x^2) / (27 + 9*x^2)
+            // Keeps signal in roughly [-1, +1] with smooth saturation
+            // rather than hard clipping. Cheaper than Math.tanh() and
+            // avoids the harsh aliasing artifacts of hard clipping.
             var ss = sample * sample;
             output[s] = sample * (27 + ss) / (27 + 9 * ss);
           }

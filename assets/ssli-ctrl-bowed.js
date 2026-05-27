@@ -1,7 +1,36 @@
-// SSLI Controller: Multistring (fingerboard pitch strips + bow/pluck zones)
-// Left 60%: pitch fingerboard (continuous pitch via pitch bend)
-// Right 40%: bow/pluck zone (hold = bow, tap = pluck, vertical = dynamics)
+// ======================================================================
+// SSLI Controller: Bowed Multistring
+// ======================================================================
+//
+// Physical model control surface for bowed string instruments.
+//
+// A bowed string vibrates through stick-slip friction: the rosined
+// bow hair grips the string (stick phase), stretching it until the
+// restoring force overcomes friction and the string snaps back
+// (slip phase). This cycle produces Helmholtz motion — a V-shaped
+// kink that travels around the string, first described by Hermann
+// von Helmholtz in "On the Sensations of Tone" (1863).
+//
+// The control surface maps touch gestures to bow parameters:
+//   Left 60% — Pitch fingerboard: continuous pitch via pitch bend,
+//     analogous to finger placement on an unfretted string
+//   Right 40% — Bow/pluck zone: sustained hold = arco (bowed),
+//     quick tap (<200ms) = pizzicato (plucked)
+//
+// Bow expression dimensions (per Schelleng's playable region):
+//   X position in bow zone: sul tasto (near fingerboard, mellow)
+//     to sul ponticello (near bridge, bright harmonics)
+//   Y position: bow pressure (light = flageolets, heavy = full tone)
+//   Horizontal speed: bow velocity (faster = louder, more energy)
+//
+// References:
+//   Helmholtz, H. (1863) On the Sensations of Tone
+//   Schelleng, J.C. (1973) "The Bowed String and the Player", JASA
+//   McIntyre, M.E. & Woodhouse, J. (1979) "On the Fundamentals of
+//     Bowed-String Dynamics"
+//
 // ES5 compatible (var, no arrow functions, no template literals)
+// ======================================================================
 
 (function() {
   'use strict';
@@ -22,7 +51,10 @@
   var MIN_OCTAVE = 1;
   var MAX_OCTAVE = 6;
 
-  // Layout proportions
+  // Layout proportions: the 60/40 split mirrors how a string player's
+  // left hand (pitch) and right hand (bow) operate independently.
+  // The pitch zone is wider because fingerboard intonation requires
+  // finer spatial resolution than bow control.
   var PITCH_ZONE_FRACTION = 0.60;
   var BOW_ZONE_FRACTION = 0.40;
 
@@ -34,11 +66,19 @@
   var VELOCITY_MAX = 127;
   var VELOCITY_DEFAULT = 80;
 
-  // Pluck detection: if touch in bow zone < this ms, it's a pluck not a bow
+  // Pluck detection: a short contact (<200ms) triggers pizzicato instead
+  // of arco. Real pizzicato is a quick finger pull-and-release on the
+  // string; the brief touch duration distinguishes it from a sustained
+  // bow stroke, which requires continuous contact to maintain Helmholtz
+  // motion.
   var PLUCK_THRESHOLD_MS = 200;
   var PLUCK_DURATION_MS = 400;
 
-  // Bow pressure mapping from vertical drag in bow zone
+  // Bow pressure mapping: Schelleng (1973) showed that playable bow
+  // force occupies a narrow region between two limits — too little
+  // pressure produces surface sound or harmonics (flageolets), while
+  // too much causes a harsh, scratching tone. Y-axis position in the
+  // bow zone maps to this pressure continuum.
   var BOW_PRESSURE_MIN = 0.2;
   var BOW_PRESSURE_MAX = 1.0;
 
@@ -75,14 +115,26 @@
   var CUTOFF_MIN_HZ = 300;
   var CUTOFF_MAX_HZ = 6000;
 
-  // Bow speed expression (horizontal movement)
+  // Bow speed expression (horizontal movement):
+  // On a real instrument, faster bow strokes inject more energy into
+  // the string, producing louder and brighter tone. The horizontal
+  // drag distance per frame maps to an expression gain value.
+  // EMA smoothing prevents jitter; the concave power curve (<1 exponent)
+  // makes the control responsive at low speed, mimicking how a real
+  // bow responds quickly to subtle speed changes.
   var BOW_SPEED_GAIN_MIN = 0.1;
   var BOW_SPEED_GAIN_MAX = 1.0;
   var BOW_SPEED_PIXELS_FOR_MAX = 80;   // horizontal px/frame for max expression
   var BOW_SPEED_SMOOTHING = 0.3;       // EMA smoothing factor (0=sluggish, 1=instant)
   var BOW_SPEED_CURVE_EXPONENT = 0.6;  // <1 = concave curve (responsive at low speed)
 
-  // Bow position expression (X within bow zone = sul tasto to sul ponticello)
+  // Bow position expression (X within bow zone = sul tasto to sul ponticello):
+  // Where the bow contacts the string dramatically affects timbre.
+  // Sul tasto (over the fingerboard) emphasizes the fundamental with
+  // a soft, warm quality. Sul ponticello (near the bridge) excites
+  // higher harmonics, producing a glassy, metallic sound. The Schelleng
+  // diagram shows how bow position interacts with pressure to define
+  // the playable envelope — this X-axis control navigates that space.
   var BOW_POSITION_TASTO_CUTOFF_HZ = 200;    // near fingerboard = mellow
   var BOW_POSITION_PONTICELLO_CUTOFF_HZ = 8000; // near bridge = bright
   var BOW_POSITION_CURVE_EXPONENT = 1.4;      // >1 = convex (more mellow in middle)
@@ -90,7 +142,12 @@
   // Bow pressure Y-axis curve
   var BOW_PRESSURE_CURVE_EXPONENT = 0.7;      // <1 = responsive at light touch
 
-  // Tuning presets (absolute MIDI note numbers, lowest to highest)
+  // Tuning presets (absolute MIDI note numbers, lowest to highest).
+  // Standard string instrument tunings use intervals of fifths
+  // (violin/viola/cello: G-D-A-E pattern) or fourths (bass: E-A-D-G).
+  // Cross-tunings and historical instruments (Hardanger fiddle, viola
+  // da gamba) expand the timbral palette. Each preset defines the
+  // open-string MIDI notes and number of strings for the layout.
   var MULTISTRING_TUNING_PRESETS = [
     { midi: [55, 62, 69, 76], label: 'Violin',              strings: 4 },
     { midi: [48, 55, 62, 69], label: 'Viola',               strings: 4 },
@@ -110,6 +167,13 @@
   // ============================================================
   // State
   // ============================================================
+  //
+  // Each string maintains independent state for two-hand control:
+  // the left hand (pitch touch) sets intonation on the fingerboard,
+  // while the right hand (bow touch) controls excitation. This
+  // mirrors the physical independence of a string player's hands
+  // and enables techniques like fingered pizzicato (left hand holds
+  // pitch while right hand plucks) or open-string drones.
 
   var _currentTuningIdx = 0;
   var _baseOctave = DEFAULT_BASE_OCTAVE;
@@ -197,7 +261,10 @@
     }
   }
 
-  // Given an X position in the pitch zone, compute the fractional semitone offset
+  // Given an X position in the pitch zone, compute the fractional semitone offset.
+  // This is the digital equivalent of finger placement on an unfretted
+  // fingerboard — continuous pitch with no discrete steps, enabling
+  // natural vibrato (finger oscillation on the Y-axis modulates pitch).
   function _pitchFracFromX(x, pitchZoneEl) {
     var rect = pitchZoneEl.getBoundingClientRect();
     var relX = x - rect.left;
@@ -228,8 +295,8 @@
     if (active) {
       el.classList.add('bowing');
       if (wire) {
-        var intensity = _clamp(velocity / VELOCITY_MAX, 0.3, 1);
-        wire.style.animationDuration = Math.round(VIBRATE_ANIMATION_DURATION_MS / intensity) + 'ms';
+        var safeIntensity = _clamp(velocity / VELOCITY_MAX, 0.3, 1) || 1;
+        wire.style.animationDuration = Math.round(VIBRATE_ANIMATION_DURATION_MS / safeIntensity) + 'ms';
       }
       if (glow) {
         glow.style.opacity = String(_clamp(velocity / VELOCITY_MAX, 0.4, 1));
@@ -334,6 +401,15 @@
   // ============================================================
   // Audio: pitch + excitation
   // ============================================================
+  //
+  // Bowed string sound production has two independent components:
+  // 1. Pitch (left hand): which note is fingered on the string
+  // 2. Excitation (right hand): how the string is set vibrating
+  //
+  // The pitch system uses MIDI note numbers for whole semitones
+  // and pitch bend (in cents) for the fractional part, giving
+  // true continuous intonation. The excitation system (bow/pluck)
+  // controls note-on/off and dynamics.
 
   function _setPitch(stringIdx, semitoneFrac) {
     var state = _stringState[stringIdx];
@@ -395,6 +471,13 @@
     _setStringVisual(stringIdx, true, velocity);
   }
 
+  // Update continuous bow expression from ongoing touch movement.
+  // Three physical bow parameters combine to shape the sound:
+  //   Speed (horizontal movement) -> amplitude/loudness
+  //   Pressure (Y-axis) -> timbre brightness (filter cutoff)
+  //   Position (X within bow zone) -> sul tasto vs sul ponticello
+  // These correspond to the three axes of McIntyre & Woodhouse's
+  // (1979) model of bowed string dynamics.
   function _updateBowDynamics(stringIdx, pressure, x, bowZoneEl) {
     var state = _stringState[stringIdx];
     if (!state) { return; }
@@ -428,13 +511,18 @@
     var positionCutoff = 0;
     if (bowZoneEl) {
       var bowRect = bowZoneEl.getBoundingClientRect();
-      var relBowX = _clamp((x - bowRect.left) / bowRect.width, 0, 1);
+      var safeBowWidth = bowRect.width || 1;
+      var relBowX = _clamp((x - bowRect.left) / safeBowWidth, 0, 1);
       // Left of bow zone = near fingerboard (tasto), right = near bridge (ponticello)
       var curvedPosition = Math.pow(relBowX, BOW_POSITION_CURVE_EXPONENT);
       positionCutoff = BOW_POSITION_TASTO_CUTOFF_HZ + curvedPosition * (BOW_POSITION_PONTICELLO_CUTOFF_HZ - BOW_POSITION_TASTO_CUTOFF_HZ);
     }
 
-    // Combine pressure cutoff and position cutoff (blend: position dominates, pressure modulates)
+    // Combine pressure cutoff and position cutoff. Position dominates
+    // (60%) because bow contact point is the primary timbral control
+    // on real instruments, while pressure is a secondary modulator.
+    // This weighting places us in the "normal playing" region of the
+    // Schelleng diagram, where most musical expression occurs.
     var combinedCutoff = (positionCutoff > 0) ? (positionCutoff * 0.6 + pressureCutoff * 0.4) : pressureCutoff;
     if (SL.audio && SL.audio.setExpressiveCutoff) {
       SL.audio.setExpressiveCutoff(combinedCutoff);
@@ -484,6 +572,13 @@
   }
 
   // ---- Pluck ADSR save/restore ----
+  //
+  // Pizzicato (plucked) strings have a fundamentally different envelope
+  // from arco (bowed): a near-instant attack, fast decay, zero sustain,
+  // and short release — percussive and transient. When a pluck is
+  // detected, we temporarily override the instrument's ADSR to this
+  // percussive shape, then restore the original envelope afterward
+  // so sustained bowing returns to normal behavior.
 
   function _setPluckEnvelope() {
     var hasInstrumentQuery = SL.audio && SL.audio.getInstruments;
@@ -690,6 +785,12 @@
   // ============================================================
   // Zone detection
   // ============================================================
+  //
+  // The multi-string layout divides the surface into horizontal
+  // lanes (one per string, lowest at bottom like a real instrument)
+  // and vertical zones (pitch on the left, bow/pluck on the right).
+  // Dragging a finger across string boundaries triggers a strum
+  // gesture — each crossed string fires in sequence.
 
   function _findStringIdx(y) {
     var si;
@@ -716,8 +817,14 @@
   }
 
   // ============================================================
-  // Pointer handling
+  // Pointer handling (two-hand bowed string interaction)
   // ============================================================
+  //
+  // The pointer system supports simultaneous multi-touch for
+  // independent left-hand (pitch) and right-hand (bow) control
+  // on each string. Collision prevention ensures only one touch
+  // occupies each zone per string. Cross-string pointer movement
+  // triggers strum detection for arpeggiated or strummed chords.
 
   function _onPointerStart(x, y, id, pointerEvent) {
     var stringIdx = _findStringIdx(y);
@@ -791,7 +898,10 @@
     var state = _stringState[stringIdx];
     if (!state) { return; }
 
-    // Detect strum: pointer moved to a different string
+    // Detect strum: pointer moved to a different string.
+    // On a real instrument, dragging the bow across strings produces
+    // a rapid arpeggio (strum). Each crossed string triggers in
+    // sequence while the previous string is released.
     var newStringIdx = _findStringIdx(y);
     var movedToNewString = (newStringIdx >= 0) && (newStringIdx !== stringIdx);
     if (movedToNewString) {
@@ -937,7 +1047,8 @@
           var wasQuickTap = (elapsed < PLUCK_THRESHOLD_MS);
 
           if (wasQuickTap) {
-            // It was a pluck - the bow already started, so stop it and do a pluck instead
+            // Pluck detection: contact shorter than threshold = pizzicato.
+            // The bow already started, so stop it and re-trigger as a pluck.
             _stopBow(stringIdx);
             _pluckString(stringIdx, state.velocity);
           } else {

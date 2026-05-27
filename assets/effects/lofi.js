@@ -1,5 +1,42 @@
 // Synth Lab - Lo-Fi Effect (proper multi-stage lofi chain)
 //
+// -----------------------------------------------------------------------
+// EDUCATIONAL OVERVIEW: Lo-Fi Audio Degradation
+// -----------------------------------------------------------------------
+// Lo-fi (low fidelity) deliberately degrades audio quality for aesthetic
+// effect, evoking the character of vinyl records, cassette tapes, old
+// radios, and early digital samplers. Each degradation stage mimics a
+// specific physical imperfection:
+//
+// Wow & Flutter: slow and fast pitch variations caused by imperfect
+//   motor speed in turntables and tape decks. Implemented as a modulated
+//   delay line -- an LFO modulates the delay time, causing pitch wobble.
+//   Wow is slow (~0.1-5 Hz); flutter is faster (~5-9 Hz).
+//
+// Tape Saturation: analog tape's nonlinear magnetic response produces
+//   soft clipping and harmonic distortion. Modeled with a tanh waveshaper
+//   (asymmetric for even harmonics, like real tape).
+//
+// Band Limiting (Warmth): old playback equipment had limited frequency
+//   response. A highpass removes rumble; a lowpass removes harsh HF.
+//   The "warmth" control sweeps the lowpass cutoff (lower = darker).
+//
+// Bit Crushing: reduces effective bit depth by quantizing the signal
+//   to fewer amplitude steps, adding characteristic quantization noise.
+//   Implemented as a staircase transfer function via WaveShaper.
+//
+// Stereo Width Collapse: mono playback equipment or worn vinyl grooves
+//   reduce stereo separation. Cross-feeding L/R channels toward mono.
+//
+// Noise Floor: vinyl crackle and tape hiss. A looping pink noise buffer
+//   filtered to the 500 Hz - 4 kHz band (where hiss is most audible).
+//
+// References:
+//   Roads, C. (1996) The Computer Music Tutorial, MIT Press
+//
+// Feature spec: [FX-034] Lo-Fi
+// -----------------------------------------------------------------------
+//
 // Signal chain (wet path):
 //   input -> wow/flutter delay line (modulated) -> tape soft-clip waveshaper
 //         -> band-limit HP(200) -> band-limit LP(warmth-variable, 2.5k-6k)
@@ -18,8 +55,13 @@
   var BaseEffect = SL.effects.BaseEffect;
 
   // ============ Named constants ============
+  // Each constant group maps to one stage of the lo-fi signal chain.
+  // Values were tuned by ear to produce subtle, musical degradation
+  // rather than extreme distortion at default settings.
 
   // Wow / flutter (THE feel — short modulated delay 5-30 ms)
+  // A modulated delay line creates pitch variation: the LFO changes the
+  // delay time, which stretches/compresses the waveform, shifting pitch.
   var WOW_BASE_DELAY_S = 0.012;          // 12 ms base — subtle pitch wobble
   var WOW_RATE_HZ_DEFAULT = 0.45;        // slower, more natural wow
   var WOW_MAX_DEPTH_S = 0.006;           // ~6 ms swing at 100% (more character)
@@ -32,6 +74,8 @@
   var FLUTTER_PCT_MAX = 100;
 
   // Noise floor (spec: bandpass 500 Hz - 4 kHz)
+  // Vinyl crackle and tape hiss live primarily in the 500-4000 Hz band.
+  // A looping buffer of pink noise filtered to this band gives the effect.
   var NOISE_BUFFER_SECS = 3;
   var NOISE_BP_CENTER_HZ = 1200;
   var NOISE_BP_Q = 0.7;
@@ -42,12 +86,16 @@
   var NOISE_PCT_MAX = 100;
 
   // Tape saturation curve (gentle soft-clip + a little HF rolloff character)
+  // Uses tanh() waveshaping: maps input linearly near zero but soft-clips
+  // at extremes. Asymmetric drive (pos != neg) adds even harmonics like tape.
   var SAT_CURVE_SAMPLES = 2048;
   var SAT_DRIVE_POS = 1.6;               // softer pos-side knee (warmer, less harsh)
   var SAT_DRIVE_NEG = 1.3;               // gentler asymmetric: subtle even harmonics
   var SAT_OUTPUT_TRIM = 0.85;            // compensate for reduced drive
 
   // Band-limit (spec: raised cutoffs to preserve more high end)
+  // Old playback equipment had limited bandwidth. HP removes subsonic rumble;
+  // LP removes harsh highs. Warmth parameter sweeps the LP cutoff frequency.
   var BANDLIMIT_LOW_HZ = 200;            // fixed HP
   var BANDLIMIT_HIGH_HZ_MIN = 4000;      // 100% warmth -> warm but not muffled
   var BANDLIMIT_HIGH_HZ_MAX = 8000;      // 0% warmth  -> nearly full bandwidth
@@ -56,6 +104,9 @@
   var WARMTH_PCT_MAX = 100;
 
   // Bit reduction (spec item 5: 10-14 bit feel via WaveShaper quantization curve)
+  // Quantization reduces the number of discrete amplitude levels, creating a
+  // staircase waveform. Fewer bits = larger steps = more quantization noise.
+  // Formula: y = round(x * 2^(bits-1)) / 2^(bits-1)
   var CRUSH_PCT_MIN = 0;
   var CRUSH_PCT_MAX = 100;
   var CRUSH_BITS_AT_0 = 16;              // 0% crush = ~transparent (16-bit)
@@ -63,6 +114,8 @@
   var CRUSH_CURVE_SAMPLES = 4096;        // must cover [-1, 1] finely
 
   // Width collapse (stereo to mono, optional)
+  // Cross-feeds left and right channels. At 100%, L and R receive equal
+  // mix of both channels = mono. At 0%, channels are fully independent.
   var WIDTH_PCT_MIN = 0;
   var WIDTH_PCT_MAX = 100;
 
@@ -273,6 +326,11 @@
     return 1.0 - 0.5 * pct;
   };
 
+  // Build the tape saturation waveshaper curve.
+  // tanh(x*k) soft-clips the signal: linear near zero, asymptotic at +/-1.
+  // Asymmetric drive (different k for positive vs negative) introduces
+  // even-order harmonics, which is characteristic of analog tape distortion.
+  // The curve is normalized so that full-scale input maps to full-scale output.
   LofiEffect.prototype._buildSatCurve = function() {
     var n = SAT_CURVE_SAMPLES;
     var curve = new Float32Array(n);
@@ -280,19 +338,24 @@
     var kNeg = SAT_DRIVE_NEG;
     var normPos = Math.tanh(kPos);
     var normNeg = Math.tanh(kNeg);
+    var safeNormPos = normPos || 1;
+    var safeNormNeg = normNeg || 1;
     for (var i = 0; i < n; i++) {
       var x = (i * 2 / (n - 1)) - 1;
       var y;
       if (x >= 0) {
-        y = Math.tanh(x * kPos) / normPos;
+        y = Math.tanh(x * kPos) / safeNormPos;
       } else {
-        y = Math.tanh(x * kNeg) / normNeg;
+        y = Math.tanh(x * kNeg) / safeNormNeg;
       }
       curve[i] = y;
     }
     return curve;
   };
 
+  // Build the bit-crush quantization curve.
+  // Maps the continuous input to a staircase of discrete levels.
+  // Fewer bits = fewer steps = coarser quantization = more audible noise.
   LofiEffect.prototype._buildCrushCurve = function() {
     // Quantization step function:  y = round(x * steps) / steps
     // Where steps = 2^(bits-1). Produces the classic "bit-reduction" look.
@@ -302,7 +365,8 @@
     var curve = new Float32Array(n);
     for (var i = 0; i < n; i++) {
       var x = (i * 2 / (n - 1)) - 1;
-      var q = Math.round(x * steps) / steps;
+      var safeSteps = steps || 1;
+      var q = Math.round(x * safeSteps) / safeSteps;
       if (q > 1) { q = 1; }
       if (q < -1) { q = -1; }
       curve[i] = q;
@@ -310,12 +374,17 @@
     return curve;
   };
 
+  // Generate a looping buffer of pink-ish noise for the vinyl/tape hiss layer.
+  // Pink noise has equal energy per octave (unlike white noise which has equal
+  // energy per Hz), making it sound more natural and less harsh.
   LofiEffect.prototype._createNoiseBuffer = function() {
     var sr = this.ctx.sampleRate;
     var len = sr * NOISE_BUFFER_SECS;
     var buf = this.ctx.createBuffer(1, len, sr);
     var data = buf.getChannelData(0);
     // Pink-ish noise via Paul Kellett's economy filter
+    // Three one-pole filters with different coefficients approximate the
+    // -3 dB/octave slope of true pink noise from white noise input.
     var b0 = 0, b1 = 0, b2 = 0;
     for (var i = 0; i < len; i++) {
       var white = Math.random() * 2 - 1;

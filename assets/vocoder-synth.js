@@ -3,6 +3,32 @@
 // carrier waveform selection, vowel morphing, and formant shift.
 // Real bandpass filter bank per band, proper gain staging.
 // v1.1.0 - Fixed: real BPF filters, gain staging, real-time updates, instrument count
+//
+// -----------------------------------------------------------------------
+// VOCODER SYNTH ENGINE [ENG-007]
+// -----------------------------------------------------------------------
+// A vocoder (Voice Operated reCOrDER) was invented by Homer Dudley at
+// Bell Labs in 1939 as a speech compression tool for telephony.
+//   -- Dudley, H. (1939) "The Vocoder", Bell Labs Record 17
+//
+// This module is a *vocoder synth engine*, not a vocoder effect. The
+// distinction matters: a vocoder effect takes two external signals
+// (carrier + modulator) and cross-modulates them. This engine IS the
+// carrier -- it generates the carrier waveform internally and applies
+// a formant-shaped filter bank to sculpt vowel-like resonances onto it.
+//   -- Flanagan, J.L. (1972) Speech Analysis Synthesis and Perception, Springer
+//   -- Roads, C. (1996) The Computer Music Tutorial, MIT Press, ch. 8 & 10
+//
+// Architecture: carrier oscillator -> N parallel bandpass filters ->
+// each band scaled by a formant-derived gain envelope -> sum to output.
+// Band count (8/16/32) controls spectral resolution. Higher counts
+// yield more precise vowel shapes at the cost of more filter nodes.
+// Carrier waveform choice matters: sawtooth contains all harmonics and
+// thus responds to every filter band (most speech-like); square has
+// only odd harmonics (hollow, clarinet-like); noise is stochastic
+// (whispered quality). Formant shift transposes the filter bank up or
+// down in semitones, changing perceived vowel "size" (smaller = higher).
+// -----------------------------------------------------------------------
 (function() {
   'use strict';
 
@@ -17,11 +43,20 @@
   var NUM_INSTRUMENTS = 4;
   var TWO_PI = 2 * Math.PI;
 
-  // Valid carrier waveform types
+  // Valid carrier waveform types.
+  // Saw = all harmonics (richest response to formant filtering).
+  // Square = odd harmonics only (hollow). Noise = broadband stochastic.
+  // Pulse = narrow duty cycle (bright, nasal).
   var VALID_CARRIER_WAVEFORMS = { 'saw': 1, 'square': 1, 'noise': 1, 'pulse': 1 };
 
-  // Vowel formant definitions: [F1, F2, F3] frequencies in Hz
-  // Based on typical male vocal formant data
+  // Vowel formant definitions: [F1, F2, F3] frequencies in Hz.
+  // Based on typical male vocal formant data.
+  // Formants are resonant peaks in the vocal tract transfer function.
+  // F1 correlates with jaw openness (low = closed, high = open).
+  // F2 correlates with tongue position (low = back vowel, high = front).
+  // F3 distinguishes rounding and secondary articulations.
+  // Bandwidths (bws) control how sharp each formant peak is.
+  //   -- Flanagan (1972), Table 5.1: averaged formant data
   var VOWEL_FORMANTS = {
     A: { freqs: [730, 1090, 2440], amps: [1.0, 0.5, 0.3], bws: [90, 110, 170] },
     E: { freqs: [530, 1840, 2480], amps: [1.0, 0.4, 0.3], bws: [70, 100, 160] },
@@ -83,6 +118,12 @@
   // ============================================================
   // Formant Interpolation
   // ============================================================
+  // Morphing between vowels creates the "talking" effect heard in
+  // classic vocoder patches. Linear interpolation of formant frequencies,
+  // amplitudes, and bandwidths produces smooth vowel transitions.
+  // The formant shift parameter transposes all formant centers by a
+  // semitone ratio (2^(shift/12)), simulating smaller or larger vocal
+  // tracts -- positive shift = "chipmunk", negative = "giant".
 
   /**
    * Get interpolated formant data based on vowel and morph position
@@ -115,6 +156,10 @@
     return { freqs: freqs, amps: amps, bws: bws };
   }
 
+  // Logarithmic spacing matches how the human ear perceives pitch
+  // (constant ratios between adjacent bands). The range 80-12000 Hz
+  // covers the speech-relevant spectrum. More bands = finer spectral
+  // resolution = more accurate vowel reproduction, but more CPU cost.
   /**
    * Compute band center frequencies for a given band count
    * Logarithmically spaced from 80 Hz to 12000 Hz
@@ -134,6 +179,12 @@
     return freqs;
   }
 
+  // The formant envelope is the key to the vocoder sound. Each filter
+  // band gets a gain derived from how close it is to a formant peak.
+  // Bands near a formant center get high gain; bands between formants
+  // are attenuated. This shapes the flat carrier spectrum into a
+  // vowel-colored sound. The Gaussian weighting approximates the
+  // natural resonance curve of a vocal tract resonator.
   /**
    * Compute formant envelope gain for each band
    * Generates an amplitude profile shaped by the vowel formants
@@ -169,6 +220,13 @@
   // Resonant Bandpass Filter (2nd-order biquad, direct form II)
   // Same proven filter class used in formant-engine.js
   // ============================================================
+  // Each vocoder band uses a 2nd-order IIR bandpass filter (biquad).
+  // Direct Form II Transposed minimizes numerical error with floating
+  // point arithmetic. The filter coefficients are derived from the
+  // Audio EQ Cookbook (Robert Bristow-Johnson) bandpass formulation:
+  //   alpha = sin(w0) * sinh(ln(2)/2 * BW/f0 * w0/sin(w0))
+  // where w0 = 2*pi*f/sr. This gives a constant-Q or constant-BW
+  // bandpass depending on how bandwidth is specified.
 
   function BiquadBPF() {
     this.b0 = 0; this.b1 = 0; this.b2 = 0;
@@ -217,6 +275,14 @@
   // ============================================================
   // Vocoder Voice
   // ============================================================
+  // Each voice contains: a carrier oscillator (generates the raw
+  // harmonically-rich waveform), a bank of N bandpass filters (one
+  // per frequency band), and per-band gain values derived from the
+  // formant envelope. The signal path per sample is:
+  //   carrier_sample -> filter[b] * formantGain[b] for each band -> sum
+  // This is the "analysis-synthesis" architecture described by Roads
+  // (1996, ch. 10): the formant envelope "analyzes" the vowel shape,
+  // and the filter bank "synthesizes" it onto the carrier.
 
   function VocoderVoice(sr) {
     this.sampleRate = sr;
@@ -268,7 +334,8 @@
     for (var b = 0; b < numBands; b++) {
       var filter = new BiquadBPF();
       // Bandwidth derived from Q: bw = freq / Q
-      var bw = bandFreqs[b] / filterQ;
+      var safeFilterQ = filterQ || 1;
+      var bw = bandFreqs[b] / safeFilterQ;
       filter.set(bandFreqs[b], bw, this.sampleRate);
       filter.reset();
       this.bandFilters.push(filter);
@@ -282,7 +349,8 @@
    */
   VocoderVoice.prototype.updateFilterBank = function(bandFreqs, filterQ) {
     for (var b = 0; b < this.bandFilters.length; b++) {
-      var bw = bandFreqs[b] / filterQ;
+      var safeFilterQ = filterQ || 1;
+      var bw = bandFreqs[b] / safeFilterQ;
       this.bandFilters[b].set(bandFreqs[b], bw, this.sampleRate);
     }
   };
@@ -410,6 +478,11 @@
     return this.envLevel;
   };
 
+  // The carrier provides the raw harmonic material that the filter
+  // bank sculpts. Saw is the default because it contains all integer
+  // harmonics (1/n amplitude series), giving every filter band
+  // something to work with -- this is why saw-based vocoders sound
+  // the most "speech-like". Noise carriers produce whispered textures.
   /**
    * Generate one sample of the carrier waveform
    */
@@ -467,8 +540,11 @@
     // Generate carrier
     var carrier = this.generateCarrier();
 
-    // Channel vocoder: pass carrier through each bandpass filter,
-    // then scale by the formant-derived gain for that band.
+    // Channel vocoder core: pass the carrier through each bandpass
+    // filter, then scale by the formant-derived gain for that band.
+    // This is the multi-band analysis-resynthesis loop -- the heart
+    // of vocoder synthesis. Each band isolates a narrow frequency
+    // region; the formant gain shapes the overall spectral envelope.
     var output = 0;
     var nyquist = this.sampleRate / 2;
 
@@ -564,8 +640,10 @@
             }
           }
 
-          // Per-voice mix factor: formant-engine uses 0.75, vocoder uses
-          // a similar level since gain staging is now proper
+          // Per-voice mix factor controls polyphonic headroom. Lower
+          // values prevent clipping when multiple voices overlap.
+          // Formant-engine uses 0.75; vocoder uses 0.4 because the
+          // multi-band summing already adds energy across bands.
           var PER_VOICE_MIX = 0.4;
           for (var s = 0; s < output.length; s++) {
             var sampleOut = 0;
@@ -574,7 +652,8 @@
                 sampleOut += voices[vi2].process() * PER_VOICE_MIX;
               }
             }
-            // Soft clip (Pade approximant of tanh)
+            // Soft clip using Pade approximant of tanh: x*(27+x^2)/(27+9*x^2).
+            // Cheaper than Math.tanh() and provides musical saturation.
             var ss = sampleOut * sampleOut;
             output[s] = sampleOut * (27 + ss) / (27 + 9 * ss);
           }

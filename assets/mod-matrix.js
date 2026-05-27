@@ -1,6 +1,28 @@
 // Super Synth Lab - Modulation Matrix Engine
 // Flexible routing of modulation sources to destinations
 // Loads AFTER audio-engine.js and lfo-engine.js, extends SL.audio
+//
+// MODULATION MATRIX: A VIRTUAL PATCH BAY
+// In analog synthesizers, musicians used physical patch cables to connect
+// control voltage (CV) outputs to parameter inputs. A cable from an LFO
+// output to the filter cutoff input created vibrato on the filter, for
+// example. The modulation matrix replaces those cables with a software
+// routing table -- each row defines: source -> destination -> amount.
+//
+// Sources produce control signals: LFOs (periodic), envelopes (one-shot),
+// velocity (per-note), mod wheel (continuous), aftertouch (pressure).
+// Destinations are synthesis parameters: pitch, filter cutoff, amplitude,
+// panning, FM depth, LFO rates.
+//
+// Bipolar modulation: the amount slider ranges -100% to +100%, allowing
+// both positive and inverted modulation. Multiple sources can target the
+// same destination -- their contributions sum additively, just as multiple
+// CV cables patched to the same input would sum voltages.
+//
+// References:
+//   Roads, C. (1996) The Computer Music Tutorial, MIT Press, Ch. 4-5
+//   Moog, R.A. (1965) "Voltage-Controlled Electronic Music Modules", JAES 13(3)
+//
 (function() {
   'use strict';
 
@@ -17,6 +39,10 @@
 
   var NO_SELECTION = 'none';
 
+  // Modulation sources: each produces a time-varying control signal.
+  // Audio-rate sources (LFO, envelope) connect via Web Audio node graphs.
+  // Scalar sources (velocity, mod wheel, aftertouch) are MIDI controller
+  // values normalized to 0..1 and applied as immediate parameter offsets.
   /** Available modulation sources */
   var MOD_SOURCES = [
     { id: 'none', label: 'None', i18n: 'mod_source.none' },
@@ -28,6 +54,10 @@
     { id: 'aftertouch', label: 'Aftertouch', i18n: 'mod_source.aftertouch' }
   ];
 
+  // Modulation destinations: synthesis parameters that can be modulated.
+  // Each destination maps to a Web Audio AudioParam (pitch -> detune,
+  // filterCutoff -> BiquadFilterNode.frequency, etc.). Audio-rate sources
+  // connect directly to these AudioParams for sample-accurate modulation.
   /** Available modulation destinations */
   var MOD_DESTINATIONS = [
     { id: 'none', label: 'None', i18n: 'mod_dest.none' },
@@ -138,6 +168,12 @@
   // ============================================================
   // Modulation Signal Computation
   // ============================================================
+  // Two categories of modulation source:
+  //   1. Audio-rate (LFO, envelope): continuous signals at sample rate,
+  //      routed through Web Audio node graphs for glitch-free modulation.
+  //   2. Scalar (velocity, modwheel, aftertouch): discrete MIDI values
+  //      normalized to 0..1, applied as one-time parameter offsets at
+  //      note-on. These cannot vary sample-by-sample within a note.
 
   /**
    * Get the current modulation value for a source.
@@ -177,6 +213,11 @@
   // ============================================================
   // Destination Parameter Scaling
   // ============================================================
+  // The amount slider (-100 to +100) must map to physically meaningful
+  // ranges for each destination. Pitch modulation is measured in cents
+  // (1200 cents = 1 octave), filter cutoff in Hz, amplitude in gain
+  // units. This scaling converts the user-facing percentage into the
+  // correct unit for each destination's AudioParam.
 
   /**
    * Get the modulation depth range for a destination.
@@ -223,6 +264,17 @@
   // ============================================================
   // Per-Voice Modulation Application
   // ============================================================
+  // Modulation is applied per-voice, not globally. Each voice gets its
+  // own set of routing connections so that polyphonic modulation works
+  // correctly -- e.g., velocity-to-filter differs per note because each
+  // note has its own velocity value.
+  //
+  // Audio-rate routing: source -> GainNode (depth) -> destination AudioParam.
+  // The GainNode scales the source signal by the route's depth value.
+  // This is the Web Audio equivalent of a CV attenuator in analog synths.
+  //
+  // Scalar routing: sourceValue * depth = offset, applied immediately via
+  // setValueAtTime() to avoid audible clicks (Moog, 1965).
 
   /**
    * Apply mod matrix routings to a voice.
@@ -280,7 +332,9 @@
     var sourceNode = getAudioSourceNode(instId, slot.source);
     if (sourceNode) {
 
-    // Create a per-route depth gain node
+    // Create a per-route depth gain node (the "attenuator" in CV terms).
+    // This scales the source signal by the modulation depth before it
+    // reaches the destination AudioParam.
     var routeGain = ctx.createGain();
     routeGain.gain.value = depth;
 
@@ -347,7 +401,10 @@
         return state.lfoSources[key].depthGain || state.lfoSources[key].source;
       }
 
-      // Create a mirrored LFO source for mod matrix routing
+      // Create a mirrored LFO oscillator that tracks the LFO engine's
+      // settings. This is necessary because the main LFO engine's nodes
+      // may not be directly accessible -- we create a parallel oscillator
+      // with matching waveform and rate for the mod matrix to route from.
       var lfoKey = sourceId === 'lfo1' ? 'lfo1' : 'lfo2';
       var lfoNum = sourceId === 'lfo1' ? 1 : 2;
       var lfo = lfoSettings[lfoKey];
@@ -661,6 +718,9 @@
   // ============================================================
   // Controller Input
   // ============================================================
+  // MIDI controllers feed scalar values into the mod matrix. The MIDI
+  // module calls setControllerValue() when CC messages arrive, updating
+  // the per-instrument state that scalar routes read at note-on time.
 
   /**
    * Update a MIDI controller value for mod matrix routing.

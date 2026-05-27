@@ -1,5 +1,25 @@
 // Synth Lab - Gated Reverb Effect
 // The iconic 80s drum sound - reverb with abrupt gate cutoff (Phil Collins, Peter Gabriel style)
+//
+// -----------------------------------------------------------------------
+// GATED REVERB - History and Technique
+//
+// Accidentally invented in 1979 at Townhouse Studios by engineer Hugh
+// Padgham while recording Peter Gabriel's third album. A talkback mic
+// fed through an SSL 4000 console's listen-mic compressor picked up the
+// room sound of Phil Collins' drums -- then the noise gate on the channel
+// slammed shut, chopping the reverb tail abruptly. The result was the
+// massive, punchy drum sound that defined Phil Collins' "In the Air
+// Tonight" (1981) and a decade of pop/rock production.
+//
+// How it works: a large reverb is applied to the signal, then a noise
+// gate monitors the input level. When input drops below threshold, the
+// gate closes with a fast release, cutting the reverb tail short instead
+// of letting it decay naturally. This yields the characteristic "big room
+// that suddenly vanishes" punch. Gate threshold controls how loud the
+// input must be to keep the reverb open; gate release controls how
+// quickly the tail is chopped once the gate closes.
+// -----------------------------------------------------------------------
 
 (function() {
   var SL = window.SynthLab = window.SynthLab || {};
@@ -29,10 +49,13 @@
       this.params.release = 100;     // Gate release in ms
       this.params.mix = 50;          // Default mix for gated reverb
 
-      // Create convolver for reverb
+      // Convolver applies a synthetic impulse response (IR) to the input.
+      // Unlike studio gated reverb which uses a real room, we generate the IR
+      // algorithmically with a strong attack burst and exponential decay.
       this.convolver = ctx.createConvolver();
 
-      // Create analyzer for envelope following (gate detection)
+      // Analyzer for envelope following: monitors input RMS level to decide
+      // when to open/close the gate (the "Hugh Padgham" part of the effect)
       this.analyzer = ctx.createAnalyser();
       this.analyzer.fftSize = 256;
       this.analyzer.smoothingTimeConstant = 0.5;
@@ -103,6 +126,15 @@
       // Map 0-100 to 1-6 (faster decay for gated sound)
       return 1 + ((100 - this.params.decay) / 100) * 5;
     }
+
+    // ---- Impulse Response Generation ----
+    // A real gated reverb would record a room impulse, but we synthesize one
+    // from shaped noise. The IR has two phases: a fast attack burst (first
+    // 30ms, simulating dense early reflections off walls/ceiling) followed by
+    // exponential decay. Discrete reflection spikes in the first 50ms mimic
+    // the individual echoes you'd hear in a hard-walled live room -- the kind
+    // of reflective space (like Townhouse Studios' Stone Room) that made the
+    // original effect so dramatic.
 
     /**
      * Generate stereo impulse response buffer for gated reverb
@@ -201,6 +233,14 @@
       return 20 * Math.log10(Math.max(linear, 0.000001));
     }
 
+    // ---- Gate Processing ----
+    // The gate is the heart of the effect. It monitors the input signal's
+    // RMS level in dB and compares it to the threshold. When input exceeds
+    // threshold, the gate opens (fast 5ms attack) letting reverb through.
+    // When input drops below threshold, the gate closes using the release
+    // time parameter, chopping the reverb tail. Short release = more
+    // dramatic chop (the classic sound); long release = gentler fade.
+
     /**
      * Start the gate processing loop
      * Uses requestAnimationFrame to continuously monitor input level
@@ -221,7 +261,8 @@
         for (var i = 0; i < self._analyzerData.length; i++) {
           sumSquares += self._analyzerData[i] * self._analyzerData[i];
         }
-        var rms = Math.sqrt(sumSquares / self._analyzerData.length);
+        var safeAnalyzerLen = self._analyzerData.length || 1;
+        var rms = Math.sqrt(sumSquares / safeAnalyzerLen);
         var levelDb = self._linearToDb(rms);
 
         var currentTime = self.ctx.currentTime;

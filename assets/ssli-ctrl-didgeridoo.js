@@ -1,5 +1,29 @@
 // SSLI Controller: Didgeridoo (continuous drone with articulation buttons)
 // ES5 compatible (var, no arrow functions, no template literals)
+//
+// ---- What is a didgeridoo? ----
+// An Aboriginal Australian wind instrument (also called yidaki) -- one of
+// the oldest continuously played instruments, dating back 1,500+ years.
+// The player buzzes their lips into the end of a hollowed eucalyptus trunk
+// (typically 1-1.5m long), producing a deep fundamental drone usually in
+// the Bb1-D2 range (~58-73 Hz).
+//
+// Key playing techniques:
+//   - Circular breathing: exhaling through the instrument while
+//     simultaneously inhaling through the nose, enabling a continuous
+//     unbroken drone that can last minutes or hours
+//   - Overtone singing: reshaping the mouth cavity and tongue position
+//     to emphasize different harmonics (x2, x3, x4) above the drone
+//   - Vocal articulations: syllables like "ta", "ka", "da" spoken into
+//     the bore create rhythmic accents by momentarily disrupting the
+//     lip buzz or changing the formant resonance
+//
+// This surface uses a 2D XY pad for formant (mouth shape) and breath
+// pressure, articulation buttons for vocal syllables, and overtone
+// toggles for harmonic emphasis.
+//
+// Ref: Fletcher, "The Didjeridu (Didgeridoo)" (Acoustics Australia, 1996)
+// Ref: Wiggins, "The Didgeridoo: A Guide" (Aboriginal Studies Press)
 
 (function() {
   'use strict';
@@ -19,6 +43,10 @@
   var RIGHT_STRIP_WIDTH_RATIO = 0.15;
 
   // Drone zone expression mapping
+  // The X axis controls formant frequency (200-3000 Hz), modeling how
+  // the player reshapes their mouth cavity to emphasize different vowel
+  // sounds ("oo" at low frequencies, "ee" at high). The Y axis controls
+  // breath pressure / gain, simulating how hard the player blows.
   var FORMANT_MIN_HZ = 200;
   var FORMANT_MAX_HZ = 3000;
   var LN_FORMANT_MIN = Math.log(FORMANT_MIN_HZ);
@@ -37,6 +65,11 @@
   var GLOW_OPACITY_MAX = 0.15;
 
   // Articulation timing
+  // Each articulation models a specific vocal syllable spoken into the
+  // bore during play. "ta" and "da" create pitch spikes (tongue flick),
+  // "ka" drops the filter cutoff (back-of-throat closure), "hu" spikes
+  // gain (diaphragm pulse), "yo" jumps the formant (mouth shape shift),
+  // and "pf" oscillates pitch rapidly (lip flutter / flutter-tongue).
   var ARTIC_PITCH_SPIKE_TA_CENTS = 200;
   var ARTIC_PITCH_SPIKE_TA_DECAY_MS = 50;
   var ARTIC_CUTOFF_DROP_KA_HZ = 200;
@@ -53,6 +86,10 @@
   var ARTIC_PF_FRAME_MS = 16;
 
   // Overtone intervals (semitones above base)
+  // A didgeridoo's bore supports multiple harmonics. By tightening the
+  // lips and changing tongue position, the player can "overblow" to
+  // emphasize higher partials: x2 (octave), x3 (octave + fifth), x4
+  // (two octaves). These are the natural harmonic series of the tube.
   var OVERTONE_X2_SEMITONES = 12;
   var OVERTONE_X3_SEMITONES = 19;
   var OVERTONE_X4_SEMITONES = 24;
@@ -67,7 +104,8 @@
   var ARTIC_PHONE_FONT_SIZE_PX = 10;
   var ARTIC_DESKTOP_FONT_SIZE_PX = 13;
 
-  // Articulation definitions
+  // Articulation definitions -- named after the spoken syllables that
+  // didgeridoo players vocalize into the bore during performance.
   var ARTICULATIONS = [
     { id: 'ta', label: 'ta' },
     { id: 'ka', label: 'ka' },
@@ -132,6 +170,9 @@
     return v;
   }
 
+  // Map the XY pad position to filter cutoff (formant) and gain (breath).
+  // Logarithmic scaling on the X axis matches how human vowel formants
+  // are perceived -- equal perceptual steps map to exponential Hz steps.
   function _applyDroneExpression(xFrac, yFrac) {
     var cutoffHz = Math.exp(LN_FORMANT_MIN + xFrac * (LN_FORMANT_MAX - LN_FORMANT_MIN));
     var gain = GAIN_MIN + yFrac * (GAIN_MAX - GAIN_MIN);
@@ -196,6 +237,10 @@
   // Drone control
   // ============================================================
 
+  // The drone is the fundamental mode of the didgeridoo: a continuous
+  // low-pitched buzz sustained by the player's lips. Touch-down on the
+  // XY pad starts the drone; release stops it (modeling the player
+  // stopping their lip buzz).
   function _startDrone(midi) {
     if (_noteOnFn) {
       _noteOnFn(midi);
@@ -244,6 +289,10 @@
   // Articulation handlers
   // ============================================================
 
+  // Each articulation is a transient disruption of the drone state:
+  // pitch bends (ta, da), filter dips (ka), gain spikes (hu), formant
+  // jumps (yo), or rapid pitch oscillation (pf). These model the vocal
+  // syllables a player speaks into the bore while maintaining the drone.
   function _doArticulation(articId) {
     if (!_isDroneActive) { return; }
 
@@ -295,6 +344,9 @@
     }
   }
 
+  // "pf" articulation: flutter-tongue effect. Rapid sinusoidal pitch
+  // oscillation at 15 Hz for 150ms, simulating the "brr" of a rolled R
+  // or lip flutter spoken into the bore.
   function _doPfArticulation() {
     if (!_applyPitchBendFn) { return; }
     _pfAnimStart = (typeof performance !== 'undefined') ? performance.now() : Date.now();
@@ -321,6 +373,11 @@
   // Overtone handlers
   // ============================================================
 
+  // Overtones are produced by tightening the embouchure (lip tension)
+  // and adjusting tongue position to excite higher modes of the tube.
+  // The implementation stops the current drone note and restarts at the
+  // overtone pitch, preserving expression state. Toggle-style: tapping
+  // an active overtone returns to the fundamental.
   function _startOvertone(semitones) {
     if (!_isDroneActive) { return; }
     if (_activeOvertone === semitones) { return; }
@@ -555,8 +612,10 @@
 
     function _applyAtPointer(e) {
       var c = _localCoords(e);
-      var xFrac = (c.w > 0) ? (c.x / c.w) : 0.5;
-      var yFrac = (c.h > 0) ? (1 - (c.y / c.h)) : 0.5;
+      var safeCW = c.w || 1;
+      var safeCH = c.h || 1;
+      var xFrac = (c.w > 0) ? (c.x / safeCW) : 0.5;
+      var yFrac = (c.h > 0) ? (1 - (c.y / safeCH)) : 0.5;
       _lastXFrac = xFrac;
       _lastYFrac = yFrac;
 

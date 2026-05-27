@@ -1,5 +1,41 @@
-// Synth Lab - Stereo Widener Effect
+// Synth Lab - Stereo Widener Effect [FX-054]
 // Creates a wider stereo image using mid-side processing and Haas effect
+//
+// --- What is stereo widening? ---
+// Stereo widening makes a mix sound "bigger" and more spacious by increasing
+// the perceived separation between left and right. This effect combines two
+// complementary techniques:
+//
+// 1. Mid/Side (M/S) processing:
+//    Mid  = (L + R) / 2  — the mono-compatible center content
+//    Side = (L - R) / 2  — the stereo difference (ambience, panning)
+//    Amplifying the Side signal relative to Mid increases perceived width.
+//    Width > 100% = side gain > 1.0 (hyper-stereo).
+//    Width = 0% = side gain = 0 (pure mono collapse).
+//    To reconstruct: L' = Mid + Side, R' = Mid - Side.
+//
+// 2. Haas effect (precedence effect):
+//    Delaying one channel by 1-30 ms exploits the brain's localization
+//    mechanism. The ear perceives the sound source at the earlier (un-delayed)
+//    side, while the delayed copy adds a sense of spaciousness without being
+//    heard as a distinct echo (below ~40 ms). Discovered by Helmut Haas in
+//    his 1951 PhD thesis on speech intelligibility.
+//
+// --- Bass mono ---
+// Low frequencies have long wavelengths and are poorly localized by human
+// hearing. Keeping bass in the center (mono) prevents destructive phase
+// cancellation between L and R speakers — critical for club sound systems
+// and vinyl cutting, where out-of-phase bass can cause the stylus to jump.
+// A crossover filter splits the spectrum: bass is summed to mono, while
+// mid/high frequencies retain full stereo width.
+//
+// References:
+//   Haas, H. (1951) "The Influence of a Single Echo on the Audibility
+//     of Speech", PhD thesis, University of Goettingen
+//   Zolzer, U. (2011) DAFX: Digital Audio Effects, Wiley, Ch. 8
+//
+// Spec: Width 0-200% (default 100), Haas Delay 0-30 ms (default 10),
+//        Bass Mono 0-100% (default 50), Mix 0-100% (default 100).
 
 (function() {
   var SL = window.SynthLab;
@@ -40,6 +76,8 @@
       this.crossoverFreq = 200;
 
       // === Create stereo processing chain ===
+      // The Web Audio API processes audio in interleaved stereo by default.
+      // ChannelSplitter/Merger nodes let us work with individual L/R channels.
 
       // Split incoming stereo signal into L and R
       this.splitter = ctx.createChannelSplitter(2);
@@ -50,6 +88,12 @@
       // === Mid-Side Processing ===
       // Mid = (L + R) / 2  (center/mono content)
       // Side = (L - R) / 2 (stereo difference)
+      //
+      // This is implemented as a matrix multiply using four GainNodes:
+      //   Mid  = L * 0.5 + R * 0.5
+      //   Side = L * 0.5 + R * (-0.5)
+      // The Web Audio graph sums all connections into a node automatically,
+      // so connecting both leftToMid and rightToMid into midGain yields the sum.
 
       // Left channel gain nodes for mid-side matrix
       this.leftToMid = ctx.createGain();
@@ -73,11 +117,19 @@
       this.sideGain.gain.value = 1.0; // Will be adjusted by width parameter
 
       // === Haas Effect Delay ===
-      // Apply short delay to right channel for additional widening
+      // Apply short delay to right channel for additional widening.
+      // The brain uses inter-aural time difference (ITD) to localize sound.
+      // A 1-30 ms delay on one channel creates a phantom shift toward the
+      // un-delayed side without sounding like a distinct echo.
       this.haasDelay = ctx.createDelay(0.05); // Max 50ms
       this.haasDelay.delayTime.value = 0.010; // Default 10ms
 
       // === Bass Mono Processing ===
+      // A Linkwitz-Riley style crossover splits the signal into bass and
+      // non-bass bands. Bass is summed to mono (L+R)/2 to prevent phase
+      // cancellation on mono playback systems and subwoofers. The crossover
+      // uses matched lowpass/highpass pairs at Q=0.707 (Butterworth) for a
+      // flat magnitude response at the crossover frequency.
       // Lowpass filter to extract bass frequencies
       this.bassFilterL = ctx.createBiquadFilter();
       this.bassFilterL.type = 'lowpass';
@@ -241,6 +293,12 @@
      * Update the stereo width
      * @param {number} width - 0-200% (0=mono, 100=normal, 200=max wide)
      */
+    // The width parameter directly scales the Side signal gain. Because
+    // Side carries all the stereo difference information, amplifying it
+    // makes hard-panned and ambient content louder relative to center-panned
+    // content. Values above 100% can cause mono-compatibility issues —
+    // when summed to mono, the amplified side content cancels, potentially
+    // making the mix sound thinner on mono systems.
     updateWidth(width) {
       var widthValue = Math.max(0, Math.min(200, width));
       this.params.width = widthValue;

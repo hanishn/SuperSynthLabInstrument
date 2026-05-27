@@ -1,6 +1,31 @@
 // Super Synth Lab - MIDI Module
 // Web MIDI API input/output with per-channel instrument routing
 // Channel 1 -> Instrument 1, Channel 2 -> Instrument 2, etc.
+//
+// MIDI (Musical Instrument Digital Interface) is a 1983 protocol for
+// communication between electronic instruments and computers. Despite
+// its age, it remains the universal standard for music control.
+//
+// MIDI message format (MIDI 1.0 Spec, MMA 1983):
+//   Status byte (0x80-0xFF): message type + channel (lower 4 bits)
+//   Data bytes (0x00-0x7F): parameter values (high bit always 0)
+//
+// Key message types used here:
+//   0x90 + ch = Note On  (data1=note 0-127, data2=velocity 0-127)
+//   0x80 + ch = Note Off (data1=note, data2=release velocity)
+//   0xB0 + ch = Control Change (data1=CC#, data2=value 0-127)
+//   0xE0 + ch = Pitch Bend (14-bit: data1=LSB, data2=MSB, center=8192)
+//   0xA0 + ch = Polyphonic Aftertouch (data1=note, data2=pressure)
+//   0xD0 + ch = Channel Aftertouch (data1=pressure)
+//   0xC0 + ch = Program Change (data1=program 0-127)
+//
+// The Web MIDI API (navigator.requestMIDIAccess) bridges browser JS to
+// hardware MIDI devices via the operating system's MIDI subsystem.
+//
+// References:
+//   MIDI Manufacturers Association (1983) MIDI 1.0 Detailed Specification
+//   Roads, C. (1996) The Computer Music Tutorial, MIT Press, Ch. 14
+//
 (function() {
   'use strict';
 
@@ -20,6 +45,9 @@
   // ============================================================
   // State
   // ============================================================
+  // The Web MIDI API gives us a MIDIAccess object that enumerates
+  // input/output ports. We track the selected devices and maintain
+  // per-channel state for active notes, sustain pedal, and expression.
 
   var midiAccess = null;
   var selectedInputId = null;
@@ -32,7 +60,11 @@
   // Each is a Map: midi -> { type, oscillators, master, filterChain, releaseTime }
   var midiActiveNotes = [new Map(), new Map(), new Map(), new Map(), new Map()];
 
-  // Sustain pedal state per channel (0.0-1.0 for half-pedaling)
+  // Sustain pedal (CC64) state per channel.
+  // Traditional sustain is binary (on/off), but high-end controllers send
+  // continuous values 0-127 enabling half-pedaling -- a piano technique where
+  // partial pedal pressure partially damps the strings. We store the full
+  // 0.0-1.0 range and scale release times proportionally.
   var _sustainPedalAmount = [0, 0, 0, 0, 0];
   // Notes held by sustain pedal per channel: Map of midi -> true
   var _sustainedNotes = [{}, {}, {}, {}, {}];
@@ -71,6 +103,10 @@
   // ============================================================
   // Web MIDI Access
   // ============================================================
+  // navigator.requestMIDIAccess() returns a Promise that resolves to a
+  // MIDIAccess object. We request without sysex (system exclusive) to
+  // avoid the more restrictive permission prompt -- sysex allows device-
+  // specific bulk data transfer but is not needed for standard note/CC use.
 
   function init() {
     if (!navigator.requestMIDIAccess) {
@@ -161,11 +197,17 @@
   // ============================================================
   // MIDI Message Handler
   // ============================================================
+  // Every MIDI message arrives as a Uint8Array via the onmidimessage
+  // callback. The status byte's upper nibble identifies the message type,
+  // the lower nibble identifies the channel (0-15). A Note On with
+  // velocity 0 is treated as Note Off per the MIDI spec -- many
+  // controllers use this "running status" optimization.
 
   function onMIDIMessage(event) {
     var data = event.data;
     if (!data || data.length < 2) return;
 
+    // Extract message type (upper nibble) and channel (lower nibble)
     var status = data[0] & 0xF0;
     var channel = data[0] & 0x0F; // 0-15
     var byte1 = data[1];
@@ -210,6 +252,15 @@
   // ============================================================
   // CC Handling
   // ============================================================
+  // Control Change (CC) messages carry 7-bit values (0-127) for various
+  // continuous controllers. CC numbers are standardized by the MIDI spec:
+  //   CC1  = Mod Wheel          CC7  = Channel Volume
+  //   CC10 = Pan                CC11 = Expression
+  //   CC64 = Sustain Pedal      CC71 = Filter Resonance (Sound Controller 2)
+  //   CC72 = Release Time       CC73 = Attack Time
+  //   CC74 = Filter Cutoff (Brightness / MPE Slide)
+  //   CC75 = Decay Time
+  //   CC120 = All Sound Off     CC123 = All Notes Off
 
   function handleCC(cc, value, channel) {
     if (cc === 123 || cc === 120) {
@@ -349,10 +400,16 @@
   // ============================================================
   // Pitch Bend
   // ============================================================
+  // Pitch bend is the only standard MIDI message with 14-bit resolution
+  // (most CCs are 7-bit). The two data bytes combine: MSB provides coarse
+  // resolution, LSB provides fine resolution. This gives 16384 steps
+  // across the bend range, enough for smooth pitch sweeps without audible
+  // stepping. The center value 8192 means "no bend."
 
   function handlePitchBend(lsb, msb, channel) {
-    // Parse 14-bit pitch bend value: 0-16383, center at 8192
+    // Combine LSB and MSB into 14-bit value: 0-16383, center at 8192
     var bendValue = (msb << 7) | lsb;
+    // Normalize to -1.0..+1.0, then scale by bend range (semitones * 100 = cents)
     var bendNormalized = (bendValue - 8192) / 8192; // -1.0 to +1.0
     var detuneCents = bendNormalized * _pitchBendRange * 100;
 
@@ -373,6 +430,12 @@
   // ============================================================
   // Aftertouch Handling
   // ============================================================
+  // Aftertouch (key pressure) is a continuous controller generated by
+  // pressing harder on a key after the initial strike. Two forms exist:
+  //   Polyphonic aftertouch (0xA0): per-note pressure (rare, expensive)
+  //   Channel aftertouch (0xD0): single pressure value for the channel
+  // Here, both map to filter cutoff modulation -- a common expressive
+  // mapping that lets the performer "open up" the filter by pressing harder.
 
   function handlePolyAftertouch(note, pressure, channel) {
     // Map pressure to filter cutoff for the specific note's voice
@@ -639,6 +702,10 @@
   // ============================================================
   // Velocity Curve
   // ============================================================
+  // Velocity curves reshape the linear MIDI velocity (0-127) to match
+  // different playing styles. "Soft" (square root) makes quiet playing
+  // louder; "hard" (squared) requires forceful playing for full volume;
+  // "fixed" ignores velocity entirely (useful for organs and pads).
 
   function applyVelocityCurve(velocity, curve) {
     var v = velocity / 127;
@@ -656,6 +723,16 @@
   // ============================================================
   // Pressure-to-Velocity (shared utility for touch/pen input)
   // ============================================================
+  // Touch screens and pen tablets report contact pressure/area, which
+  // we map to MIDI velocity for expressive touch-screen playing.
+  // Multiple fallback sources are tried in priority order:
+  //   1. PointerEvent.pressure (pen tablets, some Android)
+  //   2. TouchEvent.force (iOS with 3D Touch, if not constant)
+  //   3. Contact radius (finger flattening = harder press)
+  //   4. Global touchstart capture (for pointer-only surfaces)
+  //   5. Untyped pointer pressure (edge cases)
+  // iOS quirk: devices without pressure sensors report a constant
+  // force value -- we detect and skip these via history tracking.
 
   /**
    * Detects whether Touch.force reports a constant (fake) value.
@@ -929,9 +1006,14 @@
   // ============================================================
   // MIDI Output (echo keyboard to external devices)
   // ============================================================
+  // MIDI output sends raw byte arrays to external hardware synths.
+  // The message format mirrors input: status byte with channel in the
+  // lower nibble, followed by 7-bit data bytes. The & 0x0F and & 0x7F
+  // masks ensure values stay within the MIDI spec's valid ranges.
 
   function sendNoteOn(midi, velocity, channel) {
     if (!currentOutput) return;
+    // Construct Note On: 0x90 | channel, note number, velocity
     var ch = (channel != null) ? channel : SL.audio.getCurrentInstrument();
     currentOutput.send([0x90 | (ch & 0x0F), midi & 0x7F, (velocity || 100) & 0x7F]);
   }
@@ -942,6 +1024,8 @@
     currentOutput.send([0x80 | (ch & 0x0F), midi & 0x7F, 0]);
   }
 
+  // CC123 = All Notes Off. Standard MIDI panic message that tells the
+  // receiving device to release all sounding notes on the given channel.
   function sendAllNotesOff(channel) {
     if (!currentOutput) return;
     if (channel != null) {
@@ -1193,6 +1277,11 @@
   // ============================================================
   // Hook into keyboard for MIDI output
   // ============================================================
+  // Wraps the audio engine's note functions to intercept note events
+  // and forward them to MIDI output when configured. For "midiout" type
+  // instruments, no local audio is produced -- notes go exclusively to
+  // the external MIDI device. For other types, notes play locally AND
+  // are optionally echoed to MIDI out (useful for recording into a DAW).
 
   function hookKeyboardOutput() {
     // Wrap startSustainedNote to also send MIDI out when configured

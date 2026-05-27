@@ -244,20 +244,24 @@ var SynthLab = window.SynthLab || {};
 
     var aboutOverlay = null;
 
+    function _updateFeedbackCount(overlay) {
+        var countEl = overlay.querySelector(".ssl-about-feedback-count");
+        if (countEl) {
+            var items = getFeedback();
+            var isPlural = (items.length !== 1);
+            var countSuffix = isPlural
+                ? SynthLab.t('feedback.count_suffix_plural')
+                : SynthLab.t('feedback.count_suffix_singular');
+            countEl.textContent = SynthLab.t('feedback.count_prefix') + items.length + countSuffix;
+        }
+    }
+
     function openAbout() {
         if (!aboutOverlay) {
             aboutOverlay = document.getElementById("sslAboutOverlay");
         }
         if (aboutOverlay) {
-            // Update feedback count
-            var countEl = aboutOverlay.querySelector(".ssl-about-feedback-count");
-            if (countEl) {
-                var items = getFeedback();
-                var countSuffix = (items.length !== 1)
-                    ? SynthLab.t('feedback.count_suffix_plural')
-                    : SynthLab.t('feedback.count_suffix_singular');
-                countEl.textContent = SynthLab.t('feedback.count_prefix') + items.length + countSuffix;
-            }
+            _updateFeedbackCount(aboutOverlay);
             // Must clear inline style AND set class — inline display:none overrides CSS
             aboutOverlay.style.display = "flex";
             aboutOverlay.className = "ssl-about-overlay visible";
@@ -312,32 +316,68 @@ var SynthLab = window.SynthLab || {};
     }
 
     // =========================================================================
+    function _findSslIdFromTarget(element) {
+        var target = element;
+        var sslId = null;
+        while (target && target !== document.body) {
+            var hasAttr = target.getAttribute && target.getAttribute("data-ssl-id");
+            if (hasAttr) {
+                sslId = target.getAttribute("data-ssl-id");
+                break;
+            }
+            target = target.parentElement;
+        }
+        return sslId;
+    }
+
+    function _onContextMenu(e) {
+        var sslId = _findSslIdFromTarget(e.target);
+        if (sslId) {
+            e.preventDefault();
+            e.stopPropagation();
+            showContextMenu(e.clientX, e.clientY, sslId);
+        } else {
+            hideContextMenu();
+        }
+    }
+
+    function _onFeedbackOverlayClick(e) {
+        var feedbackOvl = document.getElementById("sslFeedbackOverlay");
+        if (e.target === feedbackOvl) {
+            closeFeedbackModal();
+        }
+    }
+
+    function _onAboutOverlayClick(e) {
+        var aboutOvl = document.getElementById("sslAboutOverlay");
+        if (e.target === aboutOvl) {
+            closeAbout();
+        }
+    }
+
+    function _clearRatingSelection(container) {
+        var allBtns = container.querySelectorAll(".ssl-feedback-rating-btn");
+        for (var j = 0; j < allBtns.length; j++) {
+            allBtns[j].className = "ssl-feedback-rating-btn";
+        }
+    }
+
+    function _wireRatingButton(btn, feedbackOvl) {
+        if (feedbackOvl) {
+            btn.addEventListener("click", function() {
+                _clearRatingSelection(feedbackOvl);
+                btn.className = "ssl-feedback-rating-btn selected";
+                selectedRating = btn.getAttribute("data-rating");
+            });
+        }
+    }
+
     // Init — wire up events
     // =========================================================================
 
     function initFeedback() {
         // Context menu on right-click for elements with data-ssl-id
-        document.addEventListener("contextmenu", function(e) {
-            var target = e.target;
-            var sslId = null;
-
-            // Walk up to find nearest data-ssl-id
-            while (target && target !== document.body) {
-                if (target.getAttribute && target.getAttribute("data-ssl-id")) {
-                    sslId = target.getAttribute("data-ssl-id");
-                    break;
-                }
-                target = target.parentElement;
-            }
-
-            if (sslId) {
-                e.preventDefault();
-                e.stopPropagation();
-                showContextMenu(e.clientX, e.clientY, sslId);
-            } else {
-                hideContextMenu();
-            }
-        });
+        document.addEventListener("contextmenu", _onContextMenu);
 
         // Click elsewhere dismisses context menu
         document.addEventListener("click", function() {
@@ -358,17 +398,7 @@ var SynthLab = window.SynthLab || {};
         if (feedbackOvl) {
             var ratingBtns = feedbackOvl.querySelectorAll(".ssl-feedback-rating-btn");
             for (var i = 0; i < ratingBtns.length; i++) {
-                (function(btn) {
-                    btn.addEventListener("click", function() {
-                        // Deselect all
-                        var allBtns = feedbackOvl.querySelectorAll(".ssl-feedback-rating-btn");
-                        for (var j = 0; j < allBtns.length; j++) {
-                            allBtns[j].className = "ssl-feedback-rating-btn";
-                        }
-                        btn.className = "ssl-feedback-rating-btn selected";
-                        selectedRating = btn.getAttribute("data-rating");
-                    });
-                })(ratingBtns[i]);
+                _wireRatingButton(ratingBtns[i], feedbackOvl);
             }
         }
 
@@ -382,29 +412,19 @@ var SynthLab = window.SynthLab || {};
 
         // Feedback overlay click-to-close (on backdrop)
         if (feedbackOvl) {
-            feedbackOvl.addEventListener("click", function(e) {
-                if (e.target === feedbackOvl) {
-                    closeFeedbackModal();
-                }
-            });
+            feedbackOvl.addEventListener("click", _onFeedbackOverlayClick);
         }
 
         // About button
         var aboutBtn = document.getElementById("sslAboutBtn");
         if (aboutBtn) {
-            aboutBtn.addEventListener("click", function() {
-                openAbout();
-            });
+            aboutBtn.addEventListener("click", openAbout);
         }
 
         // About overlay click-to-close
         var aboutOvl = document.getElementById("sslAboutOverlay");
         if (aboutOvl) {
-            aboutOvl.addEventListener("click", function(e) {
-                if (e.target === aboutOvl) {
-                    closeAbout();
-                }
-            });
+            aboutOvl.addEventListener("click", _onAboutOverlayClick);
         }
 
         // About close button

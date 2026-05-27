@@ -1,6 +1,31 @@
 // Synth Lab - Pump/Sidechain Effect
 // Creates rhythmic ducking effect simulating sidechain compression
 // Classic EDM/synthwave pumping effect using tempo-synced LFO
+//
+// -----------------------------------------------------------------------
+// SIDECHAIN COMPRESSION SIMULATION - Background
+//
+// In a real sidechain compressor, one signal (the "sidechain," typically
+// a kick drum) triggers gain reduction on another signal (pads, bass).
+// Each kick hit ducks the pad, creating the rhythmic "breathing" or
+// "pumping" effect ubiquitous in EDM, French house (Daft Punk), and
+// modern pop production.
+//
+// Pump simulates this WITHOUT a real sidechain signal. Instead, it
+// generates an internal envelope on a tempo-synced schedule: at each
+// beat division, the gain ducks down (release phase) then recovers
+// (attack phase). The musical result is identical to sidechain
+// compression but requires no external trigger.
+//
+// Envelope shapes affect the character:
+//   - Linear:      mechanical, even ducking -- good for trance gates
+//   - Exponential: classic sidechain feel -- fast duck, smooth recovery
+//   - Logarithmic: aggressive initial duck with long, slow tail
+//
+// The lookahead scheduler (25ms polling, 100ms lookahead) pre-schedules
+// gain automation events on the Web Audio timeline for sample-accurate
+// timing, avoiding the jitter of setTimeout-only approaches.
+// -----------------------------------------------------------------------
 
 (function() {
   var SL = window.SynthLab = window.SynthLab || {};
@@ -49,6 +74,10 @@
       // Scheduler starts when enabled via setEnabled(true)
     }
 
+    // ---- Tempo-Sync Timing ----
+    // Converts musical rate divisions to real-time intervals.
+    // Rate 4 at 120 BPM = quarter note = 0.5s per pump cycle.
+
     /**
      * Calculate pump interval based on tempo and rate
      * Rate 1 = whole note, 2 = half note, 4 = quarter note, 8 = eighth note
@@ -56,12 +85,19 @@
     getPumpInterval() {
       // Beats per second
       var bps = this.tempo / 60;
+      var safeBps = bps || 1;
       // Seconds per beat (quarter note)
-      var spb = 1 / bps;
+      var spb = 1 / safeBps;
       // Interval based on rate division
       // rate=1 -> 4 beats, rate=2 -> 2 beats, rate=4 -> 1 beat, rate=8 -> 0.5 beats
       return (4 / this.params.rate) * spb;
     }
+
+    // ---- Envelope Generation ----
+    // Each pump cycle: duck down (release) then recover (attack).
+    // setTargetAtTime with time constant = duration/3 gives ~95% of target
+    // in the specified time (exponential asymptotic approach). Smaller
+    // divisors (e.g. /6 for logarithmic) give faster initial movement.
 
     /**
      * Apply the pump envelope based on shape

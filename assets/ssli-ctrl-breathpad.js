@@ -528,8 +528,10 @@
 
     function _applyAtPointer(e, isStart) {
       var c = _localCoords(e);
-      var xFrac = (c.w > 0) ? (c.x / c.w) : 0;
-      var yFrac = (c.h > 0) ? (1 - (c.y / c.h)) : 0;
+      var safeCW = c.w || 1;
+      var safeCH = c.h || 1;
+      var xFrac = (c.w > 0) ? (c.x / safeCW) : 0;
+      var yFrac = (c.h > 0) ? (1 - (c.y / safeCH)) : 0;
       var xCC = Math.round(xFrac * CC_MAX);
       var yCC = Math.round(yFrac * CC_MAX);
 

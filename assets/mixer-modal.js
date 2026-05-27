@@ -2164,6 +2164,21 @@
       }
     }
 
+    var ADDITIVE_PARTIAL_COUNT = 16;
+    var ADDITIVE_PERCENT_SCALE = 100;
+
+    function _refreshAdditivePartialSliders(instId) {
+        var freshSettings = SL.additive.getSettings(instId);
+        var hasPartials = freshSettings && freshSettings.partials;
+        if (!hasPartials) { return; }
+        for (var pp = 0; pp < ADDITIVE_PARTIAL_COUNT; pp++) {
+            var pEl = document.getElementById('additivePartial' + pp);
+            if (pEl) {
+                pEl.value = Math.round(freshSettings.partials[pp].amplitude * ADDITIVE_PERCENT_SCALE);
+            }
+        }
+    }
+
     function initAdditiveControls() {
       if (_isAdditiveInitialized) {
         // Just refresh values from engine
@@ -2267,15 +2282,7 @@
           if (SL.additive && SL.additive.applyQuickSet) {
             SL.additive.applyQuickSet(currentInstId, preset);
             // Refresh partial sliders
-            var freshSettings = SL.additive.getSettings(currentInstId);
-            if (freshSettings && freshSettings.partials) {
-              for (var pp = 0; pp < 16; pp++) {
-                var pEl = document.getElementById('additivePartial' + pp);
-                if (pEl) {
-                  pEl.value = Math.round(freshSettings.partials[pp].amplitude * 100);
-                }
-              }
-            }
+            _refreshAdditivePartialSliders(currentInstId);
           }
         });
       });
@@ -2422,11 +2429,16 @@
             });
           }
           // Sync all number inputs on change
-          strip.querySelectorAll('input[type="number"]').forEach(function(inp) {
-            inp.addEventListener('change', function() { syncFMOpToSettings(opNum); });
-          });
+          var numberInputs = strip.querySelectorAll('input[type="number"]');
+          for (var ni = 0; ni < numberInputs.length; ni++) {
+            numberInputs[ni].addEventListener('change', _makeFmOpSyncHandler(opNum));
+          }
         })(op);
       }
+    }
+
+    function _makeFmOpSyncHandler(opNum) {
+      return function() { syncFMOpToSettings(opNum); };
     }
 
     function syncFMOpToSettings(opNum) {
@@ -3535,8 +3547,9 @@
         }
       }
 
+      var safeW = w || 1;
       for (var x = 0; x < w; x++) {
-        var t = (x / w) * cycles;
+        var t = (x / safeW) * cycles;
         var phase = t % 1;
         var val = 0;
 
@@ -3555,7 +3568,9 @@
         } else if (waveform === 'saw') {
           val = 2 * phase - 1;
         } else if (waveform === 'sh') {
-          var stepIdx = Math.floor(t * (shValues.length / cycles)) % shValues.length;
+          var safeCycles = cycles || 1;
+          var safeShLen = shValues.length || 1;
+          var stepIdx = Math.floor(t * (safeShLen / safeCycles)) % safeShLen;
           val = shValues[stepIdx];
         }
 

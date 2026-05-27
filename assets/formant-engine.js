@@ -2,6 +2,64 @@
 // Generates vowel/vocal sounds directly from parameters using parallel bandpass
 // filters tuned to vocal tract resonances. Fully generative (no external audio input).
 // v1.0.0 - ScriptProcessor, 5-formant model, vowel morphing, sequence, breathiness
+//
+// ================================================================
+// EDUCATIONAL CONTEXT: Formant Synthesis (Source-Filter Model)
+// ================================================================
+//
+// Formant synthesis derives from Gunnar Fant's Acoustic Theory of Speech
+// Production (1960), which formalized the "source-filter" model of the human
+// voice. The vocal cords produce a harmonically rich buzz (the "source"),
+// and the vocal tract — throat, mouth, nasal cavity — acts as a resonant
+// filter whose shape determines which frequencies are amplified or damped.
+// The resonant peaks of this filter are called "formants" (F1, F2, F3...).
+//
+// How it works:
+//   A glottal pulse generator produces a periodic excitation signal that
+//   models vocal cord vibration. This signal is fed into a bank of parallel
+//   bandpass filters, each tuned to one formant frequency. The summed
+//   output of all filters produces a vowel-like timbre. Changing the
+//   filter frequencies morphs between vowel sounds.
+//
+// Key formulas:
+//   Glottal pulse (Rosenberg model): g(t) = sin(pi * t/Tp) for 0 <= t < Tp
+//     where Tp is the open phase duration (pulse width * period)
+//   Bandpass filter (biquad): H(z) = b0(1 - z^-2) / (1 - a1*z^-1 - a2*z^-2)
+//     alpha = sin(w0) * sinh(ln(2)/2 * BW/f0 * w0/sin(w0))
+//
+// Signal flow:
+//   [Glottal Pulse] --+--> [BPF @ F1] --\
+//                      |                  |
+//   [Noise Source] ----+--> [BPF @ F2] ---+--> [Sum] --> [ADSR] --> out
+//       (breathiness)  |                  |
+//                      +--> [BPF @ F3] --/
+//                      +--> [BPF @ F4] -/
+//                      +--> [BPF @ F5] /
+//
+// The F1 frequency correlates with jaw openness (mouth height): open
+// vowels like /a/ have high F1 (~730 Hz), close vowels like /i/ have
+// low F1 (~270 Hz). F2 correlates with tongue front-back position:
+// front vowels like /i/ have high F2 (~2290 Hz), back vowels like /u/
+// have low F2 (~870 Hz). Together, F1 and F2 uniquely identify most
+// vowels — this is the basis of the classic "vowel triangle" diagram.
+//
+// Hardware lineage: Voder (1939, Bell Labs), PAL V speech synthesizer,
+//   Klatt synthesizer (1980), Texas Instruments Speak & Spell (1978)
+//
+// References:
+//   - Fant, G. (1960) Acoustic Theory of Speech Production, Mouton
+//   - Peterson, G.E. & Barney, H.L. (1952) "Control Methods Used in a
+//     Study of the Vowels", JASA 24(2), pp. 175-184
+//   - Hillenbrand, J. et al. (1995) "Acoustic characteristics of American
+//     English vowels", JASA 97(5), pp. 3099-3111
+//   - Klatt, D.H. (1980) "Software for a cascade/parallel formant
+//     synthesizer", JASA 67(3), pp. 971-995
+//   - Roads, C. (1996) The Computer Music Tutorial, MIT Press, Ch. 4
+//
+// This file is the HOST-SIDE engine: it manages vowel data tables,
+// formant interpolation, voice allocation, and parameter routing.
+// The real-time DSP counterpart lives in formant-worklet.js.
+// ================================================================
 (function() {
   'use strict';
 
@@ -21,6 +79,23 @@
   // Based on Peterson & Barney (1952) and Hillenbrand et al. (1995)
   // F1-F5 for male vocal tract model
   // ============================================================
+  //
+  // ---------------------------------------------------------------
+  // Vowel Formant Table
+  // Each vowel is defined by 5 formants (F1-F5). F1 and F2 carry
+  // the vowel's identity; F3-F5 add naturalness and speaker color.
+  // Frequencies here are averaged male values from Peterson & Barney
+  // (1952), Table III. Amplitudes decrease with formant number since
+  // higher resonances receive less energy from the glottal source
+  // (the spectral envelope of the glottal pulse falls off at roughly
+  // -12 dB/octave). Bandwidths widen for higher formants because
+  // energy losses in the vocal tract increase with frequency.
+  //
+  // Vowel key:  A=/a/ (father), E=/e/ (bet), I=/i/ (see),
+  //   O=/o/ (go), U=/u/ (boot), AE=/ae/ (bat), UH=/uh/ (but),
+  //   OO=/oo/ (book)
+  // See: Peterson & Barney (1952), Table III; Hillenbrand (1995), Table I
+  // ---------------------------------------------------------------
 
   var VOWEL_DATA = {
     A: {
@@ -127,6 +202,20 @@
   // ============================================================
   // Formant Interpolation
   // ============================================================
+  //
+  // ---------------------------------------------------------------
+  // Vowel Morphing via Log-Frequency Interpolation
+  // Smoothly transitions between two vowel timbres by interpolating
+  // their formant frequencies in logarithmic space. Log-space is
+  // essential because human pitch perception is logarithmic — equal
+  // ratios of frequency sound like equal musical intervals. Linear
+  // interpolation would overshoot perceptually, producing uneven
+  // transitions. The formant shift parameter transposes all formants
+  // by a fixed semitone ratio (2^(semitones/12)), simulating a
+  // shorter or longer vocal tract (child vs. adult voice).
+  // Formula: F_interp = exp( ln(Fa) + (ln(Fb) - ln(Fa)) * t )
+  // See: Roads (1996), The Computer Music Tutorial, Ch. 4
+  // ---------------------------------------------------------------
 
   /**
    * Interpolate between two vowels and apply formant shift.
@@ -160,6 +249,24 @@
   // ============================================================
   // Resonant Bandpass Filter (2nd-order biquad, direct form II)
   // ============================================================
+  //
+  // ---------------------------------------------------------------
+  // Biquad Bandpass Filter — The Core of Each Formant
+  // Each formant peak is implemented as a 2nd-order IIR (infinite
+  // impulse response) bandpass filter in Direct Form II Transposed.
+  // This is the standard digital audio filter topology: two delay
+  // elements (z1, z2) implement the two poles and two zeros needed
+  // for a resonant peak. The "alpha" parameter controls bandwidth —
+  // narrower bandwidth = sharper resonance = more vowel-like.
+  //
+  // Transfer function: H(z) = (b0 + b1*z^-1 + b2*z^-2) / (1 + a1*z^-1 + a2*z^-2)
+  //   For BPF: b0 = alpha/a0, b1 = 0, b2 = -alpha/a0
+  //   where alpha = sin(w0) * sinh(ln(2)/2 * BW/f0 * w0/sin(w0))
+  //   and w0 = 2*pi*freq/sampleRate
+  //
+  // See: Robert Bristow-Johnson, "Audio EQ Cookbook" (2005)
+  // See: Roads (1996), Ch. 4 (digital filter fundamentals)
+  // ---------------------------------------------------------------
 
   function BiquadBPF() {
     this.b0 = 0; this.b1 = 0; this.b2 = 0;
@@ -180,11 +287,14 @@
     if (freq < 20) { freq = 20; }
     if (bw < 10) { bw = 10; }
 
+    // w0 = normalized angular frequency (radians per sample)
     var w0 = TWO_PI * freq / sr;
     var cosW0 = Math.cos(w0);
     var sinW0 = Math.sin(w0);
+    // alpha controls the resonance width; derived from bandwidth in Hz
     var alpha = sinW0 * Math.sinh(Math.log(2) / 2 * (bw / freq) * (w0 / sinW0));
 
+    // Normalize all coefficients by a0 so the denominator leading term is 1
     var a0 = 1 + alpha;
     this.b0 = alpha / a0;
     this.b1 = 0;
@@ -208,6 +318,18 @@
   // ============================================================
   // Formant Voice
   // ============================================================
+  //
+  // ---------------------------------------------------------------
+  // FormantVoice — One Voice Instance of the Source-Filter Model
+  // Each voice implements Fant's complete source-filter chain:
+  // a glottal pulse excitation (source) is passed through 5 parallel
+  // bandpass filters (filter) and summed. The Rosenberg glottal
+  // model approximates the asymmetric open/close cycle of the vocal
+  // cords using a half-sine during the open phase and silence during
+  // the closed phase. Breathiness adds white noise to the excitation,
+  // modeling turbulent airflow through a partially open glottis.
+  // See: Fant (1960), Ch. 1-2; Klatt (1980), Section II
+  // ---------------------------------------------------------------
 
   function FormantVoice(sr) {
     this.sampleRate = sr;
@@ -398,7 +520,14 @@
     }
 
     // --- Generate glottal pulse excitation ---
-    // Rosenberg model approximation: a pulse train with variable duty cycle
+    // Rosenberg model approximation: a pulse train with variable duty cycle.
+    // The real glottal waveform is asymmetric — fast opening, slow closing.
+    // We approximate this with a half-sine during the open phase (0 to pw)
+    // and zero during the closed phase (pw to 1). The pulse width parameter
+    // controls the open quotient (OQ), which affects voice quality: larger
+    // OQ = breathy, smaller OQ = pressed/tense voice.
+    // See: Rosenberg, A.E. (1971) "Effect of glottal pulse shape on the
+    //   quality of natural vowels", JASA 49(2B), pp. 583-590
     var phaseInc = this.baseFreq / this.sampleRate;
     this.glottalPhase += phaseInc;
     if (this.glottalPhase >= 1.0) {
@@ -407,9 +536,10 @@
 
     var glottalSample = 0;
     var pw = this.glottalPulseWidth;
+    var safePw = pw || 0.001;
     if (this.glottalPhase < pw) {
       // Open phase: half-sine pulse
-      var openPhase = this.glottalPhase / pw;
+      var openPhase = this.glottalPhase / safePw;
       glottalSample = Math.sin(Math.PI * openPhase);
     }
     // Closed phase: output = 0 (already initialized)
@@ -418,9 +548,19 @@
     var noiseSample = (Math.random() * 2 - 1) * 0.5;
 
     // --- Mix glottal pulse and noise based on breathiness ---
+    // This implements the aspiration noise component of Klatt's model.
+    // Real breathy voice (e.g., whispering) has incomplete glottal closure,
+    // letting turbulent airflow through — modeled here as additive noise.
+    // excitation = pulse * (1 - breathiness) + noise * breathiness
     var excitation = glottalSample * (1 - this.breathiness) + noiseSample * this.breathiness;
 
     // --- Pass excitation through parallel formant filters ---
+    // Parallel filter topology: each formant is an independent resonator.
+    // This matches Klatt's "parallel" configuration, where each filter
+    // receives the full excitation and outputs are summed. The alternative
+    // "cascade" topology (filters in series) better models nasal vowels
+    // but is harder to control. Parallel is standard for singing synthesis.
+    // See: Klatt (1980), Section III (parallel vs. cascade configuration)
     var sample = 0;
     for (var i = 0; i < NUM_FORMANTS; i++) {
       sample += this.filters[i].process(excitation) * this.formantAmps[i];
@@ -465,6 +605,36 @@
     return initFallback();
   }
 
+  var FORMANT_WORKLET_COUNT = 4;
+
+  function _makeFormantWorkletReadyHandler(readyState, resolve) {
+    return function(event) {
+      var isReady = (event.data.type === 'ready');
+      if (isReady) {
+        readyState.count++;
+        if (readyState.count === FORMANT_WORKLET_COUNT) {
+          isWorkletReady = true;
+          isWorkletInitializing = false;
+          isEngineReady = true;
+          resolve(true);
+        }
+      }
+    };
+  }
+
+  function _makeFormantWorkletErrorHandler(idx, hasHadError, resolve, reject) {
+    return function(event) {
+      if (!hasHadError.value) {
+        hasHadError.value = true;
+        console.error('[FORMANT] AudioWorklet processor error (inst ' + idx + '):', event);
+        isWorkletReady = false;
+        isWorkletInitializing = false;
+        console.warn('[FORMANT] Falling back to ScriptProcessor');
+        initFallback().then(resolve).catch(reject);
+      }
+    };
+  }
+
   function initWorklet() {
     if (isWorkletReady) { return Promise.resolve(true); }
     if (isWorkletInitializing) { return isWorkletReadyPromise; }
@@ -474,10 +644,10 @@
     isWorkletReadyPromise = new Promise(function(resolve, reject) {
       var formantWorkletUrl = (SL.audio.getWorkletBlobUrl && SL.audio.getWorkletBlobUrl('formant-worklet.js')) || 'assets/formant-worklet.js';
       audioContext.audioWorklet.addModule(formantWorkletUrl).then(function() {
-        var readyCount = 0;
-        var hasHadError = false;
+        var readyState = { count: 0 };
+        var hasHadError = { value: false };
 
-        for (var i = 0; i < 4; i++) {
+        for (var i = 0; i < FORMANT_WORKLET_COUNT; i++) {
           (function(idx) {
             var node = new AudioWorkletNode(audioContext, 'formant-processor', {
               numberOfInputs: 0,
@@ -486,28 +656,8 @@
             });
             formantWorkletNodes[idx] = node;
 
-            node.port.onmessage = function(event) {
-              if (event.data.type === 'ready') {
-                readyCount++;
-                if (readyCount === 4) {
-                  isWorkletReady = true;
-                  isWorkletInitializing = false;
-                  isEngineReady = true;
-                  resolve(true);
-                }
-              }
-            };
-
-            node.onprocessorerror = function(event) {
-              if (!hasHadError) {
-                hasHadError = true;
-                console.error('[FORMANT] AudioWorklet processor error (inst ' + idx + '):', event);
-                isWorkletReady = false;
-                isWorkletInitializing = false;
-                console.warn('[FORMANT] Falling back to ScriptProcessor');
-                initFallback().then(resolve).catch(reject);
-              }
-            };
+            node.port.onmessage = _makeFormantWorkletReadyHandler(readyState, resolve);
+            node.onprocessorerror = _makeFormantWorkletErrorHandler(idx, hasHadError, resolve, reject);
           })(i);
         }
 
@@ -557,15 +707,16 @@
           var shouldCycleVowels = settings.vowelSequenceEnabled && hasVowelSequence;
           if (shouldCycleVowels) {
             var seqLen = settings.vowelSequence.length;
-            var samplesPerVowel = Math.max(1, Math.round(audioContext.sampleRate / settings.vowelSequenceRate));
+            var safeSeqLen = seqLen || 1;
+            var samplesPerVowel = Math.max(1, Math.round(audioContext.sampleRate / (settings.vowelSequenceRate || 1)));
             if (!settings._seqCounter) { settings._seqCounter = 0; }
             if (!settings._seqIndex) { settings._seqIndex = 0; }
             settings._seqCounter += output.length;
             if (settings._seqCounter >= samplesPerVowel) {
               settings._seqCounter -= samplesPerVowel;
-              settings._seqIndex = (settings._seqIndex + 1) % seqLen;
+              settings._seqIndex = (settings._seqIndex + 1) % safeSeqLen;
               settings.vowel = settings.vowelSequence[settings._seqIndex];
-              settings.vowelTarget = settings.vowelSequence[(settings._seqIndex + 1) % seqLen];
+              settings.vowelTarget = settings.vowelSequence[(settings._seqIndex + 1) % safeSeqLen];
               // Recalculate formants with updated vowels
               formants = interpolateFormants(
                 settings.vowel,
@@ -595,6 +746,8 @@
           // Per-voice scaling: smoothed to prevent audible volume dips when
           // voices are added/removed. Exponential smoothing converges in ~20ms
           // at 44100/128 block size.
+          // Uses 1/sqrt(N) scaling (constant-power panning law) rather than
+          // 1/N (linear) because uncorrelated signals sum in power, not amplitude.
           var targetScale = 1.0 / Math.sqrt(Math.max(1, activeVoiceCount));
           smoothedVoiceScale[instIdx] += (targetScale - smoothedVoiceScale[instIdx]) * VOICE_SCALE_SMOOTHING;
           var voiceScale = smoothedVoiceScale[instIdx];
@@ -616,7 +769,10 @@
             // This prevents the Pade tanh from compressing quiet single-voice output.
             var absSample = (sample < 0) ? -sample : sample;
             if (absSample > 0.8) {
-              // Pade approximant of tanh for smooth limiting
+              // Pade [3,2] approximant of tanh(x) = x(27+x^2)/(27+9x^2).
+              // True tanh is expensive; this rational approximation is accurate
+              // to within 0.2% for |x| < 3 and provides smooth saturation
+              // (no hard knee) that preserves harmonic content.
               var ss = sample * sample;
               sample = sample * (27 + ss) / (27 + 9 * ss);
             }

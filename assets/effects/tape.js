@@ -1,5 +1,35 @@
-// Synth Lab - Tape Saturation Effect
+// Synth Lab - Tape Saturation Effect [FX-032]
 // Emulates analog tape characteristics: soft saturation, head bump, and high-frequency rolloff
+//
+// --- What is tape saturation? ---
+// Analog tape records audio by magnetizing ferric oxide particles on a
+// moving ribbon. The relationship between input signal level and resulting
+// magnetization follows a sigmoid (S-shaped) curve — called the magnetic
+// hysteresis loop. Below a threshold the response is roughly linear, but
+// as the signal approaches tape's maximum flux capacity the peaks are
+// gently compressed ("saturated"). This is fundamentally different from
+// digital clipping, which is an abrupt hard wall.
+//
+// --- Why does tape sound "warm"? ---
+// Three interacting phenomena:
+//   1. Asymmetric saturation: positive and negative signal peaks magnetize
+//      tape slightly differently, producing even-order harmonics (2nd, 4th).
+//      Even harmonics sound consonant and "musical" to human ears.
+//   2. High-frequency rolloff: the playback head's finite gap width causes
+//      progressive HF loss. Aged or worn tape loses even more treble.
+//      This gentle HF shelving removes digital harshness.
+//   3. Head bump: a resonance in the playback head at ~80-120 Hz boosts
+//      low frequencies by several dB, adding bass "weight" and fullness.
+//
+// --- Wow and flutter ---
+// Mechanical imperfections in the tape transport cause slow speed variation
+// (wow, <6 Hz) and faster speed jitter (flutter, 6-20 Hz). These translate
+// to subtle pitch and timing modulation that adds organic movement.
+//
+// Reference: Valimaki, V. et al. (2010) "Digital Audio Effects", Wiley
+//
+// Spec: Drive 0-100% (default 30), Warmth LP 0-100% (default 50),
+//        Low Shelf Bump 0-100% (default 30), Mix 0-100% (default 50).
 
 (function() {
   var SL = window.SynthLab = window.SynthLab || {};
@@ -7,6 +37,16 @@
 
   // Number of samples for waveshaper curve
   var CURVE_SAMPLES = 44100;
+
+  // ---------------------------------------------------------------------------
+  // Waveshaper curve generation
+  // ---------------------------------------------------------------------------
+  // The WaveShaperNode applies a static transfer function: for each input
+  // sample x in [-1, +1], the output is curve[x]. By making the curve
+  // follow a tanh-like sigmoid we get soft saturation. The asymmetry
+  // (positive side driven harder than negative) is what generates even
+  // harmonics — the hallmark of tape character.
+  // ---------------------------------------------------------------------------
 
   /**
    * Generate an asymmetric tape-style saturation curve
@@ -18,6 +58,7 @@
   function generateTapeCurve(drive) {
     var curve = new Float32Array(CURVE_SAMPLES);
     // Map drive (0-100) to saturation intensity (1-8)
+    // Higher "amount" pushes more of the signal into tanh's saturating region
     var amount = 1 + (drive / 100) * 7;
 
     for (var i = 0; i < CURVE_SAMPLES; i++) {
@@ -25,12 +66,14 @@
 
       // Tape-style asymmetric soft saturation
       // Uses a combination of tanh for soft clipping with slight asymmetry
-      // Positive half saturates slightly differently than negative (even harmonics)
+      // Positive half saturates slightly differently than negative (even harmonics).
+      // The division by tanh(amount*k) normalizes the curve so the output
+      // still reaches +/-1 at full scale — preventing unintended gain changes.
       var y;
       if (x >= 0) {
-        // Positive side: slightly more compression, warmer
+        // Positive side: 1.1x overdrive adds earlier compression (warmer)
         y = Math.tanh(x * amount * 1.1) / Math.tanh(amount * 1.1);
-        // Add subtle second harmonic character
+        // Blend in y^2 term for subtle second-harmonic content (even harmonic)
         y = y * 0.97 + y * y * 0.03;
       } else {
         // Negative side: slightly less compression
@@ -71,18 +114,27 @@
       this.params.bump = 30;
       this.params.mix = 100;
 
-      // Low shelf filter for tape head bump (low frequency boost around 100Hz)
+      // Low shelf filter for tape head bump (low frequency boost around 100Hz).
+      // Real tape playback heads exhibit a resonance peak ("head bump") in the
+      // 80-120 Hz range due to the physical geometry of the head gap. This adds
+      // a pleasant bass fullness that is a signature of tape recordings.
       this.bumpFilter = ctx.createBiquadFilter();
       this.bumpFilter.type = 'lowshelf';
       this.bumpFilter.frequency.value = 100;
       this.bumpFilter.gain.value = this.calculateBumpGain(this.params.bump);
 
-      // Waveshaper for tape saturation
+      // Waveshaper for tape saturation.
+      // 4x oversampling upsamples the signal before applying the nonlinear
+      // transfer function, then downsamples. This prevents aliasing harmonics
+      // that would fold back into the audible range as inharmonic distortion.
       this.waveshaper = ctx.createWaveShaper();
       this.waveshaper.oversample = '4x'; // Reduce aliasing artifacts
       this.waveshaper.curve = generateTapeCurve(this.params.drive);
 
-      // Lowpass filter for high-frequency rolloff (tape head losses)
+      // Lowpass filter for high-frequency rolloff (tape head losses).
+      // Real tape progressively loses treble due to the finite width of the
+      // playback head gap and magnetic particle alignment. Older or worn tape
+      // exhibits more HF loss. This gentle rolloff removes digital harshness.
       this.warmthFilter = ctx.createBiquadFilter();
       this.warmthFilter.type = 'lowpass';
       this.warmthFilter.frequency.value = this.calculateWarmthFrequency(this.params.warmth);
@@ -92,7 +144,10 @@
       this.outputGain = ctx.createGain();
       this.outputGain.gain.value = 0.9; // Slight reduction to prevent clipping
 
-      // Tape wow/flutter: modulated delay line
+      // --- Wow and flutter simulation ---
+      // Tape transport speed is never perfectly constant. A modulated delay
+      // line simulates this: varying the delay time is equivalent to varying
+      // the playback speed, which causes pitch/timing wobble.
       // Base delay of 5ms, modulated by two LFOs
       this.wowFlutterDelay = ctx.createDelay(0.05);
       this.wowFlutterDelay.delayTime.value = 0.005; // 5ms base delay

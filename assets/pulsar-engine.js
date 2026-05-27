@@ -2,6 +2,39 @@
 // Train of micro-sonic events (pulsarets) at controllable rate
 // Inspired by Curtis Roads' pulsar synthesis technique
 // ScriptProcessor fallback, 16-voice polyphony
+//
+// -----------------------------------------------------------------------
+// EDUCATIONAL OVERVIEW: Pulsar Synthesis
+// -----------------------------------------------------------------------
+// Pulsar synthesis was invented by Curtis Roads circa 2001 as a technique
+// that bridges the gap between granular synthesis and classic oscillator-
+// based synthesis. It generates trains of brief sonic events called
+// "pulsarets" — each one a single cycle (or fraction) of a waveform
+// shaped by a windowing envelope.
+//
+// The key parameters and their perceptual effects:
+//   - Pulse rate: frequency of the pulsaret train = the perceived pitch.
+//   - Pulsaret waveform: the waveshape within each pulse (sine, saw, etc.)
+//     determines timbre at the micro level.
+//   - Pulsaret envelope: a window function (Gaussian, Hann, etc.) shapes
+//     each pulsaret's amplitude, controlling spectral sidelobes.
+//   - Duty cycle: fraction of each period occupied by the pulsaret.
+//     At 100% the signal is continuous; below 100% there are silent gaps
+//     between pulsarets, creating comb-like spectral effects.
+//   - Formant frequency: the pulsaret's internal waveform frequency,
+//     independent of the pulse rate. The ratio formantFreq/pulseRate
+//     creates spectral peaks reminiscent of vocal formants.
+//   - Masking: probabilistic silencing of individual pulsarets, producing
+//     stochastic textures related to Xenakis' granular concepts.
+//
+// The technique produces sounds ranging from pure tones (high pulse rate,
+// 100% duty, sine pulsaret) to textured clouds (low rate, masking > 0)
+// to formant-rich vocal timbres (formant/rate ratio control).
+//
+// References:
+//   Roads, C. (2001) Microsound, MIT Press, Ch. 4 "Pulsar Synthesis"
+//   Roads, C. (2001) "Sound Composition with Pulsars", JAES 49(3)
+// -----------------------------------------------------------------------
 (function() {
   'use strict';
 
@@ -13,6 +46,10 @@
 
   var MAX_VOICES_PER_INSTRUMENT = 16;
   var TWO_PI = 2 * Math.PI;
+  // Gaussian window parameter: sigma controls the width of the bell curve.
+  // The Gaussian window is w(t) = exp(-(t-0.5)^2 / (2*sigma^2)).
+  // sigma=0.15 gives a narrow, well-concentrated spectral envelope with
+  // low sidelobes — ideal for clean formant peaks. (Roads, 2001, Ch. 4)
   var GAUSSIAN_SIGMA = 0.15;
   var GAUSSIAN_DENOM = 2 * GAUSSIAN_SIGMA * GAUSSIAN_SIGMA;
 
@@ -58,6 +95,17 @@
     return a4 * Math.pow(2, (midi - 69) / 12);
   }
 
+  // -----------------------------------------------------------------------
+  // Pulsaret waveform generator
+  // -----------------------------------------------------------------------
+  // The pulsaret waveform determines the micro-timbre of each pulse.
+  // In Roads' formulation, the pulsaret waveform frequency (formant freq)
+  // is independent of the pulse train rate, so the ratio formantFreq /
+  // pulseRate determines how many cycles of the waveform fit inside each
+  // pulsaret — creating resonance-like spectral peaks at the formant
+  // frequency and its harmonics. This is analogous to how vocal tract
+  // resonances (formants) shape glottal pulses in speech.
+  // -----------------------------------------------------------------------
   /**
    * Generate a single sample for the given waveform type.
    * @param {string} type - 'sine', 'saw', 'square', 'triangle'
@@ -87,6 +135,19 @@
     return Math.sin(TWO_PI * phase);
   }
 
+  // -----------------------------------------------------------------------
+  // Pulsaret envelope (window function)
+  // -----------------------------------------------------------------------
+  // The window shapes the spectral envelope of each pulsaret. Different
+  // windows trade off main lobe width vs. sidelobe suppression:
+  //   Gaussian: excellent sidelobe suppression, smooth spectral rolloff
+  //   Hann: w(t) = 0.5*(1-cos(2*pi*t)) — good general-purpose window
+  //   Triangle (Bartlett): linear taper, moderate sidelobe suppression
+  //   Rectangle: no windowing — maximum spectral splatter but sharpest
+  //     transients, useful for percussive textures
+  // The choice of window profoundly affects the "softness" vs. "buzziness"
+  // of the output. (Roads, 2001, Microsound, Ch. 4)
+  // -----------------------------------------------------------------------
   /**
    * Compute pulsaret window amplitude for a given envelope type.
    * @param {string} envType - 'gaussian', 'hann', 'triangle', 'rectangle'
@@ -109,6 +170,13 @@
 
   // ============================================================
   // Voice
+  // ============================================================
+  // Each PulsarVoice maintains its own pulse train phase accumulator
+  // and formant phase accumulator. The pulse phase determines WHEN
+  // pulsarets occur (the fundamental pitch); the formant phase
+  // determines the waveform content WITHIN each pulsaret.
+  // This dual-phase architecture is what gives pulsar synthesis its
+  // unique ability to independently control pitch and timbre.
   // ============================================================
 
   function PulsarVoice(sr) {
@@ -148,6 +216,11 @@
     this.startDelaySamples = 0;
   }
 
+  // Xorshift32 PRNG for masking decisions. Deterministic per voice (seeded
+  // from MIDI note) so that the same note always produces the same masking
+  // pattern — important for reproducibility. Masking randomly silences
+  // individual pulsarets, creating stochastic density variation that Roads
+  // likened to Xenakis' concept of "clouds" of sonic grains.
   /**
    * Simple xorshift PRNG for masking decisions (deterministic per voice).
    */
@@ -170,9 +243,13 @@
     this.envFinished = false;
 
     // Pulse train parameters
-    // pulseRate is the fundamental — scale by MIDI pitch ratio
+    // pulseRate is the fundamental frequency of the train. It is scaled by
+    // the MIDI pitch ratio so that playing higher notes produces faster
+    // pulse trains (higher pitch), maintaining musical intervals.
+    // Phase increment = pulseRate * midiRatio / sampleRate
     var baseRate = settings.pulseRate || 100;
-    var midiRatio = freq / midiToFreq(69);
+    var safeMidiFreq = midiToFreq(69) || 1;
+    var midiRatio = freq / safeMidiFreq;
     this.pulsePhaseInc = (baseRate * midiRatio) / this.sampleRate;
 
     this.pulsePhase = 0;
@@ -286,11 +363,15 @@
       return 0;
     }
 
-    // Advance pulse phase
+    // Advance pulse phase — this is the "clock" of the pulse train.
+    // One full cycle (0 to 1) = one period of the fundamental frequency.
     var prevPhase = this.pulsePhase;
     this.pulsePhase += this.pulsePhaseInc;
 
-    // Check for phase wrap (new pulse starts)
+    // Phase wrap = start of a new pulsaret. Resetting formantPhase here
+    // ensures each pulsaret begins at phase 0 of its waveform, creating
+    // coherent spectral peaks at the formant frequency. Without this
+    // reset, the formant would smear across pulsarets. (Roads, 2001)
     if (this.pulsePhase >= 1.0) {
       this.pulsePhase -= Math.floor(this.pulsePhase);
       // Reset formant phase at start of each new pulsaret
@@ -306,7 +387,10 @@
     var sample = 0;
 
     if (!this.masked && this.pulsePhase < this.dutyCycle) {
-      // Inside the pulsaret window
+      // Inside the pulsaret duty window. The duty cycle divides each
+      // period into active (pulsaret) and silent portions. When duty < 1,
+      // the silent gaps create a comb-filter effect in the spectrum,
+      // with nulls spaced at multiples of 1/dutyCycle * pulseRate.
       var t = this.pulsePhase / this.dutyCycle;
 
       // Window envelope
@@ -377,7 +461,8 @@
                 sample += voices[vi].process() * 0.12;
               }
             }
-            // Soft clip
+            // Pade [3/3] approximant of tanh(x) for soft clipping:
+            //   tanh(x) ~ x*(27 + x^2) / (27 + 9*x^2)
             var ss = sample * sample;
             output[s] = sample * (27 + ss) / (27 + 9 * ss);
           }
@@ -548,6 +633,12 @@
 
   // ============================================================
   // Parameter Control
+  // ============================================================
+  // These setters correspond to Roads' pulsar synthesis parameters.
+  // Pulse rate = fundamental pitch of the train.
+  // Duty cycle = active fraction of each period (affects spectral shape).
+  // Formant freq = pulsaret waveform frequency (creates formant peaks).
+  // Masking = probability of silencing a pulsaret (stochastic density).
   // ============================================================
 
   function setPulseRate(instId, rate) {

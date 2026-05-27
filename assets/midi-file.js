@@ -49,6 +49,47 @@
         return chunk;
     };
 
+    var DEFAULT_VEL = 100;
+    var NOTE_ON_STATUS = 0x90;
+    var NOTE_OFF_STATUS = 0x80;
+    var NOTE_OFF_VEL = 0x00;
+
+    function _addNoteEvents(rawEvents, n, channel, baseMidi) {
+        var isChord = n.isChord && n.notes;
+        if (isChord) {
+            for (var ci = 0; ci < n.notes.length; ci++) {
+                var midi = n.notes[ci];
+                var vel = n.vel || DEFAULT_VEL;
+                var startTick = n.start * TICKS_PER_STEP;
+                var endTick = startTick + n.dur * TICKS_PER_STEP;
+                rawEvents.push({ tick: startTick, type: 'on', midi: midi, vel: vel, channel: channel });
+                rawEvents.push({ tick: endTick, type: 'off', midi: midi, channel: channel });
+            }
+        } else {
+            var midi = n.midi || (baseMidi + (n.row || 0));
+            var vel = n.vel || DEFAULT_VEL;
+            var startTick = n.start * TICKS_PER_STEP;
+            var endTick = startTick + n.dur * TICKS_PER_STEP;
+            rawEvents.push({ tick: startTick, type: 'on', midi: midi, vel: vel, channel: channel });
+            rawEvents.push({ tick: endTick, type: 'off', midi: midi, channel: channel });
+        }
+    }
+
+    function _convertRawEventsToTrackEvents(rawEvents, trackEvents, lastTick) {
+        for (var ei = 0; ei < rawEvents.length; ei++) {
+            var ev = rawEvents[ei];
+            var delta = ev.tick - lastTick;
+            lastTick = ev.tick;
+            var isNoteOn = (ev.type === 'on');
+            if (isNoteOn) {
+                trackEvents.push({ deltaTicks: delta, bytes: [NOTE_ON_STATUS | ev.channel, ev.midi, ev.vel] });
+            } else {
+                trackEvents.push({ deltaTicks: delta, bytes: [NOTE_OFF_STATUS | ev.channel, ev.midi, NOTE_OFF_VEL] });
+            }
+        }
+        return lastTick;
+    }
+
     // Main export function
     var exportMidi = function() {
         var seqNotes = SL.sequencer.seqNotes;
@@ -85,7 +126,8 @@
 
         // Tempo track (track 0)
         var tempoTrack = [];
-        var usPerQuarter = Math.round(60000000 / bpm);
+        var safeBpm = bpm || 1;
+        var usPerQuarter = Math.round(60000000 / safeBpm);
         tempoTrack.push({
             deltaTicks: 0,
             bytes: [0xFF, 0x51, 0x03, (usPerQuarter >> 16) & 0xFF, (usPerQuarter >> 8) & 0xFF, usPerQuarter & 0xFF]
@@ -122,27 +164,7 @@
             rawEvents.length = 0;
 
             for (var ni = 0; ni < notes.length; ni++) {
-                var n = notes[ni];
-
-                if (n.isChord && n.notes) {
-                    // Chord: multiple note-ons at same time, multiple note-offs
-                    for (var ci = 0; ci < n.notes.length; ci++) {
-                        var midi = n.notes[ci];
-                        var vel = n.vel || 100;
-                        var startTick = n.start * TICKS_PER_STEP;
-                        var endTick = startTick + n.dur * TICKS_PER_STEP;
-                        rawEvents.push({ tick: startTick, type: 'on', midi: midi, vel: vel, channel: channel });
-                        rawEvents.push({ tick: endTick, type: 'off', midi: midi, channel: channel });
-                    }
-                } else {
-                    // Single note
-                    var midi = n.midi || (baseMidi + (n.row || 0));
-                    var vel = n.vel || 100;
-                    var startTick = n.start * TICKS_PER_STEP;
-                    var endTick = startTick + n.dur * TICKS_PER_STEP;
-                    rawEvents.push({ tick: startTick, type: 'on', midi: midi, vel: vel, channel: channel });
-                    rawEvents.push({ tick: endTick, type: 'off', midi: midi, channel: channel });
-                }
+                _addNoteEvents(rawEvents, notes[ni], channel, baseMidi);
             }
 
             // Sort by tick, then note-off before note-on at same tick
@@ -161,17 +183,7 @@
             trackEvents.push({ deltaTicks: 0, bytes: _makeTrackNameBytes(trkName) });
 
             var lastTick = 0;
-            for (var ei = 0; ei < rawEvents.length; ei++) {
-                var ev = rawEvents[ei];
-                var delta = ev.tick - lastTick;
-                lastTick = ev.tick;
-
-                if (ev.type === 'on') {
-                    trackEvents.push({ deltaTicks: delta, bytes: [0x90 | ev.channel, ev.midi, ev.vel] });
-                } else {
-                    trackEvents.push({ deltaTicks: delta, bytes: [0x80 | ev.channel, ev.midi, 0x00] });
-                }
-            }
+            lastTick = _convertRawEventsToTrackEvents(rawEvents, trackEvents, lastTick);
 
             Array.prototype.push.apply(fileBytes, buildTrack(trackEvents));
         }

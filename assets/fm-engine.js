@@ -1,6 +1,57 @@
 // Super Synth Lab - FM Synthesis Engine Module
 // 6-operator DX7-style FM synthesis integration
 // v1.0.0 - Full 32-algorithm FM engine with AudioWorklet processing
+//
+// ================================================================
+// EDUCATIONAL CONTEXT: Frequency Modulation (FM) Synthesis
+// ================================================================
+//
+// FM synthesis was invented by John Chowning at Stanford University
+// in 1967-1971, and published in his landmark 1973 paper. Stanford
+// licensed the patent to Yamaha, who released the DX7 in 1983 --
+// the best-selling synthesizer of all time (~200,000 units).
+//
+// How it works:
+//   A "carrier" oscillator produces the audible tone. A "modulator"
+//   oscillator varies the carrier's instantaneous frequency (really
+//   phase) at audio rates. This generates sidebands -- new frequency
+//   components that did not exist in either oscillator alone. By
+//   stacking modulators in chains or trees, a handful of sine waves
+//   can produce timbres rivaling a full orchestra.
+//
+// Key formula:
+//   y(t) = A * sin(2*pi*fc*t + I * sin(2*pi*fm*t))
+//   where fc = carrier frequency, fm = modulator frequency,
+//   I = modulation index (controls brightness / sideband count).
+//   Sidebands appear at fc +/- n*fm for integer n; their amplitudes
+//   follow Bessel functions of the first kind, Jn(I).
+//
+// Signal flow (DX7 6-operator example, Algorithm 1):
+//   [FB]Op6 -> Op5 -> Op4 -> Op3 (carrier) --+
+//                              Op2 -> Op1 (carrier) --+--> Audio Out
+//
+// The DX7's 32 algorithms define fixed topologies of 6 operators.
+// More carriers = more independent tones (organ-like).
+// More modulator stacking = more complex harmonic spectra.
+//
+// Hardware lineage:
+//   Yamaha DX7 (1983), DX7II (1987), DX7s, TX816 rack, SY77/99,
+//   FS1R (formant FM), Korg Volca FM, Yamaha Reface DX (2015),
+//   Elektron Digitone (2018). Also: Sega Genesis YM2612 sound chip.
+//
+// This file is the HOST code: parameter management, preset loading,
+// voice allocation, and communication with the AudioWorklet thread.
+// The actual sample-by-sample FM math runs in fm-worklet.js.
+//
+// References:
+//   - Chowning, J.M. (1973) "The Synthesis of Complex Audio Spectra
+//     by Means of Frequency Modulation", JAES 21(7), pp. 526-534
+//   - Roads, C. (1996) The Computer Music Tutorial, MIT Press, Ch. 5
+//   - Puckette, M. (2007) Theory and Technique of Electronic Music,
+//     World Scientific, Ch. 5
+//   - Bristow-Johnson, R. (1996) "Wavetable Synthesis 101"
+//   - Tomisawa, N. (1981) US Patent 4,249,447 — Yamaha FM chip
+// ================================================================
 (function() {
   'use strict';
 
@@ -12,6 +63,16 @@
 
   var MAX_VOICES_PER_INSTRUMENT = 16;
 
+  // ---------------------------------------------------------------
+  // Default FM Patch
+  // A new FM instrument initializes with Algorithm 1 and only Op1
+  // active (level 99). This produces a single pure sine carrier --
+  // the simplest possible FM sound. Users build complexity upward
+  // by raising modulator levels and choosing richer algorithms.
+  // The envelope defaults (R1=95, L1-L3=99, L4=0) give a fast
+  // attack, full sustain, and moderate release -- a basic organ tone.
+  // ---------------------------------------------------------------
+
   /** Default FM settings for a new instrument */
   var DEFAULT_FM_SETTINGS = {
     algorithm: 1,
@@ -22,8 +83,11 @@
         ratioFine: 0,
         level: i === 0 ? 99 : 0,  // Only op1 active by default
         detune: 7,
+        // Velocity sensitivity 0 = organ-like (no dynamics).
+        // DX7 range is 0-7; higher values make velocity affect output more.
         velocitySens: 0,
         rateScaling: 0,
+        // 4-rate/4-level envelope (NOT standard ADSR -- see DX7Envelope in fm-worklet.js)
         envelope: { R1: 95, R2: 50, R3: 50, R4: 50, L1: 99, L2: 99, L3: 99, L4: 0 }
       };
     })
@@ -34,6 +98,36 @@
   // Operator indices are 0-based: Op1=0, Op2=1, ..., Op6=5
   // modulations: array of [from, to] pairs
   // ============================================================
+  //
+  // ---------------------------------------------------------------
+  // DX7 Algorithm Topology
+  //
+  // The DX7's 32 algorithms are fixed routing graphs that determine
+  // which operators modulate which, which are carriers (audible
+  // output), and which single operator receives feedback. Yamaha
+  // chose these 32 topologies to cover a wide range of timbral
+  // possibilities with 6 operators:
+  //
+  //   - Algorithms 1-4, 7-9: Heavy stacking (serial chains).
+  //     Few carriers, deep modulation -> metallic, bell-like, complex.
+  //   - Algorithms 5-6, 10-15: Paired modulator/carrier stacks.
+  //     2-3 carriers -> electric piano, clav, plucked strings.
+  //   - Algorithms 16-18: Branched topologies.
+  //     One modulator feeds multiple carriers -> rich single voice.
+  //   - Algorithms 19-25: Wide (many carriers).
+  //     3-4 carriers -> brass, organ, layered tones.
+  //   - Algorithms 26-31: Additive-leaning.
+  //     4-5 carriers with light modulation -> pads, organs.
+  //   - Algorithm 32: Pure additive (all 6 are carriers).
+  //     No FM at all -- Hammond-style drawbar organ.
+  //
+  // The feedbackOp field identifies which operator feeds its own
+  // output back into its phase input. Feedback turns a pure sine
+  // into progressively richer waveforms: at level 0 = sine,
+  // level 3-4 = near-sawtooth, level 7 = near-noise.
+  //
+  // See: Chowning (1973); Yamaha DX7 Owner's Manual, pp. 44-47
+  // ---------------------------------------------------------------
 
   var ALGORITHMS = {
     1:  { carriers: [0, 2], modulations: [[5,4],[4,3],[3,2],[1,0]], feedbackOp: 5,
@@ -130,6 +224,16 @@
   // MIDI / Frequency Helpers
   // ============================================================
 
+  // ---------------------------------------------------------------
+  // Equal Temperament Pitch Conversion
+  // Standard 12-tone equal temperament: each semitone is a factor
+  // of 2^(1/12) apart. MIDI note 69 = A4 = 440 Hz by convention.
+  // Formula: f = refHz * 2^((midiNote - 69) / 12)
+  // The SL.tuning path supports alternative tunings (just intonation,
+  // Pythagorean, etc.) via the tuning module.
+  // See: MIDI Tuning Standard (MMA, 1992)
+  // ---------------------------------------------------------------
+
   function midiToFreq(midi) {
     var a4 = 440;
     // Try to read from UI if available
@@ -140,6 +244,7 @@
     if (SL.tuning && SL.tuning.noteToFreq) {
       return SL.tuning.noteToFreq(midi, a4);
     }
+    // 12-TET: f = 440 * 2^((n - 69) / 12)
     return a4 * Math.pow(2, (midi - 69) / 12);
   }
 
@@ -162,6 +267,35 @@
     return initFallback();
   }
 
+  var FM_WORKLET_COUNT = 4;
+
+  function _makeFmWorkletReadyHandler(readyState, resolve) {
+    return function(event) {
+      var isReady = (event.data.type === 'ready');
+      if (isReady) {
+        readyState.count++;
+        if (readyState.count === FM_WORKLET_COUNT) {
+          isWorkletReady = true;
+          isWorkletInitializing = false;
+          resolve(true);
+        }
+      }
+    };
+  }
+
+  function _makeFmWorkletErrorHandler(idx, hasHadError, resolve, reject) {
+    return function(event) {
+      if (!hasHadError.value) {
+        hasHadError.value = true;
+        console.error('[FM] AudioWorklet processor error (inst ' + idx + '):', event);
+        isWorkletReady = false;
+        isWorkletInitializing = false;
+        console.warn('[FM] Falling back to ScriptProcessor');
+        initFallback().then(resolve).catch(reject);
+      }
+    };
+  }
+
   function initWorklet() {
     if (isWorkletReady) return Promise.resolve(true);
     if (isWorkletInitializing) return isWorkletReadyPromise;
@@ -171,10 +305,10 @@
     isWorkletReadyPromise = new Promise(function(resolve, reject) {
       var fmWorkletUrl = (SL.audio.getWorkletBlobUrl && SL.audio.getWorkletBlobUrl('fm-worklet.js')) || 'assets/fm-worklet.js';
       audioContext.audioWorklet.addModule(fmWorkletUrl).then(function() {
-        var readyCount = 0;
-        var hasHadError = false;
+        var readyState = { count: 0 };
+        var hasHadError = { value: false };
 
-        for (var i = 0; i < 4; i++) {
+        for (var i = 0; i < FM_WORKLET_COUNT; i++) {
           (function(idx) {
             var node = new AudioWorkletNode(audioContext, 'fm-worklet', {
               numberOfInputs: 0,
@@ -183,27 +317,8 @@
             });
             fmWorkletNodes[idx] = node;
 
-            node.port.onmessage = function(event) {
-              if (event.data.type === 'ready') {
-                readyCount++;
-                if (readyCount === 4) {
-                  isWorkletReady = true;
-                  isWorkletInitializing = false;
-                  resolve(true);
-                }
-              }
-            };
-
-            node.onprocessorerror = function(event) {
-              if (!hasHadError) {
-                hasHadError = true;
-                console.error('[FM] AudioWorklet processor error (inst ' + idx + '):', event);
-                isWorkletReady = false;
-                isWorkletInitializing = false;
-                console.warn('[FM] Falling back to ScriptProcessor');
-                initFallback().then(resolve).catch(reject);
-              }
-            };
+            node.port.onmessage = _makeFmWorkletReadyHandler(readyState, resolve);
+            node.onprocessorerror = _makeFmWorkletErrorHandler(idx, hasHadError, resolve, reject);
           })(i);
         }
 
@@ -221,6 +336,18 @@
   // ============================================================
   // ScriptProcessorNode Fallback
   // ============================================================
+  //
+  // ---------------------------------------------------------------
+  // Main-Thread FM Fallback
+  // AudioWorklet runs on a dedicated real-time audio thread, which
+  // is ideal for DSP. However, some browsers or contexts lack
+  // AudioWorklet support. This fallback implements the same 6-op
+  // FM algorithm on the main thread via ScriptProcessorNode
+  // (deprecated but universally supported). The trade-off: main-
+  // thread audio competes with UI rendering, risking dropouts.
+  // The FM math is identical to fm-worklet.js -- see that file
+  // for detailed DSP commentary.
+  // ---------------------------------------------------------------
 
   // Minimal voice for fallback (runs on main thread)
   function FallbackOperator(sr) {
@@ -248,6 +375,9 @@
     if (p.ratioFine !== undefined) this.ratioFine = p.ratioFine;
     if (p.level !== undefined) {
       this.outputLevel = p.level;
+      // DX7 level-to-amplitude: approximately logarithmic.
+      // Level 99 = 0 dB (full), each step down ~0.75 dB.
+      // Formula: amplitude = 2^((level - 99) / 8)
       this.amplitude = p.level === 0 ? 0 : Math.pow(2, (p.level - 99) / 8);
     }
     if (p.detune !== undefined) this.detune = p.detune;
@@ -260,11 +390,19 @@
   };
 
   FallbackOperator.prototype.keyOn = function(noteFreq, velocity) {
+    // Operator frequency = noteFreq * ratio * detuneMultiplier.
+    // Coarse=0 is special: ratio becomes 0.5 (sub-octave).
+    // Fine adds 0-99% on top of coarse (100 subdivisions between ratios).
     var ratio = this.ratioCoarse === 0 ? 0.5 : this.ratioCoarse;
     ratio *= (1 + this.ratioFine * 0.01);
+    // Detune: value 7 = center (0 cents), range 0-14 = -7 to +7 cents
     var detuneCents = this.detune - 7;
     this.frequency = noteFreq * ratio * Math.pow(2, detuneCents / 1200);
+    // Random initial phase prevents phase-locked constructive interference
+    // between simultaneous voices (reduces harsh transients on chords)
     this.phase = Math.random();
+    // Velocity sensitivity: sens=0 -> organ-like, sens=7 -> full dynamic range.
+    // Linear crossfade between fixed amplitude (1.0) and velocity-scaled amplitude.
     var velNorm = velocity / 127;
     var sens = this.velocitySens / 7;
     this.velocityScale = 1 - sens + sens * velNorm;
@@ -280,11 +418,25 @@
     }
   };
 
+  // ---------------------------------------------------------------
+  // DX7 Envelope Processing (Fallback)
+  // The DX7 envelope is NOT a standard ADSR. It has 4 rates (R1-R4)
+  // and 4 target levels (L1-L4). On key-on, the envelope traverses
+  // R1->L1, R2->L2, R3->L3 (sustain hold). On key-off, R4->L4.
+  // Rates specify speed in dB/sec, not absolute time, so the same
+  // rate value produces different durations depending on the level
+  // distance traveled.
+  // Formula: rate (dB/s) = 0.2819 * 2^(rate_value * 0.16)
+  // See: FM-Engine-Architecture.md Section 4
+  // ---------------------------------------------------------------
   FallbackOperator.prototype.processEnv = function() {
     if (this.envFinished) return 0;
     var tgtRaw = this.envLevels[this.envStage];
+    // Level mapping: power curve (x^2.5) approximates the DX7's
+    // roughly logarithmic level perception
     var target = tgtRaw === 0 ? 0 : Math.pow(tgtRaw / 99, 2.5);
     var rate = this.envRates[this.envStage];
+    // Convert rate to per-sample increment over 96 dB dynamic range
     var dbPerSec = 0.2819 * Math.pow(2, rate * 0.16);
     var inc = dbPerSec / (this.sampleRate * 96);
     if (this.envLevel < target) {
@@ -311,8 +463,15 @@
   };
 
   FallbackOperator.prototype.process = function(modInput) {
+    // Phase accumulator: increment by freq/sampleRate each sample, wrap to [0,1)
     this.phase += this.frequency / this.sampleRate;
     this.phase -= Math.floor(this.phase);
+    // Core FM equation: sin(2*pi*fc*t + modInput)
+    // modInput is the sum of all modulator outputs routed to this operator (in radians).
+    // This is technically "phase modulation" (PM), not frequency modulation --
+    // mathematically equivalent for sine waves but PM is easier to implement
+    // because it does not require integrating the modulator signal.
+    // See: Chowning (1973), Section II; Puckette (2007), Section 5.3
     var out = Math.sin(2 * Math.PI * this.phase + modInput);
     var env = this.processEnv();
     return out * env * this.amplitude * this.velocityScale;
@@ -342,6 +501,11 @@
     this.startDelaySamples = 0;
   }
 
+  // Convert DX7 feedback level (0-7) to a modulation scaling factor.
+  // Feedback 0 = no self-modulation (pure sine).
+  // Feedback 7 = maximum: pi * 2^0 = pi radians of self-modulation,
+  // which produces near-noise. Each step halves/doubles the scale.
+  // At feedback ~4, the operator approximates a sawtooth wave.
   FallbackVoice.prototype.feedbackToScale = function(fb) {
     if (fb === 0) return 0;
     return Math.PI * Math.pow(2, (fb - 7) / 2);
@@ -412,6 +576,15 @@
     for (var i = 0; i < 6; i++) this.operators[i].keyOff();
   };
 
+  // ---------------------------------------------------------------
+  // Voice Processing: The FM Algorithm Loop
+  // Operators are processed top-down (Op6 -> Op1) so that modulator
+  // outputs are computed before the carriers that depend on them.
+  // For each operator: sum modulation inputs from all connected
+  // modulators, add feedback if applicable, then compute the sine
+  // output. Carrier outputs are summed and normalized by carrier
+  // count to prevent clipping in algorithms with many carriers.
+  // ---------------------------------------------------------------
   FallbackVoice.prototype.process = function() {
     if (!this.active) return 0;
     // Per-voice timing stagger: output silence during delay period
@@ -422,12 +595,15 @@
     var algo = ALGORITHMS[this.algorithm];
     if (!algo) return 0;
     var out = this.opOutputs;
+    // Top-down traversal: Op6(index 5) first, Op1(index 0) last
     for (var i = 5; i >= 0; i--) {
       var modInput = 0;
+      // Gather modulation from all operators routed to this one
       var mods = algo.modulations;
       for (var m = 0; m < mods.length; m++) {
         if (mods[m][1] === i) modInput += out[mods[m][0]];
       }
+      // Feedback: one-sample delay of this operator's own output
       if (i === algo.feedbackOp) modInput += this.feedbackValue * this.feedbackLevel;
       out[i] = this.operators[i].process(modInput);
       if (i === algo.feedbackOp) this.feedbackValue = out[i];
@@ -435,6 +611,8 @@
     var sample = 0;
     var carriers = algo.carriers;
     for (var c = 0; c < carriers.length; c++) sample += out[carriers[c]];
+    // Normalize: divide by carrier count so loudness stays consistent
+    // across algorithms regardless of how many carriers are active
     sample /= carriers.length;
 
     // Apply fade-in ramp
@@ -475,10 +653,15 @@
             var sample = 0;
             for (var vi = 0; vi < voices.length; vi++) {
               if (voices[vi].active) {
+                // 0.18 scaling factor keeps multi-voice sum below clipping
                 sample += voices[vi].process() * 0.18;
               }
             }
-            // Smooth Pade approximant of tanh soft clip (always-on, no hard knee)
+            // Soft clipping via Pade approximant of tanh:
+            //   tanh(x) ~ x * (27 + x^2) / (27 + 9*x^2)
+            // This is always-on (no hard knee). FM synthesis can produce
+            // extreme amplitudes when feedback is high or many voices stack,
+            // so soft clipping prevents digital distortion gracefully.
             var ss = sample * sample;
             output[s] = sample * (27 + ss) / (27 + 9 * ss);
           }
@@ -493,6 +676,16 @@
   // ============================================================
   // Connection Management
   // ============================================================
+  //
+  // ---------------------------------------------------------------
+  // Audio Graph Wiring
+  // Web Audio uses a node graph: source -> processing -> destination.
+  // Each FM instrument gets its own processing node (either an
+  // AudioWorkletNode or ScriptProcessorNode) connected through an
+  // optional BiquadFilter to the instrument's master output gain.
+  // Connections are permanent once established -- no per-note
+  // connect/disconnect, which would cause clicks and race conditions.
+  // ---------------------------------------------------------------
 
   /**
    * Get or create a BiquadFilterNode for FM output on this instrument.
@@ -668,6 +861,15 @@
   // ============================================================
   // Parameter Control
   // ============================================================
+  //
+  // ---------------------------------------------------------------
+  // Real-Time Parameter Updates
+  // Parameters are stored on the main thread (instrumentSettings)
+  // and mirrored to the audio thread via MessagePort postMessage().
+  // This dual-state design is necessary because AudioWorklet runs
+  // in a separate scope. Parameters are sent immediately on change
+  // so the audio thread can apply them to active voices mid-note.
+  // ---------------------------------------------------------------
 
   function setAlgorithm(instId, algo) {
     var settings = getOrCreateSettings(instId);

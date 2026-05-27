@@ -24,26 +24,31 @@
      * e.g. resolve('ui.panic', {ui: {panic: 'Stop'}}) => 'Stop'
      * Returns undefined if any segment is missing.
      */
+    function _walkKeyPath(parts, obj) {
+        var cursor = obj;
+        var found = true;
+        var partIndex = 0;
+        while (partIndex < parts.length && found) {
+            var isCursorObject = (cursor !== NO_VALUE) && (typeof cursor === 'object');
+            var hasCursorKey = isCursorObject && (parts[partIndex] in cursor);
+            if (hasCursorKey) {
+                cursor = cursor[parts[partIndex]];
+            } else {
+                found = false;
+            }
+            partIndex = partIndex + 1;
+        }
+        var result;
+        if (found) {
+            result = cursor;
+        }
+        return result;
+    }
+
     function _resolve(key, obj) {
         var result;
         if (obj) {
-            var parts = key.split('.');
-            var cursor = obj;
-            var found = true;
-            var partIndex = 0;
-            while (partIndex < parts.length && found) {
-                var isCursorObject = cursor !== NO_VALUE && typeof cursor === 'object';
-                var hasCursorKey = isCursorObject && parts[partIndex] in cursor;
-                if (hasCursorKey) {
-                    cursor = cursor[parts[partIndex]];
-                } else {
-                    found = false;
-                }
-                partIndex = partIndex + 1;
-            }
-            if (found) {
-                result = cursor;
-            }
+            result = _walkKeyPath(key.split('.'), obj);
         }
         return result;
     }
@@ -78,6 +83,18 @@
         return value;
     }
 
+    function _notifyLanguageChange(langCode) {
+        var callbackIndex = 0;
+        while (callbackIndex < _changeCallbacks.length) {
+            try {
+                _changeCallbacks[callbackIndex](langCode);
+            } catch (e) {
+                console.error('Localization change callback error:', e);
+            }
+            callbackIndex = callbackIndex + 1;
+        }
+    }
+
     SL.localization = {
         _currentLang: _currentLang,
         _strings: _strings,
@@ -104,15 +121,7 @@
                 localStorage.setItem(STORAGE_KEY, langCode);
             } catch (e) { /* localStorage may be unavailable */ }
 
-            var callbackIndex = 0;
-            while (callbackIndex < _changeCallbacks.length) {
-                try {
-                    _changeCallbacks[callbackIndex](langCode);
-                } catch (e) {
-                    console.error('Localization change callback error:', e);
-                }
-                callbackIndex = callbackIndex + 1;
-            }
+            _notifyLanguageChange(langCode);
         },
 
         /**
@@ -354,24 +363,71 @@
      */
     SL.localization._applyDomTranslations = function() {
         var elements = document.querySelectorAll('[data-i18n]');
-        var idx = 0;
-        while (idx < elements.length) {
-            var el = elements[idx];
-            var key = el.getAttribute('data-i18n');
-            if (key) {
-                var translated = SL.t(key);
-                if (translated !== key) {
-                    el.textContent = translated;
-                }
-            }
-            idx = idx + 1;
-        }
+        _translateElements(elements);
     };
 
     /**
      * Wire up the landing-screen language selector buttons.
      * Each button has data-lang="xx" and gets an active highlight.
      */
+    function _translateElement(el) {
+        var key = el.getAttribute('data-i18n');
+        if (key) {
+            var translated = SL.t(key);
+            var isDifferent = (translated !== key);
+            if (isDifferent) {
+                el.textContent = translated;
+            }
+        }
+    }
+
+    function _translateElements(elements) {
+        var idx = 0;
+        while (idx < elements.length) {
+            _translateElement(elements[idx]);
+            idx = idx + 1;
+        }
+    }
+
+    function _findLangButton(startEl, container) {
+        var target = startEl;
+        while (target && target !== container) {
+            var isLangBtn = target.classList && target.classList.contains('ssl-lang-btn');
+            if (isLangBtn) {
+                return target;
+            }
+            target = target.parentElement;
+        }
+        return null;
+    }
+
+    function _syncLangButtons(container, activeLang) {
+        var allBtns = container.querySelectorAll('.ssl-lang-btn');
+        var j = 0;
+        while (j < allBtns.length) {
+            var bl = allBtns[j].getAttribute('data-lang');
+            if (bl === activeLang) {
+                allBtns[j].classList.add('ssl-lang-active');
+            } else {
+                allBtns[j].classList.remove('ssl-lang-active');
+            }
+            j = j + 1;
+        }
+    }
+
+    function _onLangSelectorClick(e, container) {
+        var target = _findLangButton(e.target, container);
+        var isLangButton = target && target.classList && target.classList.contains('ssl-lang-btn');
+        if (isLangButton) {
+            var lang = target.getAttribute('data-lang');
+            if (lang) {
+                _syncLangButtons(container, lang);
+                SL.localization.setLanguage(lang);
+                SL.localization._applyDomTranslations();
+            }
+        }
+    }
+
     function _initLangSelector() {
         var container = document.getElementById('sslLangSelector');
         if (container) {
@@ -393,50 +449,12 @@
 
         // Click handler — delegated on the container
         container.addEventListener('click', function(e) {
-            var target = e.target;
-            // Walk up to find the button element
-            while (target && target !== container) {
-                if (target.classList && target.classList.contains('ssl-lang-btn')) {
-                    break;
-                }
-                target = target.parentElement;
-            }
-
-            var isLangButton = target && target.classList && target.classList.contains('ssl-lang-btn');
-            if (isLangButton) {
-              var lang = target.getAttribute('data-lang');
-              if (lang) {
-                // Update active class on all buttons
-                var allBtns = container.querySelectorAll('.ssl-lang-btn');
-                var i = 0;
-                while (i < allBtns.length) {
-                    allBtns[i].classList.remove('ssl-lang-active');
-                    i = i + 1;
-                }
-                target.classList.add('ssl-lang-active');
-
-                // Set the language (fires callbacks, stores to localStorage)
-                SL.localization.setLanguage(lang);
-
-                // Refresh data-i18n elements in the DOM
-                SL.localization._applyDomTranslations();
-              }
-            }
+            _onLangSelectorClick(e, container);
         });
 
         // Also listen for programmatic language changes to keep selector in sync
         SL.localization.onLanguageChange(function(newLang) {
-            var allBtns = container.querySelectorAll('.ssl-lang-btn');
-            var j = 0;
-            while (j < allBtns.length) {
-                var bl = allBtns[j].getAttribute('data-lang');
-                if (bl === newLang) {
-                    allBtns[j].classList.add('ssl-lang-active');
-                } else {
-                    allBtns[j].classList.remove('ssl-lang-active');
-                }
-                j = j + 1;
-            }
+            _syncLangButtons(container, newLang);
         });
         } // end if (container)
     }

@@ -1,5 +1,32 @@
 // Synth Lab - Ring Modulator Effect
 // Creates metallic, robotic synthwave sounds by multiplying input signal with a carrier oscillator
+//
+// ---------------------------------------------------------------------------
+// DSP THEORY: Ring Modulation
+// ---------------------------------------------------------------------------
+// Ring modulation multiplies two signals together. For sine waves:
+//
+//   cos(a) * cos(b) = 0.5 * [cos(a+b) + cos(a-b)]
+//
+// The output contains ONLY the sum and difference frequencies -- the original
+// frequencies disappear entirely. This is what gives ring mod its distinctive
+// inharmonic, metallic character: the output partials have no simple integer
+// relationship to the input pitch.
+//
+// Example: A 440 Hz input ring-modulated by a 300 Hz carrier produces
+// 740 Hz (sum) and 140 Hz (difference). Neither is harmonically related
+// to the original 440 Hz.
+//
+// With complex (non-sine) input, every partial in the input generates its
+// own sum/difference pair against the carrier, creating dense sidebands.
+// Square or triangle carrier waveforms add further harmonics to the carrier
+// itself, producing even more sideband pairs.
+//
+// The LFO slowly modulates the carrier frequency, sweeping the sideband
+// frequencies over time for evolving, animated metallic textures.
+//
+// Reference: Roads, C. (1996) The Computer Music Tutorial, Ch. 6
+// ---------------------------------------------------------------------------
 
 (function() {
   var SL = window.SynthLab = window.SynthLab || {};
@@ -30,13 +57,19 @@
       this.params.lfoDepth = 0;        // 0-100 (frequency modulation depth)
       this.params.mix = 50;            // 0-100
 
-      // Create the ring modulation gain node
-      // This is what the carrier oscillator modulates to multiply the signal
-      // The carrier oscillates the gain between -1 and 1, creating ring modulation
+      // Web Audio implementation of ring modulation:
+      // We use a GainNode whose gain parameter is modulated by the carrier
+      // oscillator. When the input signal passes through a GainNode whose
+      // gain oscillates between -1 and +1, the mathematical result is
+      // multiplication -- exactly the ring mod equation above.
       this.ringGain = ctx.createGain();
       this.ringGain.gain.value = 0; // Will be modulated by carrier
 
       // Create carrier oscillator (the modulator)
+      // The carrier frequency determines WHERE the sidebands appear.
+      // Low carrier (20-100 Hz) = tremolo-like amplitude modulation.
+      // Mid carrier (100-500 Hz) = classic ring mod bell/metallic tones.
+      // High carrier (500-2000 Hz) = harsh, dissonant sidebands.
       this.carrier = ctx.createOscillator();
       this.carrier.type = this.params.shape;
       this.carrier.frequency.value = this.params.frequency;
@@ -51,7 +84,11 @@
       this.carrier.connect(this.carrierGain);
       this.carrierGain.connect(this.ringGain.gain);
 
-      // Create LFO for frequency modulation of the carrier
+      // LFO for carrier frequency modulation
+      // This slowly sweeps the carrier frequency, which sweeps ALL the
+      // sideband frequencies together, creating evolving metallic textures.
+      // At rate=0 the carrier is static; at higher rates the sidebands
+      // wobble, producing vibrato-like animation of the ring mod timbre.
       this.lfo = ctx.createOscillator();
       this.lfo.type = 'sine';
       this.lfo.frequency.value = this.params.lfoRate;
@@ -80,6 +117,9 @@
      * Maps 0-100 depth to a percentage of the carrier frequency
      * At depth=100, the carrier frequency varies by +/- 50% of its base value
      */
+    // The modulation range is proportional to carrier frequency so the
+    // perceived depth stays consistent across the frequency range. A fixed
+    // Hz range would sound huge at low frequencies and invisible at high ones.
     updateLfoDepth(depth) {
       var depthNormalized = depth / 100;
       // LFO modulates carrier frequency by up to 50% of the base frequency
@@ -99,7 +139,8 @@
           var freq = Math.max(20, Math.min(2000, value));
           this.params.frequency = freq;
           this.carrier.frequency.setTargetAtTime(freq, currentTime, 0.01);
-          // Update LFO depth since it's relative to carrier frequency
+          // LFO depth is recalculated because it is defined as a proportion
+          // of carrier frequency -- changing the carrier shifts the range.
           this.updateLfoDepth(this.params.lfoDepth);
           break;
 

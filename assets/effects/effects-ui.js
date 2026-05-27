@@ -28,9 +28,7 @@
       i18n: 'effect.chorus',
       icon: '🌊',
       params: [
-        { name: 'mode', label: 'Mode', type: 'select',
-          options: ['I', 'II', 'I+II'],
-          default: 'I' },
+        { name: 'mode', label: 'Mode', type: 'select', options: ['I', 'II', 'I+II'], default: 'I' },
         { name: 'rate', label: 'Rate', min: 0.5, max: 2.0, default: 1.0, unit: 'x', step: 0.05 },
         { name: 'depth', label: 'Depth', min: 0, max: 100, default: 50, unit: '%' },
         { name: 'mix', label: 'Mix', min: 0, max: 100, default: 50, unit: '%' }
@@ -576,9 +574,9 @@
     var tabsHtml = '<div class="effects-inst-tabs">';
     instKeys.forEach(function(key, i) {
       var activeClass = (i === selectedTarget) ? 'active' : '';
-      tabsHtml += '<button class="effects-inst-tab ' + activeClass + '" data-target="' + i + '">' +
-                  SL.t('instrument.' + key) +
-                  '</button>';
+      var label = SL.t('instrument.' + key);
+      tabsHtml += '<button class="effects-inst-tab ' + activeClass +
+        '" data-target="' + i + '">' + label + '</button>';
     });
     var masterActiveClass = (selectedTarget === MASTER_TARGET) ? 'active' : '';
     tabsHtml += '<button class="effects-inst-tab effects-master-tab ' + masterActiveClass + '" data-target="-1">' +

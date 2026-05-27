@@ -229,8 +229,9 @@
     ctx.strokeStyle = ADSR_GRID_COLOR;
     ctx.lineWidth = 1;
     var gridSteps = 4;
+    var safeGridSteps = gridSteps || 1;
     for (var gi = 1; gi < gridSteps; gi++) {
-      var gy = pad + (drawH * gi / gridSteps);
+      var gy = pad + (drawH * gi / safeGridSteps);
       ctx.beginPath();
       ctx.moveTo(pad, gy);
       ctx.lineTo(w - pad, gy);

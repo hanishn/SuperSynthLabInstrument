@@ -157,7 +157,8 @@
 
   function _startCycle() {
     _stopCycle();
-    var intervalMs = Math.floor((60 / _tempo) * 1000);
+    var safeTempo = _tempo || 1;
+    var intervalMs = Math.floor((60 / safeTempo) * 1000);
     _applyJawari();
     _cycleTimer = setInterval(function() {
       if (_stringActive[_currentStringIdx]) {

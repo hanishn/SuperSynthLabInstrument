@@ -1,5 +1,31 @@
 // SSLI Controller: Isomorphic Grid (4th, 5th) + Hex Grid (Wicki-Hayden)
 // ES5 compatible (var, no arrow functions, no template literals)
+//
+// -----------------------------------------------------------------------
+// ISOMORPHIC KEYBOARD
+//
+// An isomorphic keyboard maps pitches so that the same fingering produces
+// the same interval in every key. Unlike a piano, where C major and F#
+// major require completely different hand shapes, an isomorphic layout
+// makes transposition a simple spatial translation -- shift the pattern
+// and the intervals are preserved.
+//
+// This module implements two geometries:
+//   1. Rectangular grid -- rows offset by a configurable interval
+//      (fourths, fifths, whole tones, minor thirds, chromatic)
+//   2. Hexagonal grid (pointy-top) -- each hex cell is one pitch,
+//      with 6 neighbors at consistent interval relationships.
+//      Layouts include Wicki-Hayden, Harmonic Table, Janko, and others.
+//
+// Historical lineage:
+//   Euler, L. (1739) Tentamen novae theoriae musicae -- first
+//     systematic pitch lattice (the Tonnetz), mapping 5ths and 3rds.
+//   Bosanquet, R.H.M. (1876) An Elementary Treatise on Musical
+//     Intervals and Temperament -- generalized keyboards.
+//   Wicki, K. (1896) Swiss patent for the Wicki-Hayden layout.
+//   Milne, A.J. et al. (2007) "Isomorphic controllers and dynamic
+//     tuning", Computer Music Journal 31(4) -- modern formalization.
+// -----------------------------------------------------------------------
 
 (function() {
   'use strict';
@@ -11,6 +37,8 @@
   // Constants
   // ============================================================
 
+  // Default interval of 5 semitones = perfect fourth. This is the most
+  // common isomorphic layout because guitar frets are tuned in 4ths.
   var ISO_DEFAULT_INTERVAL = 5;
   var ISOGRID_DEFAULT_VELOCITY = 100;
 
@@ -28,20 +56,37 @@
   var CHROMATIC_FIXED_COLS = 12;
   var CHROMATIC_ROW_INTERVAL = 12;
 
-  // V-06: Colorblind-safe pitch class colors (index = pitch class 0..11)
+  // V-06: Colorblind-safe pitch class colors (index = pitch class 0..11).
+  // Each of the 12 chromatic pitch classes gets a unique hue so the player
+  // can visually identify interval relationships across the grid.
   var CHROMATIC_NOTE_COLORS = [
     '#3080c0', '#606080', '#d08030', '#505070', '#c0a020',
     '#d08030', '#505070', '#3080c0', '#505070', '#8040c0',
     '#505070', '#6060a0'
   ];
 
-  // Hex grid constants
+  // ----------------------------------------------------------------
+  // Hex grid geometry constants.
+  // Pointy-top hexagons tessellate perfectly on a 2D plane. Each hex
+  // has 6 neighbors. For a regular pointy-top hex with circumradius s:
+  //   width  = s * sqrt(3)     (flat edge to flat edge)
+  //   height = s * 2           (point to point)
+  // Rows are spaced at 3/4 of the hex height; odd rows are offset
+  // horizontally by half a hex width, creating the honeycomb pattern.
+  // ----------------------------------------------------------------
   var HEX_SQRT3 = 1.7320508;
   var HEX_MIN_SIZE_DESKTOP = 90;
   var HEX_MIN_SIZE_PHONE = 66;
   var PHONE_WIDTH_THRESHOLD = 600;
 
-  // Hex edge/vertex hold zone thresholds (pointy-top geometry)
+  // ----------------------------------------------------------------
+  // Hex edge/vertex hold zones. A touch near the center of a hex
+  // triggers one note. A touch near an edge (shared by 2 hexes)
+  // triggers both notes. A touch near a vertex (shared by 3 hexes)
+  // triggers all three -- forming a triad. This maps directly to
+  // the Tonnetz property: any triangle of 3 adjacent nodes is a
+  // major or minor triad.
+  // ----------------------------------------------------------------
   var HEX_CENTER_ZONE_FRAC = 0.50;   // touch within 50% of radius = single note
   var HEX_EDGE_ZONE_FRAC = 0.85;     // touch between 50-85% = edge (2 notes)
   var HEX_VERTEX_RADIUS_PX = 18;     // touch within 18px of vertex = vertex (3 notes)
@@ -61,7 +106,10 @@
   var ACTIVE_SCALE_FACTOR = 1.05;
   var DEFAULT_NOTE_VELOCITY = 100;
 
-  // Triangle harmonic overlay colors
+  // Triangle harmonic overlay colors. On the Tonnetz, upward-pointing
+  // triangles are major triads (cyan) and downward-pointing triangles
+  // are minor triads (pink). This visual convention comes from
+  // neo-Riemannian theory (Cohn, 1998).
   var MAJOR_TRIANGLE_COLOR = 'rgba(76, 201, 240, 0.18)';
   var MINOR_TRIANGLE_COLOR = 'rgba(240, 100, 180, 0.18)';
 
@@ -83,11 +131,27 @@
   var RECT_FONT_MIN = 12;
   var RECT_OCTAVE_FONT_SCALE = 1.4;
 
-  // Wicki-Hayden intervals
+  // Wicki-Hayden layout intervals. Patented by Kaspar Wicki in 1896,
+  // later rediscovered by Brian Hayden. Rows are a perfect 5th apart
+  // (7 semitones); adjacent columns differ by a whole step (2 semitones).
+  // This makes diatonic scales fall in compact horizontal runs and
+  // common chord shapes are invariant under transposition.
   var WICKI_HAYDEN_ROW_INTERVAL = 7;
   var WICKI_HAYDEN_COL_INTERVAL = 2;
 
-  // Layout presets for isomorphic keyboards
+  // ----------------------------------------------------------------
+  // Rectangular layout presets. Each preset defines the semitone
+  // intervals between adjacent rows and columns. The key musical
+  // insight: on an isomorphic layout, transposition = translation.
+  // A C major chord shape is identical to an F# major chord shape;
+  // you just slide your hand. This is impossible on a standard piano.
+  //
+  // Chromatic: every semitone in sequence (like a piano unrolled).
+  // Fourths: rows are 1 semitone apart, columns 5 (guitar-like).
+  // Fifths: rows are 7 semitones apart (circle of 5ths vertically).
+  // Whole Tone: 2-semitone steps (Debussy-friendly).
+  // Minor 3rds: 3-semitone steps (diminished chord columns).
+  // ----------------------------------------------------------------
   var ISO_LAYOUT_PRESETS = [
     { val: 'chromatic-12',  lbl: 'Chromatic (12-col)', rowInterval: CHROMATIC_ROW_INTERVAL, colInterval: 1, hex: false, fixedCols: CHROMATIC_FIXED_COLS, chromatic: true },
     { val: 'chromatic',     lbl: 'Chromatic',     rowInterval: 6, colInterval: 1, hex: false },
@@ -97,6 +161,17 @@
     { val: 'minor-thirds',  lbl: 'Minor 3rds',    rowInterval: 3, colInterval: 1, hex: false }
   ];
 
+  // ----------------------------------------------------------------
+  // Hex layout presets. Each maps a different pair of intervals onto
+  // the hex grid axes, changing which musical relationships become
+  // visually adjacent.
+  //
+  // Wicki-Hayden: row=5th, col=whole step. Diatonic scales are rows.
+  // Harmonic Table: row=M3, col=5th. Triads form tight triangles.
+  // Tonnetz: row=m3, col=M3. Euler's 1739 tone network on a hex grid.
+  // Janko: row=whole step, col=semitone. Piano-like but isomorphic.
+  // Park/Gerhard: alternative interval mappings for exploration.
+  // ----------------------------------------------------------------
   var HEX_LAYOUT_PRESETS = [
     { val: 'wicki-hayden',  lbl: 'Wicki-Hayden',   rowInterval: 7, colInterval: 2 },
     { val: 'harmonic',      lbl: 'Harmonic Table',  rowInterval: 4, colInterval: 7 },
@@ -119,7 +194,10 @@
   // Hex cell registry for edge/vertex detection
   // ============================================================
 
-  // Stores all hex cells: array of { cx, cy, midi, el, row, col }
+  // Every hex cell is registered here with its center coordinates,
+  // MIDI number, DOM element, and grid position. This registry
+  // powers the three-zone hit test: center (1 note), edge (2 notes),
+  // and vertex (3 notes = triad).
   var _hexCells = [];
   // Current hex geometry for hit-testing
   var _hexGridGeom = { hexWidth: 0, hexHeight: 0, hexSize: 0 };
@@ -200,8 +278,19 @@
     return bestIdx;
   }
 
-  // Determine which MIDI notes should play for a touch at (px, py).
-  // Returns an array of midi numbers (1 for center, 2 for edge, 2-3 for vertex).
+  // ----------------------------------------------------------------
+  // Three-zone hit test for hex cells. This is the core interaction
+  // model that makes the hex grid a playable instrument:
+  //
+  //   CENTER zone (< 50% radius): single note. Cleanest pitch.
+  //   EDGE zone (50-85% radius): two notes from adjacent hexes.
+  //     Useful for dyads (intervals like 5ths or 3rds).
+  //   VERTEX zone (within 18px of a vertex): three notes from the
+  //     hexes sharing that vertex. On a Tonnetz-family layout, this
+  //     is always a major or minor triad -- Euler's key insight.
+  //
+  // Priority: vertex (smallest target, checked first) > edge > center.
+  // ----------------------------------------------------------------
   function _hexHitTest(px, py) {
     var nearestIdx = _findNearestHexCell(px, py);
     if (nearestIdx < 0) {
@@ -259,9 +348,9 @@
   }
 
   // Find all hex cells sharing a vertex at (vx, vy).
-  // A vertex is shared by up to 3 hexes. We find the 3 closest cells to the
-  // vertex point, filtering by a maximum distance threshold to avoid picking
-  // up far-away cells when the vertex is at the grid boundary.
+  // In a hex tessellation, every vertex is shared by exactly 3 hexes
+  // (unless at the grid boundary). These 3 hexes form a triangle on the
+  // Tonnetz -- the fundamental triad relationship that Euler identified.
   var VERTEX_MAX_CELLS = 3;
   function _findCellsSharingVertex(vx, vy, size) {
     // Collect distances for all cells
@@ -335,7 +424,11 @@
     return [cell.midi];
   }
 
-  // Activate a set of MIDI notes, tracking refcounts and glow
+  // Activate a set of MIDI notes, tracking refcounts and glow.
+  // Reference counting is essential because edge/vertex touches can
+  // activate the same MIDI note from multiple pointers. A note only
+  // sounds on the first activation (refcount 0->1) and only silences
+  // on the last deactivation (refcount 1->0).
   function _hexActivateNotes(midiList, noteOn, grid) {
     var mi;
     for (mi = 0; mi < midiList.length; mi++) {
@@ -392,8 +485,14 @@
   // exclusively by the pointer event system (_hexOnPointerDown/Move/Up).
 
   // ============================================================
-  // Shared event wiring
+  // Shared event wiring (rectangular grid)
   // ============================================================
+  //
+  // Each cell gets independent mouse + touch listeners. Mouse drag
+  // across cells creates a glissando effect (mouseenter triggers
+  // noteOn while the button is held). This mimics sliding a finger
+  // across physical keys -- a key expressive technique for isomorphic
+  // instruments that is impossible on a standard piano keyboard.
 
   function _wireIsoKeyEvents(midi, el, noteOn, noteOff) {
     (function(m, keyEl) {
@@ -439,7 +538,16 @@
   // ============================================================
   // Hex pointer-based multi-touch helpers (ported from tonnetz)
   // ============================================================
+  //
+  // The Pointer Events API (W3C) unifies mouse, touch, and pen into
+  // a single event model with unique pointer IDs. This allows tracking
+  // up to 10 simultaneous fingers, each independently activating hex
+  // cells. Per-pointer tracking is critical for isomorphic keyboards
+  // because multi-finger chord voicings are the primary use case.
 
+  // MIDI for a hex cell: base + (column * colInterval) + (row * rowInterval).
+  // This linear mapping is what makes the keyboard isomorphic -- the same
+  // geometric displacement always produces the same interval.
   function _hexPtrMidiForCell(col, row) {
     return _hexBaseMidi + (col * _currentHexColInterval) + (row * _currentHexRowInterval);
   }
@@ -471,8 +579,9 @@
   }
 
   function _hexPtrColRowFromIndex(idx) {
-    var row = Math.floor(idx / _hexPtrCols);
-    var col = idx % _hexPtrCols;
+    var safeCols = _hexPtrCols || 1;
+    var row = Math.floor(idx / safeCols);
+    var col = idx % safeCols;
     return { col: col, row: row };
   }
 
@@ -553,6 +662,37 @@
   // ============================================================
   // Triangle harmonic overlays (ported from tonnetz)
   // ============================================================
+  //
+  // When a hex cell is activated, SVG triangle overlays visualize the
+  // triadic relationships from neo-Riemannian theory (Cohn, 1998):
+  //   - Upward triangle = major triad (cyan): root + right + upper-right
+  //   - Downward triangle = minor triad (pink): root + left + lower-left
+  // On a Tonnetz layout these triangles literally ARE the triads: each
+  // vertex is a pitch, and the three edges are the intervals (M3, m3, P5).
+  // On other layouts the triangles still show neighbor relationships,
+  // though they may not form traditional triads.
+
+  function _isValidCellIdx(cellIdx) {
+    return (cellIdx >= 0) && (cellIdx < _hexPtrCells.length) && (_hexPtrCells[cellIdx]);
+  }
+
+  function _tryDrawMajorTriangle(idx, col, row, upperRightCol, pid) {
+    var idxRight = _hexPtrCellIndex(col + 1, row);
+    var idxUpperRight = _hexPtrCellIndex(upperRightCol, row + 1);
+    var allValid = _isValidCellIdx(idx) && _isValidCellIdx(idxRight) && _isValidCellIdx(idxUpperRight);
+    if (allValid) {
+      _hexDrawTriangleOverlay(idx, idxRight, idxUpperRight, MAJOR_TRIANGLE_COLOR, pid);
+    }
+  }
+
+  function _tryDrawMinorTriangle(idx, col, row, lowerLeftCol, pid) {
+    var idxLeft = _hexPtrCellIndex(col - 1, row);
+    var idxLowerLeft = _hexPtrCellIndex(lowerLeftCol, row - 1);
+    var allValid = _isValidCellIdx(idx) && _isValidCellIdx(idxLeft) && _isValidCellIdx(idxLowerLeft);
+    if (allValid) {
+      _hexDrawTriangleOverlay(idx, idxLeft, idxLowerLeft, MINOR_TRIANGLE_COLOR, pid);
+    }
+  }
 
   function _hexShowTriangles(idx, pointerId) {
     var pid = (pointerId !== undefined) ? pointerId : '_default';
@@ -565,8 +705,9 @@
     var col = cr.col;
     var row = cr.row;
 
-    // In a pointy-top hex grid with staggered rows, the neighbors differ
-    // based on whether the row is even or odd.
+    // In a pointy-top hex grid with staggered rows, the neighbor column
+    // indices depend on row parity. This is a fundamental property of
+    // offset hex coordinates (as opposed to axial/cube coordinates).
     // Even row: upper-right = (col, row+1), upper-left = (col-1, row+1)
     // Odd row:  upper-right = (col+1, row+1), upper-left = (col, row+1)
     var isOddRow = (row % 2 === 1);
@@ -579,28 +720,14 @@
     var hasRight = ((col + 1) < _hexPtrCols);
     var hasUpperRight = ((upperRightCol >= 0) && (upperRightCol < _hexPtrCols) && ((row + 1) < _hexPtrRows));
     if (hasRight && hasUpperRight) {
-      var idxRight = _hexPtrCellIndex(col + 1, row);
-      var idxUpperRight = _hexPtrCellIndex(upperRightCol, row + 1);
-      var upAllValid = (idx >= 0) && (idx < _hexPtrCells.length) && (_hexPtrCells[idx]) &&
-                       (idxRight >= 0) && (idxRight < _hexPtrCells.length) && (_hexPtrCells[idxRight]) &&
-                       (idxUpperRight >= 0) && (idxUpperRight < _hexPtrCells.length) && (_hexPtrCells[idxUpperRight]);
-      if (upAllValid) {
-        _hexDrawTriangleOverlay(idx, idxRight, idxUpperRight, MAJOR_TRIANGLE_COLOR, pid);
-      }
+      _tryDrawMajorTriangle(idx, col, row, upperRightCol, pid);
     }
 
     // Downward triangle: this + left neighbor + lower-left neighbor
     var hasLeft = ((col - 1) >= 0);
     var hasLowerLeft = ((lowerLeftCol >= 0) && (lowerLeftCol < _hexPtrCols) && ((row - 1) >= 0));
     if (hasLeft && hasLowerLeft) {
-      var idxLeft = _hexPtrCellIndex(col - 1, row);
-      var idxLowerLeft = _hexPtrCellIndex(lowerLeftCol, row - 1);
-      var downAllValid = (idx >= 0) && (idx < _hexPtrCells.length) && (_hexPtrCells[idx]) &&
-                         (idxLeft >= 0) && (idxLeft < _hexPtrCells.length) && (_hexPtrCells[idxLeft]) &&
-                         (idxLowerLeft >= 0) && (idxLowerLeft < _hexPtrCells.length) && (_hexPtrCells[idxLowerLeft]);
-      if (downAllValid) {
-        _hexDrawTriangleOverlay(idx, idxLeft, idxLowerLeft, MINOR_TRIANGLE_COLOR, pid);
-      }
+      _tryDrawMinorTriangle(idx, col, row, lowerLeftCol, pid);
     }
     } // end if (_hexGridEl)
   }
@@ -692,6 +819,13 @@
   // ============================================================
   // Hex pointer event handlers (multi-touch, ported from tonnetz)
   // ============================================================
+  //
+  // The pointer event flow: pointerdown -> activate cell(s) based on
+  // hit zone (center/edge/vertex) -> pointermove -> diff old vs new
+  // MIDI lists, deactivate removed notes, activate added notes ->
+  // pointerup -> deactivate all notes for that pointer. Each pointer
+  // maintains its own independent MIDI list, enabling true polyphonic
+  // multi-touch with per-finger chord voicings.
 
   // Convert pointer event to grid-relative coordinates for _hexHitTest
   function _hexPointerToGridCoords(e) {
@@ -1195,6 +1329,12 @@
   // ============================================================
   // Build Hex Grid (unified: Wicki-Hayden, Tonnetz, Harmonic, etc.)
   // ============================================================
+  //
+  // The hex grid is the primary isomorphic surface. It unifies all
+  // hex-based layouts (Wicki-Hayden, Harmonic Table, Tonnetz, Janko,
+  // Park, Gerhard) into a single controller with a layout selector.
+  // The Tonnetz surface (ssli-ctrl-tonnetz.js) is now an alias that
+  // points to this unified hex controller.
 
   function _buildLayoutSelector(container, presets, currentVal, onChange) {
     var bar = document.createElement('div');
@@ -1269,13 +1409,20 @@
     _hexNoteOnFn = noteOn;
     _hexNoteOffFn = noteOff;
     _hexBaseOctave = baseOctave;
+    // Base MIDI adds 1 octave because MIDI octave numbering starts at -1
+    // (MIDI 0 = C-1, so octave 3 = MIDI 48 = (3+1)*12)
     _hexBaseMidi = (baseOctave + 1) * SEMITONES_PER_OCTAVE + _hexRootPc;
 
     var containerW = container.clientWidth || DEFAULT_CONTAINER_WIDTH;
     var containerH = container.clientHeight || DEFAULT_CONTAINER_HEIGHT;
     var isPhone = (containerW < PHONE_WIDTH_THRESHOLD);
 
-    // Compute hex geometry
+    // ----------------------------------------------------------------
+    // Hex geometry computation. The goal is to fill the available space
+    // with the largest hexes that still give at least MIN_HEX_ROW_COUNT
+    // rows. Odd rows are offset by half a hex width, so the widest row
+    // spans cols*hexWidth + hexWidth/2 pixels.
+    // ----------------------------------------------------------------
     var availW = containerW;
     var availH = containerH - HEX_TOPBAR_HEIGHT_PX;
     var minHexWidth = isPhone ? HEX_MIN_SIZE_PHONE : HEX_MIN_SIZE_DESKTOP;
@@ -1284,7 +1431,8 @@
     //   hexWidth = size * sqrt(3), hexHeight = size * 2
     //   vertical spacing = hexHeight * 3/4
     //   odd rows offset right by hexWidth / 2
-    var cols = Math.floor((availW / minHexWidth) - 0.5);
+    var safeMinHexWidth = minHexWidth || 1;
+    var cols = Math.floor((availW / safeMinHexWidth) - 0.5);
     if (cols < 3) { cols = 3; }
 
     var hexWidth = Math.floor((2 * availW) / (2 * cols + 1));
@@ -1301,7 +1449,8 @@
     }
 
     var verticalSpacing = Math.floor(hexHeight * 0.75);
-    var rows = Math.floor((availH - hexHeight) / verticalSpacing) + 1;
+    var safeVerticalSpacing = verticalSpacing || 1;
+    var rows = Math.floor((availH - hexHeight) / safeVerticalSpacing) + 1;
     if (rows < MIN_HEX_ROW_COUNT) { rows = MIN_HEX_ROW_COUNT; }
 
     var fontSize = isPhone ? HEX_FONT_SIZE_PHONE : HEX_FONT_SIZE_DESKTOP;
@@ -1408,8 +1557,15 @@
   // ============================================================
   // Multi-touch + pitch-bend helpers for rect grid
   // ============================================================
+  //
+  // The rectangular grid supports per-touch pitch bend: dragging
+  // horizontally within a cell bends the pitch up to +/- 200 cents
+  // (2 semitones). This adds MPE-like expressivity to the isomorphic
+  // surface. Sliding to a new cell releases the old note, resets the
+  // bend, and triggers the new note -- creating a smooth glissando.
 
-  /** Walk up from el to find nearest data-midi ancestor inside boundary. */
+  // Walk up from el to find nearest data-midi ancestor inside boundary.
+  // This DOM traversal handles clicks on child spans (note name, octave).
   function _findMidiTarget(el, boundary) {
     var target = el;
     while (target && (target !== boundary)) {
@@ -1467,7 +1623,8 @@
         // Pitch bend from horizontal drag
         if (hasBend) {
           var dx = t.clientX - info.startX;
-          var bendCents = (dx / cellW) * CENTS_PER_SEMITONE;
+          var safeCellW = cellW || 1;
+          var bendCents = (dx / safeCellW) * CENTS_PER_SEMITONE;
           bendCents = Math.max(-MAX_BEND_CENTS, Math.min(MAX_BEND_CENTS, bendCents));
           applyPitchBend(bendCents);
         }
@@ -1548,7 +1705,8 @@
       if (!_isMouseDown || (_mouseMidi < 0)) { return; }
       if (hasBend) {
         var dx = e.clientX - _mouseStartX;
-        var bendCents = (dx / cellW) * CENTS_PER_SEMITONE;
+        var safeCellW = cellW || 1;
+        var bendCents = (dx / safeCellW) * CENTS_PER_SEMITONE;
         bendCents = Math.max(-MAX_BEND_CENTS, Math.min(MAX_BEND_CENTS, bendCents));
         applyPitchBend(bendCents);
       }
@@ -1572,6 +1730,12 @@
   // ============================================================
   // Build Rectangular Iso Keyboard (unified: iso4, iso5, chromatic)
   // ============================================================
+  //
+  // The rectangular grid is the simpler of the two geometries. Each
+  // row is offset by rowInterval semitones, and columns advance by
+  // colInterval semitones. This produces the classic isomorphic
+  // property described by Bosanquet (1876): identical fingering
+  // patterns work in every key.
 
   function _buildRectGrid(container, opts) {
     var interval = opts.interval || _currentRectInterval;
@@ -1629,24 +1793,24 @@
     if (fixedCols > 0) {
       // Fixed-column layout (e.g. Chromatic 12-col): no gap, fill exactly
       cols = fixedCols;
-      cellW = Math.floor(containerW / cols);
-      rows = Math.max(2, Math.floor(containerH / cellW));
-      cellH = Math.floor(containerH / rows);
+      cellW = Math.floor(containerW / (cols || 1));
+      rows = Math.max(2, Math.floor(containerH / (cellW || 1)));
+      cellH = Math.floor(containerH / (rows || 1));
     } else {
       // Normal isomorphic layout with gaps
       cols = isPhone ? RECT_PHONE_MAX_COLS : RECT_DESKTOP_COLS;
       rows = RECT_DEFAULT_ROWS;
 
-      cellW = Math.floor((containerW - ((cols - 1) * GRID_GAP)) / cols);
-      cellH = Math.floor((containerH - ((rows - 1) * GRID_GAP)) / rows);
+      cellW = Math.floor((containerW - ((cols - 1) * GRID_GAP)) / (cols || 1));
+      cellH = Math.floor((containerH - ((rows - 1) * GRID_GAP)) / (rows || 1));
 
       while ((cellW < RECT_MIN_CELL_SIZE) && (cols > 3)) {
         cols = cols - 1;
-        cellW = Math.floor((containerW - ((cols - 1) * GRID_GAP)) / cols);
+        cellW = Math.floor((containerW - ((cols - 1) * GRID_GAP)) / (cols || 1));
       }
       while ((cellH < RECT_MIN_CELL_SIZE) && (rows > 2)) {
         rows = rows - 1;
-        cellH = Math.floor((containerH - ((rows - 1) * GRID_GAP)) / rows);
+        cellH = Math.floor((containerH - ((rows - 1) * GRID_GAP)) / (rows || 1));
       }
 
       if (cellW < RECT_MIN_CELL_SIZE) { cellW = RECT_MIN_CELL_SIZE; }
@@ -1785,8 +1949,12 @@
   }
 
   // ============================================================
-  // Register
+  // Register controllers
   // ============================================================
+  //
+  // Three controller names map to two implementations:
+  //   grid / iso5 -> rectangular isomorphic grid (iso5 is a legacy alias)
+  //   hex -> hexagonal grid (includes Tonnetz as a layout preset)
 
   if (!SL.controllers) { SL.controllers = {}; }
 

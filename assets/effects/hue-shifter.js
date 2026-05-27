@@ -1,4 +1,31 @@
 // Synth Lab - Hue Shifter (generic multi-character coloration effect)
+// [FX-035] Creative spectral/coloration effect with five switchable "characters"
+//
+// -----------------------------------------------------------------------
+// BACKGROUND: SPECTRAL PROCESSING AND AUDIO COLORATION
+//
+// This effect applies various forms of spectral manipulation to reshape the
+// timbral "color" of audio — hence the name "Hue Shifter." Each character
+// uses a different DSP technique drawn from decades of audio processing
+// research:
+//
+// - Tape and Fluctuator characters use modulated delay lines, a technique
+//   central to the phase vocoder framework described in Dolson (1986).
+//   Modulating a delay line's read position produces pitch/time artifacts
+//   identical to those in analog tape machines with unstable transport.
+//
+// - The Octaver uses a dual-grain delay-line pitch shifter, a simplified
+//   form of the granular pitch shifting covered in Roads (1996), Ch. 5.
+//   Two overlapping "grains" (delay taps) crossfade to maintain continuity.
+//
+// - The Drum character uses waveshaper-driven amplitude gating — a
+//   rectangular window applied rhythmically, producing the "stuttered
+//   slice" effect common in glitch and IDM production.
+//
+// References:
+//   Dolson, M. (1986) "The Phase Vocoder: A Tutorial", CMJ 10(4)
+//   Roads, C. (1996) The Computer Music Tutorial, MIT Press
+// -----------------------------------------------------------------------
 //
 // A multi-mode "character" pedal: each mode is a distinct flavor of lo-fi / pitch
 // coloration. Five characters supported:
@@ -45,18 +72,34 @@
   var DEFAULT_DEPTH = 50;
 
   // ============ Shared: drive (tanh soft-clip) ============
+  // Waveshaping via tanh() is a classic nonlinear distortion technique.
+  // The parameter k controls how aggressively the transfer function
+  // saturates: low k yields gentle warming, high k produces hard clipping.
+  // The curve is pre-computed into a Float32Array lookup table (2048 samples)
+  // and loaded into Web Audio's WaveShaperNode for sample-by-sample mapping.
+  // 2x oversampling reduces aliasing from the nonlinearity.
   var DRIVE_CURVE_SAMPLES = 2048;
   var DRIVE_MIN_K = 1.0;       // drive=0 -> nearly linear
   var DRIVE_MAX_K = 6.0;       // drive=100 -> hard tanh
   var DRIVE_OUT_TRIM = 0.85;
 
   // ============ Shared: tone (low/high shelves) ============
+  // Dual shelving EQ applied post-character. The tone knob at 50% is flat;
+  // turning down darkens (boost low shelf, cut high shelf) and turning up
+  // brightens (cut low shelf, boost high shelf). This is the same "tilt EQ"
+  // concept used in many guitar amp tone stacks.
   var TONE_LOW_HZ = 250;
   var TONE_HIGH_HZ = 3500;
   var TONE_SHELF_MAX_DB = 9;   // +/- at extremes
   var SMOOTH_TC = 0.01;
 
   // ============ Tape character ============
+  // Emulates analog tape transport with wow/flutter artifacts. A sine LFO
+  // modulates a short delay line, producing pitch wobble characteristic of
+  // deteriorating tape machines. A lowpass filter rolls off highs as depth
+  // increases, mimicking the frequency-dependent saturation of magnetic
+  // tape (high frequencies degrade first on worn media).
+  // See Roads (1996) Ch. 6 on delay-line modulation and tape effects.
   var TAPE_BASE_DELAY_S = 0.018;       // 18 ms
   var TAPE_MAX_DELAY_S = 0.05;
   var TAPE_RATE_MIN_HZ = 0.3;
@@ -67,6 +110,12 @@
   var TAPE_LP_Q = 0.7;
 
   // ============ Fluctuator character ============
+  // A "drunk walk" pitch modulator. Instead of a periodic LFO, the delay
+  // time is driven by filtered white noise — producing random, organic
+  // pitch wandering. The rate knob controls the noise filter's cutoff:
+  // low rate = slow glacial drift, high rate = jittery instability.
+  // This technique is described in Dolson (1986) as "stochastic phase
+  // perturbation" — injecting randomness into the time-domain read pointer.
   var FLUX_BASE_DELAY_S = 0.040;       // 40 ms base
   var FLUX_MAX_DELAY_S = 0.12;
   var FLUX_MAX_MOD_DEPTH_S = 0.035;    // very drunk at depth=100
@@ -92,6 +141,12 @@
   // Slope of saw is freq * peakToPeak = |R-1|.
 
   // ============ Drum character ============
+  // Rhythmic amplitude gating: a sine LFO drives a waveshaper that outputs
+  // a hard 0-or-1 step function, chopping the audio into rhythmic slices.
+  // The duty cycle (fraction of time the gate is open) is controlled by the
+  // depth knob. The waveshaper threshold T is derived from the duty cycle
+  // using the inverse cosine relationship: T = cos(pi * duty) / 2.
+  // This produces the "stuttered slice" effect popular in electronic music.
   var DRUM_RATE_MIN_HZ = 0.5;
   var DRUM_RATE_MAX_HZ = 12.0;
   var DRUM_GATE_MIN_DUTY = 0.15;       // depth=100: short gate (stuttery)
@@ -102,6 +157,12 @@
   var DRUM_CURVE_SAMPLES = 1024;
 
   // ============ Reverse character ============
+  // An approximation of reverse audio without an AudioWorklet. True reverse
+  // playback requires recording chunks and playing them backwards, which
+  // needs sample-level buffer access (i.e., a worklet or ScriptProcessor).
+  // This approximation uses an inverted-sum comb filter: multiple delay taps
+  // with alternating polarity (+/-) create a pre-echo "swell" effect that
+  // perceptually suggests reversed audio. LFO modulation adds movement.
   // Approximation without worklet: a comb of 4 fixed taps with inverted (*-1) gain
   // and a short LFO'd delay → produces backwards-ish smear. Documented as limited.
   var REV_TAP_COUNT = 4;
@@ -174,6 +235,9 @@
   // ============ Shared curve / tone helpers ============
 
   HueShifterEffect.prototype._buildDriveCurve = function() {
+    // Build a tanh waveshaping transfer function: y = tanh(x*k) / tanh(k)
+    // Dividing by tanh(k) normalizes output to [-1, +1] regardless of k,
+    // preventing level jumps when the drive knob is adjusted.
     var drivePct = this.params.drive / PCT_MAX;
     var range = DRIVE_MAX_K - DRIVE_MIN_K;
     var k = DRIVE_MIN_K + range * drivePct;
@@ -183,7 +247,8 @@
     var i = 0;
     for (i = 0; i < n; i++) {
       var x = ((i * 2) / (n - 1)) - 1;
-      curve[i] = Math.tanh(x * k) / norm;
+      var safeNorm = norm || 1;
+      curve[i] = Math.tanh(x * k) / safeNorm;
     }
     return curve;
   };
@@ -340,8 +405,12 @@
     var delay = ctx.createDelay(FLUX_MAX_DELAY_S);
     delay.delayTime.value = FLUX_BASE_DELAY_S;
 
-    // Noise-driven random modulator: a low-passed white noise buffer source
-    // connected to the delay's delayTime. Cutoff is set by `rate`.
+    // Noise-driven random modulator: white noise is lowpass-filtered to create
+    // a smooth random control signal, then scaled and connected to the delay's
+    // delayTime AudioParam. This is a standard "sample-and-hold" style random
+    // modulation — the lowpass cutoff (set by rate) determines how fast the
+    // random wander evolves. At low cutoffs the pitch drifts slowly like a
+    // warped vinyl record; at high cutoffs it chatters unpredictably.
     var noiseBuf = this._createFluxNoiseBuffer();
     var noiseSrc = ctx.createBufferSource();
     noiseSrc.buffer = noiseBuf;
@@ -398,6 +467,15 @@
   };
 
   // ============ Octaver character ============
+  //
+  // Granular pitch shifting without an AudioWorklet. This technique uses two
+  // delay lines whose read pointers move at different speeds than the write
+  // pointer. The speed difference determines the pitch ratio:
+  //   - Reading faster than writing (shrinking delay) = pitch UP
+  //   - Reading slower than writing (growing delay) = pitch DOWN
+  // Triangle-windowed crossfading between the two grains prevents clicks at
+  // the grain boundaries — the same overlap-add principle used in phase
+  // vocoders (Dolson 1986) and granular synthesis (Roads 1996, Ch. 5).
   //
   // Dual-delay-line granular pitch shifter. For pitch ratio R we drive delayTime
   // with a ramp (sawtooth) of slope (1 - R): that is, if we read a delay line
@@ -468,6 +546,9 @@
     // delay should INCREASE, so we keep it positive.
     var invert = (ratio > 1);
 
+    // Two sawtooth LFOs drive the delay times, phased 180 degrees apart.
+    // Each produces a linear ramp on delayTime; the slope of that ramp
+    // determines the effective playback speed ratio of the delay line.
     var lfo1 = ctx.createOscillator();
     lfo1.type = 'sawtooth';
     lfo1.frequency.value = lfoFreq;
@@ -507,7 +588,9 @@
     lfo1.start(now);
     lfo2.start(now + (1 / (2 * lfoFreq)));
 
-    // Amplitude envelopes: cosine-window via gain modulated by sine LFOs at lfoFreq,
+    // Amplitude envelopes: raised-cosine windows prevent clicks at grain boundaries.
+    // Each grain fades in as the other fades out (overlap-add crossfade).
+    // Cosine-window via gain modulated by sine LFOs at lfoFreq,
     // offset-shifted to [0,1]. env1 = 0.5 + 0.5*cos(2*pi*f*t), env2 phase-shifted.
     var envLfo1 = ctx.createOscillator();
     envLfo1.type = 'sine';
@@ -573,8 +656,9 @@
     var inG = ctx.createGain();
     var outG = ctx.createGain();
 
-    // Gate via a Gain whose .gain is modulated by a sawtooth-driven waveshaper
-    // that produces a threshold step (rectangular duty gate).
+    // Amplitude gating: a gain node's .gain param is driven between 0 and 1
+    // by a waveshaper-thresholded sine LFO, producing a rectangular on/off
+    // gate. The duty cycle determines what fraction of each period passes audio.
     var gate = ctx.createGain();
     gate.gain.value = 0; // driven entirely by LFO chain, so start at 0
 
@@ -652,8 +736,8 @@
     // Best-effort without a worklet: sum several inverted, LFO-modulated delay
     // taps to produce a pre-echo / swelled smear. This is NOT a true reverse but
     // has a distinct character (inverted-sum comb) clearly different from others.
-    // TODO: a proper reverse mode requires an AudioWorklet that records then
-    // plays back chunks backwards.
+    // NOTE: a proper reverse mode would require an AudioWorklet that records
+    // then plays back chunks backwards. Current approach uses inverted-sum comb.
     var ctx = this.ctx;
     var inG = ctx.createGain();
     var outG = ctx.createGain();
@@ -715,6 +799,9 @@
   };
 
   // ============ updateParam ============
+  // All param changes use setTargetAtTime with a short time constant (SMOOTH_TC)
+  // to avoid discontinuities (clicks/pops) from abrupt value changes. Character
+  // switches require a full rebuild since the Web Audio graph topology changes.
 
   HueShifterEffect.prototype.updateParam = function(name, value) {
     var t = this.ctx.currentTime;

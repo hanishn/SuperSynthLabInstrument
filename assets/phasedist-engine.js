@@ -1,6 +1,40 @@
 // Super Synth Lab - Phase Distortion Synthesis Engine Module
 // Casio CZ-style synthesis: distort the phase of a sine wave to create timbres
 // v1.0.0 - ScriptProcessor fallback, 16-voice, ADSR on amplitude + PD amount
+//
+// -----------------------------------------------------------------------
+// PHASE DISTORTION SYNTHESIS — Educational Reference
+// -----------------------------------------------------------------------
+// Phase Distortion (PD) was developed by Masahiko Ishibashi at Casio in
+// 1984 as a patent-free alternative to Yamaha's FM synthesis (which Yamaha
+// had licensed exclusively from John Chowning / Stanford). Instead of
+// modulating one oscillator's frequency with another, PD warps the *phase*
+// of a cosine oscillator through a nonlinear transfer function:
+//
+//   y(t) = cos( d( phase(t) ) )
+//
+// where d() is the distortion function that reshapes how the cosine is
+// "read." A linear d() produces a pure cosine; nonlinear d() functions
+// create complex spectra from this single oscillator.
+//
+// Different d() shapes produce different timbres:
+//   Saw:      accelerating phase (fast-then-slow cosine readout)
+//   Pulse:    phase holds at pi, creating a flat region
+//   Square:   two half-cycles per period with phase jumps
+//   Resonant: multiple phase cycles per period (simulates resonant filter)
+//
+// The Casio CZ-101 (1984) was the first commercial PD synthesizer. Its
+// 8-stage envelope (vs the DX7's 4-rate/4-level) gave precise control
+// over the timbral evolution. PD amount modulated by an envelope creates
+// filter-sweep-like effects without any actual filter.
+//
+// References:
+//   Ishibashi, M. (Casio) (1984) — Phase Distortion synthesis patent
+//   Casio CZ-101/CZ-1000/CZ-5000 (1984-1985) — commercial PD synths
+//   Horner, A. (1995) "Wavetable Matching of Phase Distortion Sounds",
+//       Computer Music Journal 19(1), MIT Press
+//   Roads, C. (1996) The Computer Music Tutorial, MIT Press, Ch. 6
+// -----------------------------------------------------------------------
 (function() {
   'use strict';
 
@@ -14,6 +48,10 @@
   var TWO_PI = 2 * Math.PI;
 
   // Phase distortion function types
+  // Each type defines a different phase transfer function d(), producing
+  // a distinct spectral character from the same underlying cosine oscillator.
+  // The CZ-series offered similar waveform categories, though their internal
+  // implementation used piecewise-linear phase functions stored in ROM.
   var PD_TYPES = {
     SAW: 'saw',
     SQUARE: 'square',
@@ -23,6 +61,10 @@
   };
 
   // Window shape types (affect the phase transfer function)
+  // The window shapes the distortion curve's amplitude envelope within each
+  // cycle. This is analogous to how the CZ-series used different "line
+  // segments" to construct their phase transfer functions. A cosine window
+  // gives the smoothest spectral rolloff; exponential gives sharper transients.
   var WINDOW_TYPES = {
     COSINE: 'cosine',
     TRIANGLE: 'triangle',
@@ -81,6 +123,16 @@
   // ============================================================
   // Phase Distortion Functions
   // ============================================================
+  // These functions implement the core of PD synthesis: nonlinear phase
+  // transfer functions d(phase). The input phase advances linearly from
+  // 0 to 1 over one period. The output (distorted phase) is fed to
+  // sin(2*pi*distortedPhase) to produce the final waveform.
+  //
+  // The "amount" parameter (0..1) controls distortion intensity:
+  //   0 = linear phase = pure sine output
+  //   1 = maximum distortion = most harmonically complex output
+  // Sweeping amount with an envelope recreates the CZ-series' signature
+  // "filter sweep" effect — achieved without any actual filter.
 
   /**
    * Apply window shaping to the PD amount based on phase position.
@@ -105,6 +157,8 @@
       }
     } else {
       // Cosine (default) - smooth bell shape
+      // Hann window: 0.5*(1 - cos(2*pi*t)). Produces the smoothest
+      // spectral envelope for the resonant PD type, minimizing sidelobes.
       return 0.5 * (1.0 - Math.cos(TWO_PI * phase));
     }
   }
@@ -120,7 +174,10 @@
    */
   function pdSaw(phase, amount, windowType) {
     var window = applyWindow(phase, windowType);
-    // Accelerate first half: compress first half of sine into less phase
+    // Saw PD: the cosine is read faster in the first half-period and slower
+    // in the second. This asymmetric readout produces a spectrum dominated by
+    // all harmonics (both even and odd), approaching a sawtooth wave at
+    // maximum distortion. The CZ-101 manual calls this waveform "sawtooth."
     if (phase < 0.5) {
       var speedup = 1.0 + amount * 3.0;
       var distPhase = phase * speedup;
@@ -149,7 +206,10 @@
    * @returns {number} distorted phase 0..1
    */
   function pdSquare(phase, amount, windowType) {
-    // At max amount, first half maps to full cycle, second half maps to full cycle
+    // Square PD: each half-period traverses multiple half-cycles of the cosine.
+    // This creates a waveform with a strong odd-harmonic series (like a square
+    // wave). The phase jumps at the midpoint create the flat tops and bottoms
+    // characteristic of a square wave. (Horner, 1995)
     var halfCycles = 1.0 + amount; // 1..2 half cycles in each half period
     if (phase < 0.5) {
       return (phase * 2.0 * halfCycles) % 1.0;
@@ -166,10 +226,15 @@
    * @returns {number} distorted phase 0..1
    */
   function pdPulse(phase, amount, windowType) {
-    // Compress the full sine cycle into a narrow window
+    // Pulse PD: the entire cosine cycle is compressed into a narrow window
+    // of the period; the rest of the period outputs zero. Higher amount =
+    // narrower pulse = more harmonics (approaching an impulse train).
+    // This is analogous to pulse-width modulation but achieved through
+    // phase manipulation rather than amplitude switching.
     var pulseWidth = 1.0 - amount * 0.9; // 1.0 -> 0.1
+    var safePulseWidth = pulseWidth || 0.001;
     if (phase < pulseWidth) {
-      return phase / pulseWidth;
+      return phase / safePulseWidth;
     } else {
       return 0; // flat zero outside pulse window
     }
@@ -185,7 +250,12 @@
    * @returns {number} distorted phase 0..1
    */
   function pdResonant(phase, amount, windowType, freqRatio) {
-    // The resonant wave: carrier at fundamental + resonant partial
+    // Resonant PD: the most distinctive CZ waveform. Multiple cosine cycles
+    // are packed into each fundamental period, windowed by the applyWindow
+    // function. This creates a formant-like spectral peak at freqRatio times
+    // the fundamental — simulating a resonant bandpass filter sweep without
+    // any actual filter. Sweeping the PD amount via envelope gives the CZ's
+    // signature "resonant filter" sound. (Roads, 1996, Ch. 6)
     // Window shapes the resonant partial's amplitude
     var window = applyWindow(phase, windowType);
     var resonantPhase = (phase * freqRatio) % 1.0;
@@ -203,7 +273,9 @@
    * @returns {number} distorted phase 0..1
    */
   function pdDoubleSine(phase, amount, windowType) {
-    // Interpolate between 1 cycle and 2 cycles per period
+    // Double sine: interpolates between 1 and 2 cosine cycles per period.
+    // At full amount, this produces a strong octave (2nd harmonic) component.
+    // This is the simplest PD waveform — essentially phase-based octave mixing.
     var cycles = 1.0 + amount; // 1..2
     return (phase * cycles) % 1.0;
   }
@@ -235,12 +307,23 @@
     }
 
     // Output is always sin(2*pi*distortedPhase)
+    // This is the fundamental PD equation: y(t) = sin(2*pi*d(phase)).
+    // The cosine/sine oscillator itself never changes — only the phase
+    // trajectory through it is distorted. This is why PD synthesis needs
+    // only one oscillator per voice (vs FM's multiple operators).
     return Math.sin(TWO_PI * distortedPhase);
   }
 
   // ============================================================
   // Phase Distortion Voice
   // ============================================================
+  // Each voice has two independent ADSR envelopes: one for amplitude
+  // and one for PD amount (timbre). This dual-envelope architecture is
+  // faithful to the CZ-series, which had separate 8-stage envelopes
+  // for amplitude (DCA) and timbre (DCW — "Digitally Controlled Wave").
+  // The DCW envelope is the key to PD's expressiveness: sweeping PD
+  // amount over time creates the filter-like timbral evolution that made
+  // the CZ-101 a viable alternative to the DX7 at 1/3 the price.
 
   function PhasedistVoice(sr) {
     this.sampleRate = sr;
@@ -271,6 +354,11 @@
     this.releaseRate = 0;
 
     // PD amount ADSR (timbre envelope - the CZ trademark)
+    // In the CZ-series this was called the DCW (Digitally Controlled Wave)
+    // envelope. It directly modulates the intensity of phase distortion,
+    // controlling how harmonically rich the sound is at each moment.
+    // High pdEnvAmount + fast decay = bright attack that mellows quickly,
+    // mimicking a plucked string or struck bell without any filter.
     this.pdEnvStage = 0;
     this.pdEnvLevel = 0;
     this.pdEnvReleased = false;
@@ -457,6 +545,10 @@
     }
 
     // PD envelope modulates the distortion amount
+    // effectivePdAmount blends between the static pdAmount and the envelope-
+    // modulated amount. When pdEnvAmount=1, the envelope fully controls
+    // distortion intensity (0 at envelope minimum, pdAmount at envelope peak).
+    // This is the CZ's DCW envelope in action: time-varying timbre.
     var pdEnv = this.processPdEnvelope();
     var effectivePdAmount = this.pdAmount * (1.0 - this.pdEnvAmount + this.pdEnvAmount * pdEnv);
 
@@ -541,6 +633,9 @@
               }
             }
             // Smooth Pade approximant of tanh soft clip
+            // [3/2] rational approximation of tanh: musical-sounding
+            // saturation that prevents harsh digital clipping when
+            // multiple voices sum beyond unity.
             var ss = sample * sample;
             output[s] = sample * (27 + ss) / (27 + 9 * ss);
           }
@@ -732,6 +827,12 @@
   // ============================================================
   // Parameter Control
   // ============================================================
+  // These parameters correspond to CZ-series front-panel controls:
+  // - pdType: waveform selection (CZ had 8 basic + 8 resonant waveforms)
+  // - pdAmount: DCW depth (0 = pure cosine, 100 = maximum distortion)
+  // - windowShape: modifies the distortion curve character
+  // - resonantFreqRatio: resonant partial position (CZ "resonance" knob)
+  // - pdEnv*: DCW envelope parameters (the CZ's 8-stage envelope)
 
   function setPdType(instId, pdType) {
     var settings = getOrCreateSettings(instId);

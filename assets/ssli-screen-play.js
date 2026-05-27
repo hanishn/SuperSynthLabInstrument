@@ -70,7 +70,8 @@
   function midiToFreq(midi) { return A4_FREQ * Math.pow(2, (midi - A4_MIDI) / SEMITONES_PER_OCTAVE); }
 
   function _scaleInterval(scale, fromDeg, degreesUp) {
-    var toDeg = (fromDeg + degreesUp) % scale.length;
+    var safeScaleLen = scale.length || 1;
+    var toDeg = (fromDeg + degreesUp) % safeScaleLen;
     var interval = scale[toDeg] - scale[fromDeg];
     if (interval <= 0) { interval += 12; }
     return interval;
@@ -190,14 +191,17 @@
       if (voiceData.oscillators) {
         for (var i = 0; i < voiceData.oscillators.length; i++) {
           var entry = voiceData.oscillators[i];
-          if (entry && entry.osc && entry.osc.detune) {
+          var hasDetuneParam = (entry && entry.osc && entry.osc.detune);
+          if (hasDetuneParam) {
             if (entry._origDetune === undefined) { entry._origDetune = entry.osc.detune.value; }
             entry.osc.detune.value = entry._origDetune + cents;
           }
         }
       }
-      if (voiceData.fm && SL.fm && SL.fm.setBend) { SL.fm.setBend(cents); }
-      if (voiceData.physical && SL.physical && SL.physical.setBend) { SL.physical.setBend(cents); }
+      var canBendFm = (voiceData.fm && SL.fm && SL.fm.setBend);
+      if (canBendFm) { SL.fm.setBend(cents); }
+      var canBendPhysical = (voiceData.physical && SL.physical && SL.physical.setBend);
+      if (canBendPhysical) { SL.physical.setBend(cents); }
     });
   }
 
@@ -210,7 +214,9 @@
       if (voiceData.oscillators) {
         for (var i = 0; i < voiceData.oscillators.length; i++) {
           var entry = voiceData.oscillators[i];
-          if (entry && entry.osc && entry.osc.detune && (entry._origDetune !== undefined)) {
+          var hasDetuneToReset = (entry && entry.osc && entry.osc.detune);
+          var hasOrigDetune = (hasDetuneToReset && (entry._origDetune !== undefined));
+          if (hasOrigDetune) {
             entry.osc.detune.value = entry._origDetune;
             delete entry._origDetune;
           }
@@ -817,8 +823,11 @@
     }
     function animate() {
       _levelMeterAnimId = requestAnimationFrame(animate);
-      if (!analyser) {
-        if (SL.audio && SL.audio.getAnalyser) { analyser = SL.audio.getAnalyser(); } else { analyser = null; }
+      if (analyser) {
+        // analyser already acquired, proceed
+      } else {
+        var hasGetAnalyser = (SL.audio && SL.audio.getAnalyser);
+        if (hasGetAnalyser) { analyser = SL.audio.getAnalyser(); } else { analyser = null; }
         if (!analyser) { return; }
       }
       if (!timeDomainBuf) { timeDomainBuf = new Uint8Array(analyser.fftSize); }
@@ -1051,10 +1060,10 @@
 
   function _updatePresetName() { /* Preset display removed from Play screen — shown on Sound screen only */ }
 
-  function _onStateChange(what) {
-    if (!isScreenActive) { return; }
-    if ((what === 'preset') || (what === 'instrument')) { _updatePresetName(); }
-    if (what === 'surface') {
+  var STATE_CHANGE_HANDLERS = {
+    'preset': function() { _updatePresetName(); },
+    'instrument': function() { _updatePresetName(); },
+    'surface': function() {
       var sel = document.getElementById('ssliSurface');
       if (sel && (sel.value !== _keyMode)) {
         _keyMode = sel.value;
@@ -1062,6 +1071,12 @@
         _buildKeyboard();
       }
     }
+  };
+
+  function _onStateChange(what) {
+    if (!isScreenActive) { return; }
+    var handler = STATE_CHANGE_HANDLERS[what];
+    if (handler) { handler(); }
   }
 
   function activate() {
@@ -1096,7 +1111,8 @@
     isScreenActive = false;
     _stopAllNotes();
     if (_levelMeterAnimId) { cancelAnimationFrame(_levelMeterAnimId); _levelMeterAnimId = null; }
-    if (SL.controllers && SL.controllers.chordpads && SL.controllers.chordpads.clearStrumTimeouts) {
+    var canClearStrumTimeouts = (SL.controllers && SL.controllers.chordpads && SL.controllers.chordpads.clearStrumTimeouts);
+    if (canClearStrumTimeouts) {
       SL.controllers.chordpads.clearStrumTimeouts();
     }
     SL.state.removeListener(_onStateChange);

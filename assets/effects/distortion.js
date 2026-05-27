@@ -1,12 +1,49 @@
 // Synth Lab - Distortion Effect
 // Provides various distortion types: soft clip, hard clip, fuzz, tube, wavefold, bitcrush, and tape
+//
+// -----------------------------------------------------------------------
+// EDUCATIONAL NOTES: Digital Waveshaping Distortion [FX-030]
+// -----------------------------------------------------------------------
+// Waveshaping synthesis maps an input signal through a nonlinear transfer
+// function (a "curve"). The shape of the curve determines which harmonics
+// are added to the signal.
+//
+// Reference:
+//   Le Brun, M. (1979) "Digital Waveshaping Synthesis", JAES 27(4)
+//   Roads, C. (1996) The Computer Music Tutorial, MIT Press, Ch. 6
+//
+// This effect implements 7 waveshaping curves, each with distinct harmonic
+// character. The curves are stored as Float32Array lookup tables and applied
+// by the Web Audio WaveShaperNode.
+//
+// Aliasing problem: Nonlinear waveshaping generates new harmonics that may
+// exceed the Nyquist frequency and fold back as inharmonic artifacts.
+// Solution: 4x oversampling — the WaveShaperNode upsamples before shaping,
+// then lowpass-filters and downsamples, keeping aliased harmonics inaudible.
+//
+// Post-distortion tone filter: Distortion adds energy across the spectrum,
+// especially at high frequencies. A post-distortion lowpass (the "tone"
+// knob) tames harsh upper harmonics while preserving warmth below.
+// -----------------------------------------------------------------------
 
 (function() {
   var SL = window.SynthLab;
   var BaseEffect = SL.effects.BaseEffect;
 
   // Number of samples for waveshaper curves
+  // 44100 samples gives ~23-bit precision for the lookup table
   var CURVE_SAMPLES = 44100;
+
+  // -------------------------------------------------------------------
+  // Curve generators: each returns a Float32Array mapping input [-1,+1]
+  // to output [-1,+1]. The WaveShaperNode interpolates between samples.
+  // -------------------------------------------------------------------
+
+  // Soft clip: f(x) = tanh(x * k) / tanh(k)
+  // tanh provides smooth, monotonic saturation — the signal asymptotically
+  // approaches +/-1 without ever hard-clipping. This produces primarily
+  // odd harmonics with a warm, musical character. The division by tanh(k)
+  // normalizes the output so the curve always reaches +/-1 at full input.
 
   /**
    * Generate a soft clipping curve using tanh
@@ -23,6 +60,11 @@
     return curve;
   }
 
+  // Hard clip: clamp signal at +/-threshold, then normalize.
+  // This creates sharp corners in the waveform — a perfect square wave at
+  // maximum drive. The abrupt transition generates strong odd harmonics
+  // with a harsh, aggressive, distinctly digital character.
+
   /**
    * Generate a hard clipping curve
    * Creates aggressive, digital-style distortion
@@ -33,10 +75,19 @@
 
     for (var i = 0; i < CURVE_SAMPLES; i++) {
       var x = (i * 2 / CURVE_SAMPLES) - 1;
-      curve[i] = Math.max(-threshold, Math.min(threshold, x)) / threshold;
+      var safeThreshold = threshold || 0.001;
+      curve[i] = Math.max(-threshold, Math.min(threshold, x)) / safeThreshold;
     }
     return curve;
   }
+
+  // Fuzz: asymmetric clipping — positive side clips harder than negative.
+  // Asymmetry in the transfer function generates EVEN harmonics (2nd, 4th, ...),
+  // which symmetric curves (soft/hard clip) do not produce. This models the
+  // behavior of germanium transistor fuzz circuits (e.g., Fuzz Face, 1966),
+  // where PNP transistor bias drift creates inherently asymmetric clipping.
+  // The 0.9 scaling on the negative side plus the 1.5x vs 0.8x drive ratio
+  // creates the characteristic lopsided waveform.
 
   /**
    * Generate asymmetric fuzz curve
@@ -58,6 +109,16 @@
     }
     return curve;
   }
+
+  // Tube: polynomial approximation of vacuum tube (valve) saturation.
+  // Real tubes have a "soft knee" — a gradual transition from linear to
+  // saturated regions. Below the knee (absX < 0.5), the signal passes
+  // with gentle compression. Above it, exponential saturation limits gain.
+  // The slight asymmetry (0.95 positive vs 1.0 negative) adds even-order
+  // harmonics — the 2nd harmonic "warmth" prized in tube amplifiers.
+  // This two-region polynomial approach approximates the plate characteristic
+  // curves of a 12AX7 triode without the computational cost of full
+  // circuit simulation.
 
   /**
    * Generate tube amp simulation curve
@@ -96,6 +157,14 @@
     return curve;
   }
 
+  // Wavefold: f(x) = sin(x * N * pi * intensity)
+  // Serge-style wavefolding — when the signal exceeds a threshold, it
+  // "folds" back rather than clipping. Each fold adds harmonic content,
+  // producing the metallic, bell-like timbres characteristic of West Coast
+  // synthesis (Serge Modular, Buchla). The sine function naturally creates
+  // smooth folds. More folds = more harmonics = brighter, more complex sound.
+  // See wavefolder-engine.js for deeper theory on wavefolding synthesis.
+
   /**
    * Generate wavefolder curve (West Coast synthesis style)
    * Waveform folds back on itself at threshold, creating complex, evolving harmonics
@@ -116,6 +185,13 @@
     return curve;
   }
 
+  // Bitcrush: quantize signal amplitude to N discrete levels (2^bits).
+  // This models the effect of reducing bit depth — a 16-bit signal has
+  // 65536 levels, but at 4 bits only 16 levels remain, creating audible
+  // staircase steps (quantization noise). The noise floor rises as bits
+  // decrease: SNR ~ 6.02 * bits dB. At 1 bit, the signal becomes a
+  // square wave. This is the sound of early samplers (Fairlight, Emulator).
+
   /**
    * Generate bitcrusher curve (digital degradation)
    * Reduces bit depth creating quantization distortion
@@ -131,12 +207,22 @@
     for (var i = 0; i < CURVE_SAMPLES; i++) {
       var x = (i * 2 / CURVE_SAMPLES) - 1;
       // Quantize the signal to discrete levels
-      var quantized = Math.round(x * driveAmount * levels) / levels;
+      var safeLevels = levels || 1;
+      var quantized = Math.round(x * driveAmount * safeLevels) / safeLevels;
       // Clamp to valid range
       curve[i] = Math.max(-1, Math.min(1, quantized));
     }
     return curve;
   }
+
+  // Tape: hysteresis-inspired saturation model.
+  // Magnetic tape saturates asymmetrically — the magnetization curve (B-H)
+  // is not symmetric, which produces even-order harmonics (especially 2nd).
+  // The main curve uses f(x) = (1+k)*x / (1+k*|x|), a computationally
+  // cheap rational function that approximates magnetic hysteresis. The
+  // explicit 2nd-harmonic term (x^2 * sign(x)) models tape's characteristic
+  // warmth. The final tanh soft-limits the output, mimicking the natural
+  // compression ("glue") that tape machines add to peaks.
 
   /**
    * Generate tape saturation curve
@@ -180,6 +266,9 @@
 
       // Waveshaper for the actual distortion
       this.waveshaper = ctx.createWaveShaper();
+      // 4x oversampling: upsample to 4x sample rate before waveshaping, then
+      // lowpass filter and downsample. This prevents aliased harmonics from
+      // folding back into the audible range (Nyquist theorem).
       this.waveshaper.oversample = '4x'; // Reduce aliasing
 
       // Post-distortion tone control (lowpass filter)

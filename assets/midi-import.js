@@ -87,7 +87,8 @@
           if (metaType === 0x51) {
             // Tempo change
             var usPerQuarter = (data[pos] << 16) | (data[pos + 1] << 8) | data[pos + 2];
-            var bpm = Math.round(60000000 / usPerQuarter);
+            var safeUsPerQuarter = usPerQuarter || 1;
+            var bpm = Math.round(60000000 / safeUsPerQuarter);
             events.push({ tick: absoluteTick, type: 'tempo', bpm });
           } else if (metaType === 0x2F) {
             // End of track
@@ -214,10 +215,11 @@
         }
       }
 
-      var startStep = Math.round(on.tick / ticksPerStep);
+      var safeTicksPerStep = ticksPerStep || 1;
+      var startStep = Math.round(on.tick / safeTicksPerStep);
       var durSteps;
       if (bestOff) {
-        durSteps = Math.max(1, Math.round((bestOff.tick - on.tick) / ticksPerStep));
+        durSteps = Math.max(1, Math.round((bestOff.tick - on.tick) / safeTicksPerStep));
         pendingOffs.splice(bestIdx, 1);
       } else {
         durSteps = 1; // default if no note-off found
@@ -247,7 +249,8 @@
       }
 
       var stepsPerPage = SL.SEQ_STEPS || 64;
-      var pagesNeeded = Math.ceil(maxStep / stepsPerPage);
+      var safeStepsPerPage = stepsPerPage || 1;
+      var pagesNeeded = Math.ceil(maxStep / safeStepsPerPage);
 
       // Expand sequencer pages if needed
       if (SL.sequencer && SL.sequencer.addPage) {

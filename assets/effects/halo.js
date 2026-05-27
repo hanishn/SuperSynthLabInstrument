@@ -4,6 +4,32 @@
 // and per-line delay-time modulation (0.3 Hz sines, irregular phase offsets)
 // to decorrelate the modes and avoid metallic ringing. Non-trademarked.
 //
+// -----------------------------------------------------------------------
+// FEEDBACK DELAY NETWORK (FDN) REVERB - Background
+//
+// An FDN is an algorithmic reverb structure where N delay lines feed back
+// into each other through a mixing matrix. Unlike convolution reverb
+// (which uses a recorded impulse response), FDN reverb is parametrically
+// controllable and computationally efficient.
+//
+// Architecture (Jot, 1992):
+//   - 8 delay lines with mutually-prime lengths (23-149ms base) to avoid
+//     coincident periodicities that would cause audible coloration
+//   - Hadamard mixing matrix (8x8 orthogonal, entries +/-1/sqrt(8)):
+//     each delay line's output is distributed to ALL other lines with
+//     energy-preserving mixing. This creates the dense, diffuse tail
+//     characteristic of natural room acoustics.
+//   - Per-line one-pole LPF damping: simulates air absorption and wall
+//     material -- highs decay faster than lows, as in real rooms.
+//   - Per-line LFO modulation (0.3 Hz, staggered phases): subtly varies
+//     each delay time to prevent metallic ringing from static modes.
+//     This is the key to making FDN reverb sound lush rather than robotic.
+//
+// The Hadamard matrix is chosen because it's orthogonal (preserves total
+// energy per iteration), maximally connected (every output feeds every
+// input), and has only +/-1 entries (computationally trivial).
+// -----------------------------------------------------------------------
+//
 // Signal chain (wet path):
 //   input -> preDelay -> [8 parallel delay lines with 8x8 Hadamard feedback
 //                         + per-line one-pole LPF damping + per-line LFO mod]
@@ -120,7 +146,10 @@
   var MIX_PCT_SCALE = 100;        // accept 0-100 percent or 0-1 unit for mix
 
   // ============ Hadamard 8x8 (unnormalized +/-1) ============
+  // Built recursively via the Sylvester construction:
   // H_2 = [[1,1],[1,-1]]; H_{2n} = [[H_n, H_n],[H_n, -H_n]]
+  // After normalization by 1/sqrt(8), H * H^T = I (orthogonal),
+  // guaranteeing unit gain per feedback iteration.
   function _makeHadamardRow(size) {
     return new Array(size);
   }
@@ -412,6 +441,9 @@
   };
 
   // ============ Param updates ============
+  // Size, decay, and damping changes require recalculating multiple
+  // interdependent values. Size affects delay times AND feedback (longer
+  // delays support higher RT60 at the same feedback coefficient).
 
   HaloEffect.prototype._refreshMatrix = function(t) {
     var fb = this._feedbackScalar();

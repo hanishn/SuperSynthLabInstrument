@@ -1,5 +1,29 @@
 // Synth Lab - Grainfield Effect (granular cloud delay / freeze)
 //
+// -----------------------------------------------------------------------
+// REAL-TIME GRANULAR PROCESSING - Background
+//
+// Granular synthesis (Xenakis, Roads) builds sound from tiny overlapping
+// "grains" -- windowed snippets typically 5-200ms long. Grainfield is a
+// granular *processor*: instead of generating grains from scratch, it
+// slices the live input audio into grains, then recombines them with
+// controllable density, size, temporal spread, and feedback.
+//
+// Each grain is a short excerpt of the input, shaped by a window function
+// (typically Hann) to avoid clicks at grain boundaries. Grains overlap
+// and sum together, creating a dense cloud of micro-events. The result
+// ranges from subtle textural thickening (low density, large grains) to
+// complete sound disintegration (high density, tiny grains, wide spread).
+//
+// Key parameters:
+//   - Density:    how many grains per second (sparse vs. thick cloud)
+//   - Grain Size: duration of each grain (tiny=buzzy, large=smooth)
+//   - Spread:     stereo distribution of grain placement
+//   - Delay:      temporal offset into the ring buffer for grain reads
+//   - Feedback:   recirculates output back into the grain buffer
+//   - Freeze:     stops writing new input, looping existing buffer content
+// -----------------------------------------------------------------------
+//
 // Continuous ring-buffer granular effect implemented in an AudioWorklet.
 // The factory (main thread) follows the `lofi.js` pattern: BaseEffect
 // subclass via `Reflect.construct` + `setPrototypeOf`.
@@ -41,8 +65,11 @@
   var SMOOTH_TC = 0.01;
 
   // ============ Worklet loader (cached per AudioContext) ============
+  // The granular processing runs on the audio thread (AudioWorklet) for
+  // sample-accurate grain scheduling. The main thread only forwards
+  // parameter changes via AudioParam automation.
 
-  // Map keyed by AudioContext instance → Promise<void>
+  // Map keyed by AudioContext instance -> Promise<void>
   var _workletReadyByCtx = new WeakMap();
 
   function _loadWorklet(ctx) {
@@ -156,6 +183,9 @@
   }
 
   // ============ updateParam ============
+  // All continuous params are normalized 0..1. Freeze is boolean (0 or 1).
+  // Values are stored locally AND forwarded to the worklet AudioParams.
+  // If the worklet isn't ready yet, _applyAllParams seeds them on connect.
   GrainfieldEffect.prototype.updateParam = function(name, value) {
     var numeric = value;
     var stored = numeric;

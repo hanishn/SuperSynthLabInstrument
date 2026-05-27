@@ -1,6 +1,34 @@
 // Super Synth Lab - Wavefolder Synthesis Engine Module
 // West Coast synthesis (Buchla tradition) - nonlinear wavefolding
 // v1.0.0 - ScriptProcessor fallback, 4x oversampling, ADSR on fold amount
+//
+// -----------------------------------------------------------------------
+// WAVEFOLDING SYNTHESIS — Educational Reference
+// -----------------------------------------------------------------------
+// Wavefolding is a nonlinear waveshaping technique from the "West Coast"
+// synthesis tradition pioneered by Don Buchla at UC Berkeley in the 1970s.
+// Where Robert Moog's "East Coast" school (Ithaca, NY) shaped timbre by
+// subtractive filtering of harmonically rich oscillators, Buchla generated
+// timbral complexity by *folding* simple waveforms through nonlinear
+// transfer functions — producing evolving harmonic spectra from a sine
+// input without any filter at all.
+//
+// Core principle: when a signal's amplitude exceeds a threshold, it
+// "folds" back on itself instead of clipping. Mathematically:
+//   y(x) = sin(x * foldAmount * pi)           (Serge-style sine folder)
+// Each additional fold adds harmonics with musically related amplitudes,
+// unlike hard clipping which produces harsh odd-harmonic distortion.
+//
+// Hardware lineage: Buchla 259 Complex Waveform Generator (1970s),
+// Serge Wave Multiplier (1973), Make Noise DPO, Verbos Harmonic Oscillator.
+//
+// References:
+//   Buchla, D. — Buchla 200 series modules (1970s)
+//   Le Brun, M. (1979) "Digital Waveshaping Synthesis", JAES 27(4)
+//   Roads, C. (1996) The Computer Music Tutorial, MIT Press, Ch. 6
+//   Esqueda, F. et al. (2017) "Antialiased Soft Clipping using an
+//       Integrated Bandlimited Ramp", Proc. DAFx-17
+// -----------------------------------------------------------------------
 (function() {
   'use strict';
 
@@ -9,6 +37,12 @@
   // ============================================================
   // Constants
   // ============================================================
+  // Oversampling factor: wavefolding generates harmonics far above the
+  // Nyquist frequency, which alias back into the audible range as
+  // inharmonic artifacts. 4x oversampling (process at 4 * sampleRate,
+  // then decimate with a low-pass) pushes the aliasing threshold high
+  // enough to suppress most audible artifacts.
+  // See: Esqueda et al. (2017) for formal anti-aliasing analysis.
 
   var MAX_VOICES_PER_INSTRUMENT = 16;
   var OVERSAMPLE_FACTOR = 4;
@@ -65,6 +99,12 @@
   // ============================================================
   // Waveform Generation
   // ============================================================
+  // The source waveform is the raw material fed into the wavefolder.
+  // Buchla's insight: even a pure sine wave becomes timbrally rich after
+  // folding. Different source shapes (triangle, saw, square) start with
+  // different harmonic profiles, so they fold into different spectra.
+  // A sine input is the classic West Coast choice — maximum dynamic range
+  // from "pure" to "complex" as fold amount increases.
 
   /**
    * Generate a single sample of the source waveform
@@ -105,19 +145,35 @@
    */
   function wavefold(input, foldAmount, symmetry, bias) {
     // Apply bias (shifts the folding point)
+    // Bias adds a DC offset before folding, which shifts the signal off-center
+    // relative to the fold threshold. This produces asymmetric folding, which
+    // introduces even harmonics — the same principle used in the Serge Wave
+    // Multiplier's "timbre" CV input. (Roads, 1996, Ch. 6)
     var biased = input + bias;
 
     // Apply fold amount as a gain multiplier
+    // Higher gain drives the signal further past fold thresholds, creating
+    // more folds per cycle and thus more harmonics. Each fold adds roughly
+    // one harmonic partial. (Le Brun, 1979)
     var driven = biased * foldAmount;
 
     // Asymmetric folding: blend even and odd harmonics
     // symmetry 0.5 = pure odd harmonics (symmetric), 0 or 1 = even harmonics added
+    // A symmetric transfer function (odd function: f(-x) = -f(x)) produces
+    // only odd harmonics (1, 3, 5, ...). Breaking symmetry introduces even
+    // harmonics (2, 4, 6, ...), enriching the spectrum. This mirrors the
+    // difference between a square wave (odd only) and a sawtooth (all harmonics).
     var symFactor = (symmetry - 0.5) * 2.0; // -1..1
 
     // Core fold function: sin(x) creates smooth periodic folding
+    // y = sin(driven) is a Serge-style sine wavefolder. The sine's periodicity
+    // means the signal wraps smoothly instead of clipping — the key insight
+    // behind waveshaping synthesis. (Le Brun, 1979)
     var folded = Math.sin(driven);
 
     // Add asymmetry by mixing in sin(2x) weighted by symmetry offset
+    // sin(2x) is an even-harmonic component relative to sin(x); blending
+    // it in breaks the odd-function symmetry of the transfer curve.
     if (symFactor !== 0) {
       var evenComponent = Math.sin(driven * 2.0) * Math.abs(symFactor) * 0.5;
       folded = folded + evenComponent;
@@ -135,6 +191,13 @@
   // ============================================================
   // Simple 2x Oversampling Filter (FIR half-band)
   // ============================================================
+  // Decimation after oversampled processing requires a low-pass filter
+  // to remove spectral content above the original Nyquist frequency.
+  // Without this filter, the harmonics generated by wavefolding at the
+  // oversampled rate would alias when downsampled. A half-band FIR
+  // filter is computationally efficient because every other coefficient
+  // is zero. See: Esqueda et al. (2017) for formal analysis of
+  // anti-aliased waveshaping.
 
   // Half-band filter coefficients for anti-aliasing decimation
   var HALF_BAND_COEFFS = [0.07, 0.25, 0.36, 0.25, 0.07];
@@ -159,6 +222,12 @@
   // ============================================================
   // Fallback Voice (ScriptProcessor - main thread synthesis)
   // ============================================================
+  // Each voice is an independent wavefolder instance with its own
+  // oscillator phase, envelope state, and folding parameters.
+  // Two envelopes per voice: one for amplitude (VCA), one for fold
+  // amount (timbral). This dual-envelope architecture is inspired by
+  // the Buchla 259, where the timbre modulation input allowed voltage
+  // control of harmonic complexity independently from loudness.
 
   function WavefolderVoice(sr) {
     this.sampleRate = sr;
@@ -191,6 +260,11 @@
     this.releaseRate = 0;
 
     // ADSR envelope for fold amount modulation
+    // A separate timbre envelope controls how the fold amount evolves over
+    // time. Fast attack + slow decay = bright transient that mellows,
+    // mimicking how acoustic instruments have harmonically rich attacks.
+    // This is the digital equivalent of patching an envelope generator
+    // into the Buchla 259's timbre CV input.
     this.foldEnvStage = 0;
     this.foldEnvLevel = 0;
     this.foldEnvReleased = false;
@@ -280,6 +354,9 @@
 
     // Fold amount ADSR (mirrors amplitude but can be different)
     // Attack fast, decay slower - timbre evolves from bright to mellow
+    // The fold envelope attacks at 2x speed (aTime * 0.5) and decays at
+    // half speed (dTime * 2.0), so the timbre peaks before the amplitude
+    // and decays more gradually — a natural-sounding spectral contour.
     this.foldEnvStage = 0;
     this.foldEnvLevel = 0;
     this.foldEnvReleased = false;
@@ -373,6 +450,9 @@
     var foldEnv = this.processFoldEnvelope();
 
     // Compute dynamic fold amount from envelope
+    // Fold amount ranges from 1.0 (no folding, clean sine) to foldAmount
+    // (maximum harmonic complexity). The envelope interpolates between these
+    // extremes, creating time-varying spectral evolution.
     var dynamicFold = 1.0 + this.foldEnvAmount * foldEnv;
 
     // Generate source waveform at base rate (no oversampling for source)
@@ -446,6 +526,10 @@
               }
             }
             // Smooth Pade approximant of tanh soft clip
+            // tanh(x) ~ x(27 + x^2) / (27 + 9x^2) — a [3/2] rational
+            // approximation. Cheaper than Math.tanh() and avoids the
+            // harsh harmonics of hard clipping. Keeps summed voices in
+            // the -1..1 range with a musical-sounding saturation curve.
             var ss = sample * sample;
             output[s] = sample * (27 + ss) / (27 + 9 * ss);
           }
@@ -617,6 +701,12 @@
   // ============================================================
   // Parameter Control
   // ============================================================
+  // These parameters map to physical controls on hardware wavefolders:
+  // - Fold amount: "index" knob on Buchla 259, controls harmonic density
+  // - Symmetry: controls even/odd harmonic balance (Serge "all" output)
+  // - Bias: DC offset, like the Buchla 259's "timbre" offset
+  // - Pre-gain: input level before folding (drives harder = more folds)
+  // - Source: input waveform selection
 
   function setFoldAmount(instId, amount) {
     var settings = getOrCreateSettings(instId);

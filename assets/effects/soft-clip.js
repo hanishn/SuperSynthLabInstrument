@@ -1,5 +1,33 @@
-// Synth Lab - Soft Clipper Effect
+// Synth Lab - Soft Clipper Effect [FX-031]
 // Warm analog-style limiting/saturation for transparent dynamics control
+//
+// --- What is soft clipping? ---
+// Soft clipping is a form of dynamic range compression where signal peaks
+// are gradually rounded off rather than abruptly cut (hard clipping).
+// The transfer function has three regions:
+//   1. Linear region (below threshold): signal passes through unchanged.
+//   2. Knee region: a smooth polynomial curve transitions from linear to
+//      compressed. A wider knee = gentler, more transparent compression.
+//   3. Saturation region (above threshold): output approaches a ceiling
+//      asymptotically via tanh, never exceeding it.
+//
+// --- Why soft clip instead of hard clip? ---
+// Hard clipping at a threshold creates a sharp corner in the waveform,
+// which generates dense odd harmonics (3rd, 5th, 7th...) that sound harsh.
+// Soft clipping rounds the corner with a quadratic/polynomial knee, producing
+// fewer and lower-amplitude harmonics — a warmer, more "analog" character.
+// This is closer to how vacuum tubes and analog circuits naturally saturate.
+//
+// --- 4x oversampling ---
+// Any nonlinear waveshaping creates harmonics that can exceed the Nyquist
+// frequency, folding back as inharmonic aliasing artifacts. 4x oversampling
+// processes the signal at 4x the sample rate, pushes aliasing products well
+// above the audible range, then filters them out on downsample.
+//
+// Reference: Zolzer, U. (2011) DAFX: Digital Audio Effects, Wiley, Ch. 5
+//
+// Spec: Threshold -12 to 0 dB (default -6), Knee 0-100% (default 50),
+//        Ceiling -6 to 0 dB (default -0.5, step 0.1), Mix 0-100% (default 100).
 
 (function() {
   var SL = window.SynthLab;
@@ -7,6 +35,15 @@
 
   // Number of samples for waveshaper curves
   var CURVE_SAMPLES = 44100;
+
+  // ---------------------------------------------------------------------------
+  // Waveshaper curve generation
+  // ---------------------------------------------------------------------------
+  // The curve maps every possible input amplitude to an output amplitude.
+  // It is computed once whenever parameters change and stored in the
+  // WaveShaperNode, which applies it per-sample at audio rate with zero
+  // main-thread cost.
+  // ---------------------------------------------------------------------------
 
   /**
    * Generate a soft clipping curve with adjustable knee
@@ -35,10 +72,14 @@
       var y;
 
       if (absX <= thresholdLinear - kneeWidth) {
-        // Below threshold: linear pass-through
+        // Region 1 — below threshold: unity gain pass-through.
+        // Signal is untouched, preserving full dynamics.
         y = absX;
       } else if (absX <= thresholdLinear + kneeWidth && kneeWidth > 0) {
-        // Knee region: smooth transition using quadratic interpolation
+        // Region 2 — knee: quadratic interpolation smoothly blends
+        // from linear (slope=1) to compressed (slope<1). The parameter
+        // t goes from 0 at knee start to 1 at knee end; t^2 weighting
+        // ensures the first derivative is continuous (no audible click).
         var kneeStart = thresholdLinear - kneeWidth;
         var t = (absX - kneeStart) / (2 * kneeWidth);
 
@@ -47,7 +88,7 @@
         var compressedPart = thresholdLinear + (absX - thresholdLinear) * 0.5;
         y = linearPart + (compressedPart - linearPart) * t * t;
       } else {
-        // Above threshold: soft saturation using tanh
+        // Region 3 — above threshold: tanh soft saturation.
         // Scale input to drive the tanh harder for more compression
         var excess = absX - thresholdLinear;
         var driveAmount = 2 + (1 - thresholdLinear) * 3; // More drive for lower thresholds
@@ -83,14 +124,19 @@
     constructor(ctx) {
       super(ctx, 'softclip');
 
-      // Input gain for threshold adjustment
+      // Input gain for threshold adjustment.
+      // Boosting the input drives more of the signal into the waveshaper's
+      // nonlinear region, controlling how aggressively clipping engages.
       this.inputGain = ctx.createGain();
 
-      // Waveshaper for soft clipping
+      // Waveshaper for soft clipping.
+      // The curve encodes the entire clipping behavior — threshold, knee,
+      // and ceiling are all "baked in" to the lookup table.
       this.waveshaper = ctx.createWaveShaper();
       this.waveshaper.oversample = '4x'; // Reduce aliasing artifacts
 
-      // Output gain for makeup gain and level matching
+      // Output gain for makeup gain and level matching.
+      // Limiting reduces peak levels, so makeup gain restores perceived loudness.
       this.outputGain = ctx.createGain();
 
       // Signal chain: input -> inputGain -> waveshaper -> outputGain -> wetGain

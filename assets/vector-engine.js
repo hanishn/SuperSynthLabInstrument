@@ -2,6 +2,38 @@
 // 4 sound sources arranged in a 2D space (X/Y) with bilinear interpolation
 // Inspired by Sequential Prophet VS / Korg Wavestation vector synthesis
 // ScriptProcessor fallback, 16-voice polyphony
+//
+// --- History and Theory ---
+// Vector synthesis was pioneered by Sequential Circuits in the Prophet VS
+// (1986), the first synth to place multiple sound sources in a 2D mix
+// space controlled by a joystick. The concept was further refined by Korg
+// in the Wavestation (1990), which added vector envelopes -- pre-programmed
+// paths through the XY space that create evolving timbral morphs over time.
+//
+// The core idea: 4 sound sources are placed at the corners of a square.
+// An XY position (joystick, pad, or envelope) crossfades between them
+// using bilinear interpolation:
+//   A(top-left)     B(top-right)
+//   C(bottom-left)  D(bottom-right)
+//
+//   wA = (1-x) * (1-y)    wB = x * (1-y)
+//   wC = (1-x) * y        wD = x * y
+//   output = A*wA + B*wB + C*wC + D*wD
+//
+// The weights always sum to 1.0, so the output level stays constant
+// regardless of position. At any corner, one source is at full volume
+// and the others are silent. At center (0.5, 0.5), all four contribute
+// equally at 0.25 each.
+//
+// Vector envelopes trace a path through XY space over time, enabling
+// complex timbral evolution without manual control -- a key feature
+// that made the Wavestation famous for evolving pad sounds.
+//
+// References:
+//   Sequential Circuits Prophet VS Service Manual (1986)
+//   Korg Wavestation Owner's Manual (1990)
+//   Roads, C. (1996) The Computer Music Tutorial, MIT Press
+//   [ENG-017] SuperSynthLab engine spec
 (function() {
   'use strict';
 
@@ -107,6 +139,15 @@
     return Math.sin(TWO_PI * phase);
   }
 
+  // --- Bilinear Interpolation ---
+  // This is the mathematical heart of vector synthesis. Given an XY
+  // position normalized to [0,1], compute the contribution weight of
+  // each corner source. The formula ensures:
+  //   1) Weights always sum to 1.0 (energy-preserving crossfade)
+  //   2) Each weight is 0 at the opposite corner and 1 at its own corner
+  //   3) Smooth, continuous transitions with no discontinuities
+  // This is identical to texture sampling in 2D graphics (UV mapping).
+
   /**
    * Compute bilinear interpolation weights for 4 corners from X/Y position.
    * A(0,0)  B(1,0)
@@ -126,6 +167,14 @@
   // ============================================================
   // Vector Envelope Interpolation
   // ============================================================
+
+  // The vector envelope is the feature that made the Korg Wavestation
+  // legendary. It defines a series of XY waypoints with timestamps,
+  // and the engine interpolates linearly between them. With looping
+  // enabled, the path repeats -- creating continuously evolving textures
+  // that shift between different timbral blends over time.
+  // Each waypoint is {x, y, time} where x,y are 0-100 positions
+  // and time is milliseconds from note-on.
 
   /**
    * Evaluate the vector envelope at a given time (ms).
@@ -369,7 +418,9 @@
       return 0;
     }
 
-    // Update vector position from envelope if enabled
+    // Update vector position from envelope if enabled.
+    // When the vector envelope is active, it overrides the static XY
+    // position, tracing a pre-programmed path through the mix space.
     var vx = this.vectorX;
     var vy = this.vectorY;
     if (this.vectorEnvEnabled && this.vectorEnvPoints) {
@@ -382,7 +433,9 @@
     // Compute bilinear weights
     var weights = bilinearWeights(vx, vy);
 
-    // Generate and mix 4 sources
+    // Generate and mix 4 sources using bilinear weights.
+    // Each source contributes proportionally to its distance from
+    // the current XY position -- this is the vector crossfade.
     var sample = 0;
     for (var s = 0; s < NUM_SOURCES; s++) {
       var srcSample = generateSample(this.waveforms[s], this.phases[s]);
@@ -446,7 +499,8 @@
                 sample += voices[vi].process() * 0.12;
               }
             }
-            // Soft clip
+            // Cubic soft-clip: f(x) = x*(27+x^2)/(27+9*x^2)
+            // Prevents harsh digital clipping when multiple voices overlap
             var ss = sample * sample;
             output[s] = sample * (27 + ss) / (27 + 9 * ss);
           }

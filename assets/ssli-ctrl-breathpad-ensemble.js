@@ -237,8 +237,9 @@
     var notes = [];
     var ni;
     for (ni = 0; ni < count; ni++) {
-      var srcIdx = ni % chordSize;
-      var octBumps = Math.floor(ni / chordSize);
+      var safeChordSize = chordSize || 1;
+      var srcIdx = ni % safeChordSize;
+      var octBumps = Math.floor(ni / safeChordSize);
       var midi = rootMidi + inverted[srcIdx] + (octBumps * SEMITONES_PER_OCTAVE);
       notes.push(midi);
     }
@@ -821,8 +822,10 @@
 
       function _applyAtPointer(state, e, isStart) {
         var c = _localCoords(e);
-        var xFrac = (c.w > 0) ? (c.x / c.w) : 0;
-        var yFrac = (c.h > 0) ? (1 - (c.y / c.h)) : 0;
+        var safeCW = c.w || 1;
+        var safeCH = c.h || 1;
+        var xFrac = (c.w > 0) ? (c.x / safeCW) : 0;
+        var yFrac = (c.h > 0) ? (1 - (c.y / safeCH)) : 0;
         var xCC = Math.round(xFrac * CC_MAX);
         var yCC = Math.round(yFrac * CC_MAX);
 

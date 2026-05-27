@@ -1,5 +1,35 @@
 // Synth Lab - Juno-60 Style Chorus Effect
 // BBD (Bucket-Brigade Delay) emulation with Mode I, Mode II, and Mode I+II
+//
+// -----------------------------------------------------------------------
+// EDUCATIONAL NOTES: Chorus Effect — Modulated Delay [FX-040]
+// -----------------------------------------------------------------------
+// A chorus effect creates the illusion of multiple detuned voices by mixing
+// the original signal with a short-delayed copy (5-30ms) whose delay time
+// is modulated by an LFO. The continuously changing delay produces pitch
+// variation (via the Doppler effect), simulating the natural detuning that
+// occurs when multiple musicians or vocalists play the same part.
+//
+// Reference:
+//   Dattorro, J. (1997) "Effect Design Part 2: Delay-Line Modulation
+//     and Chorus", JAES 45(10)
+//   Roads, C. (1996) The Computer Music Tutorial, MIT Press
+//
+// This implementation emulates the Roland Juno-60 chorus (1982), which used
+// a BBD (Bucket-Brigade Device) chip — an analog delay line that passes
+// charge from capacitor to capacitor like a bucket brigade. The BBD's
+// inherent low-pass characteristic (~8kHz rolloff) gives the Juno chorus
+// its warm, slightly dark character.
+//
+// Mode I/II/I+II correspond to the Juno-60's physical chorus switch:
+//   Mode I:   Slow LFO, subtle shimmer
+//   Mode II:  Faster LFO, deeper modulation, richer detune
+//   Mode I+II: Both LFOs simultaneously — the classic "ensemble" sound
+//
+// Stereo width: The right channel receives an inverted LFO phase, so when
+// the left delay lengthens (pitch drops), the right shortens (pitch rises).
+// This creates a wide stereo image from a mono source.
+// -----------------------------------------------------------------------
 
 (function() {
   var SL = window.SynthLab;
@@ -28,8 +58,11 @@
   var MOD_DEPTH_II = 0.0015; // +/- 1.5ms deeper
 
   // BBD low-pass filter cutoff - simulates analog bucket-brigade rolloff
+  // Real BBD chips (e.g., MN3009 in the Juno-60) have an inherent lowpass
+  // response due to the charge-transfer mechanism. This 8kHz cutoff models
+  // that natural HF rolloff, which is a key part of the Juno's warm sound.
   var BBD_FILTER_CUTOFF = 8000; // Hz
-  var BBD_FILTER_Q = 0.707;     // Butterworth
+  var BBD_FILTER_Q = 0.707;     // Butterworth (maximally flat passband)
 
   /**
    * ChorusEffect - Roland Juno-60 style BBD chorus
@@ -162,6 +195,9 @@
         lfoGainL.gain.value = actualDepth;
 
         // Right channel: inverted LFO phase (opposite modulation for stereo)
+        // Multiplying by -1 flips the LFO waveform. When the left channel's
+        // delay increases (pitch bends down), the right's decreases (pitch
+        // bends up). This opposing motion creates the wide stereo field.
         var invertGain = ctx.createGain();
         invertGain.gain.value = -1;
 

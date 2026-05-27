@@ -1,4 +1,31 @@
 // Synth Lab - Spectral Hold Effect (FFT freeze + smear + diffusion)
+//
+// -----------------------------------------------------------------------
+// SPECTRAL FREEZE - Background
+//
+// Spectral Hold captures a single FFT frame of the input signal and
+// loops it indefinitely, creating sustained, shimmering textures from
+// any audio source. The FFT (Fast Fourier Transform) decomposes the
+// signal into frequency bins (magnitude + phase). When "frozen," the
+// magnitudes are held constant and used to resynthesize audio via
+// inverse FFT, producing an ethereal, time-stopped version of whatever
+// was playing at the moment of capture.
+//
+// Key parameters:
+//   - Freeze:       captures and holds the current FFT frame (toggle)
+//   - Smear:        crossfades between frozen spectrum and live input,
+//                   blending the "frozen" texture with new audio
+//   - Decay:        rate at which frozen frequency bins fade to silence,
+//                   allowing the held texture to gradually dissolve
+//   - Brightness:   high-frequency emphasis/attenuation on the frozen
+//                   spectrum, shaping the tonal character of the hold
+//   - Pitch Offset: shifts the frozen spectrum up/down in semitones,
+//                   enabling harmonic or dissonant layering effects
+//
+// Used for ambient pads, transition effects, and sound design. The
+// "shimmer" quality comes from phase randomization during resynthesis.
+// -----------------------------------------------------------------------
+//
 // ES5 factory that wraps an AudioWorkletNode. Worklet is loaded via a Blob URL
 // (matching fm-worklet / physical-worklet pattern in audio-engine.js).
 //
@@ -73,7 +100,9 @@
     self.params.bright = DEFAULT_BRIGHT;
     self.params.pitchOffset = DEFAULT_PITCH_SEMITONES;
 
-    // Pass-through bridge (keeps audio flowing while worklet loads)
+    // Pass-through bridge: keeps audio flowing while the FFT worklet loads.
+    // Once the worklet is ready, the bridge is disconnected and replaced
+    // by the worklet node in the signal path.
     self.bridge = ctx.createGain();
     self.bridge.gain.value = 1.0;
     self.input.connect(self.bridge);
@@ -141,6 +170,8 @@
   };
 
   // ========= Param mapping =========
+  // UI uses 0-100 percent for most params; the worklet expects 0-1 normalized.
+  // Freeze is boolean (hard switch), all others are smoothed via setTargetAtTime.
   // Worklet ranges:
   //   mix: 0..1           (UI 0..100 / 100)
   //   freeze: 0 or 1      (UI 0 or 1)

@@ -1,6 +1,34 @@
 // Super Synth Lab - Chord Synthesis Engine
 // Plays full chords from single notes, each chord note as independent oscillator with ADSR
 // ScriptProcessor fallback, 16-voice polyphony
+//
+// --- How It Works ---
+// A chord engine transforms a single MIDI key-press into multiple simultaneous
+// tones by applying interval theory from Western tonal harmony. Each chord
+// quality (major, minor, diminished, etc.) is defined as a set of semitone
+// offsets from the root note. The engine spawns one sub-voice oscillator per
+// chord tone, each running its own phase accumulator and ADSR envelope.
+//
+// Voicing controls how those chord tones are distributed across the pitch
+// spectrum. Close voicing keeps all tones within one octave (dense, organ-like).
+// Open voicing raises alternate tones by an octave (airier). Drop-2 lowers the
+// second-highest tone by an octave, a standard jazz guitar technique that
+// produces wider intervals in the upper register. Spread distributes tones
+// evenly across two octaves for cinematic pad textures.
+//
+// The strum parameter adds a per-note onset delay (earliest note first,
+// cascading upward), emulating the sequential string activation of a plucked
+// or strummed instrument.
+//
+// Formula: freq = A4 * 2^((midi + intervalSemitones - 69) / 12)
+//   where intervalSemitones comes from the chord type's offset array.
+//
+// References:
+//   Helmholtz, H. (1863) On the Sensations of Tone
+//   Forte, A. (1973) The Structure of Atonal Music, Yale University Press
+//   Persichetti, V. (1961) Twentieth-Century Harmony, Norton
+//   SSLI Feature List [ENG-011]
+//
 (function() {
   'use strict';
 
@@ -13,7 +41,13 @@
   var MAX_VOICES_PER_INSTRUMENT = 16;
   var TWO_PI = 2 * Math.PI;
 
-  // Chord intervals in semitones from root
+  // Chord intervals in semitones from root.
+  // Each array encodes the pitch-class set that defines a chord quality.
+  // Semitone 0 = root (unison). The intervals determine the harmonic
+  // "color": major third (4 semitones) sounds bright; minor third (3)
+  // sounds darker. Extended chords (7th, 9th) add color tones beyond
+  // the basic triad. Power chords omit the third entirely (root + 5th),
+  // making them tonally ambiguous -- hence their use in rock/metal.
   var CHORD_INTERVALS = {
     major:  [0, 4, 7],
     minor:  [0, 3, 7],
@@ -29,7 +63,8 @@
     power:  [0, 7]
   };
 
-  // Valid voicing and waveform options
+  // Valid voicing and waveform options.
+  // Lookup tables use value=1 for O(1) membership testing (faster than indexOf).
   var VALID_VOICINGS = { 'close': 1, 'open': 1, 'drop2': 1, 'spread': 1 };
   var VALID_SOURCE_WAVES = { 'sine': 1, 'saw': 1, 'square': 1, 'triangle': 1 };
 
@@ -57,6 +92,9 @@
   // Helpers
   // ============================================================
 
+  // Convert MIDI note number to frequency in Hz.
+  // Standard 12-TET: f = A4 * 2^((midi - 69) / 12).
+  // Supports alternate tuning systems via SL.tuning if available.
   function midiToFreq(midi) {
     var a4 = 440;
     var refEl = typeof document !== 'undefined' && document.getElementById('refHz');
@@ -69,6 +107,10 @@
     return a4 * Math.pow(2, (midi - 69) / 12);
   }
 
+  // Generate a single sample from a basic waveform using a normalized phase [0,1).
+  // These are naive (non-bandlimited) waveforms -- acceptable here because chord
+  // tones are typically in the mid-frequency range where aliasing is less audible,
+  // and the ScriptProcessor path is already a fallback codepath.
   function generateSample(type, phase) {
     if (type === 'sine') {
       return Math.sin(TWO_PI * phase);
@@ -93,7 +135,16 @@
   }
 
   /**
-   * Apply voicing to chord intervals
+   * Apply voicing to chord intervals.
+   *
+   * Voicing theory: the same set of pitch classes can be arranged (voiced) in
+   * many ways across the pitch spectrum. Close voicing packs all notes within
+   * one octave -- tight and punchy. Open voicing raises alternate notes by 12
+   * semitones, creating wider intervals that breathe more in a mix. Drop-2
+   * takes the second-highest note and drops it an octave below -- this is the
+   * standard jazz guitar voicing because it fits the instrument's tuning.
+   * Spread distributes notes proportionally across two octaves for lush pads.
+   *
    * @param {number[]} intervals - Semitone offsets from root
    * @param {string} voicing - 'close', 'open', 'drop2', 'spread'
    * @returns {number[]} Modified semitone offsets
@@ -118,7 +169,8 @@
     } else if (voicing === 'spread') {
       // Spread notes across two octaves
       for (var j = 0; j < result.length; j++) {
-        result[j] = result[j] + Math.floor(j * 12 / result.length);
+        var safeResultLen = result.length || 1;
+        result[j] = result[j] + Math.floor(j * 12 / safeResultLen);
       }
     }
     return result;
@@ -128,6 +180,15 @@
   // Voice (represents one note of the chord)
   // ============================================================
 
+  // A ChordSubVoice is a single oscillator + envelope for one tone within a
+  // chord. A major triad spawns 3 sub-voices; a 9th chord spawns 5. Each
+  // sub-voice runs its own phase accumulator (phaseInc = freq / sampleRate)
+  // and independent ADSR envelope so chord tones can have slightly different
+  // attack/release characteristics when humanization is applied.
+  //
+  // The startDelaySamples field implements strum: later chord tones begin
+  // after a sample-accurate delay, producing the cascading onset of a
+  // plucked string instrument.
   function ChordSubVoice(sr) {
     this.sampleRate = sr;
     this.active = false;
@@ -161,10 +222,12 @@
     this.envReleased = false;
     this.envFinished = false;
 
+    // 5ms fade-in to prevent click artifacts from abrupt waveform onset
     this.fadeInSamples = Math.ceil(this.sampleRate * 0.005);
     this.fadeInCounter = 0;
     this.startDelaySamples = strumDelay || 0;
 
+    // Clamp minimum envelope times to 1ms to avoid division by zero in rate calc
     var safeAttack = Math.max(0.001, adsr.a);
     var safeDecay = Math.max(0.001, adsr.d);
     var safeRelease = Math.max(0.001, adsr.r);
@@ -212,6 +275,7 @@
     } else if (this.envStage === 2) {
       // sustain
     } else if (this.envStage === 3) {
+      // Exponential release: multiply by current level for natural decay curve
       this.envLevel -= this.releaseRate * this.envLevel;
       if (this.envLevel <= 0.0001) {
         this.envLevel = 0;
@@ -240,6 +304,11 @@
   // Chord Voice (groups sub-voices for one played note)
   // ============================================================
 
+  // A ChordVoice represents a single key-press. It owns up to 5 sub-voices
+  // (enough for a 9th chord: root, 3rd, 5th, 7th, 9th). The voice is
+  // considered active as long as any sub-voice is still sounding. Gain is
+  // divided equally among sub-voices (1/N) to maintain consistent loudness
+  // regardless of chord density.
   function ChordVoice(sr) {
     this.sampleRate = sr;
     this.active = false;
@@ -263,6 +332,7 @@
     var intervals = CHORD_INTERVALS[chordType] || CHORD_INTERVALS.major;
     var voiced = applyVoicing(intervals, settings.voicing || 'close');
     var wave = settings.sourceWave || 'saw';
+    // Strum delay in ms per chord tone -- converts to sample offset per sub-voice
     var strumMs = settings.strum || 0;
     var adsr = settings.adsr || { a: 0.01, d: 0.1, s: 0.7, r: 0.2 };
 
@@ -358,6 +428,9 @@
                 sample += voices[vi].process() * 0.12;
               }
             }
+            // Soft-clip via rational saturation: f(x) = x*(27+x^2)/(27+9*x^2)
+            // Approximates tanh(x) cheaply, preventing harsh digital clipping
+            // when multiple chord voices overlap
             var ss = sample * sample;
             output[s] = sample * (27 + ss) / (27 + 9 * ss);
           }
@@ -374,6 +447,8 @@
   // Connection
   // ============================================================
 
+  // Per-instrument biquad filter for timbral shaping of chord output.
+  // Defaults to wide-open lowpass at 20kHz (transparent) until user adjusts.
   function getOrCreateFilterNode(instId) {
     if (!audioContext) {
       return null;
@@ -465,6 +540,9 @@
 
     var instruments = SL.audio.getInstruments();
     var rawHum = (instruments && instruments[instId]) ? (instruments[instId].settings.humanization || {}) : {};
+    // Humanization: slight random variation in velocity and ADSR timing
+    // to mimic the imprecision of a real performer (Helmholtz noted that
+    // natural instrument tones are never perfectly uniform in attack)
     var humVelocity = (typeof rawHum === 'number') ? rawHum : (rawHum.velocity || 0);
     var humAdsr = (typeof rawHum === 'number') ? rawHum : (rawHum.adsr || 0);
 

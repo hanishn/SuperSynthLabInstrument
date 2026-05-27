@@ -2,6 +2,33 @@
 // Tempo-synced beat-repeat / glitch-stutter.
 // Captures a rolling 2 s buffer; every trigger (tempo-sync'd) replays the most
 // recent `sliceLen` ms `repeatCount` times with gate / pitch / chaos variations.
+//
+// -----------------------------------------------------------------------
+// BEAT-REPEAT / GLITCH - Background
+//
+// A staple of glitch, IDM, and electronic music (Autechre, Aphex Twin,
+// Venetian Snares). The technique: capture a short slice of live audio,
+// then replay it rapidly in succession to create stutter patterns.
+//
+// Key parameters and what they do musically:
+//   - Slice Length: how much audio is captured (16-1000ms). Short slices
+//     (~16-60ms) create granular, buzzy textures; longer slices (~200ms+)
+//     produce recognizable rhythmic repeats.
+//   - Repeat Count: how many times the slice plays back. Higher counts
+//     sustain the stutter longer within each trigger period.
+//   - Pitch Per Repeat: shifts pitch up/down each successive repeat.
+//     Positive values create risers; negative creates fallers/dropoffs.
+//   - Chaos: randomizes skip, shorten, and other per-repeat variations,
+//     breaking mechanical regularity for a more organic glitch feel.
+//   - Gate Duty: fraction of each repeat that's audible (rest is silence),
+//     creating rhythmic chopping within the stutter itself.
+//   - Rate Division: tempo-synced trigger rate (1/4 to 1/32 notes).
+//
+// Implementation: an AudioWorklet maintains a 2-second ring buffer of
+// incoming audio. On each tempo-synced trigger, it snapshots the most
+// recent slice and replays it with per-repeat pitch shifting via
+// variable-rate playback (linear interpolation).
+// -----------------------------------------------------------------------
 
 (function () {
   var SL = window.SynthLab = window.SynthLab || {};
@@ -46,6 +73,14 @@
 
   // ---- Inline worklet source (kept in-sync with ./stutterstep-worklet.js) ----
   // Self-contained so a blob URL can register the processor without an extra fetch.
+  //
+  // The worklet runs on the audio thread for sample-accurate timing:
+  //   1. Continuously writes input into a 2s stereo ring buffer
+  //   2. On trigger (tempo-synced): snapshots the last N frames as a "slice"
+  //   3. Replays the slice `repeatCount` times with per-repeat pitch ratio
+  //      (2^(semitones*repeatIndex/12)) via linear-interpolated read position
+  //   4. Gate envelope (fade in/out) shapes each repeat; chaos may skip or
+  //      shorten individual repeats for organic variation
   var workletCode = [
     'var STUTTER_NUM_CHANNELS=2;',
     'var RING_SECONDS=2.0;',
@@ -239,7 +274,8 @@
     'registerProcessor("stutterstep-processor",StutterstepProcessor);'
   ].join('\n');
 
-  // ---------------- Effect class ----------------
+  // ---------------- Effect class (main thread) ----------------
+  // The main-thread side manages worklet lifecycle and parameter forwarding.
   // BaseEffect is an ES6 class, which cannot be called via .call(this,...).
   // Use Reflect.construct to subclass it from an ES5 factory.
   function StutterstepEffect(ctx) {

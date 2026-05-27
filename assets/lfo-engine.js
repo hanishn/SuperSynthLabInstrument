@@ -2,6 +2,41 @@
 // Adds 2 LFOs per instrument (LFO1 and LFO2)
 // Loads AFTER audio-engine.js and extends SL.audio
 // Targets: pitch (vibrato), filter (wah), amplitude (tremolo), pan
+//
+// --- How It Works ---
+// An LFO (Low Frequency Oscillator) produces a sub-audio oscillation,
+// typically 0.01-20 Hz, used to cyclically modulate another parameter.
+// The concept originates from analog voltage-controlled synthesizers where
+// a dedicated slow oscillator would output a control voltage routed to
+// pitch (vibrato), amplitude (tremolo), or filter cutoff (auto-wah).
+//
+// This module provides 2 independent LFOs per instrument, each with:
+//   - Rate: oscillation speed in Hz (how fast the modulation cycles)
+//   - Depth: modulation intensity (how far the target parameter moves)
+//   - Waveform: shape of the modulation curve (sine, triangle, square,
+//     sawtooth, or sample-and-hold for random stepped modulation)
+//   - Target: which parameter to modulate (pitch, filter, amplitude, pan)
+//
+// Modulation routing:
+//   Pitch target   -> connected to each voice oscillator's detune AudioParam
+//   Filter target  -> connected to each voice filter's frequency AudioParam
+//   Amplitude      -> routed through a shared tremolo GainNode in the signal chain
+//   Pan            -> routed through a shared StereoPanner in the signal chain
+//
+// Pitch and filter are per-voice (polyphonic modulation -- each note gets
+// its own LFO connection). Amplitude and pan are per-instrument (monophonic
+// -- all notes share the same tremolo/pan node, which is more musically
+// natural for these targets).
+//
+// An active-voice gate suspends LFO oscillators when no notes are sounding,
+// avoiding unnecessary CPU usage from idle modulation.
+//
+// References:
+//   Moog, R.A. (1965) "Voltage-Controlled Electronic Music Modules", JAES 13(3)
+//   Roads, C. (1996) The Computer Music Tutorial, MIT Press
+//   Puckette, M. (2007) Theory and Technique of Electronic Music
+//   SSLI Feature List [ENG-011]
+//
 (function() {
   'use strict';
 
@@ -20,7 +55,11 @@
 
   var NO_TARGET = 'none';
 
-  // LFO parameters that require a full node rebuild when changed
+  // LFO parameters that require a full node rebuild when changed.
+  // Rate and depth can be updated live on existing Web Audio nodes, but
+  // changing target/waveform/enabled requires tearing down and reconnecting
+  // the entire LFO signal graph because different targets route to different
+  // AudioParam destinations.
   var LFO_REBUILD_PARAMS = { 'target': 1, 'enabled': 1, 'waveform': 1 };
 
   /** Default LFO settings */
@@ -110,6 +149,16 @@
   // LFO Oscillator / S&H Node Creation
   // ============================================================
 
+  // Standard waveforms (sine, triangle, square, saw) use the Web Audio
+  // OscillatorNode, which is the same phase-accumulator mechanism used for
+  // audio-rate oscillators but running at sub-audio frequencies.
+  //
+  // Sample-and-Hold (S&H) is different: it latches a new random value at
+  // each LFO cycle, holding it constant until the next trigger. This
+  // produces the classic "stepping" modulation heard in sci-fi sound
+  // effects and early Moog patches. S&H requires a ScriptProcessor because
+  // OscillatorNode has no random/stepped waveform type.
+
   /**
    * Create an LFO source node (OscillatorNode or ScriptProcessor for S&H)
    * @param {AudioContext} ctx - Audio context
@@ -125,6 +174,8 @@
         : 1024;
       var shProcessor = ctx.createScriptProcessor(bufSize, 0, 1);
       var shHoldValue = 0;
+      // Hold duration in samples = sampleRate / rate. At 2 Hz and 44100 SR,
+      // each random value is held for 22050 samples (~0.5 seconds).
       var shSamplesPerHold = Math.max(1, Math.floor(ctx.sampleRate / Math.max(0.1, rate)));
       var shSampleCount = 0;
 
@@ -164,6 +215,19 @@
   // ============================================================
   // Signal Chain Insertion (Amplitude & Pan)
   // ============================================================
+
+  // Amplitude (tremolo) and pan modulation are fundamentally different from
+  // pitch/filter modulation. Pitch and filter connect the LFO to per-voice
+  // AudioParams (each note gets its own connection). But tremolo and pan
+  // affect the combined signal of all voices, so they require inserting
+  // shared GainNode (tremolo) and StereoPanner (pan) into the instrument's
+  // signal chain between the volume node and the effect chain input.
+  //
+  // Tremolo: the LFO modulates the gain param of a GainNode (default 1.0).
+  //   A sine LFO at 5 Hz with depth 0.5 makes gain oscillate 0.5-1.5,
+  //   producing the characteristic amplitude wobble.
+  // Pan: the LFO modulates the pan param of a StereoPanner (-1 to +1),
+  //   sweeping the signal left and right in the stereo field.
 
   /**
    * Insert tremolo and pan nodes into the instrument signal chain.
@@ -274,10 +338,14 @@
 
         // Configure depth based on target
         if (settings.target === 'pitch') {
-          // Vibrato: depth in cents. Max 100 cents at 100% depth.
+          // Vibrato: depth in cents (100 cents = 1 semitone).
+          // Typical vibrato is 5-7 Hz rate with 10-50 cents depth.
+          // Classical vibrato is narrower (~10-20 cents); rock/pop wider.
           lfo.depthGain.gain.value = settings.depth * 1.0;
         } else if (settings.target === 'filter') {
-          // Filter modulation: depth in Hz. Max 2000 Hz at 100% depth.
+          // Filter sweep (auto-wah): LFO modulates filter cutoff frequency.
+          // Depth scaled to max 2000 Hz swing. A slow triangle LFO here
+          // produces the classic filter sweep heard in disco and funk.
           lfo.depthGain.gain.value = (settings.depth / 100) * 2000;
         } else if (settings.target === 'amplitude') {
           // Tremolo: depth 0-1. depth/100.
@@ -303,6 +371,9 @@
           }
         }
 
+        // ScriptProcessor nodes are garbage-collected if they have no output
+        // connection. Connect to a zero-gain node routed to destination to keep
+        // the S&H processor alive without producing audible output.
         // For S&H, connect to a silent destination so ScriptProcessor stays alive
         if (lfo.isSH) {
           var silentGain = ctx.createGain();
@@ -389,12 +460,56 @@
   // Per-Voice LFO Application (Pitch & Filter)
   // ============================================================
 
+  // Pitch and filter modulation are per-voice: the LFO's depth gain node is
+  // connected to each individual voice's oscillator detune or filter frequency
+  // AudioParam. This means the LFO phase is shared (monophonic modulation --
+  // all voices move together), but the connection is per-voice so notes that
+  // start/stop independently get properly connected/disconnected.
+  //
+  // Web Audio's AudioParam fan-in allows multiple sources to connect to the
+  // same param -- their values are summed. So both LFO1 and LFO2 can target
+  // pitch simultaneously, and their modulations will add together.
+
   /**
    * Connect LFO modulation to a voice's oscillators (pitch) or filter (filter).
    * Called when a sustained note starts.
    * @param {number} instId - Instrument index
    * @param {Object} voice - Voice object from the voice pool
    */
+  function _connectLFOToPitch(lfo, voice, key) {
+      for (var i = 0; i < voice.oscillators.length; i++) {
+        var oscEntry = voice.oscillators[i];
+        var hasOscDetune = oscEntry && oscEntry.osc && oscEntry.osc.detune;
+        if (hasOscDetune) {
+          try {
+            lfo.depthGain.connect(oscEntry.osc.detune);
+            voice._lfoConnections.push({
+              source: lfo.depthGain,
+              dest: oscEntry.osc.detune,
+              lfoKey: key
+            });
+          } catch (e) { /* oscillator may have been stopped or disposed */ }
+        }
+      }
+  }
+
+  function _connectLFOToFilter(lfo, voice, key) {
+      var hasFilters = voice.filterChain && voice.filterChain.filters && (voice.filterChain.filters.length > 0);
+      if (hasFilters) {
+        var filter = voice.filterChain.filters[0];
+        if (filter && filter.frequency) {
+          try {
+            lfo.depthGain.connect(filter.frequency);
+            voice._lfoConnections.push({
+              source: lfo.depthGain,
+              dest: filter.frequency,
+              lfoKey: key
+            });
+          } catch (e) { /* filter node may have been disposed */ }
+        }
+      }
+  }
+
   function applyLFOToVoice(instId, voice) {
     if (voice) {
       var state = lfoNodes[instId];
@@ -411,37 +526,12 @@
             continue;
           }
 
-          if (lfo.target === 'pitch' && voice.oscillators) {
-            // Connect LFO depth gain to each oscillator's detune param
-            for (var i = 0; i < voice.oscillators.length; i++) {
-              var oscEntry = voice.oscillators[i];
-              var hasOscDetune = oscEntry && oscEntry.osc && oscEntry.osc.detune;
-              if (hasOscDetune) {
-                try {
-                  lfo.depthGain.connect(oscEntry.osc.detune);
-                  voice._lfoConnections.push({
-                    source: lfo.depthGain,
-                    dest: oscEntry.osc.detune,
-                    lfoKey: key
-                  });
-                } catch (e) { /* oscillator may have been stopped or disposed */ }
-              }
-            }
-          } else if (lfo.target === 'filter' && voice.filterChain) {
-            // Connect LFO depth gain to the first filter's frequency param
-            if (voice.filterChain.filters && voice.filterChain.filters.length > 0) {
-              var filter = voice.filterChain.filters[0];
-              if (filter && filter.frequency) {
-                try {
-                  lfo.depthGain.connect(filter.frequency);
-                  voice._lfoConnections.push({
-                    source: lfo.depthGain,
-                    dest: filter.frequency,
-                    lfoKey: key
-                  });
-                } catch (e) { /* filter node may have been disposed */ }
-              }
-            }
+          var isPitchTarget = (lfo.target === 'pitch') && voice.oscillators;
+          var isFilterTarget = (lfo.target === 'filter') && voice.filterChain;
+          if (isPitchTarget) {
+            _connectLFOToPitch(lfo, voice, key);
+          } else if (isFilterTarget) {
+            _connectLFOToFilter(lfo, voice, key);
           }
           // amplitude and pan targets are handled via chain nodes, not per-voice
         }
@@ -507,58 +597,79 @@
    * @param {string} param - 'rate', 'depth', 'waveform', 'target', or 'enabled'
    * @param {*} value - New value
    */
+  // Depth scaling constants: filter modulation swings up to 2000 Hz,
+  // amplitude and pan are normalized 0-1 from percentage input.
+  var FILTER_DEPTH_SCALE = 2000;
+  var PERCENT_SCALE = 100;
+
+  function _updateLFORate(lfo, instId, lfoNum, value) {
+    if (lfo.isSH) {
+      // For S&H, rebuild since ScriptProcessor doesn't support live rate changes easily
+      buildLFONodes(instId, lfoNum);
+      reapplyLFOToActiveVoices(instId);
+    } else {
+      // Standard oscillator: just update frequency
+      var hasFreq = lfo.source && lfo.source.frequency;
+      if (hasFreq) {
+        lfo.source.frequency.value = value;
+      }
+    }
+    lfo.rate = value;
+  }
+
+  function _updateLFODepth(lfo, value) {
+    lfo.depth = value;
+    if (lfo.depthGain) {
+      var isPitch = (lfo.target === 'pitch');
+      var isFilter = (lfo.target === 'filter');
+      var isAmplitude = (lfo.target === 'amplitude');
+      var isPan = (lfo.target === 'pan');
+      if (isPitch) {
+        lfo.depthGain.gain.value = value * 1.0;
+      } else if (isFilter) {
+        lfo.depthGain.gain.value = (value / PERCENT_SCALE) * FILTER_DEPTH_SCALE;
+      } else if (isAmplitude) {
+        lfo.depthGain.gain.value = value / PERCENT_SCALE;
+      } else if (isPan) {
+        lfo.depthGain.gain.value = value / PERCENT_SCALE;
+      }
+    }
+  }
+
+  function _updateLFOLiveParam(lfo, instId, lfoNum, param, value) {
+    if (lfo) {
+      var isRate = (param === 'rate');
+      var isDepth = (param === 'depth');
+      if (isRate) {
+        _updateLFORate(lfo, instId, lfoNum, value);
+      } else if (isDepth) {
+        _updateLFODepth(lfo, value);
+      }
+    }
+  }
+
   function updateLFO(instId, lfoNum, param, value) {
-    if (instId >= 0 && instId < NUM_INSTRUMENTS) {
-      if (lfoNum === 1 || lfoNum === 2) {
-        ensureLFOSettings(instId);
-        var settings = getLFOSettingsForNum(instId, lfoNum);
-        settings[param] = value;
+    var isValidInst = (instId >= 0) && (instId < NUM_INSTRUMENTS);
+    var isValidLfo = (lfoNum === 1) || (lfoNum === 2);
+    if (isValidInst && isValidLfo) {
+      ensureLFOSettings(instId);
+      var settings = getLFOSettingsForNum(instId, lfoNum);
+      settings[param] = value;
 
-        // If LFO nodes haven't been initialized yet, init them
-        if (!lfoNodes[instId]) {
-          initLFOForInstrument(instId);
+      // If LFO nodes haven't been initialized yet, init them
+      if (!lfoNodes[instId]) {
+        initLFOForInstrument(instId);
+      } else {
+        var state = lfoNodes[instId];
+        var key = 'lfo' + lfoNum;
+        var lfo = state[key];
+
+        // For target, enabled, or waveform changes, rebuild the LFO nodes entirely
+        if (LFO_REBUILD_PARAMS[param]) {
+          buildLFONodes(instId, lfoNum);
+          reapplyLFOToActiveVoices(instId);
         } else {
-          var state = lfoNodes[instId];
-          var key = 'lfo' + lfoNum;
-          var lfo = state[key];
-
-          // For target, enabled, or waveform changes, rebuild the LFO nodes entirely
-          if (LFO_REBUILD_PARAMS[param]) {
-            buildLFONodes(instId, lfoNum);
-            // Re-apply to any currently active voices
-            reapplyLFOToActiveVoices(instId);
-          } else {
-            // Live parameter updates (rate, depth) without rebuilding
-            if (lfo) {
-              if (param === 'rate') {
-                if (lfo.isSH) {
-                  // For S&H, update the samples-per-hold calculation
-                  // Need to rebuild since ScriptProcessor doesn't support live rate changes easily
-                  buildLFONodes(instId, lfoNum);
-                  reapplyLFOToActiveVoices(instId);
-                } else {
-                  // Standard oscillator: just update frequency
-                  if (lfo.source && lfo.source.frequency) {
-                    lfo.source.frequency.value = value;
-                  }
-                }
-                lfo.rate = value;
-              } else if (param === 'depth') {
-                lfo.depth = value;
-                if (lfo.depthGain) {
-                  if (lfo.target === 'pitch') {
-                    lfo.depthGain.gain.value = value * 1.0;
-                  } else if (lfo.target === 'filter') {
-                    lfo.depthGain.gain.value = (value / 100) * 2000;
-                  } else if (lfo.target === 'amplitude') {
-                    lfo.depthGain.gain.value = value / 100;
-                  } else if (lfo.target === 'pan') {
-                    lfo.depthGain.gain.value = value / 100;
-                  }
-                }
-              }
-            }
-          }
+          _updateLFOLiveParam(lfo, instId, lfoNum, param, value);
         }
       }
     }
@@ -658,6 +769,14 @@
   // ============================================================
   // Active-Voice Gate: disconnect LFO oscillators when idle
   // ============================================================
+
+  // Optimization: LFO oscillators consume CPU even when no notes are playing.
+  // The active-voice gate tracks the number of sounding voices per instrument.
+  // When the count drops to zero, the LFO source is disconnected from its
+  // depth gain (suspended) -- the oscillator keeps running to maintain phase
+  // continuity, but produces no audible modulation. When a new note starts,
+  // the connection is restored (resumed). This is cheaper than stop/start
+  // because OscillatorNode.start() can only be called once per node.
 
   /** Per-instrument count of active voices connected to LFO */
   var activeVoiceCounts = [0, 0, 0, 0, 0];

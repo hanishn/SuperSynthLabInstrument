@@ -1,6 +1,37 @@
 // Super Synth Lab - Wavetable Scanning Synthesis Engine Module
 // Multi-frame wavetable with morphing, built-in banks, and LFO auto-scan
 // v1.0.0 - ScriptProcessor fallback, 16-voice, ADSR, scan modulation
+//
+// -----------------------------------------------------------------------
+// WAVETABLE SYNTHESIS ENGINE [ENG-013]
+// -----------------------------------------------------------------------
+// Wavetable synthesis stores pre-computed single-cycle waveforms in a
+// "table" (bank) and plays them back at the desired pitch. By
+// interpolating between adjacent frames in the bank, the timbre morphs
+// smoothly in real time -- this is called "scanning".
+//   -- Roads, C. (1996) The Computer Music Tutorial, MIT Press, ch. 4
+//   -- Bristow-Johnson, R. (1996) "Wavetable Synthesis 101"
+//
+// Wolfgang Palm's PPG Wave (1981) was the first commercial wavetable
+// synthesizer. The PPG Wave 2.2 (1982) and later Waldorf Microwave
+// (1989) popularized the technique in electronic music production.
+//
+// Each frame is a single cycle of a waveform stored as Fourier
+// coefficients (harmonic amplitudes). A bank contains 32 frames with
+// 64 harmonics each. Scanning from frame 0 to frame 31 morphs
+// through the timbral evolution defined by that bank.
+//
+// Banks in this engine:
+//   basic   -- sine -> saw -> square -> triangle -> pulse
+//   vocal   -- vowel-like formant morphs (A, E, I, O, U)
+//   digital -- PWM sweep and oscillator-sync effects
+//   metallic -- inharmonic partials (bell/gong timbres)
+//
+// An LFO can automate the scan position, creating evolving pad
+// textures without manual control. Morph smoothing applies a one-pole
+// lowpass to the scan position to prevent zipper noise during fast
+// parameter changes.
+// -----------------------------------------------------------------------
 (function() {
   'use strict';
 
@@ -12,6 +43,9 @@
 
   var MAX_VOICES_PER_INSTRUMENT = 16;
   var TWO_PI = 2 * Math.PI;
+  // 32 frames per bank, 64 harmonics per frame. These dimensions
+  // balance timbral variety (32 distinct snapshots to scan through)
+  // with CPU cost (64 partials summed via additive synthesis per sample).
   var FRAMES_PER_TABLE = 32;
   var HARMONICS_PER_FRAME = 64;
 
@@ -33,6 +67,13 @@
   // Each bank has FRAMES_PER_TABLE frames, each frame is an array
   // of harmonic amplitudes (partials 1..HARMONICS_PER_FRAME)
   // ============================================================
+  // Unlike the PPG Wave which stored raw PCM samples, this engine
+  // stores each frame as Fourier coefficients (harmonic amplitudes).
+  // This approach is automatically bandlimited -- we simply skip
+  // harmonics above Nyquist during rendering, eliminating aliasing
+  // without needing oversampling or BLIT techniques.
+  // The Web Audio API's PeriodicWave uses the same representation
+  // (real + imaginary Fourier coefficients).
 
   var wavetableBanks = {};
 
@@ -43,6 +84,13 @@
     wavetableBanks.metallic = buildMetallicBank();
   }
 
+  // Basic bank: morphs through the four canonical analog waveforms.
+  // Each transition manipulates the harmonic series:
+  //   Sine: only fundamental (h=1). Saw: all harmonics at 1/n.
+  //   Square: odd harmonics at 1/n. Triangle: odd harmonics at 1/n^2.
+  //   Pulse: all harmonics (narrow duty cycle = bright, nasal).
+  // This bank is ideal for understanding Fourier synthesis -- each
+  // waveform is defined entirely by its harmonic content.
   /**
    * Basic Shapes: sine -> saw -> square -> triangle -> pulse
    * Smooth morph through fundamental waveshapes
@@ -65,7 +113,8 @@
         var sqMix = (t - 0.25) / 0.25;
         for (var h2 = 0; h2 < HARMONICS_PER_FRAME; h2++) {
           var n = h2 + 1;
-          var sawAmp = 1.0 / n;
+          var safeN = n || 1;
+          var sawAmp = 1.0 / safeN;
           if (n % 2 === 0) {
             harmonics[h2] = sawAmp * (1.0 - sqMix);
           } else {
@@ -77,9 +126,10 @@
         var triMix = (t - 0.5) / 0.25;
         for (var h3 = 0; h3 < HARMONICS_PER_FRAME; h3++) {
           var n3 = h3 + 1;
+          var safeN3 = n3 || 1;
           if (n3 % 2 === 1) {
-            var sqAmp = 1.0 / n3;
-            var triAmp = 1.0 / (n3 * n3);
+            var sqAmp = 1.0 / safeN3;
+            var triAmp = 1.0 / (safeN3 * safeN3);
             harmonics[h3] = sqAmp + (triAmp - sqAmp) * triMix;
           } else {
             harmonics[h3] = 0;
@@ -90,8 +140,9 @@
         var pulseMix = (t - 0.75) / 0.25;
         for (var h4 = 0; h4 < HARMONICS_PER_FRAME; h4++) {
           var n4 = h4 + 1;
-          var triAmp2 = (n4 % 2 === 1) ? (1.0 / (n4 * n4)) : 0;
-          var pulseAmp = 1.0 / n4; // all harmonics present for narrow pulse
+          var safeN4 = n4 || 1;
+          var triAmp2 = (n4 % 2 === 1) ? (1.0 / (safeN4 * safeN4)) : 0;
+          var pulseAmp = 1.0 / safeN4; // all harmonics present for narrow pulse
           harmonics[h4] = triAmp2 + (pulseAmp - triAmp2) * pulseMix;
         }
       }
@@ -100,6 +151,11 @@
     return frames;
   }
 
+  // Vocal bank: approximates vowel formant structures by boosting
+  // harmonics near formant-like frequency regions. Scanning through
+  // cycles A -> E -> I -> O -> U -> A, creating a "talking" timbre.
+  // Unlike the vocoder engine (which uses real bandpass filters), this
+  // bank bakes the spectral shape directly into the harmonic amplitudes.
   /**
    * Vocal: vowel-like formant morphs via harmonic emphasis patterns
    */
@@ -147,6 +203,12 @@
     return frames;
   }
 
+  // Digital bank: emulates two classic analog synth effects via
+  // harmonic manipulation. First half: pulse-width modulation (PWM),
+  // sweeping duty cycle from 50% to 5%. PWM spectrum follows
+  // sin(n*pi*pw)/n -- as pw narrows, higher harmonics dominate.
+  // Second half: oscillator hard-sync effect, where harmonic peaks
+  // shift upward simulating a slave oscillator synced to a master.
   /**
    * Digital: PWM sweep and sync-like effects via harmonic manipulation
    */
@@ -161,17 +223,20 @@
         var pw = 0.5 - t * 0.9; // 0.5 -> 0.05
         for (var h = 0; h < HARMONICS_PER_FRAME; h++) {
           var n = h + 1;
+          var safeN = n || 1;
           // Pulse wave spectrum: sin(n*pi*pw) / n
-          harmonics[h] = Math.abs(Math.sin(n * Math.PI * pw)) / n;
+          harmonics[h] = Math.abs(Math.sin(n * Math.PI * pw)) / safeN;
         }
       } else {
         // Sync sweep: shift harmonic peaks upward
         var syncRatio = 1.0 + (t - 0.5) * 2.0 * 7.0; // 1.0 -> 8.0
+        var safeSyncRatio = syncRatio || 1;
         for (var h2 = 0; h2 < HARMONICS_PER_FRAME; h2++) {
           var n2 = h2 + 1;
+          var safeN2 = n2 || 1;
           // Sinc-like envelope centered on syncRatio multiples
-          var dist2 = (n2 / syncRatio) - Math.round(n2 / syncRatio);
-          harmonics[h2] = Math.exp(-dist2 * dist2 * 8) / n2;
+          var dist2 = (n2 / safeSyncRatio) - Math.round(n2 / safeSyncRatio);
+          harmonics[h2] = Math.exp(-dist2 * dist2 * 8) / safeN2;
         }
       }
       frames.push(harmonics);
@@ -179,6 +244,12 @@
     return frames;
   }
 
+  // Metallic bank: evolves from harmonic to inharmonic spectra using
+  // the stretched-string partial model: f_n = n * sqrt(1 + B*n^2).
+  // As inharmonicity (B) increases, partials drift from integer
+  // ratios, producing bell-like and gong-like timbres. Spectral tilt
+  // also evolves from bright to dark across the scan range. Pairs of
+  // close partials create audible beating effects.
   /**
    * Metallic: inharmonic partials evolving - bell/gong-like timbres
    */
@@ -194,9 +265,10 @@
         var n = h + 1;
         // Stretched partial: f_n = n * sqrt(1 + B * n^2) (piano-string model)
         var stretchedN = n * Math.sqrt(1.0 + inharmonicity * n * n);
+        var safeStretchedN = stretchedN || 1;
         // Amplitude with spectral tilt evolving from bright to dark
         var tilt = 1.0 + t * 2.0;
-        var amp = Math.pow(1.0 / stretchedN, tilt);
+        var amp = Math.pow(1.0 / safeStretchedN, tilt);
         // Add beating: pairs of close partials
         if (h > 0 && h % 3 === 0) {
           amp *= 1.0 + 0.5 * Math.sin(t * TWO_PI * 2);
@@ -240,6 +312,13 @@
   // ============================================================
   // Wavetable Frame Rendering
   // ============================================================
+  // Rendering uses additive synthesis: each frame's harmonic amplitudes
+  // are summed as sine partials at runtime. This is more CPU-intensive
+  // than playing back pre-rendered PCM, but allows automatic bandlimiting
+  // (we simply cap the partial count at Nyquist/fundamental) and enables
+  // smooth interpolation between adjacent frames without crossfade
+  // artifacts. The interpolated sample blends two frames linearly based
+  // on the fractional scan position -- this is the "morph" effect.
 
   /**
    * Render a single sample from a wavetable frame using additive synthesis.
@@ -292,6 +371,12 @@
   // ============================================================
   // Wavetable Voice
   // ============================================================
+  // Each voice tracks: oscillator phase, current scan position
+  // (with LFO modulation and smoothing), the active bank's frames,
+  // and a standard ADSR envelope. The scan LFO is a simple sine
+  // oscillator that modulates the scan position around the user's
+  // base setting -- this creates the slowly-evolving pad textures
+  // that wavetable synths are famous for.
 
   function WavetableVoice(sr) {
     this.sampleRate = sr;
@@ -354,7 +439,10 @@
     this.detuneRatio = Math.pow(2, detuneCents / 1200);
     this.phaseInc = (freq * this.detuneRatio) / this.sampleRate;
 
-    // Band-limit: max harmonic such that partial frequency < Nyquist
+    // Band-limit: cap the harmonic count so no partial exceeds Nyquist.
+    // This is the key advantage of storing frames as Fourier coefficients
+    // rather than raw PCM -- aliasing is prevented by simply not rendering
+    // partials above sr/2, with zero additional cost.
     var nyquist = this.sampleRate * 0.5;
     this.maxHarmonic = Math.floor(nyquist / (freq * this.detuneRatio));
     if (this.maxHarmonic > HARMONICS_PER_FRAME) {
@@ -476,7 +564,9 @@
       return 0;
     }
 
-    // Update scan position with LFO modulation
+    // Update scan position with LFO modulation.
+    // The LFO sweeps the scan position around the base value, creating
+    // the characteristic evolving pad sound of wavetable synthesis.
     if (this.scanLfoSpeed > 0) {
       this.scanLfoPhase += this.scanLfoSpeed / this.sampleRate;
       if (this.scanLfoPhase >= 1.0) {
@@ -490,11 +580,13 @@
       this.currentScanPos = this.scanPosition;
     }
 
-    // Smooth the scan position for morph smoothing
+    // Smooth the scan position via one-pole lowpass to prevent zipper
+    // noise (audible staircase artifacts from abrupt position jumps).
     var smoothCoeff = 1.0 - this.morphSmoothing * 0.999;
     this.smoothedScanPos += (this.currentScanPos - this.smoothedScanPos) * smoothCoeff;
 
-    // Render interpolated wavetable sample
+    // Render interpolated wavetable sample: blend between two adjacent
+    // frames based on fractional scan position (linear crossfade).
     var sample = getInterpolatedSample(this.frames, this.smoothedScanPos, this.phase, this.maxHarmonic);
 
     // Advance oscillator phase

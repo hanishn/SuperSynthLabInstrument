@@ -1,5 +1,42 @@
 // Synth Lab - Noise Gate Effect
 // Cleans up signals by attenuating audio below a threshold
+//
+// -----------------------------------------------------------------------
+// EDUCATIONAL OVERVIEW: Noise Gate
+// -----------------------------------------------------------------------
+// A noise gate is the inverse of a compressor: instead of reducing loud
+// signals, it attenuates signals that fall BELOW a threshold. This is
+// useful for removing background noise, hum, or bleed during silent
+// passages without affecting the wanted signal when it is playing.
+//
+// Gate states and transitions:
+//   CLOSED --[signal >= threshold]--> OPENING (attack phase)
+//   OPEN   --[signal < threshold] --> HOLD (wait holdTime)
+//   HOLD   --[hold elapsed]--------> CLOSING (release phase)
+//   CLOSING --------------------------> CLOSED (gain = range)
+//
+// Key parameters:
+//   Threshold: level below which the gate closes.
+//   Attack:    how fast the gate opens (short = snappy, long = fade-in).
+//   Hold:      minimum time the gate stays open after signal drops.
+//              Prevents chattering on signals with brief pauses.
+//   Release:   how fast the gate closes (fade-out speed).
+//   Range:     attenuation depth when closed. -80 dB = near-silence.
+//              -20 dB = partial attenuation (lets some bleed through).
+//
+// This implementation uses an AnalyserNode for RMS level detection and
+// a GainNode for the actual attenuation, driven by a requestAnimationFrame
+// loop. A safety timeout prevents the gate from locking closed permanently
+// (important in browser contexts where timing can be unreliable).
+//
+// The gate starts in the OPEN state so initial audio is never blocked
+// before the first detection cycle has a chance to measure input level.
+//
+// References:
+//   Zolzer, U. (2011) DAFX: Digital Audio Effects, Wiley, Ch. 7
+//
+// Feature spec: [FX-061] Gate
+// -----------------------------------------------------------------------
 
 (function() {
   var SL = window.SynthLab = window.SynthLab || {};
@@ -31,6 +68,8 @@
       super(ctx, 'gate');
 
       // Create AnalyserNode for level detection
+      // fftSize 256 gives us 256 time-domain samples per measurement.
+      // RMS of these samples approximates perceived loudness for gating.
       this.analyser = ctx.createAnalyser();
       this.analyser.fftSize = 256;
       this.analyserBuffer = new Float32Array(this.analyser.fftSize);
@@ -106,7 +145,12 @@
     }
 
     /**
-     * Start the level detection loop using requestAnimationFrame
+     * Start the level detection loop using requestAnimationFrame.
+     *
+     * The loop measures RMS level, converts to dB, and calls processGate()
+     * to decide whether the gate should open or close. A safety timeout
+     * forces the gate open if it has been closed too long after enable,
+     * preventing permanent audio blockage from startup race conditions.
      */
     startLevelDetection() {
       var SAFETY_TIMEOUT_SEC = 0.5; // Force gate open if stuck closed this long after enable
@@ -124,13 +168,15 @@
         self.analyser.getFloatTimeDomainData(self.analyserBuffer);
 
         // Calculate RMS level
+        // RMS (root mean square) gives a better approximation of perceived
+        // loudness than peak detection, because it averages over the buffer.
         var sum = 0;
         for (var i = 0; i < self.analyserBuffer.length; i++) {
           sum += self.analyserBuffer[i] * self.analyserBuffer[i];
         }
         var rms = Math.sqrt(sum / self.analyserBuffer.length);
 
-        // Convert to dB
+        // Convert to dB using the standard formula: dB = 20 * log10(amplitude)
         var hasSignal = (rms > 0);
         var levelDb = hasSignal ? (20 * Math.log10(rms)) : -Infinity;
 
@@ -192,6 +238,8 @@
         var rangeDb = this.params.range;
 
         // Calculate the minimum gain from range (in linear scale)
+        // Converts dB to linear: gain = 10^(dB/20)
+        // e.g. -80 dB -> 0.0001 (near silence), -20 dB -> 0.1 (partial)
         var minGain = Math.pow(10, rangeDb / 20);
 
         if (levelDb >= threshold) {
@@ -230,7 +278,10 @@
     }
 
     /**
-     * Handle parameter updates
+     * Handle parameter updates.
+     * Gate parameters are stored as instance state (not AudioParam) because
+     * the gate logic runs in JS (processGate), not in the audio thread.
+     * Only the gateGain node uses AudioParam scheduling for smooth transitions.
      */
     updateParam(name, value) {
       switch (name) {

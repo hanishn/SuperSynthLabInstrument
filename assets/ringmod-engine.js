@@ -1,6 +1,39 @@
 // Super Synth Lab - Ring Modulation Synthesis Engine
 // Multiplies carrier oscillator by modulator oscillator for metallic/bell-like tones
 // ScriptProcessor fallback, 16-voice polyphony
+//
+// --- History and Theory ---
+// Ring modulation multiplies two signals together:
+//   output = carrier(t) * modulator(t)
+//
+// For sinusoidal inputs, the trigonometric identity reveals what happens:
+//   cos(a) * cos(b) = 0.5 * [cos(a+b) + cos(a-b)]
+//
+// The original frequencies DISAPPEAR entirely -- only the sum and
+// difference frequencies (sidebands) remain. This is the key difference
+// from amplitude modulation (AM), where the carrier frequency persists.
+//
+// When the carrier-to-modulator ratio is a simple integer (1:1, 2:1, 3:2),
+// the sidebands fall on harmonic frequencies, producing bell-like and
+// metallic tones -- gongs, tubular bells, gamelans. At non-integer ratios,
+// the sidebands become inharmonic, creating the classic "Dalek voice"
+// effect (Doctor Who) or Stockhausen-style electronic textures.
+//
+// Karlheinz Stockhausen used ring modulation extensively in electronic
+// compositions like "Mixtur" (1964) and "Mantra" (1970). The BBC
+// Radiophonic Workshop used it to create the Dalek voice by ring-
+// modulating an actor's voice with a ~30 Hz oscillator.
+//
+// The mod depth parameter in this engine controls the wet/dry mix:
+//   output = carrier * (1 - depth) + (carrier * modulator) * depth
+// At depth=0, the carrier passes through unmodified. At depth=1.0,
+// full ring modulation with complete sideband replacement.
+//
+// References:
+//   Roads, C. (1996) The Computer Music Tutorial, MIT Press, Ch. 6
+//   Puckette, M. (2007) Theory and Technique of Electronic Music, Ch. 5
+//   Stockhausen, K. -- ring modulation in "Mixtur" (1964), "Mantra" (1970)
+//   [ENG-010] SuperSynthLab engine spec
 (function() {
   'use strict';
 
@@ -15,6 +48,10 @@
 
   // Valid oscillator waveform types
   var VALID_WAVES = { 'sine': 1, 'saw': 1, 'square': 1, 'triangle': 1 };
+
+  // Default: sine carrier x sine modulator at ratio 2.0 = one octave above.
+  // This produces sidebands at f+2f=3f and 2f-f=f -- a perfect fifth and
+  // the fundamental, yielding a bright, bell-like timbre.
 
   /** Default ring mod settings */
   var DEFAULT_RINGMOD_SETTINGS = {
@@ -131,7 +168,13 @@
     this.modWave = settings.modWave || 'sine';
     this.modDepth = (settings.modDepth !== undefined ? settings.modDepth : 80) / 100;
 
-    // Modulator frequency
+    // Modulator frequency: two modes.
+    // "ratio" mode: modulator tracks the played note (e.g., ratio 2.0 = one
+    //   octave above). Produces harmonically related sidebands that shift
+    //   with pitch -- good for bells, metallic percussion.
+    // "fixed" mode: modulator stays at a constant Hz regardless of note.
+    //   Produces different sideband intervals at each pitch -- good for
+    //   the classic Dalek/robot voice effect or Stockhausen-style textures.
     var modFreq;
     if (settings.modRatioMode === 'fixed') {
       modFreq = settings.modFixedHz || 440;
@@ -240,7 +283,10 @@
     var carrier = generateSample(this.carrierWave, this.carrierPhase);
     var modulator = generateSample(this.modWave, this.modPhase);
 
-    // Ring mod = mix between dry carrier and carrier*modulator
+    // Ring mod with wet/dry mix. At depth=1.0 this is pure ring modulation
+    // (carrier * modulator), producing only sum/difference sidebands.
+    // At fractional depth, the dry carrier bleeds through, preserving some
+    // of the original pitch -- useful for subtle metallic coloration.
     var ringModded = carrier * modulator;
     var sample = carrier * (1.0 - this.modDepth) + ringModded * this.modDepth;
 
@@ -305,6 +351,7 @@
                 sample += voices[vi].process() * 0.12;
               }
             }
+            // Cubic soft-clip: approximates tanh saturation cheaply
             var ss = sample * sample;
             output[s] = sample * (27 + ss) / (27 + 9 * ss);
           }

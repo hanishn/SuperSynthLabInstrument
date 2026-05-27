@@ -1,6 +1,40 @@
 // Super Synth Lab - Filters Module
 // Extracted from audio-engine.js for modularity
 // Loads AFTER audio-engine.js and extends SL.audio
+//
+// -----------------------------------------------------------------------
+// EDUCATIONAL OVERVIEW: Digital Audio Filters
+// -----------------------------------------------------------------------
+// This module implements digital audio filters — the core tone-shaping
+// tools of subtractive synthesis. A filter removes or emphasizes
+// frequency content from a sound source. In hardware synths, voltage-
+// controlled filters (VCFs) gave each instrument its signature character.
+//
+// The standard biquad transfer function implemented by Web Audio is:
+//   H(z) = (b0 + b1*z^-1 + b2*z^-2) / (1 + a1*z^-1 + a2*z^-2)
+// This second-order IIR filter is the building block: cascading two
+// biquads yields a 4-pole (24 dB/oct) filter.
+//
+// Filter types used here:
+//   - Lowpass:  passes frequencies below cutoff, attenuates above
+//   - Highpass: passes frequencies above cutoff, attenuates below
+//   - Bandpass: passes a frequency band around cutoff
+//   - Notch:    rejects a narrow band at cutoff, passes the rest
+//
+// This module also provides PolyBLEP (Polynom Band-Limited Step)
+// functions for alias-free waveform generation — critical for digital
+// oscillators that would otherwise produce audible aliasing artifacts.
+//
+// References:
+//   Bristow-Johnson, R. "Audio EQ Cookbook"
+//     (https://www.w3.org/2011/audio/audio-eq-cookbook.html)
+//   Butterworth, S. (1930) "On the Theory of Filter Amplifiers",
+//     Wireless Engineer, vol. 7, pp. 536-541
+//   Moog, R.A. (1965) "Voltage-Controlled Electronic Music Modules",
+//     JAES 13(3), pp. 200-206
+//   Smith, J.O. (2007) Introduction to Digital Filters, CCRMA
+//     (https://ccrma.stanford.edu/~jos/filters/)
+// -----------------------------------------------------------------------
 (function() {
   'use strict';
 
@@ -16,6 +50,13 @@
   // ============================================================
   // Filter Settings & Creation
   // ============================================================
+  //
+  // Frequency and Q (resonance) sliders use non-linear mappings so
+  // that the controls feel natural to a musician. Frequency uses a
+  // logarithmic scale because human pitch perception is logarithmic
+  // (each octave doubles in Hz). Q uses a mild exponential curve so
+  // that subtle resonance values are easier to dial in, while still
+  // allowing extreme self-oscillation at the top of the range.
 
   /**
    * Convert slider value (0-1000) to frequency (20-20000Hz) using logarithmic scale
@@ -24,6 +65,7 @@
    * @returns {number} Frequency in Hz
    */
   function sliderToFreq(sliderValue) {
+    // 20 Hz to 20 kHz spans the full range of human hearing
     var minFreq = 20;
     var maxFreq = 20000;
     var minLog = Math.log10(minFreq);
@@ -54,6 +96,10 @@
    * @returns {number} Q factor
    */
   function sliderToQ(sliderValue) {
+    // Q factor (quality factor) controls resonance peak at the cutoff.
+    // Low Q (~0.7) = gentle rolloff. High Q (~20) = sharp whistling peak.
+    // The "classic synth sweep" sound comes from a moderate-to-high Q
+    // value while the cutoff frequency is modulated by an envelope.
     var minQ = 0.5;
     var maxQ = 20;
     var normalized = sliderValue / 100;
@@ -82,7 +128,10 @@
    * @returns {number} Adjusted cutoff frequency
    */
   function calcKeyTrackedFreq(baseFreq, noteFreq, keyTrack) {
-
+    // Key tracking makes the filter cutoff follow the keyboard pitch.
+    // At 100% (keyTrack=1), the cutoff moves in lockstep with the note,
+    // keeping the timbral brightness consistent across the keyboard.
+    // Without key tracking, low notes sound brighter and high notes duller.
     if (keyTrack === 0) {
       return baseFreq;
     }
@@ -91,7 +140,8 @@
     var refFreq = 261.63;
 
     // Calculate how many octaves above/below reference
-    var octaveDiff = Math.log2(noteFreq / refFreq);
+    var safeRefFreq = refFreq || 0.001;
+    var octaveDiff = Math.log2(noteFreq / safeRefFreq);
 
     // Apply key tracking: each octave shifts cutoff by keyTrack amount
     var multiplier = Math.pow(2, octaveDiff * keyTrack);
@@ -104,6 +154,21 @@
   // ============================================================
   // Filter Model Implementations
   // ============================================================
+  //
+  // Each filter model emulates a different hardware synthesizer's
+  // filter character. The differences arise from circuit topology,
+  // component nonlinearities, and saturation behavior:
+  //
+  //   Butterworth: maximally flat passband — no ripple, clean rolloff.
+  //     The mathematically "ideal" filter. [Butterworth, 1930]
+  //   Moog Ladder: 4-pole (24 dB/oct) with per-stage tanh saturation.
+  //     Rich harmonics at high resonance. [Moog, 1965]
+  //   SVF (State Variable): simultaneous LP/HP/BP/Notch outputs from
+  //     a single topology. Smooth resonance behavior.
+  //   MS-20 (Korg): aggressive saturation with diode-like clipping.
+  //     Known for its gritty, screaming resonance character.
+  //   Oberheim SEM: 2-pole (12 dB/oct) with gentle, musical resonance.
+  //     Warm and creamy — the "vintage poly" sound.
 
   /**
    * Create a standard Butterworth filter chain
@@ -112,6 +177,8 @@
    * @returns {{input: BiquadFilterNode, output: BiquadFilterNode, filters: BiquadFilterNode[]}}
    */
   function createButterworthFilter(ctx, settings) {
+    // Butterworth = maximally flat magnitude in the passband (no ripple).
+    // 12 dB/oct uses one biquad; 24 dB/oct cascades two biquads.
     var filter1 = ctx.createBiquadFilter();
     filter1.type = settings.type;
     filter1.frequency.value = settings.frequency;
@@ -121,7 +188,9 @@
       return { input: filter1, output: filter1, filters: [filter1] };
     }
 
-    // 24dB/oct: chain two biquads
+    // 24dB/oct: chain two biquads. The second stage uses Q * 0.707
+    // (1/sqrt(2)) — the Butterworth alignment factor that ensures
+    // maximally flat combined response without a resonance bump.
     var filter2 = ctx.createBiquadFilter();
     filter2.type = settings.type;
     filter2.frequency.value = settings.frequency;
@@ -138,6 +207,8 @@
    * @returns {{input: AudioNode, output: AudioNode, filters: AudioNode[]}}
    */
   function createMoogFilterFallback(ctx, settings) {
+    // Fallback for non-lowpass Moog: cascaded biquads with increasing Q
+    // per stage to approximate the ladder's progressive resonance buildup.
     var filters = [];
     var numStages = settings.slope === 12 ? 2 : 4;
     var baseQ = 0.5;
@@ -147,7 +218,8 @@
       var filter = ctx.createBiquadFilter();
       filter.type = settings.type;
       filter.frequency.value = settings.frequency;
-      var stageQ = baseQ + (resonanceFactor * (i + 1) / numStages) * 8;
+      var safeNumStages = numStages || 1;
+      var stageQ = baseQ + (resonanceFactor * (i + 1) / safeNumStages) * 8;
       filter.Q.value = Math.min(stageQ, 20);
       filters.push(filter);
     }
@@ -167,6 +239,12 @@
    * @returns {{input: AudioNode, output: AudioNode, filters: AudioNode[]}}
    */
   function createMoogFilter(ctx, settings) {
+    // The Moog ladder filter [Moog, 1965] is a 4-pole lowpass with
+    // feedback from output to input. Each pole applies tanh() saturation,
+    // which generates the warm harmonic distortion that defines the
+    // "Moog sound." At high resonance, the filter self-oscillates —
+    // producing a pure sine tone at the cutoff frequency.
+    //
     // Non-lowpass types fall back to BiquadFilterNode chain
     if (settings.type !== 'lowpass') {
       return createMoogFilterFallback(ctx, settings);
@@ -191,7 +269,8 @@
     }
     processor.moogState = state;
 
-    // Map resonance from 0-20 Q range to 0-4 internal resonance
+    // Map resonance from 0-20 Q range to 0-4 internal resonance.
+    // The Moog ladder self-oscillates at resonance=4 (unity feedback gain).
     var resonance = Math.min(4, settings.resonance / 5);
 
     processor.moogCutoff = settings.frequency;
@@ -201,6 +280,8 @@
       var numCh = e.inputBuffer.numberOfChannels;
       // Recalculate coefficients from live properties
       var fc = Math.max(20, Math.min(20000, processor.moogCutoff));
+      // g = tan(pi * fc / sr) is the bilinear transform cutoff coefficient.
+      // It maps the analog cutoff frequency to the digital domain.
       var g = Math.min(0.99, Math.max(0.001,
         Math.tan(Math.PI * fc / sampleRate)));
       var res = Math.min(4, Math.max(0, processor.moogResonance));
@@ -223,7 +304,10 @@
           // Pre-filter drive saturation
           x = Math.tanh(x * drive);
 
-          // 4-pole cascade with per-stage tanh saturation
+          // 4-pole cascade with per-stage tanh saturation.
+          // Each stage is a 1-pole lowpass: s += g * (tanh(in) - tanh(s)).
+          // The tanh() limits amplitude to [-1,1], modeling transistor
+          // saturation in the original Moog ladder circuit.
           s[0] = s[0] + g * (Math.tanh(x) - Math.tanh(s[0]));
           s[1] = s[1] + g * (Math.tanh(s[0]) - Math.tanh(s[1]));
           s[2] = s[2] + g * (Math.tanh(s[1]) - Math.tanh(s[2]));
@@ -251,6 +335,9 @@
    * @returns {{input: AudioNode, output: AudioNode, filters: BiquadFilterNode[]}}
    */
   function createSVFFilter(ctx, settings) {
+    // State Variable Filter: a topology that can produce LP, HP, BP, and
+    // notch outputs simultaneously from one structure. Resonance is well-
+    // behaved (no sudden jumps), making it popular in polyphonic synths.
     var filters = [];
     var svfQ = 0.5 + (settings.resonance * 2.5);
 
@@ -288,6 +375,11 @@
    * @returns {{input: AudioNode, output: AudioNode, filters: AudioNode[]}}
    */
   function createMS20Filter(ctx, settings) {
+    // Korg MS-20 style: aggressive resonance with soft-clipping waveshaper.
+    // The original MS-20 used a Sallen-Key topology with diode clipping.
+    // High resonance produces the screaming, distorted character this
+    // filter is famous for. The exponential Q curve (power 1.8) models
+    // how the original circuit's resonance ramps up nonlinearly.
     var filters = [];
     var aggressiveQ = 0.5 + Math.pow(settings.resonance / 5, 1.8) * 25;
 
@@ -330,6 +422,9 @@
    * @returns {Float32Array} Waveshaper curve
    */
   function createMS20SaturationCurve(resonance) {
+    // tanh waveshaping produces soft clipping — signals are gently
+    // compressed rather than hard-clipped, preserving musicality.
+    // The curve is cached because it only depends on the resonance value.
     var key = Math.round(resonance * 10);
     if (_ms20CurveCache[key]) {
       return _ms20CurveCache[key];
@@ -353,6 +448,11 @@
    * @returns {{input: AudioNode, output: AudioNode, filters: BiquadFilterNode[]}}
    */
   function createOberheimFilter(ctx, settings) {
+    // Oberheim SEM (Synthesizer Expander Module): a 2-pole (12 dB/oct)
+    // filter known for its warm, creamy resonance. The sqrt() Q curve
+    // gives a gentle ramp — musical across the full range without the
+    // harshness of the MS-20. The second stage is slightly detuned
+    // (freq * 0.97) to approximate the SEM's analog component drift.
     var filters = [];
     var semQ = 0.7 + Math.sqrt(settings.resonance) * 2.5;
 
@@ -406,6 +506,20 @@
   // ============================================================
   // PolyBLEP Anti-Aliasing
   // ============================================================
+  //
+  // PolyBLEP (Polynomial Band-Limited Step) is a technique for
+  // generating alias-free waveforms in digital oscillators. Naive
+  // waveforms (sawtooth, square, pulse) have discontinuities that
+  // create harmonics above the Nyquist frequency, which fold back
+  // as audible aliasing artifacts. PolyBLEP smooths these
+  // discontinuities with a polynomial correction applied only near
+  // the transition points, preserving the waveform elsewhere.
+  //
+  // The correction is O(dt) wide — it narrows at lower frequencies
+  // where aliasing is less of a problem, and widens at higher
+  // frequencies where it matters most.
+  //
+  // See: Smith, J.O. (2007) Introduction to Digital Filters, CCRMA
 
   /**
    * PolyBLEP correction for discontinuities
@@ -414,11 +528,15 @@
    * @returns {number} Correction value
    */
   function polyBlep(t, dt) {
+    // Near a discontinuity (within one sample of the transition),
+    // apply a quadratic polynomial correction. Outside that window,
+    // return 0 (no correction needed).
+    var safeDt = dt || 0.001;
     if (t < dt) {
-      t /= dt;
+      t /= safeDt;
       return t + t - t * t - 1;
     } else if (t > 1 - dt) {
-      t = (t - 1) / dt;
+      t = (t - 1) / safeDt;
       return t * t + t + t + 1;
     }
     return 0;
@@ -431,6 +549,8 @@
    * @returns {number} Anti-aliased sawtooth sample [-1, 1]
    */
   function polyBlepSaw(phase, dt) {
+    // Naive sawtooth: ramp from -1 to +1, then jump back. The PolyBLEP
+    // correction smooths the discontinuity at the phase reset (phase=0).
     var sample = 2 * phase - 1;
     sample -= polyBlep(phase, dt);
     return sample;
@@ -443,6 +563,8 @@
    * @returns {number} Anti-aliased square sample [-1, 1]
    */
   function polyBlepSquare(phase, dt) {
+    // Square wave has two discontinuities per cycle (at 0 and 0.5).
+    // Both transitions get PolyBLEP correction.
     var sample = phase < 0.5 ? 1 : -1;
     sample += polyBlep(phase, dt);
     sample -= polyBlep((phase + 0.5) % 1, dt);
@@ -457,6 +579,9 @@
    * @returns {number} Anti-aliased pulse sample [-1, 1]
    */
   function polyBlepPulse(phase, dt, pw) {
+    // Pulse wave: like square but with variable duty cycle (pulse width).
+    // Pulse Width Modulation (PWM) sweeps the duty cycle over time for
+    // the classic "chorus-like" thickening effect heard in string pads.
     var sample = phase < pw ? 1 : -1;
     sample += polyBlep(phase, dt);
     sample -= polyBlep((phase + (1 - pw)) % 1, dt);
@@ -470,6 +595,8 @@
    * @returns {number} Anti-aliased triangle sample [-1, 1]
    */
   function polyBlepTriangle(phase, dt) {
+    // Triangle wave is continuous (no discontinuities), so it does not
+    // need PolyBLEP correction. Included here for API consistency.
     var sample = phase < 0.5 ? 4 * phase - 1 : 3 - 4 * phase;
     return sample;
   }
@@ -477,6 +604,12 @@
   // ============================================================
   // Pulse Wave (PWM) Generation
   // ============================================================
+  //
+  // Pulse waves are constructed via Fourier series and delivered to
+  // Web Audio as PeriodicWave objects. The Fourier coefficient for
+  // harmonic h of a pulse wave with duty cycle d is:
+  //   imag[h] = (2 / (h * pi)) * sin(h * pi * d)
+  // When d=0.5, this reduces to a square wave (odd harmonics only).
 
   /**
    * Create a PeriodicWave for a pulse wave with specified duty cycle
@@ -509,7 +642,10 @@
     return wave;
   }
 
-  // Super saw detune offsets in cents (7 voices)
+  // Super saw detune offsets in cents (7 voices).
+  // The asymmetric spacing creates a rich, chorused sound — the
+  // "super saw" popularized by the Roland JP-8000 (1997). Wider
+  // spread = more detuning = thicker/more aggressive sound.
   var SUPERSAW_DETUNES = [-40, -25, -10, 0, 10, 25, 40];
 
   /**

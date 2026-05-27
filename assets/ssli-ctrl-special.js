@@ -261,7 +261,8 @@
     }
 
     var stripCount = loomNotes.length;
-    var stripW = Math.floor(containerW / stripCount);
+    var safeStripCount = stripCount || 1;
+    var stripW = Math.floor(containerW / safeStripCount);
     var stripAreaH = containerH - LOOM_TOPBAR_HEIGHT;
 
     var stripContainer = document.createElement('div');
@@ -271,7 +272,8 @@
     for (var li = 0; li < stripCount; li++) {
       var midi = loomNotes[li];
       var pc = midi % 12;
-      var degreeIdx = li % scaleIntervals.length;
+      var safeScaleLen = scaleIntervals.length || 1;
+      var degreeIdx = li % safeScaleLen;
       var stripEl = document.createElement('div');
       stripEl.className = 'ctrl-loom-strip';
       stripEl.setAttribute('data-midi', midi);
@@ -520,7 +522,8 @@
     /* If noteCount > intervals available, add octave doublings */
     var octaveShift = 12;
     while (midis.length < noteCount) {
-      var addIdx = midis.length % intervals.length;
+      var safeIntervalsLen = intervals.length || 1;
+      var addIdx = midis.length % safeIntervalsLen;
       midis.push(rootMidi + intervals[addIdx] + octaveShift);
       if (addIdx === intervals.length - 1) { octaveShift = octaveShift + 12; }
     }
@@ -631,7 +634,8 @@
 
       var cumulativeTime = 0;
       for (var si = 0; si < ordered.length; si++) {
-        var rhythmMult = rhythmPat[si % rhythmPat.length];
+        var safeRhythmLen = rhythmPat.length || 1;
+        var rhythmMult = rhythmPat[si % safeRhythmLen];
         if (rhythmMult === 0) {
           /* Rest: skip this note but advance time */
           cumulativeTime = cumulativeTime + baseDelay;
@@ -1005,8 +1009,9 @@
     }
 
     var noteCount = xyNotes.length;
+    var safeNoteCount = noteCount || 1;
     for (var gi = 0; gi < noteCount; gi++) {
-      var xFrac = gi / noteCount;
+      var xFrac = gi / safeNoteCount;
       var gridLine = document.createElement('div');
       gridLine.className = 'ctrl-xy-gridline-v ssli-xypad-gridline-v';
       gridLine.style.left = Math.floor(xFrac * containerW) + 'px';
@@ -1617,7 +1622,8 @@
       }
       var isRoot = (pc === 0);
 
-      var heightFrac = 1.0 - (hi / stringCount) * 0.35;
+      var safeStringCount = stringCount || 1;
+      var heightFrac = 1.0 - (hi / safeStringCount) * 0.35;
       var stringH = Math.floor(harpAreaH * heightFrac) - 20;
       var stringTop = harpAreaH - stringH - 10;
 
@@ -1730,6 +1736,7 @@
     var startMidi = (baseOctave + 1) * SEMITONES_PER_OCTAVE;
     var endMidi = (baseOctave + numOctaves + 1) * SEMITONES_PER_OCTAVE;
     var totalSemitones = endMidi - startMidi;
+    var safeTotalSemitones = totalSemitones || 1;
 
     var wrapper = document.createElement('div');
     wrapper.className = 'ctrl-theremin-wrapper ssli-theremin-wrapper ssli-airsynth-wrapper';
@@ -1843,7 +1850,7 @@
       var semiIsC = (semiPc === 0);
       // Skip C notes — they get the thick octave line instead
       if (!semiIsC) {
-        var semiFrac = (semiMidi - startMidi) / totalSemitones;
+        var semiFrac = (semiMidi - startMidi) / safeTotalSemitones;
         var semiLeftPx = Math.floor(semiFrac * containerW);
         var semiLine = document.createElement('div');
         semiLine.style.position = 'absolute';
@@ -1865,9 +1872,9 @@
     for (rulerMidi = startMidi; rulerMidi <= endMidi; rulerMidi++) {
       var rulerPc = rulerMidi % SEMITONES_PER_OCTAVE;
       var rulerIsC = (rulerPc === 0);
-      var rulerFrac = (rulerMidi - startMidi) / totalSemitones;
+      var rulerFrac = (rulerMidi - startMidi) / safeTotalSemitones;
       var rulerLeftPx = Math.floor(rulerFrac * containerW);
-      var rulerNextFrac = (rulerMidi + 1 - startMidi) / totalSemitones;
+      var rulerNextFrac = (rulerMidi + 1 - startMidi) / safeTotalSemitones;
       var rulerWidthPx = Math.floor(rulerNextFrac * containerW) - rulerLeftPx;
 
       // Octave boundary vertical line extending into play area
@@ -1901,7 +1908,7 @@
         var stripeBg = isOddOctave ? OCTAVE_STRIPE_ODD_BG : OCTAVE_STRIPE_EVEN_BG;
         var nextCMidi = rulerMidi + SEMITONES_PER_OCTAVE;
         var cappedNextC = (nextCMidi > endMidi) ? endMidi : nextCMidi;
-        var stripeFracEnd = (cappedNextC - startMidi) / totalSemitones;
+        var stripeFracEnd = (cappedNextC - startMidi) / safeTotalSemitones;
         var stripeLeftPx = rulerLeftPx;
         var stripeWidthPx = Math.min(Math.floor(stripeFracEnd * containerW) - stripeLeftPx, containerW - stripeLeftPx);
         var octStripe = document.createElement('div');
@@ -1963,10 +1970,11 @@
     // Helper to highlight the current note on the pitch ruler
     function _highlightRulerNote(midi) {
       var idx = midi - startMidi;
+      var localSafeSemitones = safeTotalSemitones || 1;
       var isInRange = (idx >= 0) && (idx < totalSemitones);
       if (isInRange) {
-        var frac = idx / totalSemitones;
-        var nextFrac = (idx + 1) / totalSemitones;
+        var frac = idx / localSafeSemitones;
+        var nextFrac = (idx + 1) / localSafeSemitones;
         var leftPx = Math.floor(frac * containerW);
         var widthPx = Math.floor(nextFrac * containerW) - leftPx;
         _pitchRulerHighlight.style.left = leftPx + 'px';
@@ -2361,6 +2369,35 @@
   // Chromatic Grid Controller
   // ============================================================
 
+  function _findMidiCellAt(clientX, clientY, wrapper) {
+    var result = null;
+    var newEl = document.elementFromPoint(clientX, clientY);
+    if (!newEl) { return result; }
+    var target = newEl;
+    while (target && target !== wrapper) {
+      var attr = target.getAttribute('data-midi');
+      if (attr !== NO_ATTR) {
+        result = { midi: parseInt(attr, 10), el: target };
+        break;
+      }
+      target = target.parentNode;
+    }
+    return result;
+  }
+
+  function _chromGridSlideToNote(info, newMidi, target, touch, noteOffFn, noteOnFn, resetBendFn) {
+      noteOffFn(info.midi);
+      if (info.el) { info.el.classList.remove('ctrl-linn-active'); }
+      var movePressureEvent = { pointerType: 'touch', pressure: touch.force };
+      var moveVel = SL.velocityFromPressure(movePressureEvent, CHROMGRID_DEFAULT_VELOCITY);
+      noteOnFn(newMidi, moveVel);
+      target.classList.add('ctrl-linn-active');
+      info.midi = newMidi;
+      info.el = target;
+      info.startX = touch.clientX;
+      resetBendFn();
+  }
+
   function _buildChromaticGridController(container, opts) {
     var baseOctave = opts.baseOctave;
     var noteOn = opts.noteOn;
@@ -2377,9 +2414,12 @@
     wrapper.style.height = containerH + 'px';
 
     var cols = CHROMATIC_GRID_COLS;
-    var cellW = Math.floor(containerW / cols);
-    var rows = Math.max(2, Math.floor(containerH / cellW));
-    var cellH = Math.floor(containerH / rows);
+    var safeCols = cols || 1;
+    var cellW = Math.floor(containerW / safeCols);
+    var safeCellW = cellW || 1;
+    var rows = Math.max(2, Math.floor(containerH / safeCellW));
+    var safeRows = rows || 1;
+    var cellH = Math.floor(containerH / safeRows);
     var baseNote = (baseOctave + 1) * SEMITONES_PER_OCTAVE;
     var labelFontSize = Math.max(12, Math.floor(Math.min(cellW, cellH) / 3));
     var octFontSize = Math.max(10, Math.floor(labelFontSize * 0.85));
@@ -2453,33 +2493,15 @@
         var info = _linnTouches[t.identifier];
         if (info) {
           var dx = t.clientX - info.startX;
-          var bendCents = (dx / cellW) * 100;
+          var localCellW = safeCellW || 1;
+          var bendCents = (dx / localCellW) * 100;
           bendCents = Math.max(-MAX_BEND_CENTS, Math.min(MAX_BEND_CENTS, bendCents));
           applyPitchBend(bendCents);
 
-          var newEl = document.elementFromPoint(t.clientX, t.clientY);
-          if (newEl) {
-            var target = newEl;
-            while (target && target !== wrapper) {
-              var attr = target.getAttribute('data-midi');
-              if (attr !== NO_ATTR) {
-                var newMidi = parseInt(attr, 10);
-                if (newMidi !== info.midi) {
-                  noteOff(info.midi);
-                  if (info.el) { info.el.classList.remove('ctrl-linn-active'); }
-                  var movePressureEvent = { pointerType: 'touch', pressure: t.force };
-                  var moveVel = SL.velocityFromPressure(movePressureEvent, CHROMGRID_DEFAULT_VELOCITY);
-                  noteOn(newMidi, moveVel);
-                  target.classList.add('ctrl-linn-active');
-                  info.midi = newMidi;
-                  info.el = target;
-                  info.startX = t.clientX;
-                  resetPitchBendFn();
-                }
-                break;
-              }
-              target = target.parentNode;
-            }
+          var foundCell = _findMidiCellAt(t.clientX, t.clientY, wrapper);
+          var didSlide = foundCell && (foundCell.midi !== info.midi);
+          if (didSlide) {
+            _chromGridSlideToNote(info, foundCell.midi, foundCell.el, t, noteOff, noteOn, resetPitchBendFn);
           }
         }
       }
@@ -2543,7 +2565,8 @@
     wrapper.addEventListener('mousemove', function(e) {
       if (!_isLinnMouseDown || _linnMouseMidi < 0) { return; }
       var dx = e.clientX - _linnMouseStartX;
-      var bendCents = (dx / cellW) * 100;
+      var localCellW = safeCellW || 1;
+      var bendCents = (dx / localCellW) * 100;
       bendCents = Math.max(-MAX_BEND_CENTS, Math.min(MAX_BEND_CENTS, bendCents));
       applyPitchBend(bendCents);
     });

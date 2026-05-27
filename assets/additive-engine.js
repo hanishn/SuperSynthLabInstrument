@@ -1,6 +1,40 @@
 // Super Synth Lab - Additive Synthesis Engine Module
 // 16-partial additive synthesis with PeriodicWave, quick-set waveforms, drawbar mode
 // v1.0.0 - ScriptProcessor fallback, filter integration, organ drawbar mapping
+//
+// ================================================================
+// EDUCATIONAL CONTEXT: Additive Synthesis
+// ================================================================
+// Additive synthesis builds complex timbres by summing individual sine wave
+// partials, each with independent amplitude, frequency ratio, and phase.
+// The theoretical foundation is Fourier's theorem (1822): any periodic
+// signal can be decomposed into (and reconstructed from) a sum of sinusoids.
+//
+// Formula:
+//   y(t) = sum(k=1..N) [ A_k * sin(2*pi * k * f0 * t + phi_k) ]
+//
+// where A_k = amplitude of the k-th partial, f0 = fundamental frequency,
+// k = harmonic number, and phi_k = phase offset.
+//
+// Hermann von Helmholtz applied Fourier analysis to musical acoustics in
+// On the Sensations of Tone (1863), showing that timbre is determined by
+// the relative strengths of harmonic partials. This engine uses 16 partials,
+// which is sufficient to approximate most acoustic timbres (the ear is
+// relatively insensitive to individual partials above the 10th-12th).
+//
+// This engine also includes a Hammond organ drawbar mode. The Hammond B3
+// (Laurens Hammond, 1935) generated tones via rotating metal tonewheels
+// near electromagnetic pickups. Its 9 drawbars each control one harmonic
+// at specific pipe-organ footages: 16', 5-1/3', 8', 4', 2-2/3', 2',
+// 1-3/5', 1-1/3', 1' -- corresponding to harmonic ratios 0.5 (sub-octave),
+// 1.5, 1, 2, 3, 4, 5, 6, 8. This is additive synthesis in hardware.
+//
+// References:
+//   Fourier, J. (1822) Theorie Analytique de la Chaleur
+//   Helmholtz, H. (1863) On the Sensations of Tone
+//   Smith, J.O. (2007) Mathematics of the DFT, CCRMA
+//   Roads, C. (1996) The Computer Music Tutorial, MIT Press, Ch. 4
+// ================================================================
 (function() {
   'use strict';
 
@@ -11,10 +45,25 @@
   // ============================================================
 
   var MAX_VOICES_PER_INSTRUMENT = 16;
+  // 16 partials is a practical limit for real-time additive synthesis.
+  // Most acoustic instruments have significant energy only in the first
+  // 8-12 harmonics; 16 provides headroom for inharmonic timbres while
+  // keeping CPU cost manageable (16 sine evaluations per sample per voice).
   var NUM_PARTIALS = 16;
 
-  // Hammond organ drawbar footages mapped to harmonic ratios
-  // Drawbars: 16', 5-1/3', 8', 4', 2-2/3', 2', 1-3/5', 1-1/3', 1'
+  // Hammond organ drawbar footages mapped to harmonic ratios.
+  // The footage numbers refer to equivalent pipe lengths in a pipe organ:
+  //   16'  = sub-octave (0.5x fundamental) -- the "bourdon" stop
+  //   5-1/3' = 3rd harmonic of the sub-octave (1.5x) -- adds "quint" color
+  //   8'  = unison / fundamental (1x) -- the principal tone
+  //   4'  = 2nd harmonic (2x) -- one octave up
+  //   2-2/3' = 3rd harmonic (3x) -- the "nazard" or twelfth
+  //   2'  = 4th harmonic (4x) -- two octaves up
+  //   1-3/5' = 5th harmonic (5x) -- the "tierce" or seventeenth
+  //   1-1/3' = 6th harmonic (6x) -- the "larigot" or nineteenth
+  //   1'  = 8th harmonic (8x) -- three octaves up
+  // Each drawbar has 9 positions (0-8), giving 9^9 = ~387 million
+  // timbral combinations -- a form of additive synthesis in hardware.
   // Harmonic multipliers: 0.5, 1.5, 1, 2, 3, 4, 5, 6, 8
   var DRAWBAR_RATIOS = [0.5, 1.5, 1, 2, 3, 4, 5, 6, 8];
   var NUM_DRAWBARS = 9;
@@ -36,9 +85,16 @@
     drawbars: [8, 0, 8, 0, 0, 0, 0, 0, 0]  // Classic organ: 16' and 8' full
   };
 
-  // ============================================================
+  // ---------------------------------------------------------------
   // Quick-Set Waveform Definitions (Fourier series coefficients)
-  // ============================================================
+  // Classic waveforms can be expressed as closed-form Fourier series:
+  //   Sawtooth: sum(k=1..N) [ (1/k) * sin(2*pi*k*f*t) ]
+  //   Square:   sum(k=1,3,5..) [ (1/k) * sin(2*pi*k*f*t) ]  (odd harmonics only)
+  //   Triangle: sum(k=1,3,5..) [ ((-1)^((k-1)/2) / k^2) * sin(2*pi*k*f*t) ]
+  // These are bandlimited approximations: truncating at N partials avoids
+  // aliasing that would occur with naive waveform generation above Nyquist.
+  // See: Smith, J.O. (2007) Mathematics of the DFT, CCRMA, Ch. 4
+  // ---------------------------------------------------------------
 
   /**
    * Compute Fourier series amplitudes for classic waveforms
@@ -50,6 +106,7 @@
     var partials = [];
     for (var i = 0; i < numPartials; i++) {
       var h = i + 1; // harmonic number (1-based)
+      var safeH = h || 1;
       var amp = 0;
       var phase = 0;
 
@@ -58,15 +115,24 @@
           amp = 1.0;
         }
       } else if (type === 'saw') {
-        // Sawtooth: sum of 1/h for all harmonics
-        amp = 1.0 / h;
+        // Sawtooth: sum of 1/h for all harmonics.
+        // The 1/k amplitude rolloff gives the sawtooth its bright, buzzy
+        // character -- all harmonics are present, each 6 dB quieter than
+        // the last (Helmholtz, 1863, identified this spectrum in bowed strings).
+        amp = 1.0 / safeH;
       } else if (type === 'square') {
-        // Square: only odd harmonics, amplitude 1/h
+        // Square wave: only odd harmonics (1, 3, 5, 7...), amplitude 1/h.
+        // The absence of even harmonics gives the square wave its hollow,
+        // clarinet-like quality. A clarinet (cylindrical closed bore) naturally
+        // suppresses even harmonics for the same mathematical reason.
         if (h % 2 === 1) {
-          amp = 1.0 / h;
+          amp = 1.0 / safeH;
         }
       } else if (type === 'triangle') {
-        // Triangle: only odd harmonics, amplitude 1/h^2, alternating sign
+        // Triangle wave: only odd harmonics, amplitude 1/h^2, alternating sign.
+        // The 1/k^2 rolloff (12 dB/octave) makes it much mellower than sawtooth
+        // or square. The alternating sign is implemented here via a pi phase shift
+        // rather than a negative amplitude, since amplitude is stored unsigned.
         if (h % 2 === 1) {
           var k = (h - 1) / 2;
           amp = 1.0 / (h * h);
@@ -122,9 +188,17 @@
     return a4 * Math.pow(2, (midi - 69) / 12);
   }
 
-  // ============================================================
-  // Fallback Voice (ScriptProcessor - main thread synthesis)
-  // ============================================================
+  // ---------------------------------------------------------------
+  // Additive Voice (ScriptProcessor - main thread synthesis)
+  // Each voice independently sums N sine partials per sample.
+  // The core loop implements the additive formula directly:
+  //   y(t) = sum(k=1..16) [ A_k * sin(2*pi * phase_k) ]
+  // where phase_k accumulates at (f0 * ratio_k) / sampleRate per sample.
+  // Phase is wrapped to [0, 1) to prevent floating-point drift over time.
+  // Partials above the Nyquist frequency (sampleRate/2) are zeroed to
+  // prevent aliasing -- the digital equivalent of the "anti-aliasing"
+  // that Web Audio's PeriodicWave handles automatically.
+  // ---------------------------------------------------------------
 
   function AdditiveVoice(sr) {
     this.sampleRate = sr;
@@ -220,6 +294,9 @@
 
     // Copy partial settings
     var partials = settings.partials;
+    // Nyquist limit: no partial may exceed sampleRate/2 (Shannon-Nyquist
+    // theorem). Any sinusoid above Nyquist would alias back into the audible
+    // range as a phantom frequency, producing inharmonic artifacts.
     var nyquist = this.sampleRate / 2;
     for (var i = 0; i < NUM_PARTIALS; i++) {
       if (i < partials.length) {
@@ -297,13 +374,20 @@
       return 0;
     }
 
+    // Core additive synthesis loop: sum all partials.
+    // This is a direct implementation of the Fourier synthesis equation:
+    //   y = sum [ A_k * sin(2*pi * phase_k) ]
+    // Each partial's phase advances by (f0 * ratio_k / sampleRate) per sample,
+    // representing one cycle of the waveform spread over sampleRate samples.
     var sample = 0;
     var TWO_PI = 2 * Math.PI;
     for (var i = 0; i < NUM_PARTIALS; i++) {
       if (this.partialAmplitudes[i] > 0) {
         sample += this.partialAmplitudes[i] * Math.sin(TWO_PI * this.partialPhases[i]);
         this.partialPhases[i] += (this.baseFreq * this.partialRatios[i]) / this.sampleRate;
-        // Wrap phase to prevent floating point drift
+        // Wrap phase to [0,1) to prevent floating-point precision loss.
+        // Without wrapping, phase would grow unbounded, eventually losing
+        // significant bits and causing audible pitch drift or noise.
         if (this.partialPhases[i] >= 1.0) {
           this.partialPhases[i] -= Math.floor(this.partialPhases[i]);
         }
@@ -362,10 +446,16 @@
             var sample = 0;
             for (var vi = 0; vi < voices.length; vi++) {
               if (voices[vi].active) {
+                // 0.12 scaling factor prevents clipping when many partials
+                // and voices overlap. With 16 partials at full amplitude,
+                // peak sample value could reach 16.0 before scaling.
                 sample += voices[vi].process() * 0.12;
               }
             }
-            // Smooth Pade approximant of tanh soft clip
+            // Smooth Pade approximant of tanh for soft clipping:
+            // tanh(x) ~ x*(27+x^2)/(27+9*x^2)
+            // This maps any input range smoothly to (-1, +1), providing
+            // gentle saturation rather than hard digital clipping.
             var ss = sample * sample;
             output[s] = sample * (27 + ss) / (27 + 9 * ss);
           }
@@ -459,9 +549,16 @@
     return instrumentSettings[instId];
   }
 
-  // ============================================================
+  // ---------------------------------------------------------------
   // Drawbar Mode Helpers
-  // ============================================================
+  // The Hammond organ's drawbar system is essentially a UI for additive
+  // synthesis: each drawbar controls the amplitude of one harmonic.
+  // The drawbar values (0-8) map to linear amplitude fractions (0/8..8/8).
+  // On the original Hammond B3, these controlled the volume of individual
+  // tonewheel outputs. The non-sequential harmonic ordering (sub-octave
+  // first, then quint, then fundamental) reflects pipe organ registration
+  // conventions, not harmonic series order.
+  // ---------------------------------------------------------------
 
   /**
    * Convert drawbar values (0-8 each) to partial amplitudes

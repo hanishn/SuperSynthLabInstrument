@@ -219,6 +219,21 @@
    * @param {string} [engine] - Restrict lookup to this engine.
    * @returns {boolean} True if found and applied, false otherwise.
    */
+  function _ensurePresetHasEngine(srcPreset, eng, p) {
+    var preset = srcPreset;
+    var needsEngine = !preset.engine && p.engineNameToType;
+    if (needsEngine) {
+      preset = _makePresetCopy();
+      for (var k in srcPreset) {
+        if (Object.prototype.hasOwnProperty.call(srcPreset, k)) {
+          preset[k] = srcPreset[k];
+        }
+      }
+      preset.engine = p.engineNameToType(eng);
+    }
+    return preset;
+  }
+
   function loadPreset(name, engine) {
     var p = _getPresets();
     if (!p || !name) {
@@ -235,18 +250,7 @@
         var list = (p.getPresetsForEngineCategory ? p.getPresetsForEngineCategory(eng, cats[ci]) : _emptyList()) || _emptyList();
         for (pi = 0; pi < list.length; pi++) {
           if (list[pi] && list[pi].name === name) {
-            var preset = list[pi];
-            // Ensure preset carries engine tag for apply dispatch.
-            if (!preset.engine && p.engineNameToType) {
-              preset = _makePresetCopy();
-              var src = list[pi];
-              for (var k in src) {
-                if (Object.prototype.hasOwnProperty.call(src, k)) {
-                  preset[k] = src[k];
-                }
-              }
-              preset.engine = p.engineNameToType(eng);
-            }
+            var preset = _ensurePresetHasEngine(list[pi], eng, p);
             if (p.apply) {
               p.apply(preset, _getCurrentInstId());
               return true;

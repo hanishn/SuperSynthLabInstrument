@@ -19,6 +19,36 @@
 //   filters.js       - Filter creation, models, PolyBLEP, pulse wave
 //   note-playback.js - Note playback, sustained notes, visual feedback, continuous noise
 //   instrument-settings.js - Save/load instrument settings, playNoteOnInstrument
+//
+// ---- ARCHITECTURE OVERVIEW ----
+// This file is the master audio orchestrator for Super Synth Lab. It owns the
+// Web Audio API graph that connects every instrument to the speakers. The
+// signal flow has two tiers:
+//
+//   Per-instrument chain (x5):
+//     engine output -> DC blocker (10 Hz highpass) -> expression filter+gain
+//     -> volume (quadratic curve) -> pan -> per-instrument effect chain
+//     -> master merge bus
+//
+//   Master chain (shared):
+//     master merge -> master effect chain -> tanh soft clipper -> brickwall
+//     limiter (-1 dBFS, 20:1) -> hard clamp [-1,+1] -> safe volume ->
+//     analyser (FFT) -> AudioContext.destination (DAC/speakers)
+//
+// Three clipping stages protect the output: (1) tanh waveshaper for gentle
+// saturation analogous to analog tape, (2) DynamicsCompressorNode configured
+// as a brickwall limiter, (3) hard digital clamp as an absolute safety net.
+//
+// Effects use a lazy factory pattern — instances are created only when first
+// enabled, so unused effects consume zero CPU and memory.
+//
+// Voice allocation is handled by the voice-pool.js split module (pre-allocated
+// pool of 80 voice structures, 16 per instrument, with oldest-voice stealing).
+//
+// References:
+//   Adenot, P. et al. (2024) Web Audio API, W3C Recommendation
+//   Roads, C. (1996) The Computer Music Tutorial, MIT Press, Ch. 4-6
+//   Puckette, M. (2007) Theory and Technique of Electronic Music, Ch. 1-3
 
 (function() {
   'use strict';
@@ -33,6 +63,11 @@
   // ============================================================
   // Multi-Instrument Constants
   // ============================================================
+  // SSLI supports 5 simultaneous instruments, each with an independent
+  // signal chain, voice pool partition, and effect chain. Indices 0-2 are
+  // general-purpose synth slots (any engine type), index 3 is a dedicated
+  // sampler, and index 4 is the loop player. This architecture allows
+  // layering multiple timbres without shared-state interference.
 
   /** Number of independent instruments (0-3 = synth, 4 = loop) */
   var NUM_INSTRUMENTS = 5;
@@ -329,6 +364,10 @@
     return out;
   }
 
+  // Each instrument is a self-contained state object: its own Web Audio nodes
+  // (masterOutput, dcBlocker, expression, volume, pan), its own effect chain,
+  // its own activeOscillators Map, and its own playingNotes Set. Deep-cloned
+  // DEFAULT_INSTRUMENT_SETTINGS ensures no shared mutable state between slots.
   /** Array of 5 instruments with independent settings (index 3 = sampler, index 4 = loop) */
   var instruments = Array.from({ length: NUM_INSTRUMENTS }, function(_, i) {
     var instName;
@@ -838,6 +877,11 @@
   // ============================================================
   // State Variables
   // ============================================================
+  // The AudioContext is the root of the Web Audio API graph. It is created
+  // lazily on first user gesture (required by browser autoplay policies —
+  // see W3C Web Audio API sec. 3.2.5, "Autoplay Policy"). All nodes below
+  // are children of this single context; creating multiple contexts wastes
+  // OS audio threads and can cause inter-context latency jitter.
 
   /** Web Audio context - lazily initialized */
   var audioContext = null;
@@ -903,6 +947,13 @@
   // ============================================================
   // AudioWorklet Support
   // ============================================================
+  // AudioWorklet runs DSP code on a dedicated real-time audio thread,
+  // avoiding the main-thread GC pauses that cause glitches with the older
+  // ScriptProcessorNode. Each of the 4 synth instruments gets its own
+  // AudioWorkletNode backed by a shared 'synth-worklet' processor module.
+  // Worklet source files are pre-fetched as Blob URLs at module load time
+  // so the first user gesture (which triggers AudioContext creation) does
+  // not stall on a network fetch. (Roads 1996, Ch. 4: real-time constraints)
 
   var isWorkletSupported = false;
   var isWorkletInitializing = false;
@@ -1089,6 +1140,15 @@
   // ============================================================
   // Audio Context Management
   // ============================================================
+  // The AudioContext lifecycle: suspended (initial) -> running (after user
+  // gesture) -> suspended (idle/background) -> running (resumed). Browsers
+  // require a user gesture to start audio (Chrome autoplay policy, 2018).
+  // The latencyHint parameter trades off buffer size vs. responsiveness:
+  // 'interactive' = smallest buffer (~128 samples), 'balanced' = medium,
+  // explicit float = custom latency target in seconds.
+  // Sample rate defaults to the OS audio subsystem rate (typically 44100 or
+  // 48000 Hz). By Nyquist's theorem, 44100 Hz captures frequencies up to
+  // 22050 Hz — just above the ~20 kHz upper limit of human hearing.
 
   /**
    * Get or create the Web Audio context
@@ -1164,6 +1224,10 @@
   // Suspends AudioContext after IDLE_SUSPEND_TIMEOUT_MS of no
   // note activity, saving 15-25% battery per hour.
   // ============================================================
+  // A running AudioContext consumes a dedicated OS audio thread even when
+  // silent. Suspending releases that thread and reduces power draw. The
+  // 2-minute timeout balances battery savings against the latency cost of
+  // resuming (~5-20ms depending on platform).
 
   var IDLE_SUSPEND_TIMEOUT_MS = 120000;
   var _idleSuspendTimer = null;
@@ -1216,6 +1280,13 @@
   // ============================================================
   // Effect Chain System
   // ============================================================
+  // Each instrument and the master bus own an EffectChain instance that
+  // supports up to 28 effect types in arbitrary user-defined order.
+  // Effects use a lazy factory pattern: registerFactory() stores a
+  // constructor, but the actual Web Audio nodes are only instantiated when
+  // the user first enables an effect. This avoids allocating ~28 effect
+  // graphs * 6 chains = 168 dormant node trees at startup.
+  // (Puckette 2007, Ch. 3: modular signal routing)
 
   function getEffectClasses() {
     return {
@@ -1263,11 +1334,16 @@
   /**
    * Initialize the per-instrument effect chain system
    */
+  // This is the central routing function — it builds the entire Web Audio
+  // graph for all 5 instruments and the master bus. Called once on first
+  // user gesture. The graph is persistent for the session lifetime.
   function initEffectChain() {
     var ctx = getCtx();
 
     initDomCache();
 
+    // Master merge bus — a unity-gain summing node. All 5 per-instrument
+    // effect chain outputs connect here, mixing to a single stereo stream.
     masterMerge = ctx.createGain();
     masterMerge.gain.value = 1.0;
 
@@ -1302,10 +1378,15 @@
       inst.expressionGainNode = ctx.createGain();
       inst.expressionGainNode.gain.value = EXPR_GAIN_DEFAULT;
 
+      // Quadratic volume curve: gain = (slider/100)^2. Human loudness
+      // perception is roughly logarithmic, so a linear slider with a
+      // quadratic mapping feels more natural than a linear gain mapping.
       inst.volumeNode = ctx.createGain();
       inst.volumeNode.gain.value = Math.pow(inst.settings.volume / 100, 2);
 
-      // StereoPannerNode for per-instrument panning
+      // StereoPannerNode for per-instrument panning.
+      // Full signal chain: masterOutput -> dcBlocker -> expressionFilter ->
+      // expressionGain -> volume -> pan -> effectChain.input [AUD-009]
       if (typeof StereoPannerNode !== 'undefined') {
         inst.panNode = ctx.createStereoPanner();
         inst.panNode.pan.value = 0;
@@ -1332,11 +1413,19 @@
 
     masterMerge.connect(masterChain.input);
 
+    // AnalyserNode performs real-time FFT for oscilloscope and spectrum display.
+    // fftSize=2048 yields 1024 frequency bins (~21 Hz resolution at 44.1kHz).
+    // smoothingTimeConstant=0.8 applies exponential averaging across frames,
+    // trading temporal precision for a visually stable spectrum readout.
     analyserNode = ctx.createAnalyser();
     analyserNode.fftSize = 2048;
     analyserNode.smoothingTimeConstant = 0.8;
 
-    // Master bus limiter (tanh soft clipper — first stage)
+    // Master bus limiter (tanh soft clipper — first stage).
+    // tanh(x) approaches +/-1 asymptotically, providing gentle saturation
+    // similar to analog tape. Drive=1.5 starts compressing around 0.6 amplitude.
+    // 2x oversampling reduces aliasing artifacts from the nonlinear curve.
+    // (Roads 1996, Ch. 5: waveshaping and nonlinear distortion)
     var limiterShaper = ctx.createWaveShaper();
     var LIMITER_CURVE_SIZE = 8192;
     var LIMITER_CURVE_HALF = 4096;
@@ -1349,7 +1438,11 @@
     limiterShaper.curve = limiterCurve;
     limiterShaper.oversample = '2x';
 
-    // Brickwall limiter (DynamicsCompressorNode — final safety, NON-DISABLEABLE)
+    // Brickwall limiter (DynamicsCompressorNode — second stage, NON-DISABLEABLE).
+    // 20:1 ratio at -1 dBFS with zero knee = near-infinite compression above
+    // threshold. 1ms attack catches transients; 10ms release avoids pumping.
+    // This prevents any signal from exceeding -1 dBFS before the DAC, which
+    // would cause hard digital clipping (audible as harsh crackling).
     var BRICKWALL_THRESHOLD_DB = -1;
     var BRICKWALL_KNEE_DB = 0;
     var BRICKWALL_RATIO = 20;
@@ -1431,6 +1524,9 @@
     hardClipShaper.curve = hardClipCurve;
     hardClipShaper.oversample = 'none';
 
+    // Final master bus routing — three cascaded protection stages ensure no
+    // sample exceeds +/-1.0 at the DAC, regardless of how many voices are
+    // summed. This is the complete post-mixdown path [AUD-027, AUD-028].
     // Routing: masterChain -> softClipper -> brickwall -> hardClip -> safeVolume -> analyser -> destination
     masterChain.output.connect(limiterShaper);
     limiterShaper.connect(brickwallLimiter);
@@ -1474,6 +1570,39 @@
   // ============================================================
   // AudioWorklet
   // ============================================================
+  // AudioWorklet initialization is async: addModule() compiles the processor
+  // code on the audio thread, then each AudioWorkletNode sends a 'ready'
+  // message back via its MessagePort. We wait for all 4 instrument nodes to
+  // report ready before setting isWorkletSupported=true. If any step fails,
+  // synthesis falls back to main-thread band-limited oscillators.
+  // Each worklet node feeds through a persistent BiquadFilter (for subtractive
+  // filter controls) before reaching the instrument's masterOutput GainNode.
+
+  var WORKLET_INST_COUNT = 4;
+
+  function _makeWorkletReadyHandler(readyState, resolve) {
+    return function(event) {
+      var data = event.data;
+      var isReady = (data.type === 'ready');
+      if (isReady) {
+        readyState.count++;
+        if (readyState.count >= WORKLET_INST_COUNT) {
+          isWorkletSupported = true;
+          isWorkletInitializing = false;
+          resolve(true);
+        }
+      }
+    };
+  }
+
+  function _makeWorkletErrorHandler(idx, reject) {
+    return function(event) {
+      console.error('AudioWorklet processor error (instrument ' + (idx + 1) + '):', event);
+      isWorkletSupported = false;
+      isWorkletInitializing = false;
+      reject(event);
+    };
+  }
 
   async function initSynthWorklet() {
     if (!audioContext || !audioContext.audioWorklet) {
@@ -1487,8 +1616,8 @@
             var synthWorkletUrl = _workletBlobUrls['synth-worklet.js'] || 'assets/synth-worklet.js';
             await audioContext.audioWorklet.addModule(synthWorkletUrl);
 
-            var readyCount = 0;
-            for (var i = 0; i < 4; i++) {
+            var readyState = { count: 0 };
+            for (var i = 0; i < WORKLET_INST_COUNT; i++) {
               synthWorkletNodes[i] = new AudioWorkletNode(audioContext, 'synth-worklet', {
                 numberOfInputs: 0,
                 numberOfOutputs: 1,
@@ -1505,28 +1634,8 @@
                 workletFilterNodes[i].connect(instruments[i].masterOutput);
               }
 
-              synthWorkletNodes[i].port.onmessage = (function(idx) {
-                return function(event) {
-                  var data = event.data;
-                  if (data.type === 'ready') {
-                    readyCount++;
-                    if (readyCount >= 4) {
-                      isWorkletSupported = true;
-                      isWorkletInitializing = false;
-                      resolve(true);
-                    }
-                  }
-                };
-              })(i);
-
-              synthWorkletNodes[i].onprocessorerror = (function(idx) {
-                return function(event) {
-                  console.error('AudioWorklet processor error (instrument ' + (idx + 1) + '):', event);
-                  isWorkletSupported = false;
-                  isWorkletInitializing = false;
-                  reject(event);
-                };
-              })(i);
+              synthWorkletNodes[i].port.onmessage = _makeWorkletReadyHandler(readyState, resolve);
+              synthWorkletNodes[i].onprocessorerror = _makeWorkletErrorHandler(i, reject);
             }
 
           } catch (error) {
@@ -1546,7 +1655,14 @@
     return isWorkletSupported && synthWorkletNodes[0] !== NO_NODE;
   }
 
-  function workletNoteOn(midi, dur, oscSettings, adsr, refHz, instId, extraParams) {
+  function workletNoteOn(opts) {
+    var midi = opts.midi;
+    var dur = opts.dur;
+    var oscSettings = opts.oscSettings;
+    var adsr = opts.adsr;
+    var refHz = opts.refHz;
+    var instId = opts.instId;
+    var extraParams = opts.extraParams;
     var id = (instId !== undefined) ? instId : currentInstrument;
     var node = synthWorkletNodes[id];
     if (!node) { return; }
@@ -1608,6 +1724,12 @@
   // ============================================================
   // Frequency & Harmonics Calculations
   // ============================================================
+  // m2f (MIDI-to-frequency) uses the standard equal-temperament formula:
+  //   f = A4 * 2^((n - 69) / 12)
+  // where A4 defaults to 440 Hz. maxH computes the maximum harmonic number
+  // below the Nyquist frequency (sampleRate / 2) to prevent aliasing — any
+  // harmonic above Nyquist folds back as an audible artifact.
+  // (Roads 1996, Ch. 1: sampling theorem and aliasing)
 
   function m2f(n) {
     var el = domCache.refHz;
@@ -1655,12 +1777,14 @@
   // ============================================================
 
   function sliderToTime(sliderValue, sliderMax, timeMax) {
-    var normalized = sliderValue / sliderMax;
+    var safeSliderMax = sliderMax || 1;
+    var normalized = sliderValue / safeSliderMax;
     return timeMax * Math.pow(normalized, 2);
   }
 
   function timeToSlider(timeMs, sliderMax, timeMax) {
-    var normalized = Math.sqrt(timeMs / timeMax);
+    var safeTimeMax = timeMax || 1;
+    var normalized = Math.sqrt(timeMs / safeTimeMax);
     return normalized * sliderMax;
   }
 
@@ -1836,6 +1960,14 @@
   // ============================================================
   // Expressive Filter Cutoff (for controller Y-axis)
   // ============================================================
+  // Two expression systems coexist: (1) worklet-specific cutoff (modulates
+  // the persistent BiquadFilter between the worklet output and masterOutput),
+  // and (2) engine-agnostic expression (modulates the per-instrument
+  // expressionFilterNode + expressionGainNode that sit between the DC blocker
+  // and the volume node). Both use setTargetAtTime with a 20ms time constant
+  // for zipper-free parameter smoothing. The 20ms constant reaches ~63% of
+  // the target value in one time constant — fast enough for expressive
+  // response, slow enough to avoid audible stepping artifacts.
 
   var EXPRESSIVE_CUTOFF_SMOOTHING = 0.02;
   var _isExpressiveCutoffActive = false;

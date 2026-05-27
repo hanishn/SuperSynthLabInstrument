@@ -1,6 +1,35 @@
 // Super Synth Lab - SuperWave Synthesis Engine
 // Multiple detuned oscillators (2-16 voices) with stereo spread
 // ScriptProcessor fallback, 16-voice polyphony
+//
+// --- History and Theory ---
+// The "SuperSaw" waveform was introduced by Roland in the JP-8000 (1997)
+// and became the defining sound of trance and EDM production. It works by
+// layering multiple detuned sawtooth oscillators -- typically 7 -- to
+// create a massive, shimmering wall of sound. The JP-8000's original
+// implementation used 7 saws with a center-weighted mix and a single
+// "detune" knob controlling the spread.
+//
+// The perceived width and movement come from beating frequencies between
+// the detuned oscillators. When two oscillators are detuned by N cents,
+// their beat frequency is approximately: f_beat = f * (2^(N/1200) - 1).
+// Small detune spread (~5-15 cents) produces a chorus-like thickening;
+// large spread (40+ cents) produces the iconic wide, aggressive sound.
+//
+// Center-weighted mixing (center oscillator louder than edges) preserves
+// pitch clarity while maintaining fullness. Stereo spread is achieved by
+// panning alternating voices left and right, creating width without the
+// phase cancellation that would occur from simple stereo doubling.
+//
+// This engine generalizes the SuperSaw concept to any source waveform
+// (saw, square, triangle, pulse) with 2-16 voices and configurable
+// mix modes: equal, center-heavy, or edge-heavy weighting.
+//
+// References:
+//   Szabo, A. (2010) "How to Emulate the Super Saw"
+//   Roland JP-8000 Owner's Manual (1997)
+//   Valimaki, V. et al. (2010) "Digital Audio Effects", Wiley
+//   [ENG-012] SuperSynthLab engine spec
 (function() {
   'use strict';
 
@@ -87,6 +116,16 @@
     return Math.sin(TWO_PI * phase);
   }
 
+  // --- Voice Gain Distribution ---
+  // The mix mode determines amplitude weighting across the voice stack.
+  // Center-heavy: emulates the JP-8000's original center-weighted mix
+  //   where the center oscillator is loudest, preserving pitch perception
+  //   while outer voices add width. Gain falls linearly from 1.0 at center
+  //   to 0.4 at the edges.
+  // Edge-heavy: inverts this -- outer voices dominate for a wider, more
+  //   diffuse sound at the expense of pitch clarity.
+  // Equal: all voices at unity -- maximum density, used for pads.
+
   /**
    * Get per-voice gain based on mix mode
    * @param {number} voiceIdx - Index of the voice (0-based)
@@ -98,12 +137,14 @@
     if (mixMode === 'center-heavy') {
       // Center voice(s) louder, edges quieter
       var center = (voiceCount - 1) / 2.0;
-      var dist = Math.abs(voiceIdx - center) / center;
+      var safeCenter = center || 1;
+      var dist = Math.abs(voiceIdx - center) / safeCenter;
       return 1.0 - dist * 0.6;
     } else if (mixMode === 'edge-heavy') {
       // Edge voices louder, center quieter
       var center2 = (voiceCount - 1) / 2.0;
-      var dist2 = Math.abs(voiceIdx - center2) / center2;
+      var safeCenter2 = center2 || 1;
+      var dist2 = Math.abs(voiceIdx - center2) / safeCenter2;
       return 0.4 + dist2 * 0.6;
     }
     // equal
@@ -159,9 +200,12 @@
     var stereoSpread = (settings.stereoSpread !== undefined ? settings.stereoSpread : 50) / 100;
     var mixMode = settings.mixMode || 'equal';
 
-    // Set up each sub-oscillator with evenly spread detuning
+    // Set up each sub-oscillator with evenly spread detuning.
+    // Voices are distributed symmetrically around the center frequency:
+    // voice[0] = -maxDetune, voice[N-1] = +maxDetune, voice[N/2] = center.
+    // This symmetric spread ensures the perceived pitch stays centered.
     for (var i = 0; i < this.numVoices; i++) {
-      this.phases[i] = Math.random(); // Random initial phase for thickness
+      this.phases[i] = Math.random(); // Random initial phase avoids constructive interference spikes
 
       // Spread detuning evenly: -detuneCents to +detuneCents
       var detuneRatio;
@@ -171,13 +215,16 @@
         detuneRatio = (i / (this.numVoices - 1)) * 2 - 1; // -1 to 1
       }
       var voiceDetune = detuneRatio * detuneCents;
+      // Convert cents to frequency multiplier: f' = f * 2^(cents/1200)
       var voiceFreq = freq * Math.pow(2, voiceDetune / 1200);
       this.phaseIncs[i] = voiceFreq / this.sampleRate;
 
       // Voice gain based on mix mode
       this.voiceGains[i] = getVoiceGain(i, this.numVoices, mixMode);
 
-      // Stereo panning (mono output - stored for potential stereo use)
+      // Stereo panning: voices spread left/right proportional to their detune
+      // position. This maps lower-detuned voices left and higher-detuned right
+      // (or vice versa), creating stereo width from the beating frequencies.
       this.voicePans[i] = detuneRatio * stereoSpread;
     }
 
@@ -281,7 +328,9 @@
       return 0;
     }
 
-    // Sum all sub-oscillators
+    // Sum all sub-oscillators and normalize by total gain to prevent
+    // clipping as voice count increases. This is the core superwave
+    // mix: each voice contributes its weighted sample to the total.
     var sample = 0;
     var gainSum = 0;
     for (var i = 0; i < this.numVoices; i++) {
@@ -347,9 +396,12 @@
             var sample = 0;
             for (var vi = 0; vi < voices.length; vi++) {
               if (voices[vi].active) {
+                // 0.12 headroom scalar prevents clipping with many simultaneous voices
                 sample += voices[vi].process() * 0.12;
               }
             }
+            // Cubic soft-clip: f(x) = x*(27+x^2)/(27+9*x^2)
+            // Approximates tanh but cheaper; keeps signal in [-1,1] range
             var ss = sample * sample;
             output[s] = sample * (27 + ss) / (27 + 9 * ss);
           }

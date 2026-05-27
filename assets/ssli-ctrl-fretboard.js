@@ -2,6 +2,30 @@
 // ES5 compatible (var, no arrow functions, no template literals)
 // Real guitar behavior: fret area sets pitch silently, strum zone triggers sound
 // Key-based chord selection, configurable strings 1-8, courses 1x/2x/3x, tuning presets
+//
+// EDUCATIONAL NOTES — Fretboard Control Surface
+//
+// This module implements a virtual fretboard for guitar, bass, and extended-range
+// stringed instruments. It faithfully models the two-hand interaction of real
+// fretted instruments: the fretting hand selects pitch (silently), the picking
+// hand triggers sound. This separation is the defining UX characteristic —
+// unlike a piano keyboard where pressing a key both selects pitch and triggers
+// sound, a fretboard decouples pitch selection from sound production.
+//
+// The fretboard is a 2D grid: strings run horizontally (one per row), frets run
+// vertically (each fret = one semitone higher). MIDI note = openStringNote + fret.
+// Standard guitar tuning (E2-A2-D3-G3-B3-E4) uses intervals of 5-5-5-4-5
+// semitones between adjacent strings — the B string breaks the otherwise uniform
+// pattern of perfect fourths, a historical convention dating to lute tuning.
+//
+// Chord voicing on a fretboard is a constraint-satisfaction problem: given a set
+// of pitch classes, find fret positions across all strings that are physically
+// playable (limited fret span, root note on bass string) and musically complete.
+// This differs fundamentally from keyboard chord voicing where any note
+// combination is equally accessible.
+//
+// Ref: Helmholtz, H. (1863) On the Sensations of Tone
+// Ref: Roads, C. (1996) The Computer Music Tutorial, MIT Press
 
 (function() {
   'use strict';
@@ -24,9 +48,17 @@
   // Constants
   // ============================================================
 
+  // Fret markers: the traditional inlay dots found on guitar necks at specific
+  // fret positions. These positions are not arbitrary — they mark musically
+  // significant intervals from the open string: minor 3rd (3), perfect 4th (5),
+  // perfect 5th (7), major 6th (9), octave (12), then the pattern repeats.
+  // The 12th fret (octave) traditionally receives a double dot to mark the
+  // point where the string's vibrating length is exactly halved.
   var FRET_MARKERS = [3, 5, 7, 9, 12, 15, 17];
   var FRET_COUNT = 12;
   var FRET_COUNT_NARROW = 7;
+  // The strum zone occupies the rightmost 22% of the board, modeling the area
+  // near the bridge/soundhole where a guitarist's picking hand operates.
   var STRUM_ZONE_FRACTION = 0.22;
   var FRET_HEADER_HEIGHT = 22;
   var FRET_OPEN_LABEL_WIDTH = 40;
@@ -38,6 +70,9 @@
   var STRUM_TIME_THRESHOLD_MS = 250;
   var STRUM_STRING_THRESHOLD = 2;
   var MAX_FRET_DEFLECT_PX = 6;
+  // String bending: 200 cents = 2 semitones, matching the typical physical
+  // limit of a guitar string bend before it slips off the fretboard edge.
+  // Blues and rock players routinely bend 1-2 semitones for expressive vibrato.
   var MAX_BEND_CENTS = 200;
   var BEND_SENSITIVITY = 3;
   var FRET_DOT_RADIUS = 4;
@@ -45,10 +80,17 @@
   var MIDDLE_C_MIDI = 60;
   var DEFAULT_CONTAINER_WIDTH = 800;
   var DEFAULT_CONTAINER_HEIGHT = 300;
+  // Strum stagger: a real guitar strum is NOT simultaneous — the pick travels
+  // across strings over ~10-50ms depending on speed, creating the characteristic
+  // cascading onset that distinguishes a strum from a keyboard chord.
   var STRUM_STAGGER_MS = 12;
   var VIBRATION_DURATION_MS = 800;
   var NOTE_SUSTAIN_MS = 2000;
   var TOP_BAR_HEIGHT = 30;
+  // Chord voicing constraints: MAX_FRET_SEARCH limits how far up the neck
+  // to look for chord tones, MAX_FRET_SPAN limits the stretch between the
+  // lowest and highest fretted positions. A 4-fret span is the typical
+  // comfortable reach for an average human hand in first position.
   var MAX_FRET_SEARCH = 5;
   var MAX_FRET_SPAN = 4;
   var MIN_STRING_COUNT = 1;
@@ -71,6 +113,12 @@
   var RESTRUM_MIN_MS = 100;
   var RESTRUM_MAX_MS = 2000;
   var RESTRUM_DEFAULT_MS = 500;
+  // 12 strum/arpeggio modes modeling distinct real-world guitar techniques:
+  // - Strum: all strings sound in rapid succession (pick sweeps across strings)
+  // - Arpeggio: strings played sequentially at a slower rate (broken chord)
+  // - Rasgueado: flamenco technique — fingers fan out rapidly across strings
+  // - Tremolo Pick: rapid alternating pick strokes on individual strings
+  // - Fingerpick: classical/folk pattern — thumb plays bass, fingers play treble
   var FRET_STRUM_MODES = [
     'Strum Down', 'Strum Up', 'Strum Up/Down',
     'Arpeggio Down', 'Arpeggio Up', 'Arpeggio Up/Down',
@@ -85,6 +133,15 @@
   var _fretRestrumMs = RESTRUM_DEFAULT_MS;
   var _fretRestrumIntervalId = null;
   var _fretStrumTimeouts = [];
+  // Rhythm patterns: arrays of timing multipliers applied to each successive
+  // string in a strum. A multiplier of 1.0 = even spacing, >1.0 = longer gap
+  // before the next string, <1.0 = shorter gap, 0 = skip (rest).
+  // These model real rhythmic feels:
+  // - Swing/Shuffle: long-short pairs (triplet feel), the backbone of jazz/blues
+  // - Gallop: short-short-long, common in metal and Irish folk music
+  // - Bossa Nova: the characteristic 3-3-2 syncopation of Brazilian music
+  // - Reggae: offbeat emphasis (0 = skip downbeats, 1 = play upbeats)
+  // Ref: Roads, C. (1996) The Computer Music Tutorial, ch. 23 on rhythm
   var FRET_RHYTHM_PATTERNS = {
     'Even':        [1, 1, 1, 1, 1, 1, 1, 1],
     'Swing':       [1.5, 0.5, 1.5, 0.5, 1.5, 0.5, 1.5, 0.5],
@@ -105,8 +162,14 @@
   // Pitch class indices for Root dropdown
   var ROOT_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
-  // Mode keys and display names for the Mode dropdown
-  // Only the modes specified in the requirements
+  // Mode keys and display names for the Mode dropdown.
+  // These six modes cover the most common harmonic vocabularies in Western music:
+  // - Ionian (Major) and Aeolian (Minor): the two fundamental diatonic modes
+  // - Dorian: minor with a raised 6th, common in jazz and folk
+  // - Mixolydian: major with a flatted 7th, essential for blues and rock
+  // - Harmonic/Melodic Minor: classical alterations that create the leading tone
+  // Each mode determines the chord qualities (major/minor/diminished) at each
+  // scale degree, which populates the 8-cell chord panel.
   var MODE_OPTIONS = [
     { key: 'ionian',       label: 'Major' },
     { key: 'aeolian',      label: 'Minor' },
@@ -116,7 +179,12 @@
     { key: 'melodic_min',  label: 'Melodic Minor' }
   ];
 
-  // Additional chord intervals not in CHORD_INT from the JSON
+  // Additional chord intervals not in CHORD_INT from the JSON.
+  // minMaj7: minor triad + major 7th — the dark, dissonant jazz voicing
+  // add9: major triad + 9th (compound 2nd) — bright open voicing
+  // Power chord (5): root + 5th only — no 3rd, so neither major nor minor.
+  // Power chords are the foundation of rock/metal guitar because the
+  // missing 3rd avoids beating artifacts under heavy distortion.
   var LOCAL_CHORD_INT = {
     'minMaj7': [0, 3, 7, 11],
     'add9':    [0, 4, 7, 14],
@@ -128,7 +196,10 @@
     '5':       '5'
   };
 
-  // Chord variation types for long-press popup
+  // Chord variation types for long-press popup.
+  // These represent the most common chord modifications guitarists use:
+  // sus2/sus4 replace the 3rd with 2nd/4th (suspended, unresolved sound),
+  // 7/maj7 add the 7th (jazz/blues color), power chord (5) omits the 3rd.
   var VARIATION_TYPES = ['root', 'sus2', 'sus4', '7', 'maj7', 'add9', '5'];
   var VARIATION_LABELS = {
     'root': 'Root',
@@ -144,7 +215,19 @@
   // Tuning Presets
   // ============================================================
 
-  // Guitar tunings (defined for 6 strings, extended/contracted as needed)
+  // Guitar tuning presets as MIDI note numbers (low string to high string).
+  // Standard tuning E2-A2-D3-G3-B3-E4 uses intervals 5-5-5-4-5 semitones.
+  // The non-uniform interval (B3 is a major 3rd above G3, not a 4th) is
+  // inherited from Renaissance lute tuning and makes chord fingerings more
+  // ergonomic at the cost of breaking transposition symmetry across strings.
+  //
+  // Drop D: lowest string down 2 semitones, enabling power chords with one
+  // finger across the bottom 3 strings. Ubiquitous in rock/metal.
+  // Open G/D: strumming all open strings produces a major chord — used
+  // extensively in slide guitar (Robert Johnson, Keith Richards).
+  // DADGAD: a suspended tuning favored in Celtic and Moroccan music.
+  // All Fourths: uniform 5-semitone intervals, preferred by jazz players
+  // for consistent fingering patterns across all strings.
   var GUITAR_TUNING_PRESETS = {
     'Standard':    { midi: [40, 45, 50, 55, 59, 64], label: 'Standard' },
     'Drop D':      { midi: [38, 45, 50, 55, 59, 64], label: 'Drop D' },
@@ -155,7 +238,9 @@
   };
   var GUITAR_TUNING_NAMES = Object.keys(GUITAR_TUNING_PRESETS);
 
-  // Bass tunings (defined for 5 strings, extended/contracted as needed)
+  // Bass tunings: one octave below guitar. Standard 4-string bass uses the
+  // same pitch classes as the guitar's lowest 4 strings (E-A-D-G) but an
+  // octave lower. The 5th string (B0, MIDI 23) extends to sub-bass range.
   var BASS_TUNING_PRESETS = {
     'Standard':    { midi: [23, 28, 33, 38, 43], label: 'Standard' },
     'Drop D':      { midi: [23, 26, 33, 38, 43], label: 'Drop D' },
@@ -163,7 +248,10 @@
   };
   var BASS_TUNING_NAMES = Object.keys(BASS_TUNING_PRESETS);
 
-  // Extension notes for strings beyond the preset range
+  // Extension notes for strings beyond the preset range.
+  // When the user selects 7 or 8 strings (extended-range instruments like
+  // 7-string guitars or 8-string djent instruments), extra strings are added
+  // by continuing the pattern of perfect fourths (5 semitones) in each direction.
   // Guitar: below E2=40, go down in fourths; above E4=64, go up in fourths
   var GUITAR_EXTEND_BELOW = [35, 30]; // B1, F#1
   var GUITAR_EXTEND_ABOVE = [69, 74]; // A4, D5
@@ -186,7 +274,10 @@
   // Touch tracking for fret-zone slur/slide gestures.
   // Maps touch identifier -> { row, startFret, startX, currentFret, active }
   var _fretZoneTouches = {};
-  // Cents per fret for continuous pitch sliding between fret positions
+  // Cents per fret for continuous pitch sliding between fret positions.
+  // In 12-tone equal temperament, each semitone = 100 cents (by definition).
+  // Sliding between frets produces continuous pitch change measured in cents,
+  // applied as pitch bend to the active note — modeling guitar slide/slur.
   var CENTS_PER_SEMITONE = 100;
 
   // Mouse state for strum zone
@@ -286,6 +377,12 @@
   // ============================================================
   // Fretboard geometry helpers
   // ============================================================
+  // The fretboard uses a coordinate system where row 0 = top of screen =
+  // highest-pitched string (treble E on guitar). This is the standard visual
+  // orientation: looking down at a guitar in playing position, the thinnest
+  // string is closest to the floor. The tuning array is indexed lowest-to-
+  // highest, so converting between visual row and tuning index requires
+  // flipping: tuningIndex = numStrings - 1 - row.
 
   function _resetAllState() {
     _stringStates = {};
@@ -300,7 +397,8 @@
     var result = -1;
     if (_fretGeo) {
       var relativeY = clientY - _fretGeo.boardTop - _fretGeo.headerHeight;
-      var row = Math.floor(relativeY / _fretGeo.stringSpacing);
+      var safeStringSpacing = _fretGeo.stringSpacing || 1;
+      var row = Math.floor(relativeY / safeStringSpacing);
       if (row < 0) { row = 0; }
       if (row >= _fretGeo.numStrings) { row = _fretGeo.numStrings - 1; }
       result = row;
@@ -312,7 +410,8 @@
     var result = 0;
     if (_fretGeo) {
       var relativeX = clientX - _fretGeo.boardLeft - _fretGeo.openLabelWidth;
-      var fret = Math.floor(relativeX / _fretGeo.fretWidth);
+      var safeFretWidth = _fretGeo.fretWidth || 1;
+      var fret = Math.floor(relativeX / safeFretWidth);
       if (fret < 0) { fret = 0; }
       if (fret > _fretGeo.fretCount) { fret = _fretGeo.fretCount; }
       result = fret;
@@ -326,7 +425,8 @@
     var result = 0;
     if (_fretGeo) {
       var relativeX = clientX - _fretGeo.boardLeft - _fretGeo.openLabelWidth;
-      var fretExact = relativeX / _fretGeo.fretWidth;
+      var safeFretWidth = _fretGeo.fretWidth || 1;
+      var fretExact = relativeX / safeFretWidth;
       if (fretExact < 0) { fretExact = 0; }
       if (fretExact > _fretGeo.fretCount) { fretExact = _fretGeo.fretCount; }
       result = fretExact;
@@ -334,6 +434,9 @@
     return result;
   }
 
+  // Core pitch calculation: MIDI note = open string tuning + fret number.
+  // Each fret raises pitch by exactly one semitone (equal temperament).
+  // The row-to-tuning index flip accounts for visual vs. pitch ordering.
   function _fretMidiForRowFret(row, fret) {
     var result = MIDDLE_C_MIDI;
     if (_fretGeo) {
@@ -361,6 +464,10 @@
   // ============================================================
   // String vibration visual
   // ============================================================
+  // Vibration animation provides tactile visual feedback that a string is
+  // sounding. The CSS animation simulates the transverse wave motion of a
+  // plucked string. The void offsetWidth trick forces a DOM reflow to
+  // restart the CSS animation even if the class was already present.
 
   function _triggerStringVibration(row) {
     var hasStringRow = _fretGeo && _fretGeo.stringLines && _fretGeo.stringLines[row];
@@ -392,6 +499,10 @@
     }
   }
 
+  // Visual string deflection during bend: maps bend amount (in cents) to
+  // a vertical pixel offset, simulating the physical displacement of a
+  // string being pushed sideways across the fretboard. Opacity increases
+  // with tension to convey the sense of increased string stress.
   function _fretDeflectString(row, bendCents) {
     var hasStringRow = _fretGeo && _fretGeo.stringLines && _fretGeo.stringLines[row];
     if (hasStringRow) {
@@ -492,6 +603,11 @@
   // ============================================================
   // Sound triggering
   // ============================================================
+  // Sound production follows real guitar physics: each string is an
+  // independent monophonic voice. Playing a new note on an already-sounding
+  // string immediately stops the previous note (noteOff) before starting
+  // the new one (noteOn). This models physical reality — a string can only
+  // vibrate at one pitch at a time.
 
   function _playStringAtCurrentFret(row) {
     if (!_isStringMuted(row)) {
@@ -515,7 +631,12 @@
       _noteOn(midi, velocity);
       _triggerStringVibration(row);
 
-      // Course notes (octave up for lower half of strings, unison for upper half)
+      // Course notes: models doubled/tripled string instruments.
+      // Courses are groups of strings tuned to the same pitch or an octave apart.
+      // On a 12-string guitar, the lower 4 courses have an octave-up partner
+      // (adding brightness and shimmer) while the upper 2 courses are unison
+      // (adding body/chorus). Mandolins use unison pairs on all courses.
+      // This lower-half/upper-half split approximates real 12-string stringing.
       var courseMidis = [];
       if (courses >= 2) {
         var isLowerHalf = (row >= Math.floor(_fretGeo.numStrings / 2));
@@ -601,6 +722,11 @@
     if (_fretRestrumIntervalId !== NO_TIMER) { clearInterval(_fretRestrumIntervalId); _fretRestrumIntervalId = null; }
   }
 
+  // Strum pattern engine: the core algorithm that turns a strum gesture into
+  // a timed sequence of individual string attacks. Each strum mode reorders
+  // the string array differently, then applies rhythm-pattern timing multipliers
+  // to stagger the noteOn calls. The combination of mode (spatial order) and
+  // rhythm (temporal spacing) produces the full range of guitar articulations.
   function _fireStrumPattern(minRow, maxRow) {
     var st;
     for (st = 0; st < _fretStrumTimeouts.length; st++) { clearTimeout(_fretStrumTimeouts[st]); }
@@ -619,6 +745,7 @@
       if (_fretStrumDirection < 0) { ordered.reverse(); }
       _fretStrumDirection = _fretStrumDirection * -1;
     } else if (mode === 'Arpeggio Random') {
+      // Fisher-Yates shuffle: unbiased random permutation of string order
       for (var sh = ordered.length - 1; sh > 0; sh--) {
         var swapIdx = Math.floor(Math.random() * (sh + 1));
         var tmp = ordered[sh];
@@ -626,6 +753,8 @@
         ordered[swapIdx] = tmp;
       }
     } else if (mode === 'Arpeggio Converge') {
+      // Converge: interleave from both ends toward center (low-high-low-high...)
+      // Creates a "closing in" effect — bass and treble alternate, meeting in the middle
       var sorted = rows.slice();
       ordered = [];
       var lo = 0;
@@ -637,6 +766,8 @@
         hi = hi - 1;
       }
     } else if (mode === 'Arpeggio Diverge') {
+      // Diverge: start from center string, expand outward (middle-low-high...)
+      // Creates a "spreading out" effect — the inverse of converge
       var sorted2 = rows.slice();
       ordered = [];
       var center = Math.floor(sorted2.length / 2);
@@ -646,10 +777,16 @@
         if (center + spread < sorted2.length) { ordered.push(sorted2[center + spread]); }
       }
     } else if (mode === 'Rasgueado') {
+      // Rasgueado: flamenco rapid-fire strum using successive fingers (a-m-i-p)
+      // fanning outward. Delay is 1/3 of normal strum — extremely fast onset.
       delay = Math.max(delay / 3, STRUM_DELAY_MIN_MS);
     } else if (mode === 'Tremolo Pick') {
+      // Tremolo: rapid alternating pick strokes, half the normal delay
       delay = Math.max(delay / 2, STRUM_DELAY_MIN_MS);
     } else if (mode === 'Fingerpick') {
+      // Classical fingerpicking: thumb (p) plays bass strings first, then
+      // fingers (i-m-a) play treble strings in reverse order. The 1.5x delay
+      // gives each note more space, creating the unhurried fingerstyle feel.
       var mid = Math.floor(numStrings / 2);
       var bassStrings = rows.slice(mid);
       var trebleStrings = rows.slice(0, mid).reverse();
@@ -657,14 +794,19 @@
       delay = delay * 1.5;
     }
 
+    // Arpeggios use 2x the base delay — slower cascade so each note is heard
+    // distinctly. Strums use 1x for the rapid sweep effect.
     var isArpeggio = (mode.indexOf('Arpeggio') >= 0);
     var baseDelay = isArpeggio ? (delay * 2) : delay;
+    // Rhythm multipliers scale the inter-note gap. Cumulative timing ensures
+    // each note fires at the correct absolute time from strum start.
     var rhythmPat = FRET_RHYTHM_PATTERNS[_fretCurrentRhythm] || FRET_RHYTHM_PATTERNS['Even'];
     var cumulativeTime = 0;
 
     var si;
     for (si = 0; si < ordered.length; si++) {
-      var rhythmMult = rhythmPat[si % rhythmPat.length];
+      var safeRhythmLen = rhythmPat.length || 1;
+      var rhythmMult = rhythmPat[si % safeRhythmLen];
       if (rhythmMult === 0) {
         cumulativeTime = cumulativeTime + baseDelay;
       } else {
@@ -699,6 +841,11 @@
   // ============================================================
   // Bend in strum zone
   // ============================================================
+  // String bending: vertical drag in the strum zone bends the pitch of the
+  // sounding note, modeling the real technique of pushing a string sideways
+  // across the fretboard. The bend amount is proportional to drag distance,
+  // clamped to +/- 200 cents (2 semitones). This is a key expressive technique
+  // in blues, rock, and Indian classical music (gamakas).
 
   function _bendString(row, deltaY) {
     var state = _stringStates[row];
@@ -725,6 +872,10 @@
   // ============================================================
   // Safety handlers
   // ============================================================
+  // Document-level event listeners that prevent stuck notes when the pointer
+  // leaves the fretboard element. Without these, a mousedown inside the
+  // fretboard followed by a mouseup outside would leave strings ringing
+  // indefinitely — the musical equivalent of a stuck sustain pedal.
 
   function _installSafetyHandlers() {
     if (!_hasSafetyHandlersInstalled) {
@@ -794,6 +945,14 @@
   // ============================================================
   // Wire fretboard events
   // ============================================================
+  // Input handling implements the two-zone model:
+  // - Fret zone (left 78%): mousedown/touchstart sets fretted position
+  //   silently. If the string is already sounding, mousemove/touchmove
+  //   applies continuous pitch slide (legato slur technique).
+  // - Strum zone (right 22%): mousedown/touchstart plays the string
+  //   immediately. Dragging across multiple strings within the time
+  //   threshold triggers a full strum pattern.
+  // Both mouse and touch paths are separate to support desktop and mobile.
 
   function _wireFretboardEvents(board) {
     _installSafetyHandlers();
@@ -1029,6 +1188,15 @@
   // ============================================================
   // Tuning computation
   // ============================================================
+  // Builds a MIDI tuning array for any string count by combining preset
+  // tuning notes with extension notes. The algorithm constructs a "pool"
+  // of available pitches (extensions below + preset + extensions above),
+  // then selects the top N notes for the requested string count. This
+  // means adding strings extends the range downward (like a 7-string guitar
+  // adding a low B), while removing strings trims from the bass end
+  // (like going from 6-string to 4-string keeps the treble strings).
+  // If more strings are requested than the pool can provide, additional
+  // strings are generated by continuing downward in perfect fourths.
 
   function _computeTuning(mode, tuningName, stringCount, baseOctave) {
     var presets = (mode === MODE_BASS) ? BASS_TUNING_PRESETS : GUITAR_TUNING_PRESETS;
@@ -1082,6 +1250,21 @@
   // ============================================================
   // Chord shape generation
   // ============================================================
+  // This is the chord voicing algorithm — the most musically complex part
+  // of the fretboard. Given a set of pitch classes (e.g., C-E-G for C major)
+  // and a tuning, it finds fret positions on each string that produce those
+  // pitches. The algorithm is a greedy search per string with heuristics:
+  //
+  // 1. For each string, search frets 0..MAX_FRET_SEARCH for a chord tone
+  // 2. Score candidates: lower frets preferred, root note on lowest string
+  // 3. After all strings are assigned, check playability (fret span)
+  // 4. If the span exceeds MAX_FRET_SPAN (4 frets), mute offending strings
+  //
+  // This models how guitarists actually find chord shapes — preferring open
+  // strings and first-position fingerings, with the constraint that the human
+  // hand can only span about 4 frets comfortably. Strings that cannot fit
+  // within the span are muted (marked -1), just as a real guitarist would
+  // mute unplayable strings with a spare finger.
 
   function _generateChordShape(tuning, chordPitchClasses, rootPc) {
     var numStrings = tuning.length;
@@ -1098,7 +1281,9 @@
         var notePc = (openNote + fretSearch) % SEMITONES_PER_OCTAVE;
         if (notePc < 0) { notePc += SEMITONES_PER_OCTAVE; }
         if (chordPitchClasses.indexOf(notePc) !== NOT_FOUND) {
-          // Score: prefer lower frets; prefer root on lowest strings
+          // Scoring heuristic: fret number = base cost (lower = better).
+          // Penalty of 10 for non-root on the lowest string, ensuring the
+          // bass note is the chord root when possible (root-position voicing).
           var score = fretSearch;
           if ((stringIdx === 0) && (notePc !== rootPc)) {
             score += 10; // penalty for non-root on lowest string
@@ -1113,7 +1298,10 @@
       frets.push(bestFret);
     }
 
-    // Check playability: if fret span > MAX_FRET_SPAN, mute some strings
+    // Playability check: the fret span is the distance between the lowest
+    // and highest fretted positions (excluding open strings at fret 0).
+    // If the span exceeds MAX_FRET_SPAN, the chord is physically unplayable
+    // and we must mute one or more strings to bring it within reach.
     var minFret = 999;
     var maxFret = 0;
     var fretCheckIdx;
@@ -1151,6 +1339,10 @@
     return frets;
   }
 
+  // Converts a chord type (e.g., 'min', 'maj7') into a set of pitch classes
+  // by adding each interval to the root and wrapping mod 12. The result is
+  // an unordered set of pitch classes (0-11) that define the chord's identity
+  // regardless of octave or voicing.
   function _chordPitchClassesFromType(rootPc, chordType) {
     var intervals = _getChordIntervals(chordType);
     var pitchClasses = [];
@@ -1166,6 +1358,14 @@
   // ============================================================
   // Diatonic chord computation
   // ============================================================
+  // Builds the 7 diatonic triads for a given root and mode, plus the V7
+  // (dominant 7th). In any diatonic mode, stacking 3rds on each scale degree
+  // yields a predictable pattern of major, minor, and diminished triads.
+  // For example, in C major: C(I), Dm(ii), Em(iii), F(IV), G(V), Am(vi), Bdim(vii).
+  // The V7 (dominant 7th of the 5th degree) is added as the 8th button
+  // because it is the most important non-diatonic chord in tonal harmony —
+  // the V7-I cadence is the strongest resolution in Western music.
+  // Ref: Helmholtz, H. (1863) On the Sensations of Tone, ch. XIV
 
   function _getDiatonicChords(rootPc, modeKey) {
     var modeData = MODES[modeKey];
@@ -1207,6 +1407,11 @@
   // ============================================================
   // Apply a chord to the fretboard
   // ============================================================
+  // Translates abstract chord pitch classes into concrete fret positions
+  // on the current tuning, then updates the visual fretboard. Strings that
+  // the voicing algorithm cannot assign within the playability constraints
+  // are marked as muted. Open strings (fret 0) need no explicit entry —
+  // they sound their natural tuning pitch when strummed.
 
   function _applyChordToFretboard(chordRootPc, chordType) {
     if (_fretGeo) {
@@ -1639,6 +1844,10 @@
   // ============================================================
   // Compute string thickness
   // ============================================================
+  // Visual string gauge: real guitar strings vary from ~0.25mm (high E) to
+  // ~1.14mm (low E). Bass strings are thicker still (~1.07mm to ~1.30mm).
+  // Row 0 = top of screen = highest-pitched = thinnest string. Higher row
+  // indices = lower pitch = thicker visual representation.
 
   function _computeStringThickness(rowIndex, numStrings, mode) {
     // Thickest at bottom (row 0 = highest visual = thinnest), thickest at top (highest row)
@@ -1654,6 +1863,13 @@
   // ============================================================
   // Build Fretboard
   // ============================================================
+  // Master build function: constructs the complete fretboard UI from scratch.
+  // Called on initial load and on every configuration change (string count,
+  // tuning, courses). The layout has three horizontal zones:
+  //   [Chord Panel] [Fret Grid + Strum Zone] [Strum Button]
+  // The fret grid itself is divided: 78% fret area (pitch selection, silent)
+  // and 22% strum zone (sound triggering). This two-zone architecture is the
+  // key UX innovation — it decouples pitch and sound just like a real guitar.
 
   function _buildFretboard(container, opts) {
     var mode = opts.mode || MODE_GUITAR;
@@ -1779,7 +1995,8 @@
 
     var headerHeight = FRET_HEADER_HEIGHT;
     var stringAreaHeight = boardHeight - headerHeight;
-    var stringSpacing = Math.floor(stringAreaHeight / numStrings);
+    var safeNumStrings = numStrings || 1;
+    var stringSpacing = Math.floor(stringAreaHeight / safeNumStrings);
     var fretAreaWidth = boardWidth - openLabelWidthPx;
     var strumZoneWidth = Math.floor(fretAreaWidth * STRUM_ZONE_FRACTION);
     var fretableWidth = fretAreaWidth - strumZoneWidth;
@@ -1828,7 +2045,9 @@
       }
     }
 
-    // Strings and fret positions
+    // Strings and fret positions: each string gets its horizontal line elements
+    // (1 per course) and a grid of fret-position cells. Each cell stores its
+    // MIDI note, string row, and fret number as data attributes for event handling.
     var noteNames = SL.useFlatNaming(config.rootPc) ? NOTES_FLAT : NOTES;
     var boardFrag = document.createDocumentFragment();
     var rowIndex;
@@ -1837,7 +2056,10 @@
       var openMidi = tuning[currentStringIndex];
       var stringY = stringYPositions[rowIndex];
 
-      // Course lines (1, 2, or 3 lines per course)
+      // Course lines: renders 1, 2, or 3 parallel lines per string position.
+      // Multi-course instruments (mandolin, 12-string, oud) have groups of
+      // strings tuned in unison or octaves — visually represented as closely
+      // spaced parallel lines with slightly reduced thickness.
       var courseLines = _makeCourseLineList();
       var courseOffset;
       var courseSpread = 3; // pixels between course lines
@@ -2025,6 +2247,10 @@
   // ============================================================
   // Register controllers
   // ============================================================
+  // Guitar and bass share the same fretboard implementation with different
+  // defaults: guitar = 6 strings, octave 3, nylon preset; bass = 4 strings,
+  // octave 2 (one octave lower), bass preset. Both register as separate
+  // controller entries so the surface selector can offer them independently.
 
   if (!SL.controllers) { SL.controllers = {}; }
 
@@ -2057,6 +2283,10 @@
   // ============================================================
   // PanicRegistry registrations (fretboard: guitar + bass share state)
   // ============================================================
+  // Three panic categories ensure complete cleanup on MIDI panic:
+  // - timers: cancel all pending strum/restrum setTimeout/setInterval IDs
+  // - voices: release all sounding strings (noteOff for each active MIDI)
+  // - controllers: clear fretted positions and muted-string markers
 
   if (SL.PanicRegistry) {
     SL.PanicRegistry.register(

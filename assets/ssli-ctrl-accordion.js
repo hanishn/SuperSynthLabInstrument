@@ -1,5 +1,26 @@
 // SSLI Controller: Accordion (3-panel: Stradella bass + bellows + B-system melody)
 // ES5 compatible (var, no arrow functions, no template literals)
+//
+// ---- What is an accordion? ----
+// A free-reed aerophone: air forced through bellows flows past tuned metal
+// reeds, causing them to vibrate and produce sound. Unlike organ pipes
+// (which use airflow to create standing waves), accordion reeds are fixed
+// at one end and oscillate at their natural frequency when air passes over
+// them -- similar to a harmonica but with keyboard/button control.
+//
+// Two manuals: the right hand plays melody on a treble keyboard (here a
+// B-system chromatic button layout), while the left hand plays bass notes
+// and chords on a Stradella bass system. The bellows sit between the two
+// halves; pushing and pulling controls airflow, which governs volume and
+// tonal brightness -- the primary means of expression.
+//
+// Register switches on a real accordion select different reed ranks (sets
+// of reeds tuned at 8', 16', or 4' pitch). This surface does not model
+// registers but does map touch/pointer pressure to bellows dynamics and
+// wires bellows position to the reed engine's breath-pressure parameter.
+//
+// Ref: Benetoux, "The Ins and Outs of the Accordion" (2001)
+// Ref: Hermosa, "The Accordion in the Americas" (Univ. of Illinois, 2012)
 
 (function() {
   'use strict';
@@ -19,6 +40,11 @@
   var DEFAULT_VELOCITY = 100;
 
   // Bass Stradella grid: 8 core columns (circle-of-fifths most-used keys)
+  // The Stradella system arranges bass buttons in circle-of-fifths order
+  // so that related keys (I-IV-V) are always adjacent. Each column has
+  // four rows: a single bass note, then major, minor, and dominant-7th
+  // chords built on that root. A full-size accordion has 120 bass buttons;
+  // we use the 8 most-used columns (Eb through E) for a 32-button grid.
   var BASS_COLS = 8;
   var BASS_ROWS = 4;
   var BASS_ROW_BASS = 0;
@@ -27,6 +53,9 @@
   var BASS_ROW_DOM7 = 3;
 
   // Circle-of-fifths core pitch classes: Eb Bb F C G D A E
+  // Each value is a MIDI pitch class (0=C, 7=G, etc.). Adjacent columns
+  // are a perfect fifth apart, matching the physical layout of a real
+  // Stradella board where the player's hand moves in fifths naturally.
   var BASS_COL_PITCH_CLASSES = [3, 10, 5, 0, 7, 2, 9, 4];
   var BASS_COL_LABELS = ['Eb', 'Bb', 'F', 'C', 'G', 'D', 'A', 'E'];
   var BASS_ROW_CSS = ['row-bass', 'row-major', 'row-minor', 'row-dom7'];
@@ -43,6 +72,11 @@
   var CHORD_OCTAVE_OFFSET = 0;
 
   // Melody B-system chromatic buttons
+  // The B-system (used in Russia, France, and most of Europe) arranges
+  // chromatic notes in three staggered rows. Each row steps by whole
+  // tones (2 semitones), and adjacent rows are offset by one semitone,
+  // giving full chromatic coverage. This is more compact than a piano
+  // keyboard and allows wider intervals with smaller hand movements.
   var MELODY_ROWS = 3;
   var MELODY_STEP_SEMITONES = 2;
   var MELODY_NOTES_PER_ROW = 12;
@@ -58,6 +92,11 @@
   var TOP_BAR_HEIGHT_PX = 22;
 
   // Bellows expression
+  // On a real accordion, bellows pressure is the primary expressive
+  // control -- analogous to bow pressure on a violin. More pressure
+  // means louder volume and brighter tone. We map the vertical drag
+  // position to both gain (volume) and filter cutoff (brightness),
+  // plus wire it to the reed engine's embouchure/breath parameter.
   var BELLOWS_GAIN_MIN = 0.05;
   var BELLOWS_GAIN_MAX = 1.0;
   var BELLOWS_GAIN_DEFAULT = 0.4;
@@ -65,6 +104,10 @@
   var BELLOWS_RAMP_STEP_MS = 16;
 
   // Accordion reed settings applied on build
+  // Clarinet-type reed model is the closest physical match: both use a
+  // single beating reed excited by air pressure. Real accordion reeds
+  // are free reeds (vibrating both ways through a slot), but the
+  // clarinet model captures the essential single-reed timbral character.
   var ACCORDION_REED_TYPE = 'clarinet';
   var ACCORDION_REED_STIFFNESS = 55;
   var ACCORDION_VIBRATO_RATE = 4.5;
@@ -73,6 +116,8 @@
   var ACCORDION_EMBOUCHURE_PRESSURE = 60;
 
   // Body resonance settings for accordion box
+  // The wooden enclosure of an accordion acts as a resonating chamber,
+  // coloring the tone much like a guitar body shapes string sound.
   var ACCORDION_BODY_TYPE = 'wood';
   var ACCORDION_BODY_RESONANCE_AMOUNT = 60;
   var ACCORDION_BODY_BRIGHTNESS = 55;
@@ -157,9 +202,15 @@
   }
 
   // Bellows breath pressure range (0-100 scale for reed engine)
+  // Maps the bellows drag fraction to the reed engine's breath pressure.
+  // Min 20 keeps the reed just barely vibrating; max 90 avoids the
+  // overblown/squealing range that real accordionists avoid.
   var BELLOWS_BREATH_PRESSURE_MIN = 20;
   var BELLOWS_BREATH_PRESSURE_MAX = 90;
 
+  // Translate bellows position into audio engine parameters.
+  // Two simultaneous mappings: (1) gain + filter cutoff for tonal
+  // brightness, (2) reed engine breath pressure for physical response.
   function _applyBellowsExpression(gain) {
     var bellowsFrac = (gain - BELLOWS_GAIN_MIN) / (BELLOWS_GAIN_MAX - BELLOWS_GAIN_MIN);
     if (bellowsFrac < 0) { bellowsFrac = 0; }
@@ -203,6 +254,8 @@
   // Bellows rAF ramp back to default
   // ============================================================
 
+  // When the player releases the bellows drag, smoothly ramp back to
+  // a neutral pressure (like a real bellows settling to rest position).
   function _bellowsStartReturnRamp() {
     if (_bellowsRampTimer) {
       clearInterval(_bellowsRampTimer);
@@ -213,7 +266,8 @@
     var targetGain = BELLOWS_GAIN_DEFAULT;
     var totalSteps = Math.max(1, Math.round(BELLOWS_RAMP_DURATION_MS / BELLOWS_RAMP_STEP_MS));
     var stepCount = 0;
-    var gainDelta = (targetGain - startGain) / totalSteps;
+    var safeTotalSteps = totalSteps || 1;
+    var gainDelta = (targetGain - startGain) / safeTotalSteps;
 
     _bellowsRampTimer = setInterval(function() {
       stepCount++;
@@ -362,6 +416,11 @@
   // Bass: note on/off for Stradella buttons
   // ============================================================
 
+  // Bass note-on computes the chord for a given column (root pitch class)
+  // and row (chord type). Row 0 plays a single bass note one octave below;
+  // rows 1-3 play major, minor, or dominant-7th chords at the base octave.
+  // This mirrors the left-hand technique where the bassist alternates
+  // between root notes and chord stabs for oom-pah accompaniment patterns.
   function _bassNoteOn(colIdx, rowIdx, pointerEvent) {
     var key = colIdx + '-' + rowIdx;
     var rootPc = BASS_COL_PITCH_CLASSES[colIdx];
@@ -410,6 +469,9 @@
   // ============================================================
   // Bass: document-level pointerup safety net for stuck notes
   // ============================================================
+  // Touch interactions can lose their target element (finger slides off,
+  // browser captures the event, etc.). A document-level listener ensures
+  // any bass notes are released even if the pointerup misses the button.
 
   function _bassReleasePointer(pointerId) {
     var touchId = (pointerId !== undefined) ? pointerId : 'mouse';
@@ -455,6 +517,11 @@
   // ============================================================
   // Melody: note on/off with glissando support
   // ============================================================
+  // Glissando (sliding a finger across multiple buttons) is a common
+  // technique on B-system accordions. We track each pointer's last
+  // button and seamlessly transition notes as the finger crosses
+  // button boundaries -- note-on for the new pitch, note-off for the
+  // old, with no gap.
 
   function _melodyNoteOn(btnIdx, midi, pointerEvent) {
     _melodyActiveNotes[btnIdx] = midi;

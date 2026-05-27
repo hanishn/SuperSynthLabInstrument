@@ -4,6 +4,25 @@
 // Non-trademarked "driftscape" name. Follows lofi.js ES5 construction pattern
 // (Reflect.construct + setPrototypeOf for BaseEffect ES6 class).
 //
+// -----------------------------------------------------------------------
+// TAPE-MOTION EMULATION - Background
+//
+// Analog tape introduces several artifacts from the mechanical transport:
+//   - Wow:     Slow pitch variation (0.5-2 Hz) from capstan eccentricity
+//              or reel tension changes. Gives a dreamy, seasick quality.
+//   - Flutter: Fast pitch jitter (5-9 Hz) from idler wheel irregularities
+//              or tape-head contact inconsistencies. Adds shimmer/warble.
+//   - Dropouts: Brief signal loss (50-200ms) caused by oxide shedding,
+//              dust, or worn tape coating losing contact with the head.
+//   - Saturation: Magnetic hysteresis -- tape's ferric oxide particles
+//              can only be magnetized so far, soft-clipping loud signals
+//              via a tanh-like transfer curve. Adds warmth and harmonics.
+//   - Warmth:  High-frequency loss from the head gap, tape formulation,
+//              and azimuth alignment. A 1-pole lowpass simulates this.
+//
+// Each artifact is modeled by a dedicated DSP stage wired in series.
+// -----------------------------------------------------------------------
+//
 // Signal chain (wet):
 //   input -> tape-saturation (tanh WaveShaper) -> modulated-delay (wow+flutter)
 //         -> dropout-gate (scheduled gain dips) -> HF-rolloff (1-pole LP)
@@ -27,6 +46,9 @@
   var BaseEffect = SL.effects.BaseEffect;
 
   // ============ Named constants ============
+  // Wow and flutter are implemented as LFO-modulated delay lines. The LFO
+  // varies the delay time, which pitch-shifts the signal (Doppler effect).
+  // Wow is slow (sub-2Hz) and flutter is fast (5-9Hz), matching real tape.
 
   // Wow (slow pitch wobble)
   var WOW_RATE_MIN_HZ = 0.5;
@@ -105,11 +127,17 @@
     self.params.mix = DEFAULT_MIX;
 
     // ---------- Tape saturation (tanh WaveShaper) ----------
+    // Models magnetic hysteresis: tape oxide saturates at high levels,
+    // producing even-harmonic distortion via a tanh transfer curve.
+    // 2x oversampling reduces aliasing from the nonlinear waveshaping.
     self.satShaper = ctx.createWaveShaper();
     self.satShaper.oversample = '2x';
     self.satShaper.curve = self._buildSatCurve();
 
     // ---------- Modulated delay (wow + flutter) ----------
+    // A single delay line whose time is modulated by two LFOs summed into
+    // the delayTime AudioParam. Varying delay = varying playback speed =
+    // pitch wobble. The 20ms base offset keeps the modulation above zero.
     self.delayLine = ctx.createDelay(DELAY_LINE_MAX_S);
     self.delayLine.delayTime.value = DELAY_BASE_S;
 
@@ -210,13 +238,20 @@
     var norm = Math.tanh(k);
     var denom = norm;
     if (denom < 1e-6) { denom = 1e-6; }
+    var safeDenom = denom || 1;
     var i;
     for (i = 0; i < n; i++) {
       var x = (i * 2 / (n - 1)) - 1;
-      curve[i] = Math.tanh(x * k) / denom;
+      curve[i] = Math.tanh(x * k) / safeDenom;
     }
     return curve;
   };
+
+  // ---- Dropout Scheduling ----
+  // Dropouts simulate oxide shedding or dust on the tape head causing
+  // momentary signal loss. Modeled as gain dips (to 0.2x) with smooth
+  // ramp edges. A Poisson process (exponential inter-arrival times)
+  // gives naturalistic random spacing -- real tape faults are memoryless.
 
   // Schedule dropouts out to DROPOUT_SCHEDULE_HORIZON_S ahead.
   // Uses a Poisson-ish process: inter-arrival = exponential(rate).

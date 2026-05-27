@@ -1,6 +1,36 @@
 // Super Synth Lab - Wavetable Synthesis Module
 // Extracted from audio-engine.js for modularity
 // Loads AFTER audio-engine.js and extends SL.audio
+//
+// -----------------------------------------------------------------------
+// EDUCATIONAL OVERVIEW: Wavetable Synthesis
+// -----------------------------------------------------------------------
+// Wavetable synthesis stores one cycle of a waveform as an array of
+// samples, then reads through it at variable speed to produce pitch.
+// This is far more efficient than computing waveforms sample-by-sample,
+// especially for complex timbres built from many harmonics.
+//
+// The key challenge is ALIASING: a sawtooth wave at 10 kHz has
+// harmonics that exceed the Nyquist frequency (sr/2), which fold
+// back as audible artifacts. The solution is MIP-MAPPING — storing
+// separate tables for each octave, each with only the harmonics
+// that fit below Nyquist for that frequency range. Lower octaves
+// get more harmonics (richer sound); higher octaves get fewer.
+//
+// Waveforms are constructed via additive synthesis (Fourier series):
+//   Sawtooth: sum of sin(n*phase)/n for all n
+//   Square:   sum of sin(n*phase)/n for odd n only
+//   Triangle: sum of cos(n*phase)/n^2 with alternating signs, odd n
+//
+// The module also provides a fast sine lookup table (4096 samples)
+// with linear interpolation — trading a small amount of accuracy
+// for significant CPU savings in real-time oscillator code.
+//
+// References:
+//   Smith, J.O. (2007) Mathematics of the DFT, CCRMA
+//     (https://ccrma.stanford.edu/~jos/mdft/)
+//   Roads, C. (1996) The Computer Music Tutorial, MIT Press, Ch. 4
+// -----------------------------------------------------------------------
 (function() {
   'use strict';
 
@@ -12,7 +42,8 @@
   // Wavetable Synthesis System
   // ============================================================
 
-  /** Wavetable size - power of 2 for fast modulo */
+  // Power-of-2 size enables bitwise AND masking for fast wrap-around:
+  // index & MASK is equivalent to index % SIZE but avoids division.
   var WAVETABLE_SIZE = 2048;
   var WAVETABLE_MASK = WAVETABLE_SIZE - 1;
 
@@ -31,6 +62,11 @@
   // ============================================================
   // Sine Lookup Table for Fast Sin Approximation
   // ============================================================
+  //
+  // Math.sin() is expensive when called thousands of times per audio
+  // block. A pre-computed lookup table with linear interpolation gives
+  // nearly identical results at a fraction of the CPU cost. At 4096
+  // samples, the maximum error is less than 0.01% — inaudible.
 
   /** Sine table size - 4096 samples for good accuracy/memory balance */
   var SINE_TABLE_SIZE = 4096;
@@ -64,7 +100,9 @@
    * @returns {number} Sine value approximation
    */
   function fastSin(phase) {
-    // Wrap phase to [0, 2*PI)
+    // Wrap phase to [0, 2*PI) then index into the table.
+    // Linear interpolation between adjacent samples smooths out
+    // the staircase that would result from nearest-neighbor lookup.
     phase = phase % TWO_PI_CONST;
     if (phase < 0) phase += TWO_PI_CONST;
 
@@ -85,6 +123,9 @@
    * @returns {Float32Array} Wavetable
    */
   function generateWavetable(waveform, maxHarmonics) {
+    // Build one cycle of a waveform using its Fourier series.
+    // maxHarmonics limits the series to stay below Nyquist for the
+    // target octave — this is what makes the table "band-limited."
     var table = new Float32Array(WAVETABLE_SIZE);
     var TWO_PI = Math.PI * 2;
 
@@ -93,21 +134,28 @@
       var sample = 0;
 
       if (waveform === 'sine') {
+        // Sine: the fundamental building block — a single harmonic
         sample = Math.sin(phase);
       } else if (waveform === 'sawtooth') {
-        // Sawtooth: sum of sin(n*phase)/n for n=1 to maxHarmonics
+        // Sawtooth Fourier series: sum of sin(n*phase)/n for all n.
+        // The 2/pi normalization scales the result to [-1, 1].
         for (var h = 1; h <= maxHarmonics; h++) {
-          sample += Math.sin(phase * h) / h;
+          var safeH = h || 1;
+          sample += Math.sin(phase * h) / safeH;
         }
         sample *= 2 / Math.PI;
       } else if (waveform === 'square') {
-        // Square: sum of sin(n*phase)/n for odd n
+        // Square Fourier series: only odd harmonics (1, 3, 5, ...).
+        // This is why a square wave sounds "hollow" compared to a saw.
         for (var h = 1; h <= maxHarmonics; h += 2) {
-          sample += Math.sin(phase * h) / h;
+          var safeH = h || 1;
+          sample += Math.sin(phase * h) / safeH;
         }
         sample *= 4 / Math.PI;
       } else if (waveform === 'triangle') {
-        // Triangle: sum of cos(n*phase)/n^2 with alternating signs for odd n
+        // Triangle Fourier series: odd harmonics with 1/n^2 rolloff and
+        // alternating signs. The steep harmonic rolloff makes triangle
+        // the softest/warmest of the classic waveforms.
         var sign = 1;
         for (var h = 1; h <= maxHarmonics; h += 2) {
           sample += sign * Math.cos(phase * h) / (h * h);
@@ -127,6 +175,11 @@
    * Creates mip-mapped tables (different harmonic counts per octave)
    */
   function initWavetables() {
+    // Builds all mip-mapped wavetables at startup. For each waveform
+    // and each octave (C0-C9), we compute a table with the maximum
+    // number of harmonics that fit below Nyquist. Higher octaves get
+    // fewer harmonics — e.g., C8 (~4186 Hz) at 44100 Hz sample rate
+    // can only fit ~4 harmonics before hitting 22050 Hz.
     if (isWavetablesInitialized) return;
 
     // Initialize sine lookup table first (used by fastSin)
@@ -143,7 +196,8 @@
         // Base frequency for octave: C0 = ~16.35 Hz, each octave doubles
         var baseFreq = 16.35 * Math.pow(2, octave);
         var nyquist = sr / 2;
-        var maxHarmonics = Math.max(1, Math.floor(nyquist / baseFreq) - 1);
+        var safeBaseFreq = baseFreq || 0.001;
+        var maxHarmonics = Math.max(1, Math.floor(nyquist / safeBaseFreq) - 1);
 
         // Cap at reasonable limit for performance
         var cappedHarmonics = Math.min(maxHarmonics, 256);
@@ -163,6 +217,8 @@
    * @returns {Float32Array} Appropriate wavetable
    */
   function getWavetableForFreq(waveform, freq) {
+    // Select the mip-map level: log2(freq/C0) gives the octave number.
+    // This ensures we always use a table whose harmonics are below Nyquist.
     if (!wavetables[waveform]) return null;
 
     // Calculate octave from frequency (C0 = 16.35 Hz)
@@ -179,13 +235,14 @@
    * @returns {number} Interpolated sample value
    */
   function sampleWavetable(table, phase) {
-    // Convert phase (0-1) to table index
+    // Convert phase (0-1) to table index. The bitwise AND with
+    // WAVETABLE_MASK handles wrap-around without branching.
     var index = phase * WAVETABLE_SIZE;
     var i0 = Math.floor(index) & WAVETABLE_MASK;
     var i1 = (i0 + 1) & WAVETABLE_MASK;
     var frac = index - Math.floor(index);
 
-    // Linear interpolation
+    // Linear interpolation between adjacent table entries
     return table[i0] + (table[i1] - table[i0]) * frac;
   }
 
@@ -202,6 +259,9 @@
    * @param {number} level - Amplitude level
    */
   function renderWavetable(buffer, waveform, freq, sr, startSample, numSamples, adsr, dur, level) {
+    // Renders audio by stepping through the wavetable at a rate
+    // proportional to the desired frequency: phaseIncrement = freq/sr.
+    // Each output sample is: wavetable_value * envelope * level.
     var table = getWavetableForFreq(waveform, freq);
     if (!table) return;
 

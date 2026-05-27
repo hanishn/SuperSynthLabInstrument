@@ -1,11 +1,40 @@
-// Synth Lab - Bitcrush Effect
+// Synth Lab - Bitcrush Effect [FX-033]
 // Reduces bit depth and sample rate for lo-fi digital distortion
+//
+// --- What is bitcrushing? ---
+// Bitcrushing degrades audio in two independent ways:
+//   1. Bit depth reduction: quantizes amplitude to fewer discrete levels.
+//      Formula: quantized = round(x * levels) / levels, where levels = 2^bits.
+//      Fewer bits = larger quantization steps = more quantization noise.
+//      At 1 bit the signal collapses to a pure square wave (+1 or -1).
+//   2. Sample rate reduction (downsampling / "zero-order hold"): holds each
+//      sample for N consecutive output samples instead of reading a new one.
+//      This removes high-frequency content and introduces aliasing artifacts
+//      that give the sound its characteristic digital grit.
+//
+// --- Why does it sound musical? ---
+// Early digital samplers had limited bit depth and sample rate by necessity.
+// The Fairlight CMI (8-bit, 1979) and E-mu SP-1200 (12-bit, 1987) became
+// iconic because their quantization artifacts added texture and "crunch"
+// that producers grew to love. Bitcrushing recreates those artifacts
+// intentionally as a creative effect.
+//
+// --- Implementation note ---
+// This effect uses an AudioWorklet processor for sample-accurate control.
+// Both parameters (bits, downsample) support a-rate automation so they can
+// be modulated smoothly per-sample from the main thread.
+//
+// Reference: Roads, C. (1996) The Computer Music Tutorial, MIT Press, Ch. 5
+//
+// Spec: AudioWorklet-based. Bits 1-16 (default 8, step 1),
+//        Downsample 1-50x (default 1, step 1), Mix 0-100% (default 50%).
 
 (function() {
   var SL = window.SynthLab;
   var BaseEffect = SL.effects.BaseEffect;
 
   // AudioWorkvar processor code as a string for inline registration
+  // The worklet runs on the audio rendering thread for glitch-free processing.
   var workletCode =
     'class BitcrushProcessor extends AudioWorkletProcessor {\n' +
     '  static get parameterDescriptors() {\n' +
@@ -50,12 +79,18 @@
     '        var currentDownsample = Array.isArray(downsample) ? Math.floor(downsample[i]) : downsample;\n' +
     '\n' +
     '        // Calculate step size for bit reduction\n' +
+    '        // step = 0.5^bits = 1/(2^bits). This is the smallest amplitude\n' +
+    '        // increment at the given bit depth. E.g. 8 bits -> 256 levels.\n' +
     '        var step = Math.pow(0.5, currentBits);\n' +
     '\n' +
+    '        // Zero-order hold: only sample a new value every N frames.\n' +
+    '        // Between samples, the last captured value is repeated ("held"),\n' +
+    '        // creating a staircase waveform that aliases richly.\n' +
     '        this.sampleCounter++;\n' +
     '        if (this.sampleCounter >= currentDownsample) {\n' +
     '          this.sampleCounter = 0;\n' +
     '          // Bit reduction: quantize to step size\n' +
+    '          // round(x / step) * step snaps x to the nearest quantization level\n' +
     '          var quantized = step * Math.floor(inputChannel[i] / step + 0.5);\n' +
     '\n' +
     '          if (channel === 0) {\n' +
@@ -72,6 +107,16 @@
     '  }\n' +
     '}\n' +
     'registerProcessor(\'bitcrush-processor\', BitcrushProcessor);\n';
+
+  // ---------------------------------------------------------------------------
+  // BitcrushEffect class
+  // ---------------------------------------------------------------------------
+  // Main-thread wrapper that manages an AudioWorklet for real-time bitcrushing.
+  // Falls back to a silent pass-through if the worklet cannot be loaded (e.g.
+  // insecure contexts that block AudioWorklet). The ScriptProcessor fallback
+  // is retained in code but disabled at runtime because it can destabilize
+  // the AudioContext at high sample rates (192 kHz).
+  // ---------------------------------------------------------------------------
 
   /**
    * BitcrushEffect - Lo-fi bit depth and sample rate reduction
@@ -122,6 +167,9 @@
     /**
      * Initialize using AudioWorklet
      */
+    // The worklet processor string is compiled into a Blob URL at runtime.
+    // This avoids needing a separate .js file for the processor, keeping
+    // the effect self-contained in a single module.
     async _initWorklet() {
       // Create a Blob from the workvar code and get a URL
       var blob = new Blob([workletCode], { type: 'application/javascript' });
@@ -151,6 +199,9 @@
     /**
      * Initialize using ScriptProcessorNode (fallback)
      */
+    // ScriptProcessorNode is deprecated (W3C Web Audio API spec) but kept as
+    // a reference implementation. It runs on the main thread, so large buffer
+    // sizes are needed to avoid dropouts — adding latency.
     _initScriptProcessor() {
       // Buffer size of 4096 is a good balance between latency and performance
       var bufferSize = 4096;
@@ -182,8 +233,9 @@
           if (sampleCounter >= downsample) {
             sampleCounter = 0;
             // Bit reduction: quantize to step size
-            lastSampleL = step * Math.floor(inputL[i] / step + 0.5);
-            lastSampleR = step * Math.floor(inputR[i] / step + 0.5);
+            var safeStep = step || 0.001;
+            lastSampleL = safeStep * Math.floor(inputL[i] / safeStep + 0.5);
+            lastSampleR = safeStep * Math.floor(inputR[i] / safeStep + 0.5);
           }
 
           outputL[i] = lastSampleL;
@@ -199,6 +251,8 @@
     /**
      * Update AudioWorkvar parameters
      */
+    // setTargetAtTime with a small time constant (0.01s) smooths parameter
+    // changes to avoid audible zipper noise when automating bits or downsample.
     _updateWorkletParams() {
       if (!this.workletNode) return;
 

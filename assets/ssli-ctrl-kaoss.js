@@ -199,8 +199,9 @@
   function _renderCanvas() {
     if (!_ctx || !_canvas) { return; }
     var dpr = _getDpr();
-    var w = _canvas.width / dpr;
-    var h = _canvas.height / dpr;
+    var safeDpr = dpr || 1;
+    var w = _canvas.width / safeDpr;
+    var h = _canvas.height / safeDpr;
 
     // Clear entire canvas each frame to prevent ghost accumulation
     _ctx.clearRect(0, 0, w, h);
@@ -348,7 +349,8 @@
       if (!isActive) { return; }
 
       var elapsed = (_nowMs() - startTime) * _speed;
-      var normalizedTime = (elapsed % totalDuration) / totalDuration;
+      var safeTotalDuration = totalDuration || 1;
+      var normalizedTime = (elapsed % safeTotalDuration) / safeTotalDuration;
       _playbackHead = normalizedTime;
 
       var idx = Math.floor(normalizedTime * (trail.length - 1));

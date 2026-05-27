@@ -1,5 +1,30 @@
 // Synth Lab - Delay Effect
 // Multiple delay algorithms: Digital, Tape, Analog BBD, Ping-Pong, Multi-Tap, Ducking
+//
+// -----------------------------------------------------------------------
+// DELAY EFFECT — Educational Reference [FX-052]
+// -----------------------------------------------------------------------
+// A delay line stores audio samples in a buffer and plays them back after
+// a time offset M, producing an echo. The simplest recurrence is:
+//
+//   y(n) = x(n) + g * y(n - M)
+//
+// where g is the feedback gain and M is the delay length in samples.
+// When |g| < 1 the echoes decay to silence; |g| >= 1 causes runaway
+// oscillation. This file caps feedback at 0.88 for stability.
+//
+// Tempo-synced delay: delay_ms = 60000 / BPM * subdivision
+// (e.g. quarter note at 120 BPM = 500 ms).
+//
+// This file implements six algorithms, each modeling a different physical
+// or creative delay topology — see Tier B comments on each builder.
+//
+// References:
+//   Roads, C. (1996) The Computer Music Tutorial, MIT Press, Ch. 8
+//   Smith, J.O. (2010) Physical Audio Signal Processing, CCRMA
+//   Dattorro, J. (1997) "Effect Design Part 2: Delay-Line Modulation
+//     and Chorus", JAES 45(10)
+// -----------------------------------------------------------------------
 
 (function() {
   var SL = window.SynthLab;
@@ -133,6 +158,15 @@
       this.nodes = {};
     }
 
+    // ---------------------------------------------------------------
+    // DIGITAL DELAY — Clean, precise repeats
+    // ---------------------------------------------------------------
+    // The simplest delay topology: a single delay line with a lowpass
+    // filter ("damping") in the feedback path. Each recirculation
+    // loses high-frequency energy, simulating air absorption in a
+    // room. Q is set to 0.707 (Butterworth) for a smooth rolloff.
+    // Ref: Smith (2010), Ch. 2 — Basic Delay Lines
+    // ---------------------------------------------------------------
     /**
      * Digital Delay - Clean, precise repeats
      * Signal flow:
@@ -170,11 +204,25 @@
      */
     updateDampingFreq() {
       if (!this.nodes.damping) return;
+      // Maps 0-100% damping to 20kHz-1kHz via an exponential curve.
+      // At 0% damping the filter is wide open; at 100% only lows survive.
       var dampingNormalized = Math.max(0, Math.min(100, this.params.damping)) / 100;
       var cutoffFreq = 20000 * Math.pow(0.05, dampingNormalized);
       this.nodes.damping.frequency.setTargetAtTime(cutoffFreq, this.ctx.currentTime, 0.01);
     }
 
+    // ---------------------------------------------------------------
+    // TAPE DELAY — Roland Space Echo emulation
+    // ---------------------------------------------------------------
+    // Models the analog tape echo units of the 1970s. Key artifacts:
+    //   Wow   — slow pitch drift from capstan irregularity (~0.5-1 Hz)
+    //   Flutter — faster pitch wobble from tape tension (~1-3 Hz)
+    //   Saturation — soft-clipping from magnetic tape compression
+    //   Tone — high-frequency rolloff from playback head response
+    // Wow and flutter are implemented as LFOs modulating delayTime.
+    // Saturation uses a tanh waveshaper with 2x oversampling.
+    // Ref: Dattorro (1997), Section III — Delay-Line Modulation
+    // ---------------------------------------------------------------
     /**
      * Tape Delay - Roland Space Echo style
      * Features: Wow/flutter, lowpass for tape roll-off, saturation
@@ -240,6 +288,9 @@
       n.feedback.connect(n.delay);
     }
 
+    // Tape saturation: attempt to model magnetic hysteresis.
+    // tanh(kx)/tanh(k) gives unity gain at extremes while soft-clipping
+    // the midrange. Higher k = more aggressive compression.
     /**
      * Update tape saturation curve
      */
@@ -250,7 +301,8 @@
       var curve = new Float32Array(samples);
 
       for (var i = 0; i < samples; i++) {
-        var x = (i * 2) / samples - 1;
+        var safeSamples = samples || 1;
+        var x = (i * 2) / safeSamples - 1;
         // Soft clipping curve with adjustable saturation
         if (amount < 0.01) {
           curve[i] = x;
@@ -264,6 +316,18 @@
       this.nodes.saturation.oversample = '2x';
     }
 
+    // ---------------------------------------------------------------
+    // ANALOG BBD DELAY — Bucket Brigade Device emulation
+    // ---------------------------------------------------------------
+    // Models charge-coupled delay ICs like the MN3005 (Boss DM-2,
+    // MXR Carbon Copy). A BBD passes charge through capacitor stages;
+    // each transfer loses some high-frequency energy (natural damping)
+    // and adds a small amount of clock noise. The bandwidth is limited
+    // to roughly half the clock rate, typically 2-5 kHz.
+    // We model this with a lowpass (BBD bandwidth), a highpass (remove
+    // DC/rumble), and band-limited noise injection in the feedback.
+    // Ref: Roads (1996), Ch. 8.3 — Analog Delay Lines
+    // ---------------------------------------------------------------
     /**
      * Analog BBD Delay - Memory Man style
      * Features: Lowpass (2-5kHz), highpass (60-100Hz), subtle noise
@@ -328,6 +392,16 @@
       n.feedback.connect(n.delay);
     }
 
+    // ---------------------------------------------------------------
+    // PING-PONG DELAY — Stereo alternating echoes
+    // ---------------------------------------------------------------
+    // Each echo alternates between left and right channels, creating
+    // spatial movement across the stereo field. Implemented as two
+    // cross-coupled delay lines: L feeds R, R feeds L. The offset
+    // parameter staggers the right delay time so echoes don't land
+    // simultaneously. Width controls the pan spread (0 = mono center,
+    // 100 = hard L/R). Damping filters in each path prevent HF buildup.
+    // ---------------------------------------------------------------
     /**
      * Ping-Pong Delay - Stereo bouncing
      * Uses ChannelSplitter/Merger for L/R processing
@@ -406,6 +480,19 @@
       n.feedbackR.connect(n.delayL);
     }
 
+    // ---------------------------------------------------------------
+    // MULTI-TAP DELAY — 4 taps with rhythmic patterns
+    // ---------------------------------------------------------------
+    // Multiple read heads on a single delay buffer, each at a
+    // different time offset and gain. Pattern presets distribute
+    // the 4 taps according to mathematical ratios:
+    //   Rhythmic  — evenly spaced (quarter-note subdivisions)
+    //   Golden    — phi ratio (1.618...) spacing, avoids periodicity
+    //   Fibonacci — 1:2:3:5 normalized, organic/accelerating feel
+    //   Custom    — user sets each tap time independently
+    // Feedback is halved vs single-tap to prevent excessive buildup
+    // from four simultaneous recirculation paths.
+    // ---------------------------------------------------------------
     /**
      * Multi-Tap Delay - Rhythmic patterns
      * 4 delay taps with independent times and levels
@@ -482,7 +569,8 @@
           break;
 
         case 'golden':
-          // Golden ratio (1.618)
+          // Golden ratio spacing: 1/phi^2, 1/phi, (2-phi), 1.0
+          // phi = 1.618...; these ratios are maximally aperiodic
           this.params.tap1Time = baseTime * 0.382;
           this.params.tap2Time = baseTime * 0.618;
           this.params.tap3Time = baseTime * 0.854;
@@ -492,9 +580,10 @@
         case 'fibonacci':
           // Fibonacci sequence: 1, 2, 3, 5 normalized
           var fibSum = 1 + 2 + 3 + 5;
-          this.params.tap1Time = baseTime * (1 / fibSum);
-          this.params.tap2Time = baseTime * (3 / fibSum);
-          this.params.tap3Time = baseTime * (6 / fibSum);
+          var safeFibSum = fibSum || 1;
+          this.params.tap1Time = baseTime * (1 / safeFibSum);
+          this.params.tap2Time = baseTime * (3 / safeFibSum);
+          this.params.tap3Time = baseTime * (6 / safeFibSum);
           this.params.tap4Time = baseTime;
           break;
 
@@ -510,6 +599,18 @@
       this.params.tap4Time = Math.max(10, Math.min(2000, this.params.tap4Time));
     }
 
+    // ---------------------------------------------------------------
+    // DUCKING DELAY — Input-responsive volume control
+    // ---------------------------------------------------------------
+    // The delay output is attenuated ("ducked") while the input is
+    // loud, then swells up during silences. This prevents the wet
+    // signal from clashing with the dry performance — echoes fill
+    // the gaps instead of muddying the direct sound.
+    // An AnalyserNode tracks input RMS level. A setInterval callback
+    // at ~60 fps compares the level against a threshold and adjusts
+    // a gain node with attack/release smoothing.
+    // Common on vocals, lead instruments, and mix bus delays.
+    // ---------------------------------------------------------------
     /**
      * Ducking Delay - Mix-responsive
      * Delay output attenuates when input is loud, swells during pauses
@@ -587,7 +688,8 @@
             var normalized = (dataArray[i] - 128) / 128;
             sum += normalized * normalized;
           }
-          var rms = Math.sqrt(sum / dataArray.length);
+          var safeDataLen = dataArray.length || 1;
+          var rms = Math.sqrt(sum / safeDataLen);
 
           // Convert to dB
           var db = 20 * Math.log10(rms + 0.0001);
@@ -610,13 +712,15 @@
           // Apply attack/release smoothing
           var attackTime = self.params.duckAttack / 1000;
           var releaseTime = self.params.duckRelease / 1000;
+          var safeAttackTime = attackTime || 0.001;
+          var safeReleaseTime = releaseTime || 0.001;
 
           if (targetGain < currentGain) {
             // Attacking (ducking)
-            currentGain = currentGain + (targetGain - currentGain) * Math.min(1, 0.016 / attackTime);
+            currentGain = currentGain + (targetGain - currentGain) * Math.min(1, 0.016 / safeAttackTime);
           } else {
             // Releasing (un-ducking)
-            currentGain = currentGain + (targetGain - currentGain) * Math.min(1, 0.016 / releaseTime);
+            currentGain = currentGain + (targetGain - currentGain) * Math.min(1, 0.016 / safeReleaseTime);
           }
 
           // Apply gain
@@ -785,6 +889,8 @@
      */
     updateFeedback(value) {
       var now = this.ctx.currentTime;
+      // Feedback MUST stay below 1.0 for BIBO stability. We cap at 0.88
+      // per [FX-052] spec — enough for long trails without runaway gain.
       var DELAY_FEEDBACK_MAX = 0.88;
       var feedbackValue = Math.max(0, Math.min(DELAY_FEEDBACK_MAX, value / 100));
 

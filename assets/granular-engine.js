@@ -2,6 +2,37 @@
 // Generates a source buffer from oscillator waveforms, then schedules short grains
 // with envelope windowing, pitch scatter, position scatter, and freeze mode.
 // v1.0.0 - ScriptProcessor fallback, filter integration, per-instrument settings
+//
+// ================================================================
+// EDUCATIONAL CONTEXT: Granular Synthesis
+// ================================================================
+// Granular synthesis decomposes sound into tiny fragments called "grains"
+// (typically 1-100ms) and reassembles them into evolving textures. Iannis
+// Xenakis first proposed the concept in 1960 with his piece "Analogique B"
+// and formalized it in Formalized Music (Indiana University Press, 1971),
+// drawing on Denis Gabor's 1947 quantum theory of acoustics. Curtis Roads
+// developed the technique further in software, coining the term "microsound"
+// for sounds at the grain timescale (Roads, C. Microsound, MIT Press, 2001).
+//
+// Signal flow in this engine:
+//   1. A source buffer is pre-rendered from a standard oscillator waveform
+//   2. On each note, a voice spawns overlapping grains at a configurable rate
+//   3. Each grain reads a short segment from the source buffer
+//   4. A window function (Hann, triangle, or rectangle) shapes each grain's
+//      amplitude envelope, preventing discontinuities (clicks) at boundaries
+//   5. Grains are summed to form a continuous "grain cloud" texture
+//   6. Pitch scatter and position scatter add stochastic variation
+//   7. Freeze mode locks the read position for sustained frozen textures
+//
+// Key parameters: grain size (duration), density (grains/sec), position
+// (where in the buffer to read), scatter (randomization of pitch/position).
+//
+// References:
+//   Xenakis, I. (1971) Formalized Music, Indiana University Press
+//   Roads, C. (2001) Microsound, MIT Press
+//   Roads, C. (1996) The Computer Music Tutorial, MIT Press, Ch. 3
+//   Truax, B. (1988) "Real-Time Granular Synthesis with a DSP", CMJ 12(2)
+// ================================================================
 (function() {
   'use strict';
 
@@ -13,6 +44,9 @@
 
   var MAX_VOICES_PER_INSTRUMENT = 16;
   var SOURCE_BUFFER_DURATION = 1.0; // seconds of source material
+  // 16 concurrent grains per voice allows dense overlapping clouds.
+  // At high density, many grains overlap simultaneously, creating the
+  // continuous textures described in Roads (2001), Ch. 3.
   var MAX_GRAINS_PER_VOICE = 16;   // max simultaneous grains per voice
 
   // Valid window shapes and source waveform types
@@ -75,9 +109,15 @@
     return a4 * Math.pow(2, (midi - 69) / 12);
   }
 
-  // ============================================================
+  // ---------------------------------------------------------------
   // Source Buffer Generation
-  // ============================================================
+  // In granular synthesis, grains are extracted from a source recording
+  // or, as here, a pre-rendered waveform buffer. This is the "raw material"
+  // that gets sliced into micro-segments. Using a synthetic oscillator as
+  // source (rather than a recorded sample) keeps the engine self-contained.
+  // The base frequency of 220 Hz (A3) provides a pitch reference; playback
+  // rate is adjusted per-note to transpose grains to the desired pitch.
+  // ---------------------------------------------------------------
 
   /**
    * Generate a source buffer from an oscillator waveform
@@ -167,9 +207,16 @@
     }
   }
 
-  // ============================================================
+  // ---------------------------------------------------------------
   // Window Functions
-  // ============================================================
+  // Each grain must be shaped by a window (envelope) function to
+  // prevent audible clicks at grain boundaries. Without windowing,
+  // the abrupt start/stop of each grain creates broadband transients.
+  // The Hann window is the most common choice in granular synthesis
+  // because it has zero amplitude and zero first-derivative at both
+  // endpoints, ensuring smooth onset and offset.
+  // See: Roads, C. (1996) The Computer Music Tutorial, Ch. 3
+  // ---------------------------------------------------------------
 
   /**
    * Create a window envelope buffer for grain windowing
@@ -187,15 +234,21 @@
       }
     } else if (shape === 'triangle') {
       var half = lengthSamples / 2;
+      var safeHalf = half || 1;
       for (i = 0; i < lengthSamples; i++) {
         if (i < half) {
-          env[i] = i / half;
+          env[i] = i / safeHalf;
         } else {
-          env[i] = 2.0 - (i / half);
+          env[i] = 2.0 - (i / safeHalf);
         }
       }
     } else {
-      // Hann window (default)
+      // Hann window (default) -- also called the "raised cosine" window.
+      // Formula: w(n) = 0.5 * (1 - cos(2*pi*n / (N-1)))
+      // Named after Julius von Hann (Austrian meteorologist). The Hann
+      // window has excellent sidelobe rolloff (-32 dB first sidelobe),
+      // making it ideal for grain envelopes where spectral leakage at
+      // grain edges would cause audible artifacts.
       var PI = Math.PI;
       for (i = 0; i < lengthSamples; i++) {
         env[i] = 0.5 * (1.0 - Math.cos(2 * PI * i / (lengthSamples - 1)));
@@ -205,9 +258,16 @@
     return env;
   }
 
-  // ============================================================
+  // ---------------------------------------------------------------
   // Granular Voice
-  // ============================================================
+  // Each voice represents one held note and manages its own pool of
+  // active grains. The voice schedules new grains at a rate determined
+  // by the "density" parameter (grains/sec), applies pitch transposition
+  // based on the MIDI note, and sums all active grains into a single
+  // output sample per audio frame. This is the "synchronous" granular
+  // model described in Truax (1988), where grain emission is periodic
+  // rather than stochastic (though scatter parameters add randomness).
+  // ---------------------------------------------------------------
 
   function GranularVoice(sr) {
     this.sampleRate = sr;
@@ -330,7 +390,8 @@
     var density = granSettings.density || 10;
 
     this.grainSizeSamples = Math.max(1, Math.ceil(grainSizeMs * this.sampleRate / 1000));
-    this.grainIntervalSamples = Math.max(1, Math.ceil(this.sampleRate / density));
+    var safeDensity = density || 1;
+    this.grainIntervalSamples = Math.max(1, Math.ceil(this.sampleRate / safeDensity));
     this.grainTimer = 0; // Fire first grain immediately
 
     this.pitchScatter = granSettings.pitchScatter || 0;
@@ -349,8 +410,11 @@
       this.sourceLength = 0;
     }
 
-    // Pitch ratio: how much to shift based on MIDI note vs base (A3=220Hz)
-    // The source buffer was generated at 220Hz, so we need to adjust playback rate
+    // Pitch ratio: how much to shift based on MIDI note vs base (A3=220Hz).
+    // The source buffer was generated at 220Hz, so we need to adjust playback rate.
+    // Granular pitch shifting works by changing the grain playback speed:
+    // faster = higher pitch, slower = lower. Unlike time-stretching algorithms,
+    // grain density stays constant, so pitch and duration are independent.
     this.basePitchRatio = freq / 220.0;
 
     // Reset all grains
@@ -396,6 +460,14 @@
     return this.envLevel;
   };
 
+  // ---------------------------------------------------------------
+  // Grain Spawning
+  // Each grain is a short windowed excerpt from the source buffer.
+  // Position scatter randomizes where in the buffer each grain starts,
+  // creating the evolving, cloud-like textures characteristic of
+  // granular synthesis. Pitch scatter transposes individual grains by
+  // a random number of semitones: ratio = 2^(semitones/12).
+  // ---------------------------------------------------------------
   GranularVoice.prototype.spawnGrain = function() {
     // Find a free grain slot
     var grain = null;
@@ -431,7 +503,8 @@
       var startSample = Math.floor(startFraction * (this.sourceLength - this.grainSizeSamples));
       if (startSample < 0) { startSample = 0; }
 
-      // Pitch scatter
+      // Pitch scatter -- randomize each grain's pitch by up to +/- N semitones.
+      // Uses equal temperament: freq_ratio = 2^(semitones/12)
       var pitchRatio = this.basePitchRatio;
       if (this.pitchScatter > 0) {
         var semitoneOffset = (Math.random() * 2 - 1) * this.pitchScatter;
@@ -482,7 +555,10 @@
     for (var g = 0; g < MAX_GRAINS_PER_VOICE; g++) {
       var grain = this.grains[g];
       if (grain.active) {
-        // Read from source buffer with linear interpolation
+        // Read from source buffer with linear interpolation.
+        // Linear interpolation between adjacent samples reduces aliasing
+        // artifacts when the grain playback rate is non-integer (i.e.,
+        // pitch-shifted). Formula: y = s0 + (s1 - s0) * frac
         var readInt = Math.floor(grain.readPos);
         var readFrac = grain.readPos - readInt;
         var s0 = 0;
@@ -575,11 +651,16 @@
                 activeCount++;
               }
             }
-            // Normalize by active voice count to prevent clipping with polyphony
+            // Normalize by active voice count to prevent clipping with polyphony.
+            // The 1/sqrt(N) scaling preserves perceived loudness: if N uncorrelated
+            // signals each have power P, their sum has power N*P, so amplitude
+            // scales as sqrt(N). Dividing by sqrt(N) keeps RMS constant.
             if (activeCount > 0) {
               sampleOut *= 0.35 / Math.sqrt(activeCount);
             }
-            // Soft clip (Pade approximant of tanh)
+            // Soft clip using a Pade approximant of tanh(x).
+            // tanh(x) ~ x*(27+x^2)/(27+9*x^2) -- cheap, smooth saturation
+            // that prevents harsh digital clipping while preserving signal shape.
             var ss = sampleOut * sampleOut;
             output[s] = sampleOut * (27 + ss) / (27 + 9 * ss);
           }
@@ -812,6 +893,11 @@
     }
   }
 
+  // Freeze mode captures and locks the source buffer position, creating
+  // sustained textures from a single moment in time. This is a staple of
+  // granular processing in electroacoustic music -- the performer can
+  // "freeze" an interesting timbral moment and explore it via position
+  // scrubbing and scatter. See Roads (2001), Microsound, Ch. 4.
   function setFreeze(instId, frozen) {
     var settings = getOrCreateSettings(instId);
     var wasFrozen = settings.freeze;

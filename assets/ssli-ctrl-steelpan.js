@@ -144,8 +144,9 @@
   function _midiForScaleDegree(degreeIdx, octaveOffset) {
     var intervals = SCALES[_scaleIdx].intervals;
     var len = intervals.length;
-    var wrappedIdx = degreeIdx % len;
-    var extraOctaves = Math.floor(degreeIdx / len);
+    var safeLen = len || 1;
+    var wrappedIdx = degreeIdx % safeLen;
+    var extraOctaves = Math.floor(degreeIdx / safeLen);
     var midi = ((_baseOctave + octaveOffset + extraOctaves) * SEMITONES_PER_OCTAVE) + _rootNote + intervals[wrappedIdx];
     return midi;
   }
@@ -378,7 +379,8 @@
   // ============================================================
 
   function _positionZoneEl(el, panCenter, ringRadius, angleIdx, totalInRing, btnDiam) {
-    var angleStep = FULL_CIRCLE_DEG / totalInRing;
+    var safeTotalInRing = totalInRing || 1;
+    var angleStep = FULL_CIRCLE_DEG / safeTotalInRing;
     var angleDeg = ANGLE_START_DEG + (angleIdx * angleStep);
     var angleRad = angleDeg * DEG_TO_RAD;
     var x = panCenter + (ringRadius * Math.cos(angleRad)) - (btnDiam / 2);

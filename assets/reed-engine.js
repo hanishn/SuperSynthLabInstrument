@@ -2,6 +2,41 @@
 // Digital waveguide reed models: single reed (clarinet), double reed (oboe),
 // saxophone (single reed + conical bore), harmonica (free reed)
 // v1.0.0 - ScriptProcessor, 16-voice polyphony, 4 reed types, cubic nonlinearity
+//
+// -----------------------------------------------------------------------
+// DIGITAL WAVEGUIDE REED SYNTHESIS
+// -----------------------------------------------------------------------
+// This engine implements a simplified digital waveguide model for reed
+// instruments, following the approach described by Smith (2010) in
+// Physical Audio Signal Processing (CCRMA, Ch. 9). A delay line represents
+// the air column (bore) of the instrument; a nonlinear reed function
+// couples breath pressure into the resonator.
+//
+// Signal flow:
+//   breath pressure --> [reed nonlinearity] --> bore delay line --> loop filter
+//       ^                                                             |
+//       |_____________________________________________________________|
+//
+// The reed nonlinearity is a cubic function: f(x) = x - (x^3)/3, which
+// models the compliance of the reed and the Bernoulli force as air flows
+// past it (Scavone 1997). At low amplitudes the reed responds linearly;
+// at high amplitudes it saturates as the reed closes against the lay.
+//
+// Bore geometry determines the harmonic content:
+//   - Cylindrical bore (clarinet): closed-open pipe supports odd harmonics
+//     only (1, 3, 5, ...). Overblows at the 12th (3:1 frequency ratio).
+//   - Conical bore (oboe, sax): supports all harmonics (1, 2, 3, ...).
+//     Overblows at the octave (2:1 ratio).
+//   - Free reed (harmonica): no bore resonance; the reed itself is the
+//     primary vibrating element.
+//
+// References:
+//   Smith, J.O. (2010) Physical Audio Signal Processing, CCRMA, Ch. 9
+//   Scavone, G. (1997) "An Acoustic Analysis of Single-Reed Woodwind
+//     Instruments", PhD thesis, Stanford CCRMA
+//   Fletcher, N.H. & Rossing, T.D. (1998) The Physics of Musical
+//     Instruments, Springer
+// -----------------------------------------------------------------------
 (function() {
   'use strict';
 
@@ -13,6 +48,9 @@
 
   var MAX_VOICES_PER_INSTRUMENT = 16;
 
+  // Bore geometry and overblow ratio define the acoustic character of each
+  // reed family. Overblow ratio: clarinet=3 (odd harmonics, 12th interval),
+  // oboe/sax=2 (all harmonics, octave interval), harmonica=1 (no overblow).
   var REED_TYPES = {
     clarinet:  { name: 'Single Reed (Clarinet)',  bore: 'cylindrical', overblow: 3 },
     oboe:      { name: 'Double Reed (Oboe)',       bore: 'conical',     overblow: 2 },
@@ -72,6 +110,10 @@
   // DSP Primitives
   // ============================================================
 
+  // CircularBuffer implements the fractional-delay line at the heart of the
+  // waveguide. Linear interpolation between adjacent samples allows
+  // sub-sample delay lengths, which is essential for accurate pitch tuning
+  // (integer-only delays would quantize pitch to sampleRate/N steps).
   function CircularBuffer(maxLen) {
     this.buffer = new Float64Array(maxLen);
     this.length = maxLen;
@@ -93,11 +135,16 @@
     this.writeIndex = 0;
   };
 
+  // One-pole lowpass: y[n] = a*x[n] + (1-a)*y[n-1]. Models the frequency-
+  // dependent loss inside the bore (higher frequencies lose more energy to
+  // viscous and thermal boundary effects at the tube walls).
   function OnePole() { this.a = 0.5; this.prev = 0; }
   OnePole.prototype.setCoeff = function(a) { this.a = Math.max(0, Math.min(1, a)); };
   OnePole.prototype.process = function(x) { this.prev = this.a * x + (1 - this.a) * this.prev; return this.prev; };
   OnePole.prototype.clear = function() { this.prev = 0; };
 
+  // DC blocker: first-order highpass at ~7 Hz (R=0.995 at 44.1kHz). The reed
+  // nonlinearity generates DC offset that must be removed before output.
   function DCBlocker() { this.x1 = 0; this.y1 = 0; this.R = 0.995; }
   DCBlocker.prototype.process = function(x) { var y = x - this.x1 + this.R * this.y1; this.x1 = x; this.y1 = y; return y; };
   DCBlocker.prototype.clear = function() { this.x1 = 0; this.y1 = 0; };
@@ -106,6 +153,16 @@
   // Reed Reflection Function
   // ============================================================
 
+  // The reed reflection models the nonlinear coupling between the player's
+  // breath and the air column. Physically, as pressure increases the reed
+  // bends toward the lay (mouthpiece face); at a critical pressure it closes
+  // entirely, cutting off airflow. The cubic function f(x) = x - x^3/3
+  // approximates this: linear at small x (reed barely deflected), saturating
+  // near +/-1 (reed approaching closure). This is the standard "soft clip"
+  // nonlinearity used in waveguide reed models (Smith 2010, Section 9.2).
+  // Stiffness scales the input gain, controlling where saturation begins --
+  // a soft reed (low stiffness) saturates later, producing a mellower tone;
+  // a stiff reed saturates earlier, adding brightness and odd harmonics.
   /**
    * Cubic nonlinearity modeling reed reflection.
    * At low amplitudes: nearly linear (reed open).
@@ -130,6 +187,11 @@
   // Reed Voice
   // ============================================================
 
+  // Each ReedVoice is one instance of the waveguide loop: a delay line
+  // (bore), a loop filter (frequency-dependent loss), and a reed nonlinearity.
+  // Conical-bore instruments add a second shorter delay line to model the
+  // impedance mismatch at the bore taper, which introduces even harmonics
+  // absent in a pure cylindrical bore.
   function ReedVoice(sr) {
     this.sampleRate = sr;
     this.active = false;
@@ -230,7 +292,8 @@
     if (this.isOverblown) {
       effectiveFreq = freq / this.overblowRatio;
     }
-    var period = this.sampleRate / effectiveFreq;
+    var safeEffectiveFreq = effectiveFreq || 0.001;
+    var period = this.sampleRate / safeEffectiveFreq;
     // Bore length: with one round-trip inversion in the reed waveguide loop
     // (the subtraction in pressureDiff = excitation - filteredBore), a delay
     // of N samples resonates at sampleRate/(2N). So N = period/2 places the
@@ -265,7 +328,11 @@
     this.outputGain = (velocity + 0.001) * REED_VOICE_LEVEL;
     this.releaseGain = 1.0;
 
-    // Reed type-specific tuning
+    // Reed type-specific tuning.
+    // Each reed type has different feedback (sustain), loop filter (brightness),
+    // noise level (breath), and attack speed. These approximate the acoustic
+    // differences: clarinet is warm with slow speech; oboe is nasal and quick;
+    // sax is bright and breathy; harmonica has rapid attack and high noise.
     if (this.reedType === 'clarinet') {
       // Cylindrical bore: strong odd harmonics, warm fundamental
       this.feedback = 0.993 + stiffness * 0.005;
@@ -303,7 +370,10 @@
     // Noise filter: colored breath noise
     this.noiseFilter.setCoeff(0.3 + stiffness * 0.4);
 
-    // Vibrato
+    // Vibrato: modulates the effective bore length, which shifts the pitch
+    // slightly above and below the fundamental. This models embouchure
+    // pressure modulation -- the player's jaw/lip oscillation that wind
+    // instrumentalists use for expressive vibrato.
     this.vibratoFreq = vibratoRate;
     var VIBRATO_BORE_SCALE = 0.03;
     this.maxVibratoDepth = vibratoDepthPct * this.boreLength * VIBRATO_BORE_SCALE;
@@ -346,7 +416,9 @@
     this.noiseFilter.clear();
     this.dcBlocker.clear();
 
-    // Seed bore delay with noise burst for initial excitation
+    // Seed bore delay with noise burst for initial excitation.
+    // This simulates the initial tongue release / breath onset that
+    // excites the air column before the reed settles into steady oscillation.
     var intPeriod = Math.ceil(this.boreLength);
     for (var i = 0; i < intPeriod; i++) {
       this.boreDelay.write((Math.random() * 2 - 1) * velocity * 0.25);
@@ -440,8 +512,9 @@
         this.vibratoPhase -= 1.0;
       }
       var rampSamples = this.sampleRate * 0.3;
+      var safeRampSamples = rampSamples || 1;
       if (this.decayCounter < rampSamples) {
-        this.vibratoDepth = this.maxVibratoDepth * (this.decayCounter / rampSamples);
+        this.vibratoDepth = this.maxVibratoDepth * (this.decayCounter / safeRampSamples);
       } else {
         this.vibratoDepth = this.maxVibratoDepth;
       }
@@ -464,14 +537,19 @@
     // Loop filter inside bore
     var filteredBore = this.loopFilter.process(boreOut);
 
-    // Reed reflection: cubic nonlinearity
+    // Reed reflection: cubic nonlinearity.
+    // Colored breath noise adds realism -- real breath contains turbulence.
     var breathNoise = this.noiseFilter.process(Math.random() * 2 - 1) * this.noiseGain;
     var excitation = this.breathEnvelope + breathNoise;
-    // Reed sees raw bore return (feedback loss applied at delay write, not here)
+    // The pressure difference between mouth (excitation) and bore return
+    // drives the reed. This is the core waveguide junction: the reed
+    // responds to the net pressure across it, not the absolute value.
     var pressureDiff = excitation - filteredBore;
     var reedOut = reedReflection(pressureDiff, this.reedStiffness);
 
-    // Harmonica: free reed has different excitation (no bore feedback)
+    // Harmonica: free reed vibrates freely in a slot with no attached bore.
+    // Unlike woodwinds where the bore is the primary resonator, the harmonica
+    // reed itself determines the pitch. Bore coupling is minimal (~30%).
     var newSample;
     if (this.reedType === 'harmonica') {
       // Free reed: direct vibration, less bore coupling
@@ -486,7 +564,9 @@
     // Write back to bore delay
     this.boreDelay.write(newSample);
 
-    // Conical bore: feed second delay line with impedance mismatch reflection
+    // Conical bore: feed second delay line with impedance mismatch reflection.
+    // In a real conical bore, the taper creates partial reflections along
+    // the length, introducing even harmonics (Fletcher & Rossing 1998).
     if (this.boreType === 'conical') {
       var reflected = -filteredBore * this.conicalReflection + newSample * (1.0 - this.conicalReflection);
       this.boreDelay2.write(reflected * this.feedback);

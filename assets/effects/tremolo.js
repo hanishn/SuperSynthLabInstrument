@@ -1,10 +1,48 @@
-// Synth Lab - Tremolo Effect
+// Synth Lab - Tremolo Effect [FX-043]
 // Creates amplitude modulation using an LFO connected to a GainNode
+//
+// --- What is tremolo? ---
+// Tremolo is periodic variation of a signal's amplitude (volume) at a
+// sub-audio rate, typically 1-10 Hz. The mathematical model is:
+//   output(t) = input(t) * (1 - depth + depth * lfo(t))
+// where lfo(t) oscillates between 0 and 1. At depth=100% the signal
+// swings from silence to full volume; at depth=0% there is no effect.
+//
+// --- LFO shapes and their character ---
+//   Sine:     smooth, organic pulsing (classic amp tremolo)
+//   Triangle: linear ramps up/down, slightly more "mechanical" than sine
+//   Square:   abrupt on/off gating — choppy, rhythmic, used in trance gates
+//
+// --- Tremolo vs. vibrato vs. ring modulation ---
+// Tremolo modulates amplitude; vibrato modulates pitch (frequency).
+// When the modulation rate exceeds ~20 Hz, amplitude modulation produces
+// audible sidebands and is called ring modulation — a distinctly
+// different, metallic effect.
+//
+// --- Classic hardware ---
+// The Fender Twin Reverb's "vibrato" channel is actually tremolo (amplitude
+// modulation via a photocell/LDR optocoupler). The Wurlitzer electric piano
+// has built-in tremolo that defines its signature sound.
+//
+// Reference: Roads, C. (1996) The Computer Music Tutorial, MIT Press, Ch. 6
+//
+// Spec: Rate 0.5-20 Hz (default 5), Depth 0-100% (default 50),
+//        Shape sine/square/triangle (default sine), Mix 0-100% (default 100).
 
 (function() {
   var SL = window.SynthLab = window.SynthLab || {};
   SL.effects = SL.effects || {};
   var BaseEffect = SL.effects.BaseEffect;
+
+  // ---------------------------------------------------------------------------
+  // Signal flow
+  // ---------------------------------------------------------------------------
+  // The Web Audio API lets us modulate a GainNode's gain parameter directly
+  // with an OscillatorNode (LFO). The LFO output (-1 to +1) is scaled by
+  // lfoGain and added to tremoloGain's base value, producing the amplitude
+  // envelope. No sample-level scripting is needed — the browser's native
+  // audio graph handles it at full sample rate with zero main-thread cost.
+  // ---------------------------------------------------------------------------
 
   /**
    * TremoloEffect - Amplitude modulation via LFO
@@ -26,7 +64,9 @@
       this.params.mix = 100;         // 0-100
 
       // Create the tremolo gain node (amplitude modulator)
-      // This is what the LFO modulates to create the tremolo effect
+      // This is what the LFO modulates to create the tremolo effect.
+      // Its .gain AudioParam receives the summed LFO signal, so the
+      // effective gain at any moment is: baseGain + lfoGain * lfo(t).
       this.tremoloGain = ctx.createGain();
       this.tremoloGain.gain.value = 1;
 
@@ -102,7 +142,9 @@
           break;
 
         case 'shape':
-          // Validate shape
+          // Validate shape — only native OscillatorNode types that map to
+          // musically useful tremolo characters. 'sawtooth' is omitted
+          // because asymmetric AM produces a less natural tremolo feel.
           var validShapes = ['sine', 'square', 'triangle'];
           if (validShapes.includes(value)) {
             this.params.shape = value;

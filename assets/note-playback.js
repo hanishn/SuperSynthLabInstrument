@@ -1,6 +1,26 @@
 // Super Synth Lab - Note Playback Module
 // Extracted from audio-engine.js for modularity
 // Loads AFTER audio-engine.js, voice-pool.js, wavetable.js, envelope.js, filters.js
+//
+// NOTE LIFECYCLE MANAGEMENT
+// This module manages the complete lifecycle of every note:
+//   1. Note-On: allocate a voice from the pool, create oscillators,
+//      build the filter chain, trigger the ADSR attack envelope, apply
+//      LFO and mod matrix routings, update visual feedback (key highlight).
+//   2. Sustain: voice holds at the ADSR sustain level until note-off.
+//      If sustain pedal (CC64) is held, note-off is deferred.
+//   3. Note-Off: begin ADSR release phase (exponential decay toward zero).
+//      Remove LFO and mod matrix connections. Release voice back to pool
+//      after the release envelope completes.
+//   4. Visual sync: CSS class 'playing' toggles on keyboard/grid elements
+//      are synchronized to note-on/note-off for immediate visual feedback.
+//
+// The module supports 20+ synthesis engine types, dispatching note events
+// to whichever engine matches the current instrument's type setting.
+//
+// Reference:
+//   Roads, C. (1996) The Computer Music Tutorial, MIT Press, Ch. 4-6
+//
 (function() {
   'use strict';
 
@@ -26,6 +46,11 @@
   // ============================================================
   // Continuous Noise Generator State
   // ============================================================
+  // Some synth patches include a continuous noise layer that sounds
+  // independently of note triggers -- useful for wind/breath textures,
+  // hi-hat sustain, or ambient pad layers. This noise generator runs
+  // through the same filter chain as notes, so filter envelope sweeps
+  // affect it too.
 
   var NO_NOISE_SOURCE = null;
 
@@ -45,6 +70,16 @@
   // ============================================================
   // Noise Buffer Functions
   // ============================================================
+  // Noise colors differ in their spectral density distribution:
+  //   White noise: equal energy per frequency (flat spectrum). Generated
+  //     from uniform random samples. Sounds bright and hissy.
+  //   Pink noise: energy falls 3dB/octave (equal energy per octave).
+  //     Generated via the Voss-McCartney algorithm (weighted IIR filter
+  //     bank). Sounds more natural, like rainfall.
+  //   Brown noise: energy falls 6dB/octave (random walk / Brownian
+  //     motion). Generated as integrated white noise. Sounds deep,
+  //     like distant thunder.
+  // Buffers are 2 seconds long, looped, and cached for reuse.
 
   /**
    * Create a noise buffer of the specified type
@@ -130,6 +165,10 @@
   // ============================================================
   // Visual Feedback
   // ============================================================
+  // Visual note highlighting uses CSS class toggling ('playing') on
+  // keyboard key and isomorphic grid elements. A MIDI-to-DOM-element
+  // lookup map is built lazily on first use for O(1) access -- without
+  // this, querySelectorAll would run on every note event.
 
   /**
    * Highlight a note on keyboard/grid visuals
@@ -189,6 +228,15 @@
   // ============================================================
   // Note Playback
   // ============================================================
+  // playNote() handles fixed-duration notes (e.g., sequencer, demo
+  // playback). It dispatches to the correct synthesis engine based on
+  // the current instrument type, then schedules note-off after the
+  // given duration. For subtractive synthesis, three rendering paths
+  // are available:
+  //   "worklet": AudioWorklet for real-time per-sample processing
+  //   "oscillator": Web Audio OscillatorNodes with ADSR gain automation
+  //   "bandlimited": wavetable lookup with anti-aliased harmonics
+  //   "polyblep": PolyBLEP anti-aliasing for sawtooth/square/pulse
 
   /**
    * Play a note with full synthesis
@@ -456,10 +504,10 @@
           pulseWidth: os.pulseWidth,
           superSawSpread: os.superSawSpread
         }); });
-        SL.audio.workletNoteOn(midi, dur, workletOscSet, adsr, refHz);
+        SL.audio.workletNoteOn({ midi: midi, dur: dur, oscSettings: workletOscSet, adsr: adsr, refHz: refHz });
       } else {
         console.warn('Workvar not available, falling back to band-limited synthesis');
-        playNoteFallback(midi, dur, adsr, oscSet, filterSettings, sr, TWO_PI, c);
+        playNoteFallback({ midi: midi, dur: dur, adsr: adsr, oscSet: oscSet, filterSettings: filterSettings, sr: sr, TWO_PI: TWO_PI, c: c });
       }
     } else {
 
@@ -635,16 +683,7 @@
               });
             } else {
               SUPERSAW_DETUNES.forEach(function(detuneCents) {
-                var actualDetune = detuneCents * spreadFactor;
-                var voiceFreq = oscFreq * Math.pow(2, actualDetune / 1200);
-                var voicePh = TWO_PI * voiceFreq * t;
-                var voiceMH = Math.min(SL.audio.maxH(voiceFreq), 48);
-                var voiceSample = 0;
-                for (var h = 1; h <= voiceMH; h++) {
-                  voiceSample += SL.audio.fastSin(voicePh * h) / h;
-                }
-                voiceSample *= 2 / Math.PI;
-                sample += voiceSample / SUPERSAW_DETUNES.length;
+                sample += _supersawFallbackVoice(detuneCents, spreadFactor, oscFreq, t);
               });
             }
           } else {
@@ -818,7 +857,73 @@
   /**
    * Fallback synthesis when workvar is not available
    */
-  function playNoteFallback(midi, dur, adsr, oscSet, filterSettings, sr, TWO_PI, c) {
+  var MAX_SUPERSAW_HARMONICS = 48;
+
+  function _supersawFallbackVoice(detuneCents, spreadFactor, oscFreq, t) {
+    var actualDetune = detuneCents * spreadFactor;
+    var voiceFreq = oscFreq * Math.pow(2, actualDetune / 1200);
+    var voicePh = TWO_PI * voiceFreq * t;
+    var voiceMH = Math.min(SL.audio.maxH(voiceFreq), MAX_SUPERSAW_HARMONICS);
+    var voiceSample = 0;
+    for (var h = 1; h <= voiceMH; h++) {
+      var safeH = h || 1;
+      voiceSample += SL.audio.fastSin(voicePh * h) / safeH;
+    }
+    voiceSample *= 2 / Math.PI;
+    return voiceSample / SUPERSAW_DETUNES.length;
+  }
+
+  var NOISE_WHITE_SCALE = 1.0;
+  var NOISE_PINK_SCALE = 0.5;
+  var NOISE_BROWN_SCALE = 0.3;
+  var NOISE_LEVEL_SCALE = 0.01;
+
+  function _renderNoiseFallback(os, n, envCurve, b) {
+    var isWhite = (os.wave === 'noise-white');
+    var isPink = (os.wave === 'noise-pink');
+    var scale = NOISE_BROWN_SCALE;
+    if (isWhite) {
+      scale = NOISE_WHITE_SCALE;
+    } else if (isPink) {
+      scale = NOISE_PINK_SCALE;
+    }
+    for (var i = 0; i < n; i++) {
+      var env = envCurve[i];
+      var noiseSample = (Math.random() * 2 - 1) * scale;
+      b[i] += noiseSample * env * os.level * NOISE_LEVEL_SCALE;
+    }
+  }
+
+  function _renderWavetableFallback(os, oscFreq, renderCtx) {
+    var sr = renderCtx.sr;
+    var n = renderCtx.n;
+    var envCurve = renderCtx.envCurve;
+    var b = renderCtx.b;
+    var canUseWavetable = WAVETABLE_WAVES.includes(os.wave) && SL.audio.areWavetablesReady();
+    if (!canUseWavetable) { return false; }
+    var table = SL.audio.getWavetableForFreq(os.wave, oscFreq);
+    if (!table) { return false; }
+    var phaseInc = oscFreq / sr;
+    var phase = 0;
+    for (var i = 0; i < n; i++) {
+      var env = envCurve[i];
+      var sample = SL.audio.sampleWavetable(table, phase);
+      b[i] += sample * env * os.level;
+      phase += phaseInc;
+      if (phase >= 1) { phase -= 1; }
+    }
+    return true;
+  }
+
+  function playNoteFallback(opts) {
+    var midi = opts.midi;
+    var dur = opts.dur;
+    var adsr = opts.adsr;
+    var oscSet = opts.oscSet;
+    var filterSettings = opts.filterSettings;
+    var sr = opts.sr;
+    var TWO_PI = opts.TWO_PI;
+    var c = opts.c;
     var f = SL.audio.m2f(midi);
     var n = Math.floor(sr * dur);
     var b = SL.audio.acquireBuffer(n);
@@ -833,31 +938,10 @@
 
       // Noise oscillator in fallback path
       if (NOISE_WAVES[os.wave]) {
-        for (var i = 0; i < n; i++) {
-          var env = envCurve[i];
-          var noiseSample = (os.wave === 'noise-white') ? (Math.random() * 2 - 1) :
-                            (os.wave === 'noise-pink') ? ((Math.random() * 2 - 1) * 0.5) :
-                            ((Math.random() * 2 - 1) * 0.3);
-          b[i] += noiseSample * env * os.level * 0.01;
-        }
+        _renderNoiseFallback(os, n, envCurve, b);
       } else {
 
-      var hasUsedWavetable = false;
-      if (WAVETABLE_WAVES.includes(os.wave) && SL.audio.areWavetablesReady()) {
-        var table = SL.audio.getWavetableForFreq(os.wave, oscFreq);
-        if (table) {
-          var phaseInc = oscFreq / sr;
-          var phase = 0;
-          for (var i = 0; i < n; i++) {
-            var env = envCurve[i];
-            var sample = SL.audio.sampleWavetable(table, phase);
-            b[i] += sample * env * os.level;
-            phase += phaseInc;
-            if (phase >= 1) phase -= 1;
-          }
-          hasUsedWavetable = true;
-        }
-      }
+      var hasUsedWavetable = _renderWavetableFallback(os, oscFreq, { sr: sr, n: n, envCurve: envCurve, b: b });
 
       if (!hasUsedWavetable) {
       var mH = Math.min(SL.audio.maxH(oscFreq), 48);
@@ -929,7 +1013,17 @@
   /**
    * Fallback synthesis with custom destination
    */
-  function playNoteFallbackWithDestination(midi, dur, adsr, oscSet, filterSettings, filterEnvSettings, sr, TWO_PI, c, destination) {
+  function playNoteFallbackWithDestination(opts) {
+    var midi = opts.midi;
+    var dur = opts.dur;
+    var adsr = opts.adsr;
+    var oscSet = opts.oscSet;
+    var filterSettings = opts.filterSettings;
+    var filterEnvSettings = opts.filterEnvSettings;
+    var sr = opts.sr;
+    var TWO_PI = opts.TWO_PI;
+    var c = opts.c;
+    var destination = opts.destination;
     var f = SL.audio.m2f(midi);
     var n = Math.floor(sr * dur);
     var b = SL.audio.acquireBuffer(n);
@@ -943,31 +1037,10 @@
 
       // Noise oscillator in fallback path
       if (NOISE_WAVES[os.wave]) {
-        for (var i = 0; i < n; i++) {
-          var env = envCurve[i];
-          var noiseSample = (os.wave === 'noise-white') ? (Math.random() * 2 - 1) :
-                            (os.wave === 'noise-pink') ? ((Math.random() * 2 - 1) * 0.5) :
-                            ((Math.random() * 2 - 1) * 0.3);
-          b[i] += noiseSample * env * os.level * 0.01;
-        }
+        _renderNoiseFallback(os, n, envCurve, b);
       } else {
 
-      var hasUsedWavetable = false;
-      if (WAVETABLE_WAVES.includes(os.wave) && SL.audio.areWavetablesReady()) {
-        var table = SL.audio.getWavetableForFreq(os.wave, oscFreq);
-        if (table) {
-          var phaseInc = oscFreq / sr;
-          var phase = 0;
-          for (var i = 0; i < n; i++) {
-            var env = envCurve[i];
-            var sample = SL.audio.sampleWavetable(table, phase);
-            b[i] += sample * env * os.level;
-            phase += phaseInc;
-            if (phase >= 1) phase -= 1;
-          }
-          hasUsedWavetable = true;
-        }
-      }
+      var hasUsedWavetable = _renderWavetableFallback(os, oscFreq, { sr: sr, n: n, envCurve: envCurve, b: b });
 
       if (!hasUsedWavetable) {
       var mH = Math.min(SL.audio.maxH(oscFreq), 48);
@@ -1039,6 +1112,17 @@
   // ============================================================
   // Sustained Note Management
   // ============================================================
+  // Sustained notes are held as long as the key/mouse is pressed (or
+  // until the sustain pedal releases). Unlike playNote() which has a
+  // fixed duration, sustained notes have an open-ended sustain phase:
+  //
+  //   Note-On: attack -> decay -> sustain (holds indefinitely)
+  //   Note-Off: release -> silence -> voice returned to pool
+  //
+  // Voice allocation uses a pool (voice-pool.js) to limit polyphony.
+  // If the pool is exhausted, the note is dropped gracefully rather
+  // than crashing the audio graph. Each voice owns its oscillators,
+  // gain node (ADSR envelope), and filter chain.
 
   /**
    * Start a sustained note (for keyboard/mouse hold)
@@ -1144,7 +1228,11 @@
     var sustainLevel = peak * adsr.s;
     var releaseTime = Math.max(0.003, adsr.r);
 
-    // Schedule full ADSR attack + decay + sustain-hold on masterGain
+    // Schedule ADSR envelope on the master gain node:
+    //   Attack: linear ramp from 0 to peak (velocity-scaled)
+    //   Decay: exponential approach toward sustain level
+    //   setTargetAtTime's time constant = decayTime/5 gives a ~5-tau decay
+    // The sustain phase holds indefinitely until stopSustainedNote().
     voice.masterGain.gain.setValueAtTime(0, now);
     voice.masterGain.gain.linearRampToValueAtTime(peak, now + attackTime);
     voice.masterGain.gain.setTargetAtTime(sustainLevel, now + attackTime, decayTime / 5);
@@ -1237,12 +1325,14 @@
       } // end if (os.level > 0)
     });
 
-    // Apply LFO modulation to the new voice
+    // Apply LFO modulation to the new voice -- connects LFO oscillator
+    // nodes to voice parameters (pitch vibrato, filter wobble, tremolo).
     if (SL.audio.applyLFOToVoice) {
       SL.audio.applyLFOToVoice(currentInstrument, voice);
     }
 
-    // Apply mod matrix routings to the new voice
+    // Apply mod matrix routings -- connects any configured source->dest
+    // routes (see mod-matrix.js) to this voice's AudioParams.
     if (SL.audio.applyModMatrixToVoice) {
       SL.audio.applyModMatrixToVoice(currentInstrument, voice);
     }
@@ -1292,6 +1382,12 @@
       });
     }
   }
+
+  // Note-off triggers the ADSR release phase. For subtractive voices,
+  // this means: cancel any in-progress gain automation, snapshot the
+  // current gain value, then exponentially decay toward silence. The
+  // voice is returned to the pool after the release completes.
+  // For non-subtractive engines, note-off is delegated to the engine.
 
   /**
    * Stop a sustained note
@@ -1738,7 +1834,8 @@
               .filter(function(f) { return f instanceof BiquadFilterNode; }).length;
             var numBiquads = filters
               .filter(function(f) { return f instanceof BiquadFilterNode; }).length;
-            qValue = 0.5 + (resonanceFactor * biquadIndex / numBiquads) * 8;
+            var safeNumBiquads = numBiquads || 1;
+            qValue = 0.5 + (resonanceFactor * biquadIndex / safeNumBiquads) * 8;
             qValue = Math.min(qValue, 20);
             break;
 
@@ -1807,6 +1904,11 @@
   // ============================================================
   // Continuous Noise Generator
   // ============================================================
+  // The continuous noise generator runs independently of note events.
+  // It creates a looping AudioBufferSourceNode from the cached noise
+  // buffer, routed through a gain node and optionally through the
+  // instrument's filter chain. This allows noise to respond to filter
+  // envelope sweeps triggered by notes while sustaining between them.
 
   /**
    * Start or update the continuous noise generator

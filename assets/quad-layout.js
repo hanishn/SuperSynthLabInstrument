@@ -218,6 +218,25 @@ SynthLab.quad = (function() {
         return _activeQuadIndex < 2 ? 0 : 1;
     }
 
+    function _applyPhoneLayout(quads) {
+        for (var j = 0; j < quads.length; j++) {
+            if (quads[j]) {
+                var isActive = (j === _activeQuadIndex);
+                quads[j].style.display = isActive ? '' : 'none';
+                quads[j].classList.toggle('sslu-quad-active', isActive);
+            }
+        }
+    }
+
+    function _applyGridLayout(quads) {
+        for (var k = 0; k < quads.length; k++) {
+            if (quads[k]) {
+                quads[k].style.display = '';
+                quads[k].classList.remove('sslu-quad-active');
+            }
+        }
+    }
+
     function _applyLayout() {
         if (!_activeWorkflow || !_workflows[_activeWorkflow]) return;
 
@@ -225,22 +244,10 @@ SynthLab.quad = (function() {
         var quads = wf.quads;
 
         if (_isPhoneTier()) {
-            // Phone (portrait + landscape): single-pane mode, show only the active quad
-            for (var j = 0; j < quads.length; j++) {
-                if (quads[j]) {
-                    quads[j].style.display = (j === _activeQuadIndex) ? '' : 'none';
-                    quads[j].classList.toggle('sslu-quad-active', j === _activeQuadIndex);
-                }
-            }
+            _applyPhoneLayout(quads);
             _showDotToggle(wf);
         } else {
-            // Grid mode: show all quads
-            for (var k = 0; k < quads.length; k++) {
-                if (quads[k]) {
-                    quads[k].style.display = '';
-                    quads[k].classList.remove('sslu-quad-active');
-                }
-            }
+            _applyGridLayout(quads);
             _hideDotToggle();
         }
     }
@@ -297,6 +304,26 @@ SynthLab.quad = (function() {
         document.body.appendChild(_dotToggle);
     }
 
+    function _buildDotButtonHTML(wf, i) {
+        var isActive = (i === _activeQuadIndex);
+        var label = (wf.labels && wf.labels[i]) ? wf.labels[i] : ('Q' + (i + 1));
+        var dotIcon = QUAD_ICONS[label] || QUAD_ICONS['default'];
+        var activeClass = isActive ? ' active' : '';
+        var ariaCurrent = isActive ? ' aria-current="true"' : '';
+        return '<button class="sslu-dot' + activeClass +
+            '" data-quad="' + i + '" title="' + label +
+            '" aria-label="' + label + '"' +
+            ariaCurrent + '>' + dotIcon + '</button>';
+    }
+
+    function _wireDotButton(dot) {
+        dot.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var index = parseInt(dot.getAttribute('data-quad'), 10);
+            _switchQuad(index);
+        });
+    }
+
     function _showDotToggle(wf) {
         _createDotToggle();
         if (wf.count < 2) {
@@ -307,14 +334,7 @@ SynthLab.quad = (function() {
         _dotToggle.classList.remove('sslu-dot-toggle-rows');
         for (var i = 0; i < wf.quads.length; i++) {
             if (!wf.quads[i]) continue;
-            var isActive = (i === _activeQuadIndex);
-            var label = (wf.labels && wf.labels[i]) ? wf.labels[i] : ('Q' + (i + 1));
-            var dotIcon = QUAD_ICONS[label] || QUAD_ICONS['default'];
-            html += '<button class="sslu-dot' + (isActive ? ' active' : '') +
-                    '" data-quad="' + i + '" title="' + label +
-                    '" aria-label="' + label + '"' +
-                    (isActive ? ' aria-current="true"' : '') +
-                    '>' + dotIcon + '</button>';
+            html += _buildDotButtonHTML(wf, i);
         }
         _dotToggle.innerHTML = html; /* trusted: computed from internal state (QUAD_ICONS + labels) */
         _dotToggle.style.display = '';
@@ -322,13 +342,7 @@ SynthLab.quad = (function() {
         // Attach click handlers
         var dots = _dotToggle.querySelectorAll('.sslu-dot');
         for (var d = 0; d < dots.length; d++) {
-            (function(dot) {
-                dot.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    var index = parseInt(dot.getAttribute('data-quad'), 10);
-                    _switchQuad(index);
-                });
-            })(dots[d]);
+            _wireDotButton(dots[d]);
         }
         } // end else (wf.count >= 2)
     }
@@ -531,38 +545,52 @@ SynthLab.quad = (function() {
         });
     }
 
+    function _onAudioCtxStateChange(ctx) {
+        var isSuspended = (ctx.state === 'suspended');
+        var isPageVisible = (document.visibilityState === 'visible');
+        if (isSuspended && isPageVisible) {
+            ctx.resume();
+        }
+    }
+
+    function _attachCtxStateListener(ctx) {
+        if (ctx && !ctx._ssluStateListener) {
+            ctx._ssluStateListener = true;
+            ctx.addEventListener('statechange', function() {
+                _onAudioCtxStateChange(ctx);
+            });
+        }
+    }
+
     function _tryResumeAudio() {
         var hasSynthLabAudio = window.SynthLab && SynthLab.audio;
         var canGetAudioCtx = hasSynthLabAudio && SynthLab.audio.getCtx;
-        if (canGetAudioCtx) {
-            try {
-                var ctx = SynthLab.audio.getCtx();
-                if (ctx && ctx.state === 'suspended') {
-                    ctx.resume();
-                }
-                // Listen for future suspensions
-                if (ctx && !ctx._ssluStateListener) {
-                    ctx._ssluStateListener = true;
-                    ctx.addEventListener('statechange', function() {
-                        if (ctx.state === 'suspended' && document.visibilityState === 'visible') {
-                            ctx.resume();
-                        }
-                    });
-                }
-            } catch (e) { /* audio context may not be ready yet */ }
-        }
+        if (!canGetAudioCtx) { return; }
+        try {
+            var ctx = SynthLab.audio.getCtx();
+            var isSuspended = ctx && (ctx.state === 'suspended');
+            if (isSuspended) {
+                ctx.resume();
+            }
+            _attachCtxStateListener(ctx);
+        } catch (e) { /* audio context may not be ready yet */ }
     }
 
     // Screen Wake Lock API — prevents screen from sleeping during audio playback
     var _wakeLock = null;
+    function _onWakeLockAcquired(lock) {
+        _wakeLock = lock;
+        _wakeLock.addEventListener('release', function() {
+            _wakeLock = null;
+        });
+    }
+
     function _requestWakeLock() {
-        if ('wakeLock' in navigator) {
-            navigator.wakeLock.request('screen').then(function(lock) {
-                _wakeLock = lock;
-                _wakeLock.addEventListener('release', function() {
-                    _wakeLock = null;
-                });
-            }).catch(function() { /* wake lock not available or denied */ });
+        var hasWakeLock = ('wakeLock' in navigator);
+        if (hasWakeLock) {
+            navigator.wakeLock.request('screen')
+              .then(_onWakeLockAcquired)
+              .catch(function() { /* wake lock not available or denied */ });
         }
     }
 
@@ -606,6 +634,22 @@ SynthLab.quad = (function() {
         }
     }
 
+    function _onGlobalKeydown(e) {
+        var isEscape = (e.key === 'Escape');
+        if (!isEscape) { return; }
+        var hasScreenPanic = SL.screens && SL.screens.panic;
+        if (hasScreenPanic) {
+            SL.screens.panic();
+        } else {
+            if (SL.audio && SL.audio.stopAllSustained) {
+                SL.audio.stopAllSustained();
+            }
+            if (SL.midi && SL.midi.panic) {
+                SL.midi.panic();
+            }
+        }
+    }
+
     function init() {
         _currentTier = _detectTier();
         document.documentElement.setAttribute('data-layout', _currentTier);
@@ -628,20 +672,7 @@ SynthLab.quad = (function() {
         });
 
         // Global panic: Escape kills all notes (delegates to screen manager if available)
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                if (SL.screens && SL.screens.panic) {
-                    SL.screens.panic();
-                } else {
-                    if (SL.audio && SL.audio.stopAllSustained) {
-                        SL.audio.stopAllSustained();
-                    }
-                    if (SL.midi && SL.midi.panic) {
-                        SL.midi.panic();
-                    }
-                }
-            }
-        });
+        document.addEventListener('keydown', _onGlobalKeydown);
     }
 
     // ========================================================================

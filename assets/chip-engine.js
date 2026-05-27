@@ -1,6 +1,31 @@
 // Super Synth Lab - Chip Synth Engine Module
 // Emulates 4 classic sound chips: C64 SID, NES 2A03, Game Boy, Sega Genesis YM2612
 // v1.0.0 - ScriptProcessor, 16-voice, ADSR, bit depth reduction
+//
+// -- Educational Notes: Chip Sound Synthesis --
+//
+// This engine recreates the sound generation techniques of four iconic sound
+// chips from the 8-bit and 16-bit eras. Each chip imposed severe hardware
+// constraints (limited voices, low bit depth, fixed waveforms) that became
+// defining aesthetic signatures rather than mere limitations.
+//
+// The four chips emulated here span 1982-1988 and represent fundamentally
+// different synthesis approaches:
+//   SID  (MOS 6581, 1982) - Subtractive: oscillators + multimode filter
+//   2A03 (Ricoh, 1983)    - Fixed waveforms with quantized output
+//   DMG  (Sharp, 1989)    - Programmable 4-bit wavetable channel
+//   YM2612 (Yamaha, 1988) - 4-operator FM synthesis (DX-family technology)
+//
+// References:
+//   Yannes, R. (1982). MOS Technology 6581 SID chip design.
+//   Roads, C. (1996). The Computer Music Tutorial. MIT Press. Ch. 5-6.
+//   Collins, K. (2008). Game Sound. MIT Press. Ch. 2-4.
+//
+// All waveform generation uses phase-accumulator synthesis:
+//   phase(n) = phase(n-1) + freq / sampleRate
+// The phase wraps at 1.0 and maps into each chip's native waveform shape.
+// Bit-depth reduction quantizes the output to simulate D/A converter resolution.
+//
 (function() {
   'use strict';
 
@@ -21,6 +46,10 @@
   };
 
   // NES/GB duty cycle options: 12.5%, 25%, 50%, 75%
+  // The 2A03 and Game Boy pulse channels support exactly these four duty ratios.
+  // Duty cycle controls harmonic content: 50% yields only odd harmonics (square wave),
+  // while narrower pulses (12.5%, 25%) introduce even harmonics, producing a thinner,
+  // more nasal timbre. See Roads (1996), pp. 110-113 on pulse wave spectra.
   var DUTY_PRESETS = [0.125, 0.25, 0.5, 0.75];
 
   // Pulse waveform types (all variants that use duty-cycle based generation)
@@ -32,6 +61,16 @@
   // YM2612 FM algorithms (which ops are carriers vs modulators)
   // Each algorithm: array of 4 entries, one per operator
   // true = carrier (output), false = modulator
+  //
+  // The YM2612 (Yamaha OPN2, used in the Sega Genesis/Mega Drive, 1988)
+  // implements 4-operator FM synthesis derived from Yamaha's DX technology.
+  // The DX7 had 6 operators and 32 algorithms; the YM2612 reduces this to
+  // 4 operators and 8 algorithms. Each algorithm defines a unique topology
+  // of carrier/modulator connections. Carriers produce audible output;
+  // modulators shape the timbre by frequency-modulating other operators.
+  // Algorithm 0 (full serial chain) produces the most complex spectra;
+  // Algorithm 7 (all carriers) produces pure additive synthesis.
+  // See Roads (1996), Ch. 6 on FM synthesis and Chowning's (1973) original work.
   var YM2612_ALGORITHMS = [
     // Algo 0: serial chain  op1->op2->op3->op4(out)
     [false, false, false, true],
@@ -52,6 +91,11 @@
   ];
 
   // 9-bit sine table for YM2612 (quantized)
+  // The real YM2612 stores a quarter-sine in ROM and reconstructs the full
+  // cycle via symmetry. The internal representation uses a 10-bit log-sine
+  // table and a 12-bit exponential table. Here we simplify to a 512-entry
+  // linear sine table quantized to 9-bit resolution, which captures the
+  // characteristic stepped quality of the hardware's D/A conversion.
   var YM2612_SINE_TABLE = [];
   (function() {
     for (var i = 0; i < 512; i++) {
@@ -63,6 +107,11 @@
   })();
 
   // Game Boy default wavetable (32 samples, 4-bit)
+  // The Game Boy's wave channel (channel 3) reads from a 32-sample RAM buffer
+  // where each sample is 4 bits (0-15, giving only 16 amplitude levels).
+  // This default pattern is a triangle wave. Game composers could load
+  // arbitrary 32-sample waveforms, enabling crude wavetable synthesis
+  // years before it became a mainstream technique. See Collins (2008), Ch. 3.
   var GB_DEFAULT_WAVE = [
     15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
@@ -120,6 +169,13 @@
   // ============================================================
   // Bit Depth Reduction
   // ============================================================
+  // Bit-depth reduction (also called bit-crushing) quantizes a continuous
+  // amplitude value to a fixed number of discrete levels: levels = 2^bits.
+  // Formula: output = round(sample * 2^(bits-1)) / 2^(bits-1)
+  // At 8 bits: 256 levels. At 4 bits: only 16 levels (Game Boy wave channel).
+  // At 1 bit: binary output (square wave regardless of input shape).
+  // The quantization introduces harmonic distortion proportional to the
+  // step size; fewer bits = more distortion = more "lo-fi" character.
 
   function reduceBitDepth(sample, bits) {
     if (bits >= 16) {
@@ -127,12 +183,25 @@
     }
     var levels = Math.pow(2, bits);
     var half = levels / 2;
-    return Math.round(sample * half) / half;
+    var safeHalf = half || 1;
+    return Math.round(sample * safeHalf) / safeHalf;
   }
 
   // ============================================================
   // LFSR Noise Generator
   // ============================================================
+  // Linear Feedback Shift Register (LFSR) noise is how the NES, Game Boy,
+  // and SID generate pseudo-random noise. A shift register is clocked at
+  // the oscillator frequency; at each step, two bit positions are XORed
+  // and fed back into the highest bit.
+  //
+  // Long mode (15-bit LFSR, taps at bits 0 and 1): period = 32767 samples.
+  //   Produces white-noise-like output with a very long repeat cycle.
+  // Short mode (15-bit LFSR, taps at bits 0 and 6): period = 93 samples.
+  //   Produces a metallic, pitched tone — used for snare drums and hi-hats
+  //   on the NES. The Game Boy's noise channel uses 7-bit vs 15-bit LFSR.
+  //
+  // See Collins (2008), Ch. 2 on NES audio architecture.
 
   function LFSRNoise(shortMode) {
     this.register = 0x7FFF;
@@ -155,6 +224,20 @@
   // ============================================================
   // SID Waveform Generators
   // ============================================================
+  // The MOS Technology 6581 SID (Sound Interface Device), designed by
+  // Bob Yannes in 1982 for the Commodore 64, was revolutionary: 3 voices,
+  // each with pulse/sawtooth/triangle/noise waveforms, ring modulation,
+  // oscillator hard sync, and a programmable multimode resonant filter
+  // (low-pass, high-pass, band-pass, notch). Yannes later founded Ensoniq.
+  //
+  // The SID's analog filter had notoriously inconsistent behavior across
+  // chip revisions (6581 vs 8580) due to manufacturing process variations,
+  // making each C64 sound slightly different. See Yannes (1982).
+  //
+  // Pulse wave with variable duty cycle:
+  //   f(t) = sgn(sin(2*pi*f*t) - (2*duty - 1))
+  //   At duty=0.5: square wave (odd harmonics only, 1/n rolloff).
+  //   At duty<0.5 or >0.5: even harmonics appear, timbre thins.
 
   function sidPulse(phase, duty) {
     if (phase < duty) {
@@ -163,10 +246,14 @@
     return -1.0;
   }
 
+  // Sawtooth: all harmonics present at amplitudes 1/n. Bright, buzzy timbre.
+  // Formula: f(phase) = 2*phase - 1, where phase in [0, 1)
   function sidSawtooth(phase) {
     return 2.0 * phase - 1.0;
   }
 
+  // Triangle: odd harmonics only at amplitudes 1/n^2. Mellow, flute-like.
+  // Softer than square because harmonics fall off as the square of n.
   function sidTriangle(phase) {
     if (phase < 0.5) {
       return 4.0 * phase - 1.0;
@@ -177,6 +264,14 @@
   // ============================================================
   // NES Waveform Generators
   // ============================================================
+  // The Ricoh 2A03 (1983, Nintendo Entertainment System) integrates audio
+  // into the CPU die: 2 pulse channels with variable duty (12.5%, 25%,
+  // 50%, 75%), 1 triangle channel (fixed waveform), 1 noise channel
+  // (LFSR-based), and 1 DPCM sample playback channel.
+  //
+  // The CPU master clock (1.789773 MHz NTSC) is divided down to produce
+  // pitch. Each channel has an 11-bit period timer, giving a frequency
+  // range of roughly 54 Hz to 12.4 kHz. See Collins (2008), Ch. 2.
 
   function nesPulse(phase, dutyIndex) {
     var duty = DUTY_PRESETS[dutyIndex] || 0.5;
@@ -186,6 +281,11 @@
     return -1.0;
   }
 
+  // NES triangle: 4-bit resolution (16 discrete amplitude steps).
+  // Unlike the pulse channels, the triangle has no volume control --
+  // it is either on or off. The 4-bit quantization creates the
+  // characteristic "buzzy" NES bass sound, especially at low frequencies
+  // where the steps become audible as additional harmonics.
   function nesTriangle(phase) {
     // 4-bit quantized triangle (16 steps)
     var raw;
@@ -200,6 +300,15 @@
   // ============================================================
   // Game Boy Waveform Generators
   // ============================================================
+  // The Game Boy (Sharp LR35902 / DMG-CPU, 1989) has 4 sound channels:
+  //   Ch 1-2: Pulse with variable duty (12.5%, 25%, 50%, 75%)
+  //   Ch 3:   Programmable 4-bit wavetable (32 samples per cycle)
+  //   Ch 4:   Noise (7-bit or 15-bit LFSR, selectable)
+  //
+  // The wavetable channel is the Game Boy's unique feature: 32 samples
+  // at 4-bit depth (16 amplitude levels) stored in I/O registers at
+  // FF30-FF3F. This enabled timbres impossible on NES hardware.
+  // See Collins (2008), Ch. 3.
 
   function gbPulse(phase, dutyIndex) {
     var duty = DUTY_PRESETS[dutyIndex] || 0.5;
@@ -209,6 +318,8 @@
     return -1.0;
   }
 
+  // Game Boy wave channel: 32-sample, 4-bit wavetable lookup.
+  // Phase maps linearly into the 32-entry table; output is 0-15 scaled to -1..+1.
   function gbWavetable(phase, wavetable) {
     var idx = Math.floor(phase * 32) % 32;
     var sample = wavetable[idx] || 0;
@@ -219,6 +330,15 @@
   // ============================================================
   // YM2612 FM Synthesis
   // ============================================================
+  // The Yamaha YM2612 (OPN2) powered the Sega Genesis/Mega Drive (1988).
+  // It implements 4-operator FM synthesis per channel with 8 algorithms,
+  // derived from Yamaha's DX technology (Chowning, 1973). The DX7 used
+  // 6 operators; the YM2612 uses 4, trading some timbral complexity for
+  // lower cost. FM synthesis formula for a single modulator-carrier pair:
+  //   output(t) = A * sin(2*pi*fc*t + I * sin(2*pi*fm*t))
+  // where fc = carrier freq, fm = modulator freq, I = modulation index.
+  // The ratio fm/fc determines which harmonics appear; I controls their
+  // amplitude. See Roads (1996), Ch. 6 on FM synthesis theory.
 
   function ym2612Sine(phase) {
     var idx = Math.floor(phase * 512) % 512;
@@ -228,6 +348,10 @@
     return YM2612_SINE_TABLE[idx];
   }
 
+  // The YM2612's 9-bit internal DAC has a known hardware defect: its
+  // resistor ladder produces non-linear voltage steps, especially near
+  // zero-crossing, creating a characteristic "gritty" distortion that
+  // became the signature Genesis sound. This is the "ladder effect."
   function ym2612DacLadder(sample) {
     // DAC ladder effect: intentional distortion from imperfect D/A conversion
     // Simulates the non-linear steps of the YM2612's internal DAC
@@ -446,6 +570,10 @@
   // ============================================================
   // Per-chip Sample Generation
   // ============================================================
+  // Each chip model has a dedicated generator that faithfully recreates
+  // the hardware's waveform generation, bit depth, and quantization
+  // characteristics. The phase accumulator pattern is shared across all
+  // models but the output processing differs per chip.
 
   ChipVoice.prototype.generateSID = function() {
     var sample = 0;
@@ -468,7 +596,7 @@
       sample = sidPulse(this.phase, this.dutyCycle);
     }
 
-    // SID bit depth: 12-bit
+    // SID bit depth: 12-bit (the 6581 uses 12-bit internal D/A conversion)
     sample = reduceBitDepth(sample, this.bitDepth);
 
     this.phase += this.phaseInc;
@@ -563,6 +691,10 @@
     var opOutputs = [0, 0, 0, 0];
 
     // Operator 1 (with optional feedback)
+    // Self-feedback on op1: the operator modulates itself using the average
+    // of its two previous output samples. This creates a sawtooth-like
+    // waveform from a pure sine, controllable via the feedback parameter.
+    // The YM2612 hardware implements this as a 2-sample delay line.
     var fbMod = 0;
     if (this.fmFeedback > 0) {
       fbMod = (this.fbPrev1 + this.fbPrev2) * 0.5 * this.fmFeedback;
@@ -636,7 +768,7 @@
     // DAC ladder effect
     sample = ym2612DacLadder(sample);
 
-    // Genesis bit depth: 9-bit
+    // Genesis bit depth: 9-bit (the YM2612's internal DAC resolution)
     sample = reduceBitDepth(sample, this.bitDepth);
 
     return sample;
@@ -736,7 +868,9 @@
                 sample += voices[vi2].process() * 0.15;
               }
             }
-            // Soft clip
+            // Soft clip using a rational sigmoid: f(x) = x*(27+x^2)/(27+9*x^2)
+            // This approximates tanh(x) cheaply, preventing harsh digital clipping
+            // when multiple voices sum beyond [-1, 1].
             var ss = sample * sample;
             output[s] = sample * (27 + ss) / (27 + 9 * ss);
           }

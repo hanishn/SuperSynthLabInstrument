@@ -2,6 +2,41 @@
 // Real-time analog drum circuit models (NOT samples)
 // ScriptProcessor-based, 16-voice polyphony
 // 8 drum types: kick, snare, hihat, clap, tom, rim, cowbell, cymbal
+//
+// -----------------------------------------------------------------------
+// ANALOG DRUM SYNTHESIS
+// -----------------------------------------------------------------------
+// This engine synthesizes drum sounds from first principles rather than
+// playing back recorded samples. Each drum type uses a different synthesis
+// strategy inspired by classic analog drum machines (Roland TR-808/909):
+//
+//   Kick:    Sine oscillator with rapid pitch sweep (~150Hz -> ~50Hz).
+//            The membrane of a bass drum vibrates at a high frequency on
+//            initial impact, then quickly settles to its fundamental.
+//   Snare:   Tonal body (sine) + filtered noise (snare wires). The snare
+//            wires resting against the bottom head create broadband noise.
+//   Hi-hat:  6 square-wave oscillators at inharmonic frequency ratios.
+//            Real cymbals are discs whose vibration modes are non-integer
+//            multiples of the fundamental (metallophone physics).
+//   Clap:    4 short noise bursts in quick succession (~5ms apart). A hand
+//            clap is physically ~4 micro-impacts as the fingers close.
+//   Tom:     Like kick but with less pitch sweep and more sustain.
+//   Rim:     Very short (~1ms) noise impulse through high-Q resonant filter.
+//            Models the impulsive excitation of the drum shell modes.
+//   Cowbell: Two detuned square waves at ~587Hz and ~845Hz (~2:3 ratio).
+//            Metal shells produce inharmonic spectra from coupled modes.
+//   Cymbal:  Dense metallic partials (square+sine mix) with added noise.
+//            Many inharmonic modes of a vibrating disc, long decay.
+//
+// Mute groups implement exclusive voicing: open and closed hi-hat share a
+// group, so triggering one silences the other (as on a real drum kit).
+//
+// References:
+//   Roads, C. (1996) The Computer Music Tutorial, MIT Press, Ch. 7
+//   Cook, P. (2002) Real Sound Synthesis for Interactive Applications,
+//     AK Peters
+//   Bilbao, S. (2009) Numerical Sound Synthesis, Wiley
+// -----------------------------------------------------------------------
 (function() {
   'use strict';
 
@@ -29,7 +64,10 @@
   var KICK_PITCH_ENV_MIN = 0.04;
   var KICK_PITCH_ENV_MAX = 0.12;
 
-  // Metallic ratios for hihat/cymbal partials
+  // Metallic ratios for hihat/cymbal partials.
+  // Real cymbals vibrate as circular plates whose modal frequencies are NOT
+  // integer multiples of the fundamental (unlike strings or air columns).
+  // These ratios approximate the inharmonic spectrum of struck metal.
   var METALLIC_RATIOS = [1.0, 1.34, 1.61, 1.78, 2.14, 2.45];
   var NUM_METALLIC_PARTIALS = METALLIC_RATIOS.length;
 
@@ -38,7 +76,10 @@
   var CLAP_BURST_SPACING_SAMPLES = 0; // computed per sampleRate in voice init
   var CLAP_BURST_LENGTH_SAMPLES = 0;
 
-  // Mute groups: MIDI notes sharing a group cut each other off
+  // Mute groups: MIDI notes sharing a group cut each other off.
+  // On a real drum kit, closing the hi-hat pedal physically damps the
+  // cymbal, silencing any ringing open-hat sound. This exclusive voicing
+  // is standard in drum machines and GM drum maps.
   var MUTE_GROUPS = {
     42: 1,  // HiHat closed - group 1
     46: 1,  // HiHat open - group 1
@@ -144,7 +185,10 @@
   };
   var HIHAT_TONE_DEFAULT_MULTIPLIER = 0.8;
 
-  // Cowbell frequencies
+  // Cowbell frequencies: two detuned tones at roughly a 2:3 ratio (587/845
+  // ~ 0.695). Metal percussion produces inharmonic spectra because the shell
+  // modes do not form a harmonic series. The 808 cowbell used two square-wave
+  // oscillators at similar frequencies mixed through a bandpass filter.
   var COWBELL_FREQ_A = 587;
   var COWBELL_FREQ_B = 845;
 
@@ -175,6 +219,10 @@
   // LFSR Noise Generator
   // ============================================================
 
+  // Linear Feedback Shift Register noise: deterministic pseudo-random
+  // sequence using XOR-shift. Cheaper than Math.random() in a per-sample
+  // inner loop and produces consistent results across platforms. The
+  // particular taps (13, 17, 5) are from Marsaglia's xorshift family.
   function LFSRNoise() {
     this.state = 1;
   }
@@ -237,6 +285,9 @@
     return DRUM_TYPE_TO_MIDI[drumType];
   }
 
+  // Pade approximant of tanh(x): x*(27+x^2)/(27+9*x^2). Accurate to
+  // within ~0.3% for |x|<3, then hard-clipped. Used for drive distortion
+  // and output limiting -- smoother than hard clipping, cheaper than Math.tanh.
   function softClipTanh(x) {
     // Fast tanh approximation
     if (x > 3) {
@@ -383,7 +434,11 @@
       return 0;
     }
 
-    // Amplitude envelope: exponential decay (808-style)
+    // Amplitude envelope: exponential decay (808-style).
+    // All drum sounds use a simple exp(-t/tau) envelope. Real drum membranes
+    // and cymbals lose energy roughly exponentially due to air radiation and
+    // internal damping. The AMP_DECAY_FACTOR (0.35) compresses the effective
+    // time constant so that the "decay" knob feels musically responsive.
     var ampEnv = Math.exp(-t / (this.decayTime * AMP_DECAY_FACTOR));
     if (ampEnv < AMP_SILENCE_THRESHOLD) {
       this.active = false;
@@ -418,10 +473,12 @@
     var OUTPUT_BOOST = 2.5;
     sample = sample * ampEnv * this.velocity * OUTPUT_BOOST;
 
-    // Apply drive (tanh soft clipping)
+    // Apply drive (tanh soft clipping). Analog drum machines had output
+    // stages that would saturate when driven hard, adding harmonic warmth.
     if (this.driveAmount > 0.01) {
       var driveGain = 1.0 + this.driveAmount * 8.0;
-      sample = softClipTanh(sample * driveGain) / driveGain * (1.0 + this.driveAmount * 2.0);
+      var safeDriveGain = driveGain || 1;
+      sample = softClipTanh(sample * driveGain) / safeDriveGain * (1.0 + this.driveAmount * 2.0);
     }
 
     this.samplesSinceStart++;
@@ -429,6 +486,10 @@
   };
 
   // --- Kick: sine sweep + click transient ---
+  // The 808 kick circuit used a bridged-T oscillator whose frequency was
+  // swept downward by a decaying control voltage. We model this as an
+  // exponential pitch sweep from ~200-500Hz down to ~30-60Hz over 40-120ms.
+  // A short noise click (~2ms) at the attack simulates the beater impact.
   DrumVoice.prototype._processKick = function(t, sr) {
     // Pitch envelope: exponential sweep from pitchStart to pitchEnd
     var pitchEnvProgress = clamp(t / this.pitchEnvTime, 0, 1);
@@ -452,6 +513,10 @@
   };
 
   // --- Snare: pitched body + noise through bandpass ---
+  // A snare drum has two components: the tonal body (top head resonance,
+  // ~180-280Hz) and broadband noise from the snare wires vibrating against
+  // the bottom head. The bodyNoiseMix parameter blends these two components.
+  // The one-pole filter on the noise shapes its brightness (tone parameter).
   DrumVoice.prototype._processSnare = function(t, sr) {
     // Sine body
     this.phase += this.pitchHz / sr;
@@ -475,6 +540,11 @@
   };
 
   // --- Hihat: 6 detuned square waves through highpass ---
+  // The 808 hi-hat used 6 square-wave oscillators at non-integer frequency
+  // ratios to create a dense, metallic, inharmonic spectrum. A highpass
+  // filter removes low-frequency content, giving the characteristic bright
+  // "tsss" sound. Open vs closed hi-hat is controlled by decay time: closed
+  // is very short (~50ms), open rings for 300-500ms.
   DrumVoice.prototype._processHihat = function(t, sr) {
     var baseFreq = this.pitchHz;
     var sum = 0;
@@ -503,6 +573,9 @@
   };
 
   // --- Clap: 4 short noise bursts with slight delays ---
+  // A hand clap is physically ~4 micro-impacts as the fingers fold together,
+  // each ~2ms long with ~5ms spacing. The 808 modeled this with multiple
+  // noise bursts through a bandpass filter, followed by a reverberant tail.
   DrumVoice.prototype._processClap = function(t, sr) {
     var sample = 0;
     var spacing = this.clapBurstSpacing;
@@ -513,7 +586,8 @@
       var burstStart = b * spacing;
       var burstEnd = burstStart + burstLen;
       if (s >= burstStart && s < burstEnd) {
-        var burstProgress = (s - burstStart) / burstLen;
+        var safeBurstLen = burstLen || 1;
+        var burstProgress = (s - burstStart) / safeBurstLen;
         var burstEnv = 1.0 - burstProgress;
         sample += this.noiseGen.next() * burstEnv;
       }
@@ -536,6 +610,9 @@
   };
 
   // --- Tom: like kick but higher pitch, more sustain ---
+  // Toms use the same pitch-sweep synthesis as the kick but with a smaller
+  // sweep range (less dramatic pitch drop) and longer sustain. Per-MIDI-note
+  // pitch multipliers give each tom pad a distinct register.
   DrumVoice.prototype._processTom = function(t, sr) {
     var pitchEnvProgress = clamp(t / this.pitchEnvTime, 0, 1);
     var currentFreq = this.pitchStart * Math.pow(this.pitchEnd / this.pitchStart, pitchEnvProgress);
@@ -556,6 +633,9 @@
   };
 
   // --- Rim: short high-frequency click with resonant filter ---
+  // A rim shot excites the drum shell with a sharp impulse. Modeled as a
+  // ~1ms noise burst fed into a high-Q bandpass filter (Q=0.95 feedback),
+  // which rings at the shell's resonant frequency (800-1500Hz).
   DrumVoice.prototype._processRim = function(t, sr) {
     // Very short noise burst (1ms)
     var sample = 0;
@@ -574,6 +654,9 @@
   };
 
   // --- Cowbell: two detuned square waves through bandpass ---
+  // The 808 cowbell mixed two square-wave oscillators (540Hz + 800Hz) through
+  // a bandpass filter. The non-integer frequency ratio produces the hollow,
+  // metallic tone characteristic of struck metal percussion.
   DrumVoice.prototype._processCowbell = function(t, sr) {
     var freqA = COWBELL_FREQ_A * this.cowbellPitchMult;
     var freqB = COWBELL_FREQ_B * this.cowbellPitchMult;
@@ -613,6 +696,10 @@
   };
 
   // --- Cymbal: dense metallic noise, wider bandwidth, longer decay ---
+  // Cymbals have many more vibration modes than hi-hats, spread over a
+  // wider frequency range, with longer decay times. We use the same metallic
+  // partial structure but mix square and sine waves for richer texture, plus
+  // added noise for the characteristic shimmer of a vibrating brass disc.
   DrumVoice.prototype._processCymbal = function(t, sr) {
     var baseFreq = this.pitchHz;
     var sum = 0;

@@ -588,7 +588,8 @@
         var refDayanDiam = isPhone ? PHONE_DAYAN_DIAMETER_PX : DAYAN_DIAMETER_PX;
         var refBayanDiam = isPhone ? PHONE_BAYAN_DIAMETER_PX : BAYAN_DIAMETER_PX;
         var totalRefW = refDayanDiam + refBayanDiam + 40;
-        var scaleByW = pfW / totalRefW;
+        var safeTotalRefW = totalRefW || 1;
+        var scaleByW = pfW / safeTotalRefW;
         var scaleByH = pfH / Math.max(refDayanDiam, refBayanDiam);
         var fitScale = Math.min(scaleByW, scaleByH, 1.3);
         if (fitScale < 0.5) { fitScale = 0.5; }

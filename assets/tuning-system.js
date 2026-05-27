@@ -1,6 +1,39 @@
 // SuperSynthLab - Tuning System Module
 // Provides alternate tuning systems beyond standard 12-TET
 // v12.1.150 - Added Adaptive (Hermode-style) tuning
+//
+// ── Educational Background ──────────────────────────────────────
+// The question "how should we tune musical intervals?" has occupied
+// musicians and mathematicians for over 2,500 years. There is no
+// perfect answer — only trade-offs.
+//
+// 12-TET (12-Tone Equal Temperament) divides the octave into 12
+// equal semitones, each with frequency ratio 2^(1/12) ~ 1.05946.
+// No interval is perfectly pure, but every key sounds equally
+// in-tune (or equally out-of-tune). Formula: f = f_ref * 2^(n/12).
+//
+// Just Intonation uses simple integer ratios (3:2 for a perfect
+// fifth, 5:4 for a major third). These intervals are beatless and
+// pure, but only in one key — modulate and the wolves howl.
+//
+// Pythagorean tuning stacks pure 3:2 fifths. The fifths are
+// perfect, but the major third (81:64) is painfully wide.
+//
+// Cents: 1200 cents = 1 octave. cents = 1200 * log2(f2/f1).
+// A useful unit for expressing small pitch differences that are
+// independent of absolute frequency.
+//
+// A4 = 440 Hz is the modern standard (ISO 16, 1975). Historically:
+// Baroque A ~ 415 Hz, Classical-era A ~ 430 Hz.
+//
+// References:
+//   Barbour, J.M. (1951) Tuning and Temperament, Michigan State
+//     College Press — definitive historical survey.
+//   Helmholtz, H. (1863) On the Sensations of Tone — foundational
+//     psychoacoustics of consonance and beating.
+//   Partch, H. (1949) Genesis of a Music, U. of Wisconsin Press
+//     — explores 43-tone just intonation and beyond.
+// ─────────────────────────────────────────────────────────────────
 (function() {
   var SL = window.SynthLab;
 
@@ -9,15 +42,29 @@
   // Each system stores cent offsets from 12-TET for all 12 pitch classes.
   // Index 0 = C, 1 = C#/Db, 2 = D, ... 11 = B
   // Values are in cents; 0 = identical to 12-TET.
+  //
+  // Why cent offsets rather than frequency ratios? Because the
+  // offset approach lets us start from the standard 12-TET
+  // frequency (which the rest of the engine already computes)
+  // and apply a small correction: f_tuned = f_12tet * 2^(cents/1200).
+  // This is numerically stable and trivially composable.
   // ============================================================
 
   var SYSTEMS = {
+    // 12-TET: the modern default. Every semitone is exactly 100
+    // cents. All keys are equally usable — the "compromise of
+    // compromises" that enabled Romantic-era modulation.
     'equal': {
       name: '12-TET',
       offsets: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     },
     'pythagorean': {
       name: 'Pythagorean',
+      // Pythagorean tuning: every fifth is a pure 3:2 (701.96
+      // cents vs 12-TET's 700). Stack twelve such fifths and you
+      // overshoot the octave by ~23.46 cents (the "Pythagorean
+      // comma"). That error lands on one interval — the "wolf
+      // fifth" — making some keys unusable.
       // Pythagorean tuning built from pure 3:2 fifths
       // C=0, C#=-10.06, D=+3.91, Eb=-5.87, E=+7.82, F=-1.96,
       // F#=+11.73, G=+1.96, Ab=-7.82, A=+5.87, Bb=-3.91, B=+9.78
@@ -25,6 +72,10 @@
     },
     'just': {
       name: 'Just Intonation',
+      // 5-limit just intonation: intervals use ratios whose prime
+      // factors are only 2, 3, and 5. The major third (5:4) is
+      // 386.31 cents — 13.69 cents flatter than 12-TET's 400.
+      // Beautiful in C major; increasingly sour as you modulate.
       // 5-limit just intonation relative to C
       // C=1/1, C#=16/15, D=9/8, Eb=6/5, E=5/4, F=4/3,
       // F#=45/32, G=3/2, Ab=8/5, A=5/3, Bb=9/5, B=15/8
@@ -32,15 +83,28 @@
     },
     'meantone': {
       name: 'Meantone',
+      // Quarter-comma meantone: a Renaissance-era compromise that
+      // narrows each fifth by 1/4 of the syntonic comma (5.38 cents)
+      // so that major thirds come out pure (5:4). The trade-off is
+      // that remote keys (like F# major) sound terrible. This was
+      // THE keyboard tuning from roughly 1500 to 1750.
       // Quarter-comma meantone
       // Fifths narrowed by 1/4 syntonic comma (5.38 cents)
       offsets: [0, -24.04, -6.84, 10.26, -6.84, 3.42, -20.52, -3.42, -27.37, -10.26, 6.84, -10.26]
     },
+    // Adaptive tuning shifts pitches in real time based on which
+    // notes are currently sounding, aiming for just-intonation
+    // purity without being locked to a single key. Inspired by
+    // Hermode Tuning (developed by Werner Mohrlok, 1990s).
     'adaptive': {
       name: 'Adaptive',
       // Dynamic — offsets computed at runtime based on sounding notes
       offsets: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     },
+    // Custom tuning: the user sets cent offsets per pitch class
+    // via sliders. This enables exploration of microtonal scales
+    // like 19-EDO or 31-EDO (Equal Divisions of the Octave),
+    // or any arbitrary temperament.
     'custom': {
       name: 'Custom',
       // User-editable cent offsets per pitch class
@@ -54,17 +118,29 @@
   // Adaptive Tuning Engine (Hermode-style)
   // Tracks currently sounding notes and calculates optimal cent
   // offsets to minimize beating for common just intervals.
+  //
+  // How it works: when two notes sound simultaneously, their
+  // frequency ratio determines consonance. A 12-TET major third
+  // (400 cents) beats audibly against a pure 5:4 (386 cents).
+  // The adaptive engine nudges each sounding note toward the
+  // nearest just ratio with its neighbors, using a weighted
+  // average when a note participates in multiple intervals.
+  // The result: chords ring pure without locking to a single key.
   // ============================================================
 
   // Ideal cent offsets from 12-TET for just intervals, keyed by semitone distance.
+  // These corrections represent the difference between 12-TET and
+  // just intonation for each interval class.
   // Positive = sharpen the upper note; negative = flatten the upper note.
   var INTERVAL_CORRECTIONS = {
-    3:  16,    // minor third: 6:5 ratio — upper note +16 cents
-    4:  -14,   // major third: 5:4 ratio — upper note -14 cents
-    7:  2,     // perfect fifth: 3:2 ratio — upper note +2 cents
-    8:  -14,   // minor sixth (inversion of maj 3rd) — upper note -14 cents
-    9:  16,    // major sixth (inversion of min 3rd) — upper note +16 cents
-    5:  -2     // perfect fourth (inversion of fifth) — upper note -2 cents
+    // Each value is how many cents the upper note must shift from
+    // 12-TET to achieve the pure just ratio for that interval.
+    3:  16,    // minor third: 6:5 ratio — 12-TET is 16 cents flat
+    4:  -14,   // major third: 5:4 ratio — 12-TET is 14 cents sharp
+    7:  2,     // perfect fifth: 3:2 ratio — 12-TET is 2 cents flat
+    8:  -14,   // minor sixth (inversion of maj 3rd) — same 14-cent error
+    9:  16,    // major sixth (inversion of min 3rd) — same 16-cent error
+    5:  -2     // perfect fourth (inversion of fifth) — same 2-cent error
   };
 
   // Active MIDI notes currently sounding, stored as { midiNote: refCount }
@@ -185,6 +261,13 @@
   // ============================================================
   // Core API
   // ============================================================
+  // The central function is noteToFreq: given a MIDI note number,
+  // compute the sounding frequency under the current tuning system.
+  // The math: start with 12-TET (f = A4 * 2^((n-69)/12)), then
+  // apply the system's cent offset: f_final = f_12tet * 2^(c/1200).
+  // This two-step approach means switching tuning systems is just
+  // a table lookup — no need to rebuild oscillator state.
+  // ============================================================
 
   /**
    * Convert MIDI note number to frequency using the current tuning system.
@@ -194,6 +277,8 @@
    * @returns {number} Frequency in Hz
    */
   function noteToFreq(midiNote, refHz) {
+    // Default reference: A4 = 440 Hz (ISO 16). Users can override
+    // for historical pitch (e.g., 415 for Baroque, 430 for Classical).
     var a4 = refHz || 440;
     var centOffset = 0;
     if (_currentSystem === 'adaptive') {
@@ -203,7 +288,9 @@
       var pitchClass = ((midiNote % 12) + 12) % 12;
       centOffset = system.offsets[pitchClass];
     }
-    // Standard 12-TET frequency, then apply tuning offset in cents
+    // Step 1: standard 12-TET frequency. MIDI note 69 = A4.
+    // Step 2: apply tuning offset. 2^(cents/1200) converts cents
+    // to a frequency multiplier (e.g., +14 cents ~ 1.0081x).
     var baseFreq = a4 * Math.pow(2, (midiNote - 69) / 12);
     if (centOffset === 0) {
       return baseFreq;

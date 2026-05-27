@@ -2,6 +2,34 @@
 // Vowel/vocal synthesis running on dedicated audio thread
 // Ported from ScriptProcessor formant-engine.js for iOS Safari compatibility
 // v1.0 - 5-formant model, vowel morphing, sequence, breathiness, glottal pulse
+//
+// ================================================================
+// EDUCATIONAL CONTEXT: Formant Synthesis — Audio Thread
+// ================================================================
+//
+// This file runs on the AudioWorklet thread, isolated from the main
+// thread to guarantee glitch-free real-time audio. It duplicates the
+// formant voice DSP from formant-engine.js (which hosts the fallback
+// ScriptProcessor path and parameter management).
+//
+// The synthesis implements Fant's source-filter model:
+//   1. Glottal pulse (Rosenberg half-sine) = vocal cord vibration
+//   2. Five parallel biquad bandpass filters = vocal tract formants
+//   3. Noise mixing = aspiration/breathiness
+//
+// Each AudioWorklet process() call renders 128 samples (~2.9ms at
+// 44.1kHz). All voice state must persist between calls since the
+// worklet has no control over when process() is invoked.
+//
+// For full theory, vowel data sources, and signal flow diagrams,
+// see the header comments in formant-engine.js.
+//
+// References:
+//   - Fant, G. (1960) Acoustic Theory of Speech Production, Mouton
+//   - Klatt, D.H. (1980) "Software for a cascade/parallel formant
+//     synthesizer", JASA 67(3)
+//   - Peterson, G.E. & Barney, H.L. (1952) JASA 24(2)
+// ================================================================
 
 var NUM_FORMANTS = 5;
 var TWO_PI = 2 * Math.PI;
@@ -12,6 +40,13 @@ var FORMANT_OUTPUT_BOOST = 3.0;
 // Vowel Formant Data (research-accurate)
 // Based on Peterson & Barney (1952) and Hillenbrand et al. (1995)
 // ============================================================
+//
+// ---------------------------------------------------------------
+// Duplicated vowel data for the worklet thread (AudioWorklet
+// scope cannot access main-thread globals). See formant-engine.js
+// for detailed documentation of each vowel's formant values and
+// their acoustic/articulatory significance.
+// ---------------------------------------------------------------
 
 var VOWEL_DATA = {
   A:  { freqs: [730, 1090, 2440, 3400, 4500], amps: [1.0, 0.50, 0.30, 0.10, 0.05], bws: [90, 110, 170, 250, 300] },
@@ -27,6 +62,17 @@ var VOWEL_DATA = {
 // ============================================================
 // Formant Interpolation
 // ============================================================
+//
+// ---------------------------------------------------------------
+// Log-Frequency Vowel Morphing
+// Interpolates formant frequencies in log space for perceptually
+// uniform transitions between vowels. The formant shift parameter
+// transposes the entire vocal tract model by semitones, equivalent
+// to scaling the physical tube length (shorter = higher pitch =
+// child/female voice characteristics).
+// Formula: F = exp(ln(Fa) + (ln(Fb) - ln(Fa)) * t) * 2^(shift/12)
+// See: Roads (1996), Ch. 4; Klatt (1980), Section IV
+// ---------------------------------------------------------------
 
 function interpolateFormants(vowelA, vowelB, morphX, formantShift) {
   var dataA = VOWEL_DATA[vowelA] || VOWEL_DATA.A;
@@ -51,6 +97,16 @@ function interpolateFormants(vowelA, vowelB, morphX, formantShift) {
 // ============================================================
 // Resonant Bandpass Filter (2nd-order biquad, direct form II)
 // ============================================================
+//
+// ---------------------------------------------------------------
+// Biquad Bandpass — Real-Time Formant Resonator
+// Each of the 5 formants is a 2nd-order IIR bandpass filter.
+// Direct Form II Transposed uses only 2 delay elements (z1, z2)
+// and is numerically stable for the narrow bandwidths (~60-300 Hz)
+// used in formant synthesis. The alpha coefficient sets resonance
+// width: alpha = sin(w0) * sinh(ln(2)/2 * BW/f0 * w0/sin(w0)).
+// See: Bristow-Johnson, "Audio EQ Cookbook" (2005)
+// ---------------------------------------------------------------
 
 function BiquadBPF() {
   this.b0 = 0; this.b1 = 0; this.b2 = 0;
@@ -59,16 +115,20 @@ function BiquadBPF() {
 }
 
 BiquadBPF.prototype.set = function(freq, bw, sr) {
+  // Clamp to safe range: below Nyquist and above audible minimum
   var nyq = sr * 0.499;
   if (freq > nyq) { freq = nyq; }
   if (freq < 20) { freq = 20; }
   if (bw < 10) { bw = 10; }
 
+  // w0 = angular frequency in radians per sample
   var w0 = TWO_PI * freq / sr;
   var cosW0 = Math.cos(w0);
   var sinW0 = Math.sin(w0);
+  // Bandwidth-based alpha using the constant-skirt-gain BPF formula
   var alpha = sinW0 * Math.sinh(Math.log(2) / 2 * (bw / freq) * (w0 / sinW0));
 
+  // Normalize by a0 so feedback denominator leading coefficient = 1
   var a0 = 1 + alpha;
   this.b0 = alpha / a0;
   this.b1 = 0;
@@ -78,6 +138,8 @@ BiquadBPF.prototype.set = function(freq, bw, sr) {
 };
 
 BiquadBPF.prototype.process = function(input) {
+  // Direct Form II Transposed: output computed first, then state updated.
+  // This ordering minimizes quantization noise for narrow resonances.
   var out = this.b0 * input + this.z1;
   this.z1 = this.b1 * input - this.a1 * out + this.z2;
   this.z2 = this.b2 * input - this.a2 * out;
@@ -92,6 +154,16 @@ BiquadBPF.prototype.reset = function() {
 // ============================================================
 // Formant Voice
 // ============================================================
+//
+// ---------------------------------------------------------------
+// FormantVoice — Worklet-Thread Voice Instance
+// Implements the same Fant source-filter model as the main-thread
+// fallback: Rosenberg glottal pulse -> 5 parallel BPF formants.
+// This version uses processSample() (called per-sample from the
+// worklet's process() method) rather than the block-oriented
+// onaudioprocess callback used by the ScriptProcessor fallback.
+// See: formant-engine.js FormantVoice for detailed annotations.
+// ---------------------------------------------------------------
 
 function FormantVoice(sr) {
   this.sampleRate = sr;
@@ -255,7 +327,11 @@ FormantVoice.prototype.processSample = function() {
     return 0;
   }
 
-  // Glottal pulse excitation (Rosenberg model)
+  // Glottal pulse excitation (Rosenberg model).
+  // Phase accumulator increments by f0/sr each sample, producing a
+  // sawtooth ramp from 0 to 1 at the fundamental frequency.
+  // The open phase (0 to pw) outputs sin(pi * phase/pw); the closed
+  // phase (pw to 1) outputs silence — modeling vocal cord vibration.
   var phaseInc = this.baseFreq / this.sampleRate;
   this.glottalPhase += phaseInc;
   if (this.glottalPhase >= 1.0) {
@@ -264,20 +340,28 @@ FormantVoice.prototype.processSample = function() {
 
   var glottalSample = 0;
   var pw = this.glottalPulseWidth;
+  var safePw = pw || 0.001;
   if (this.glottalPhase < pw) {
-    var openPhase = this.glottalPhase / pw;
+    var openPhase = this.glottalPhase / safePw;
     glottalSample = Math.sin(Math.PI * openPhase);
   }
 
+  // White noise for aspiration/breathiness (Klatt's AH parameter)
   var noiseSample = (Math.random() * 2 - 1) * 0.5;
 
+  // Source mix: pulse*(1-breath) + noise*breath models the continuum
+  // from fully voiced (breath=0) to fully whispered (breath=1)
   var excitation = glottalSample * (1 - this.breathiness) + noiseSample * this.breathiness;
 
+  // Parallel formant filter bank: excitation passes through all 5 BPFs
+  // simultaneously and results are amplitude-weighted and summed.
+  // This is Klatt's parallel configuration (vs. cascade/series).
   var sample = 0;
   for (var i = 0; i < NUM_FORMANTS; i++) {
     sample += this.filters[i].process(excitation) * this.formantAmps[i];
   }
 
+  // Normalization scalar for 5 summed bandpass outputs
   sample *= 0.85;
   sample *= env * this.velocity;
 
@@ -292,6 +376,16 @@ FormantVoice.prototype.processSample = function() {
 // ============================================================
 // FormantWorkletProcessor
 // ============================================================
+//
+// ---------------------------------------------------------------
+// AudioWorklet Processor — Real-Time Audio Rendering
+// This class runs on the browser's audio rendering thread, which
+// has stricter timing requirements than the main thread. The
+// process() method is called every 128 samples (~2.9ms at 44.1kHz)
+// and must complete within that window to avoid audio glitches.
+// All communication with the main thread goes through MessagePort
+// (postMessage/onmessage) — no shared memory or direct calls.
+// ---------------------------------------------------------------
 
 class FormantWorkletProcessor extends AudioWorkletProcessor {
   constructor() {
@@ -426,13 +520,14 @@ class FormantWorkletProcessor extends AudioWorkletProcessor {
     var shouldCycleVowelSeq = this.vowelSequenceEnabled && hasVowelSeq;
     if (shouldCycleVowelSeq) {
       var seqLen = this.vowelSequence.length;
+      var safeSeqLen = seqLen || 1;
       var samplesPerVowel = Math.max(1, Math.round(this.sr / this.vowelSequenceRate));
       this._seqCounter += blockSize;
       if (this._seqCounter >= samplesPerVowel) {
         this._seqCounter -= samplesPerVowel;
-        this._seqIndex = (this._seqIndex + 1) % seqLen;
+        this._seqIndex = (this._seqIndex + 1) % safeSeqLen;
         this.vowel = this.vowelSequence[this._seqIndex];
-        this.vowelTarget = this.vowelSequence[(this._seqIndex + 1) % seqLen];
+        this.vowelTarget = this.vowelSequence[(this._seqIndex + 1) % safeSeqLen];
         formants = interpolateFormants(
           this.vowel,
           this.vowelTarget,
@@ -453,8 +548,9 @@ class FormantWorkletProcessor extends AudioWorkletProcessor {
       }
     }
 
-    // Generate audio
-    // Count active voices for per-voice gain scaling to prevent clipping
+    // Generate audio sample-by-sample
+    // Count active voices for 1/sqrt(N) gain scaling (constant-power law
+    // for uncorrelated signals — same principle as equal-power panning)
     var activeVoiceCount = 0;
     for (var vc = 0; vc < this.voices.length; vc++) {
       if (this.voices[vc].active) {
@@ -471,7 +567,10 @@ class FormantWorkletProcessor extends AudioWorkletProcessor {
           sample += this.voices[vi2].processSample() * PER_VOICE_BASE_GAIN * perVoiceGain;
         }
       }
-      // Soft clip (normalizes to ~1.0 range without harsh distortion)
+      // Soft clip via Pade [3,2] approximant of tanh:
+      // tanh(x) ~ x*(27+x^2)/(27+9*x^2). Provides smooth saturation
+      // without the hard knee of clamp-based clipping, preserving
+      // harmonic overtones that are critical to vowel timbre.
       var ss = sample * sample;
       var clipped = sample * (27 + ss) / (27 + 9 * ss);
       // Apply output boost

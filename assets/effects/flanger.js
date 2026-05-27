@@ -1,5 +1,33 @@
 // Synth Lab - Flanger Effect
 // Classic flanger with LFO-modulated delay and feedback
+//
+// -----------------------------------------------------------------------
+// EDUCATIONAL NOTES: Flanger — Comb Filter with Swept Delay [FX-042]
+// -----------------------------------------------------------------------
+// A flanger is a very short modulated delay (1-20ms) WITH feedback.
+// The feedback creates a comb filter: the frequency response has peaks
+// and notches at harmonics of 1/delay_time. The LFO sweeps the delay,
+// moving the comb teeth up and down the spectrum — producing the
+// characteristic "jet engine" swoosh.
+//
+// Transfer function: H(z) = 1 + g * z^(-M)
+//   where M is the (modulated) delay in samples, g is feedback gain.
+//   Peaks occur at frequencies f_n = n * (sampleRate / M).
+//
+// Reference:
+//   Roads, C. (1996) The Computer Music Tutorial, MIT Press
+//   Dattorro, J. (1997) "Effect Design Part 2", JAES 45(10)
+//
+// History: The effect was discovered by John Lennon and engineer Ken
+// Townsend at Abbey Road Studios (1966). They pressed a finger against
+// a tape reel flange to slow it, creating a sweeping phase cancellation
+// with the other deck's playback. The name "flanging" stuck.
+//
+// Positive vs negative feedback: Positive feedback reinforces the comb
+// peaks (resonant, metallic). Negative feedback inverts the comb pattern,
+// turning peaks into notches — a hollow, nasal sound. This is why the
+// feedback parameter allows both positive and negative values (-95..+95%).
+// -----------------------------------------------------------------------
 
 (function() {
   var SL = window.SynthLab;
@@ -34,6 +62,9 @@
       super(ctx, 'flanger');
 
       // Create delay node - short max delay for flanger (50ms is plenty)
+      // Flanger delays are much shorter than chorus (1-20ms vs 5-30ms).
+      // At these short delays, the comb filter's first null falls within
+      // the audible range (e.g., 5ms delay -> first null at 200Hz).
       this.delayNode = ctx.createDelay(0.05);
       this.delayNode.delayTime.value = 0.005; // Default 5ms base delay
 
@@ -57,6 +88,10 @@
       this.delayNode.connect(this.wetGain);
 
       // Feedback loop: delayNode output -> feedbackGain -> delayNode input
+      // This recirculating path is what distinguishes flanging from chorus.
+      // Each pass through the delay reinforces the comb filter peaks,
+      // making them taller and narrower (more resonant). Higher feedback
+      // produces a more metallic, ringing character.
       this.delayNode.connect(this.feedbackGain);
       this.feedbackGain.connect(this.delayNode);
 

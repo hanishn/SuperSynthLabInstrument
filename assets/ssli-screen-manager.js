@@ -40,6 +40,66 @@ SL.state = (function () {
 })();
 
 // ============================================================
+// Module-scope helpers (no IIFE closure needed — use globals only)
+// ============================================================
+
+function _ssliReleaseAllControllers() {
+    if (SL.controllers) {
+        var ctrlNames = Object.keys(SL.controllers);
+        for (var ci = 0; ci < ctrlNames.length; ci++) {
+            var ctrl = SL.controllers[ctrlNames[ci]];
+            if (ctrl && ctrl.release) {
+                try { ctrl.release(); } catch (releaseErr) { /* release is best-effort */ }
+            }
+        }
+    }
+}
+
+function _ssliResumeAudioContext() {
+    var ctx = null;
+    if (SL.audio && SL.audio.getCtx) {
+        ctx = SL.audio.getCtx();
+        var isSuspended = ctx && (ctx.state === 'suspended');
+        if (isSuspended) {
+            ctx.resume().catch(function(resumeErr) {
+                console.error('[ssli] AudioContext resume failed:', resumeErr);
+            });
+        }
+    }
+}
+
+function _ssliInitEffectChainIfNeeded() {
+    var canInitEffectChain = SL.audio && SL.audio.initEffectChain;
+    var shouldInitEffectChain = canInitEffectChain && !SL.audio.effectChain;
+    if (shouldInitEffectChain) {
+        SL.audio.initEffectChain();
+        if (SL.effectsUI && SL.effectsUI.init) {
+            SL.effectsUI.init();
+        }
+    }
+}
+
+function _ssliResolvePresetName() {
+    var name = 'Preset';
+    var canQueryPresetInstrument = SL.audio && SL.audio.getInstruments;
+    var hasPresetInstrumentQuery = canQueryPresetInstrument && SL.audio.getCurrentInstrument;
+    if (hasPresetInstrumentQuery) {
+        var insts = SL.audio.getInstruments();
+        var id = SL.audio.getCurrentInstrument();
+        var inst = (insts && insts[id]) ? insts[id] : null;
+        if (inst) {
+            var hasPresetName = inst.settings && inst.settings.presetName;
+            if (hasPresetName) {
+                name = inst.settings.presetName;
+            } else if (inst.name) {
+                name = inst.name;
+            }
+        }
+    }
+    return name;
+}
+
+// ============================================================
 // Screen Manager
 // ============================================================
 SL.screens = (function () {
@@ -126,19 +186,25 @@ SL.screens = (function () {
         } catch (e) { /* localStorage may be unavailable */ }
     }
 
+    function _isValidScreenId(id) {
+        var found = false;
+        for (var i = 0; i < SCREEN_IDS.length; i++) {
+            if (SCREEN_IDS[i] === id) {
+                found = true;
+            }
+        }
+        return found;
+    }
+
     function _loadScreen() {
+        var result = DEFAULT_SCREEN;
         try {
             var saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) {
-                // Validate it is one of our screens
-                for (var i = 0; i < SCREEN_IDS.length; i++) {
-                    if (SCREEN_IDS[i] === saved) {
-                        return saved;
-                    }
-                }
+            if (saved && _isValidScreenId(saved)) {
+                result = saved;
             }
         } catch (e) { /* localStorage may be unavailable */ }
-        return DEFAULT_SCREEN;
+        return result;
     }
 
     function switchTo(screenId) {
@@ -180,65 +246,52 @@ SL.screens = (function () {
     // Audio Initialization (deferred to first user gesture)
     // --------------------------------------------------------
 
+    var ENGINES = [
+        'fm', 'physical', 'additive', 'granular', 'vocoderSynth',
+        'wavefolder', 'formant', 'modal', 'ringmod', 'chord',
+        'superwave', 'wavetableSynth', 'phasedist', 'chip',
+        'bytebeat', 'vector', 'drumsyn', 'pulsar', 'bodyResonance', 'reed'
+    ];
+
+    function _initAllEngines() {
+        for (var ei = 0; ei < ENGINES.length; ei++) {
+            var hasInit = SL[ENGINES[ei]] && SL[ENGINES[ei]].init;
+            if (hasInit) {
+                try { SL[ENGINES[ei]].init(); } catch (engineErr) { /* engine init failure is non-fatal; retried on first note */ }
+            }
+        }
+    }
+
+    function _retryUnreadyEngines() {
+        // Note: worklet engines (physical, FM, formant) have on-demand
+        // fallback init in their noteOn() — if worklet isn't ready when a
+        // note fires, they auto-init fallback voices and retry.
+        for (var ri = 0; ri < ENGINES.length; ri++) {
+            var eng = SL[ENGINES[ri]];
+            var hasEngineInit = eng && eng.init && eng.isReady;
+            var engineNeedsInit = hasEngineInit && !eng.isReady();
+            if (engineNeedsInit) {
+                try { eng.init(); } catch (retryErr) { /* best-effort retry; engine will init on first note if needed */ }
+            }
+        }
+    }
+
+    function _onVisibilityChange() {
+        var isVisible = (document.visibilityState === 'visible');
+        if (isVisible && isAudioInitialized) {
+            _acquireWakeLock();
+        }
+    }
+
     function _initAudioIfNeeded() {
         if (!isAudioInitialized) {
         isAudioInitialized = true;
 
         try {
-            // Create and resume AudioContext on this user gesture
-            var ctx = null;
-            if (SL.audio && SL.audio.getCtx) {
-                ctx = SL.audio.getCtx();
-                if (ctx && ctx.state === 'suspended') {
-                    ctx.resume().catch(function(resumeErr) {
-                        console.error('[ssli] AudioContext resume failed:', resumeErr);
-                    });
-                }
-            }
-
-            // Initialize the effect chain (audio routing) BEFORE engine inits.
-            var canInitEffectChain = SL.audio && SL.audio.initEffectChain;
-            var shouldInitEffectChain = canInitEffectChain && !SL.audio.effectChain;
-            if (shouldInitEffectChain) {
-                SL.audio.initEffectChain();
-                if (SL.effectsUI && SL.effectsUI.init) {
-                    SL.effectsUI.init();
-                }
-            }
-
-            // Initialize synth engines (first pass — may partially fail if
-            // AudioContext hasn't fully resumed yet; _ensureEngineReady in
-            // ssli-screen-sound.js will re-init on first preset apply)
-            var ENGINES = [
-                'fm', 'physical', 'additive', 'granular', 'vocoderSynth',
-                'wavefolder', 'formant', 'modal', 'ringmod', 'chord',
-                'superwave', 'wavetableSynth', 'phasedist', 'chip',
-                'bytebeat', 'vector', 'drumsyn', 'pulsar', 'bodyResonance', 'reed'
-            ];
-            for (var ei = 0; ei < ENGINES.length; ei++) {
-                if (SL[ENGINES[ei]] && SL[ENGINES[ei]].init) {
-                    try { SL[ENGINES[ei]].init(); } catch (engineErr) { /* engine init failure is non-fatal; retried on first note */ }
-                }
-            }
-
-            // Second pass after a short delay to catch engines that needed
-            // the AudioContext to be fully running. Also ensure fallback
-            // voices are initialized for worklet-based engines (physical,
-            // FM, formant) so notes aren't dropped while worklets load.
-            setTimeout(function() {
-                var WORKLET_ENGINES = ['physical', 'fm', 'formant'];
-                for (var ri = 0; ri < ENGINES.length; ri++) {
-                    var eng = SL[ENGINES[ri]];
-                    var hasEngineInit = eng && eng.init && eng.isReady;
-                    var engineNeedsInit = hasEngineInit && !eng.isReady();
-                    if (engineNeedsInit) {
-                        try { eng.init(); } catch (retryErr) { /* best-effort retry; engine will init on first note if needed */ }
-                    }
-                }
-                // Note: worklet engines (physical, FM, formant) have on-demand
-                // fallback init in their noteOn() — if worklet isn't ready when a
-                // note fires, they auto-init fallback voices and retry.
-            }, 200);
+            _ssliResumeAudioContext();
+            _ssliInitEffectChainIfNeeded();
+            _initAllEngines();
+            setTimeout(_retryUnreadyEngines, 200);
         } catch (e) {
             console.error('[ssli] Audio init error:', e);
         }
@@ -247,29 +300,33 @@ SL.screens = (function () {
         _acquireWakeLock();
 
         // Re-acquire wake lock when page becomes visible again (e.g. tab switch)
-        document.addEventListener('visibilitychange', function() {
-            if (document.visibilityState === 'visible' && isAudioInitialized) {
-                _acquireWakeLock();
-            }
-        });
+        document.addEventListener('visibilitychange', _onVisibilityChange);
         } // end if (!isAudioInitialized)
     }
 
+    function _onWakeLockRelease() {
+        _wakeLockSentinel = null;
+    }
+
+    function _onWakeLockAcquired(sentinel) {
+        _wakeLockSentinel = sentinel;
+        sentinel.addEventListener('release', _onWakeLockRelease);
+    }
+
+    function _onWakeLockError(err) {
+        console.warn('[ssli] Wake lock request failed:', err.message);
+    }
+
     function _acquireWakeLock() {
-        if ('wakeLock' in navigator) {
+        var hasWakeLock = ('wakeLock' in navigator);
+        if (!hasWakeLock) { return; }
         try {
-            navigator.wakeLock.request('screen').then(function(sentinel) {
-                _wakeLockSentinel = sentinel;
-                sentinel.addEventListener('release', function() {
-                    _wakeLockSentinel = null;
-                });
-            }).catch(function(err) {
-                console.warn('[ssli] Wake lock request failed:', err.message);
-            });
+            navigator.wakeLock.request('screen')
+              .then(_onWakeLockAcquired)
+              .catch(_onWakeLockError);
         } catch (wakeLockErr) {
             console.warn('[ssli] Wake lock not supported:', wakeLockErr.message);
         }
-        } // end if ('wakeLock' in navigator)
     }
 
     // --------------------------------------------------------
@@ -327,8 +384,9 @@ SL.screens = (function () {
     function _checkOrientation() {
         var overlay = document.getElementById('ssli-rotate-overlay');
         if (overlay) {
-            var isPhone = ((window.innerWidth < PHONE_MAX_DIM && window.innerHeight < PHONE_MAX_OTHER_DIM) ||
-                          (window.innerHeight < PHONE_MAX_DIM && window.innerWidth < PHONE_MAX_OTHER_DIM));
+            var widthSmall = (window.innerWidth < PHONE_MAX_DIM) && (window.innerHeight < PHONE_MAX_OTHER_DIM);
+            var heightSmall = (window.innerHeight < PHONE_MAX_DIM) && (window.innerWidth < PHONE_MAX_OTHER_DIM);
+            var isPhone = widthSmall || heightSmall;
             var isPortrait = window.innerHeight > window.innerWidth;
             var shouldShowRotateOverlay = isPhone && isPortrait && isAppVisible;
             if (shouldShowRotateOverlay) {
@@ -372,20 +430,24 @@ SL.screens = (function () {
         }
 
         // 6. Release all controller surfaces that track active pointers
-        if (SL.controllers) {
-            var ctrlNames = Object.keys(SL.controllers);
-            for (var ci = 0; ci < ctrlNames.length; ci++) {
-                var ctrl = SL.controllers[ctrlNames[ci]];
-                if (ctrl && ctrl.release) {
-                    try { ctrl.release(); } catch (releaseErr) { /* release is best-effort; controller may already be detached */ }
-                }
-            }
-        }
+        _ssliReleaseAllControllers();
 
         // 7. Remove visual active states from all controller elements
-        var activeEls = document.querySelectorAll('.ctrl-harp-active, .ctrl-chord-active, .ctrl-loom-active, .ctrl-marimba-active, .ctrl-linn-active, .perf-active, .playing, .active');
+        // These ctrl-* classes are defined/owned by the controller modules (ssli-ctrl-*.js)
+        // but must be cleaned up here during panic to ensure a consistent visual reset.
+        var CTRL_ACTIVE_CLASSES = ['ctrl-harp-active', 'ctrl-chord-active', 'ctrl-loom-active', 'ctrl-marimba-active', 'ctrl-linn-active'];
+        var PANEL_ACTIVE_CLASSES = ['perf-active', 'playing'];
+        var allActiveClasses = CTRL_ACTIVE_CLASSES.concat(PANEL_ACTIVE_CLASSES);
+        var selectorParts = [];
+        for (var ci = 0; ci < allActiveClasses.length; ci++) {
+            selectorParts.push('.' + allActiveClasses[ci]);
+        }
+        selectorParts.push('.active');
+        var activeEls = document.querySelectorAll(selectorParts.join(', '));
         for (var i = 0; i < activeEls.length; i++) {
-            activeEls[i].classList.remove('ctrl-harp-active', 'ctrl-chord-active', 'ctrl-loom-active', 'ctrl-marimba-active', 'ctrl-linn-active', 'perf-active', 'playing');
+            for (var ri = 0; ri < allActiveClasses.length; ri++) {
+                activeEls[i].classList.remove(allActiveClasses[ri]);
+            }
         }
 
         // 8. Belt-and-suspenders: invoke PanicRegistry to catch anything the
@@ -417,6 +479,36 @@ SL.screens = (function () {
     var PANIC_FLASH_MS = 300;
     var PANIC_FLASH_CLASS = 'ssli-panic-flash';
 
+    function _handlePanicClick() {
+        var isRegistryFired = false;
+        if (SL.PanicRegistry && SL.PanicRegistry.executePanic) {
+            try {
+                SL.PanicRegistry.executePanic(false, false);
+                isRegistryFired = true;
+            } catch (regErr) {
+                console.warn('[panic-overlay] registry error:', regErr);
+            }
+        }
+        // Belt-and-suspenders: legacy sweep. _performPanic() also calls
+        // PanicRegistry internally; that is fine -- panic is idempotent.
+        try {
+            _performPanic();
+        } catch (legacyErr) {
+            console.warn('[panic-overlay] legacy sweep error:', legacyErr);
+        }
+        // Visual confirmation flash (green to confirm fire).
+        var btn = document.getElementById(PANIC_OVERLAY_ID);
+        if (btn) {
+            btn.classList.add(PANIC_FLASH_CLASS);
+            setTimeout(function() {
+                btn.classList.remove(PANIC_FLASH_CLASS);
+            }, PANIC_FLASH_MS);
+        }
+        if (!isRegistryFired) {
+            console.warn('[panic-overlay] PanicRegistry unavailable -- relied on legacy sweep only');
+        }
+    }
+
     function createMuteButton() {
         // The old left-rail Panic nav item has been removed. This function
         // now builds a universal top-right PANIC overlay button instead.
@@ -439,32 +531,7 @@ SL.screens = (function () {
             '<circle cx="12" cy="18" r="0.8" fill="currentColor"/>' +
             '</svg>' +
             '<span class="ssli-panic-overlay-label">' + SL.t('ui.button.panic_label') + '</span>';
-        btn.addEventListener('click', function() {
-            var isRegistryFired = false;
-            if (SL.PanicRegistry && SL.PanicRegistry.executePanic) {
-                try {
-                    SL.PanicRegistry.executePanic(false, false);
-                    isRegistryFired = true;
-                } catch (regErr) {
-                    console.warn('[panic-overlay] registry error:', regErr);
-                }
-            }
-            // Belt-and-suspenders: legacy sweep. _performPanic() also calls
-            // PanicRegistry internally; that is fine — panic is idempotent.
-            try {
-                _performPanic();
-            } catch (legacyErr) {
-                console.warn('[panic-overlay] legacy sweep error:', legacyErr);
-            }
-            // Visual confirmation flash (green to confirm fire).
-            btn.classList.add(PANIC_FLASH_CLASS);
-            setTimeout(function() {
-                btn.classList.remove(PANIC_FLASH_CLASS);
-            }, PANIC_FLASH_MS);
-            if (!isRegistryFired) {
-                console.warn('[panic-overlay] PanicRegistry unavailable — relied on legacy sweep only');
-            }
-        });
+        btn.addEventListener('click', _handlePanicClick);
         app.appendChild(btn);
         } // end if (app && !panicAlreadyExists)
     }
@@ -525,22 +592,7 @@ SL.screens = (function () {
     }
 
     function _resolvePresetName() {
-        var name = 'Preset';
-        var canQueryPresetInstrument = SL.audio && SL.audio.getInstruments;
-        var hasPresetInstrumentQuery = canQueryPresetInstrument && SL.audio.getCurrentInstrument;
-        if (hasPresetInstrumentQuery) {
-            var insts = SL.audio.getInstruments();
-            var id = SL.audio.getCurrentInstrument();
-            var inst = (insts && insts[id]) ? insts[id] : null;
-            if (inst) {
-                if (inst.settings && inst.settings.presetName) {
-                    name = inst.settings.presetName;
-                } else if (inst.name) {
-                    name = inst.name;
-                }
-            }
-        }
-        return name;
+        return _ssliResolvePresetName();
     }
 
     function _resolveOctaveRange() {
@@ -569,6 +621,12 @@ SL.screens = (function () {
         }
     }
 
+    function _onStageBannerStateChange(what) {
+        if (SSLI_SM_STATE_CHANGE_KEYS[what]) {
+            _refreshStageBanner();
+        }
+    }
+
     function createStageBanner() {
         var app = document.getElementById(APP_ID);
         if (!app) { return; }
@@ -594,11 +652,7 @@ SL.screens = (function () {
 
         // React to state changes emitted by preset/instrument flows.
         if (SL.state && SL.state.onChange) {
-            SL.state.onChange(function(what) {
-                if (SSLI_SM_STATE_CHANGE_KEYS[what]) {
-                    _refreshStageBanner();
-                }
-            });
+            SL.state.onChange(_onStageBannerStateChange);
         }
         // Poll for octave range (changed inside screenPlay closure).
         if (_stageBannerPollId) { clearInterval(_stageBannerPollId); }
@@ -665,6 +719,23 @@ SL.screens = (function () {
     }
 
     // --------------------------------------------------------
+    // Nav button wiring helper
+    // --------------------------------------------------------
+
+    function _wireNavButton(btn) {
+        btn.addEventListener('click', function() {
+            var screen = btn.getAttribute('data-screen');
+            if (screen) {
+                switchTo(screen);
+            }
+        });
+    }
+
+    function _screenIdToModName(screenId) {
+        return 'screen' + screenId.charAt(0).toUpperCase() + screenId.slice(1);
+    }
+
+    // --------------------------------------------------------
     // Init
     // --------------------------------------------------------
 
@@ -694,14 +765,7 @@ SL.screens = (function () {
         // Wire up nav buttons
         var navButtons = _getNavButtons();
         for (var i = 0; i < navButtons.length; i++) {
-            (function(btn) {
-                btn.addEventListener('click', function() {
-                    var screen = btn.getAttribute('data-screen');
-                    if (screen) {
-                        switchTo(screen);
-                    }
-                });
-            })(navButtons[i]);
+            _wireNavButton(navButtons[i]);
         }
 
         // Orientation change detection
@@ -714,9 +778,6 @@ SL.screens = (function () {
         if (SL.midi && SL.midi.setup) { SL.midi.setup(); }
 
         // Register screen modules if they exist
-        function _screenIdToModName(screenId) {
-            return 'screen' + screenId.charAt(0).toUpperCase() + screenId.slice(1);
-        }
         for (var s = 0; s < SCREEN_IDS.length; s++) {
             var name = SCREEN_IDS[s];
             var modName = _screenIdToModName(name);

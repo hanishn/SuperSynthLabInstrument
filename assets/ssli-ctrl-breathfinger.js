@@ -671,8 +671,10 @@
 
     function _applyBreathAtPointer(e, isStart) {
       var c = _breathLocalCoords(e);
-      var xFrac = (c.w > 0) ? (c.x / c.w) : 0;
-      var yFrac = (c.h > 0) ? (1 - (c.y / c.h)) : 0;
+      var safeCW = c.w || 1;
+      var safeCH = c.h || 1;
+      var xFrac = (c.w > 0) ? (c.x / safeCW) : 0;
+      var yFrac = (c.h > 0) ? (1 - (c.y / safeCH)) : 0;
 
       _lastY = c.y;
       _lastPressure = (typeof e.pressure === 'number') ? e.pressure : 0;

@@ -7,6 +7,22 @@
   var SL = window.SynthLab;
   var _cachedMethodEl = null;
   var _cachedRefHzEl = null;
+  var MAX_SUPERSAW_HARMONICS_IS = 48;
+
+  function _supersawFallbackVoiceIS(detuneCents, spreadFactor, oscFreq, t, TWO_PI, detuneCount) {
+    var actualDetune = detuneCents * spreadFactor;
+    var voiceFreq = oscFreq * Math.pow(2, actualDetune / 1200);
+    var voicePh = TWO_PI * voiceFreq * t;
+    var voiceMH = Math.min(SL.audio.maxH(voiceFreq), MAX_SUPERSAW_HARMONICS_IS);
+    var voiceSample = 0;
+    for (var h = 1; h <= voiceMH; h++) {
+      var safeH = h || 1;
+      voiceSample += SL.audio.fastSin(voicePh * h) / safeH;
+    }
+    voiceSample *= 2 / Math.PI;
+    var safeDetuneCount = detuneCount || 1;
+    return voiceSample / safeDetuneCount;
+  }
 
   // Track active non-workvar notes so they can be killed on noteOff.
   // Key: "instId:midi", Value: array of { gain, sources }
@@ -446,10 +462,15 @@
           };
         }
 
-        SL.audio.workletNoteOn(midi, dur, oscSet, adsr, refHz, instId, extraParams);
+        SL.audio.workletNoteOn({ midi: midi, dur: dur, oscSettings: oscSet, adsr: adsr, refHz: refHz, instId: instId, extraParams: extraParams });
       } else {
         console.warn('Workvar not available, falling back to band-limited synthesis');
-        SL.audio._playNoteFallbackWithDestination(midi, dur, adsr, oscSet, filterSettings, filterEnvSettings, sr, TWO_PI, c, destination);
+        var fallbackOpts = {
+          midi: midi, dur: dur, adsr: adsr, oscSet: oscSet,
+          filterSettings: filterSettings, filterEnvSettings: filterEnvSettings,
+          sr: sr, TWO_PI: TWO_PI, c: c, destination: destination
+        };
+        SL.audio._playNoteFallbackWithDestination(fallbackOpts);
       }
     } else if (m === 'oscillator') {
       var oscDur = Math.min(dur, 30);
@@ -576,16 +597,7 @@
               });
             } else {
               SUPERSAW_DETUNES.forEach(function(detuneCents) {
-                var actualDetune = detuneCents * spreadFactor;
-                var voiceFreq = oscFreq * Math.pow(2, actualDetune / 1200);
-                var voicePh = TWO_PI * voiceFreq * t;
-                var voiceMH = Math.min(SL.audio.maxH(voiceFreq), 48);
-                var voiceSample = 0;
-                for (var h = 1; h <= voiceMH; h++) {
-                  voiceSample += SL.audio.fastSin(voicePh * h) / h;
-                }
-                voiceSample *= 2 / Math.PI;
-                sample += voiceSample / SUPERSAW_DETUNES.length;
+                sample += _supersawFallbackVoiceIS(detuneCents, spreadFactor, oscFreq, t, TWO_PI, SUPERSAW_DETUNES.length);
               });
             }
           } else {
@@ -942,14 +954,18 @@
       // Save partial amplitudes from UI sliders
       for (var pi = 0; pi < 16; pi++) {
         var partialEl = document.getElementById('additivePartial' + pi);
-        if (partialEl && settings.additiveSettings && settings.additiveSettings.partials && settings.additiveSettings.partials[pi]) {
+        var hasAdditivePartials = (settings.additiveSettings && settings.additiveSettings.partials && settings.additiveSettings.partials[pi]);
+        var canSavePartial = (partialEl && hasAdditivePartials);
+        if (canSavePartial) {
           settings.additiveSettings.partials[pi].amplitude = parseFloat(partialEl.value) / 100;
         }
       }
       // Save drawbar values from UI sliders
       for (var di = 0; di < 9; di++) {
         var drawbarEl = document.getElementById('additiveDrawbar' + di);
-        if (drawbarEl && settings.additiveSettings && settings.additiveSettings.drawbars) {
+        var hasAdditiveDrawbars = (settings.additiveSettings && settings.additiveSettings.drawbars);
+        var canSaveDrawbar = (drawbarEl && hasAdditiveDrawbars);
+        if (canSaveDrawbar) {
           settings.additiveSettings.drawbars[di] = parseInt(drawbarEl.value) || 0;
         }
       }
@@ -1572,7 +1588,9 @@
       // Update partial sliders
       for (var pi = 0; pi < 16; pi++) {
         var partialEl = document.getElementById('additivePartial' + pi);
-        if (partialEl && addSettings.partials && addSettings.partials[pi]) {
+        var hasPartialData = (addSettings.partials && addSettings.partials[pi]);
+        var canUpdatePartialSlider = (partialEl && hasPartialData);
+        if (canUpdatePartialSlider) {
           partialEl.value = Math.round(addSettings.partials[pi].amplitude * 100);
         }
       }
