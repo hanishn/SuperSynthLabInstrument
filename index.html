@@ -18403,11 +18403,15 @@ html[data-layout="phone-land"] .ssli-acid-step-pitch-btn {
   margin-inline: auto;
   overflow: visible;
 }
-.ssli-breathpadens-controls > div {
-  box-sizing: border-box;
-  margin-top: 0;
-  margin-bottom: 0;
-  overflow: visible;
+.ssli-breathpadens-select {
+  height: 28px !important;
+  max-height: 28px !important;
+  min-height: 0 !important;
+  max-width: 120px !important;
+  font-size: 13px !important;
+  padding: 2px 6px !important;
+  box-sizing: border-box !important;
+  flex: 0 0 auto !important;
 }
 /* Breath pad ensemble note grid buttons: taller to fill the grid rows */
 .ssli-breathpad-note-btn {
@@ -25574,7 +25578,7 @@ html[data-no-backgrounds] {
 <div class="ssl-about-panel">
 <button class="ssl-about-close" onclick="document.getElementById('ssliAboutOverlay').style.display='none';" aria-label="Close">&times;</button>
 <h2 class="ssl-about-title" data-i18n="dialog.about.title">Super Synth Lab - Instrument</h2>
-<p id="ssliAboutVersion" class="ssl-about-version">Version: Super Synth Lab - Instrument v1.10.1159</p>
+<p id="ssliAboutVersion" class="ssl-about-version">Version: Super Synth Lab - Instrument v1.10.1163</p>
 <div class="ssl-about-body">
 <p data-i18n="dialog.about.description">Super Synth Lab - Instrument is a focused synthesizer with 17+ synth engines, effects chain, and MIDI support. Play, shape your sound, and perform -- all from 5 streamlined screens.</p>
 <details class="ssl-about-details"><summary data-i18n="dialog.about.features_header">What can Super Synth Lab - Instrument do?</summary>
@@ -25623,7 +25627,7 @@ html[data-no-backgrounds] {
 <div class="ssli-landing-edition" data-i18n="app.edition">Public Build</div>
 <div class="ssli-landing-subtitle" data-i18n="app.tagline">Every Sound. One Instrument.</div>
 <div class="ssli-landing-credit">Created by Nathan Hanish 2026</div>
-<div class="ssli-landing-version">v1.10.1159</div>
+<div class="ssli-landing-version">v1.10.1163</div>
 </div>
 <svg class="ssl-waveform-divider" viewBox="0 0 400 30" preserveAspectRatio="none" style="width:80%;max-width:500px;height:30px;margin:12px auto;display:block;opacity:0.3;"><path d="M0,15 Q25,5 50,15 T100,15 T150,15 T200,15 T250,15 T300,15 T350,15 T400,15" fill="none" stroke="url(#ssliWaveGrad)" stroke-width="1.5"/><defs><linearGradient id="ssliWaveGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#4cc9f0"/><stop offset="50%" stop-color="#7209b7"/><stop offset="100%" stop-color="#f72585"/></linearGradient></defs></svg>
 <div class="ssli-landing-actions">
@@ -193824,47 +193828,28 @@ var SynthLab = window.SynthLab || {};
     controlRow.style.gap = CONTROL_GAP_PX + 'px';
     controlRow.style.padding = '4px ' + PAD_PADDING_PX + 'px';
     controlRow.style.height = CONTROL_ROW_HEIGHT_PX + 'px';
+    controlRow.style.maxHeight = CONTROL_ROW_HEIGHT_PX + 'px';
     controlRow.style.boxSizing = 'border-box';
     controlRow.style.flex = '0 0 auto';
+    controlRow.style.overflow = 'hidden';
 
-    // Helper: create a labeled dropdown group (label + select in a wrapper div)
-    function _makeLabeledSelect(labelText, selectEl) {
-      var group = document.createElement('div');
-      group.style.display = 'flex';
-      group.style.flexDirection = 'column';
-      group.style.alignItems = 'flex-start';
-      group.style.gap = '1px';
-
-      var lbl = document.createElement('span');
-      lbl.className = 'ssli-breathpadens-dropdown-label';
-      lbl.textContent = labelText;
-      lbl.style.fontSize = '9px';
-      lbl.style.fontFamily = 'monospace';
-      lbl.style.color = 'rgba(200, 220, 240, 0.75)';
-      lbl.style.letterSpacing = '0.5px';
-      lbl.style.pointerEvents = 'none';
-      group.appendChild(lbl);
-      group.appendChild(selectEl);
-      return group;
-    }
-
-    // Octave dropdown
+    // Octave dropdown — inline label in option text, same as fretboard pattern
     var octSelect = document.createElement('select');
-    octSelect.className = 'ssli-breathpadens-oct-select';
+    octSelect.className = 'ssli-breathpadens-select ssli-breathpadens-oct-select';
     octSelect.title = SL.t('breathpadens.octave_title');
     var oi;
     for (oi = OCTAVE_MIN; oi <= OCTAVE_MAX; oi++) {
       var oOpt = document.createElement('option');
       oOpt.value = String(oi);
-      oOpt.textContent = String(oi);
+      oOpt.textContent = 'Oct ' + oi;
       if (oi === _baseOctave) { oOpt.selected = true; }
       octSelect.appendChild(oOpt);
     }
-    controlRow.appendChild(_makeLabeledSelect('Octave', octSelect));
+    controlRow.appendChild(octSelect);
 
     // Chord-quality dropdown
     var chordSelect = document.createElement('select');
-    chordSelect.className = 'ssli-breathpadens-chord-select';
+    chordSelect.className = 'ssli-breathpadens-select ssli-breathpadens-chord-select';
     chordSelect.title = SL.t('breathpadens.chord_title');
     var ci;
     for (ci = 0; ci < CHORD_KEYS.length; ci++) {
@@ -193875,35 +193860,35 @@ var SynthLab = window.SynthLab || {};
       if (cKey === _chordKey) { cOpt.selected = true; }
       chordSelect.appendChild(cOpt);
     }
-    controlRow.appendChild(_makeLabeledSelect('Chord', chordSelect));
+    controlRow.appendChild(chordSelect);
 
     // Inversion dropdown
     var invSelect = document.createElement('select');
-    invSelect.className = 'ssli-breathpadens-inv-select';
+    invSelect.className = 'ssli-breathpadens-select ssli-breathpadens-inv-select';
     invSelect.title = SL.t('breathpadens.inversion_title');
     var ii2;
     for (ii2 = INVERSION_MIN; ii2 <= INVERSION_MAX; ii2++) {
       var iOpt = document.createElement('option');
       iOpt.value = String(ii2);
-      iOpt.textContent = String(ii2);
+      iOpt.textContent = 'Inv ' + ii2;
       if (ii2 === _inversion) { iOpt.selected = true; }
       invSelect.appendChild(iOpt);
     }
-    controlRow.appendChild(_makeLabeledSelect('Inversion', invSelect));
+    controlRow.appendChild(invSelect);
 
     // Note count dropdown
     var countSelect = document.createElement('select');
-    countSelect.className = 'ssli-breathpadens-count-select';
+    countSelect.className = 'ssli-breathpadens-select ssli-breathpadens-count-select';
     countSelect.title = SL.t('breathpadens.notecount_title');
     var nci;
     for (nci = NOTE_COUNT_MIN; nci <= NOTE_COUNT_MAX; nci++) {
       var nOpt = document.createElement('option');
       nOpt.value = String(nci);
-      nOpt.textContent = String(nci);
+      nOpt.textContent = nci + ' Notes';
       if (nci === _noteCount) { nOpt.selected = true; }
       countSelect.appendChild(nOpt);
     }
-    controlRow.appendChild(_makeLabeledSelect('Notes', countSelect));
+    controlRow.appendChild(countSelect);
 
     wrapper.appendChild(controlRow);
 
@@ -193924,12 +193909,14 @@ var SynthLab = window.SynthLab || {};
     noteGrid.className = 'ssli-breathpadens-note-grid';
     noteGrid.style.display = 'grid';
     noteGrid.style.gridTemplateColumns = 'repeat(' + NOTE_GRID_COLS + ', 1fr)';
-    noteGrid.style.gridTemplateRows = 'repeat(' + NOTE_GRID_ROWS + ', 1fr)';
+    noteGrid.style.gridTemplateRows = 'repeat(' + NOTE_GRID_ROWS + ', auto)';
     noteGrid.style.gap = NOTE_GRID_GAP_PX + 'px';
     noteGrid.style.padding = NOTE_GRID_GAP_PX + 'px';
     noteGrid.style.width = NOTE_GRID_WIDTH_PX + 'px';
     noteGrid.style.boxSizing = 'border-box';
     noteGrid.style.flex = '0 0 auto';
+    noteGrid.style.alignSelf = 'flex-start';
+    noteGrid.style.overflow = 'hidden';
     mainRow.appendChild(noteGrid);
 
     var _ensNoteButtons = null;
@@ -193950,8 +193937,8 @@ var SynthLab = window.SynthLab || {};
         btn.style.padding = '2px 2px';
         btn.style.fontSize = '12px';
         btn.style.textAlign = 'center';
-        btn.style.minHeight = '42px';
-        btn.style.minWidth = '42px';
+        btn.style.minHeight = '0';
+        btn.style.minWidth = '0';
         if (ni === _rootPc) {
           btn.className += ' ssli-fret-chord-active';
         }

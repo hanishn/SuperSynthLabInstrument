@@ -3782,11 +3782,15 @@ html[data-layout="phone-land"] .ssli-acid-step-pitch-btn {
   margin-inline: auto;
   overflow: visible;
 }
-.ssli-breathpadens-controls > div {
-  box-sizing: border-box;
-  margin-top: 0;
-  margin-bottom: 0;
-  overflow: visible;
+.ssli-breathpadens-select {
+  height: 28px !important;
+  max-height: 28px !important;
+  min-height: 0 !important;
+  max-width: 120px !important;
+  font-size: 13px !important;
+  padding: 2px 6px !important;
+  box-sizing: border-box !important;
+  flex: 0 0 auto !important;
 }
 /* Breath pad ensemble note grid buttons: taller to fill the grid rows */
 .ssli-breathpad-note-btn {

@@ -3,7 +3,7 @@
 
 // CACHE_VERSION is auto-bumped by build_exhibit.py on every build so that
 // installed service workers invalidate stale caches and pick up new code.
-var CACHE_VERSION = 'ssli-cache-v1.10.1136';
+var CACHE_VERSION = 'ssli-cache-v1.10.1163';
 var CACHED_URLS = [
   './',
   './SuperSynthLabInstrument.html'
