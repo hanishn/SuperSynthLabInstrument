@@ -1,5 +1,15 @@
 {
-  "css_files": [
+  "code": "ssli",
+  "name": "Super Synth Lab - Instrument",
+  "description": "Browser synthesizer instrument with 21 synth engines, 34 effects, 28 languages",
+
+  "exhibit": {
+    "public_id": "exhibit-1744300000000-ssli",
+    "internal_id": "exhibit-1744300000001-ssli-internal",
+    "tags": ["music", "audio", "synthesizer", "keyboard", "instrument", "midi", "effects", "audioworklet"]
+  },
+
+  "css_shared": [
     "styles/design-tokens.css",
     "styles/base.css",
     "styles/colors.css",
@@ -39,7 +49,9 @@
     "styles/drum-pads.css",
     "styles/sidebar.css",
     "styles/start-screen.css",
-    "styles/fullscreen.css",
+    "styles/fullscreen.css"
+  ],
+  "css_product": [
     "styles/ssli.css",
     "styles/ssli-acid.css",
     "styles/ctrl-vowelpad.css",
@@ -59,13 +71,18 @@
     "styles/ctrl-mpe.css",
     "styles/backgrounds.css"
   ],
-  "js_files": [
+
+  "js_shared": [
     "localization.js",
     "constants.js",
     "panic-registry.js",
     "icons.js",
-    "quad-layout.js",
-    "ssli-screen-manager.js",
+    "quad-layout.js"
+  ],
+  "js_product_early": [
+    "ssli-screen-manager.js"
+  ],
+  "js_shared_2": [
     "tuning-system.js",
     "effects/effect-chain.js",
     "effects/distortion.js",
@@ -126,8 +143,12 @@
     "pulsar-engine.js",
     "body-resonance.js",
     "reed-engine.js",
-    "presets.js",
-    "ssli-api.js",
+    "presets.js"
+  ],
+  "js_product_late": [
+    "ssli-api.js"
+  ],
+  "js_shared_3": [
     "preset-ui.js",
     "mixer-modal.js",
     "ui-state.js",
@@ -138,7 +159,9 @@
     "midi.js",
     "midi-file.js",
     "midi-import.js",
-    "feedback.js",
+    "feedback.js"
+  ],
+  "js_product_final": [
     "ssli-chord-panel.js",
     "ssli-ctrl-piano.js",
     "ssli-ctrl-isogrid.js",
@@ -171,5 +194,30 @@
     "ssli-screen-acid.js",
     "ssli-screen-midi.js"
   ],
-  "init_script": "var _lb=document.getElementById('ssliLoadBar');if(_lb)_lb.style.width='100%';if(window._ssliLoadInterval)clearInterval(window._ssliLoadInterval);var _lsc=document.getElementById('ssliLoadingScreen');if(_lsc){_lsc.style.display='none';}try{if(SynthLab.quad&&SynthLab.quad.init){SynthLab.quad.init();}if(SynthLab.screens&&SynthLab.screens.init){SynthLab.screens.init();}if(SynthLab.screens&&SynthLab.screens.createHomeButton){SynthLab.screens.createHomeButton();}if(SynthLab.screens&&SynthLab.screens.createMuteButton){SynthLab.screens.createMuteButton();}if(SynthLab.screens&&SynthLab.screens.createStageBanner){SynthLab.screens.createStageBanner();}if(typeof SynthLab!=='undefined'&&SynthLab.init){SynthLab.init();}}catch(e){console.error('SSLI init error:',e);}"
+
+  "worklets": [
+    "synth-worklet.js",
+    "fm-worklet.js",
+    "physical-worklet.js",
+    "formant-worklet.js"
+  ],
+
+  "data_manifest": "data/_manifest.json",
+
+  "init_script": "var _lb=document.getElementById('ssliLoadBar');if(_lb)_lb.style.width='100%';if(window._ssliLoadInterval)clearInterval(window._ssliLoadInterval);var _lsc=document.getElementById('ssliLoadingScreen');if(_lsc){_lsc.style.display='none';}try{if(SynthLab.quad&&SynthLab.quad.init){SynthLab.quad.init();}if(SynthLab.screens&&SynthLab.screens.init){SynthLab.screens.init();}if(SynthLab.screens&&SynthLab.screens.createHomeButton){SynthLab.screens.createHomeButton();}if(SynthLab.screens&&SynthLab.screens.createMuteButton){SynthLab.screens.createMuteButton();}if(SynthLab.screens&&SynthLab.screens.createStageBanner){SynthLab.screens.createStageBanner();}if(typeof SynthLab!=='undefined'&&SynthLab.init){SynthLab.init();}}catch(e){console.error('SSLI init error:',e);}",
+
+  "variants": {
+    "public": {
+      "id": "exhibit-1744300000000-ssli",
+      "name": "Super Synth Lab - Instrument",
+      "edition": "Public Build",
+      "export_basename": "SuperSynthLabInstrument"
+    },
+    "internal": {
+      "id": "exhibit-1744300000001-ssli-internal",
+      "name": "Super Synth Lab - Instrument (Internal)",
+      "edition": "Internal Build",
+      "export_basename": "SuperSynthLabInstrument-Internal"
+    }
+  }
 }
