@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import json
 import os
+import re
 import sys
 
 
@@ -25,9 +26,15 @@ def exists(rel):
     return os.path.exists(os.path.join(ROOT, rel))
 
 
+def read(rel):
+    with open(os.path.join(ROOT, rel), "r", encoding="utf-8") as f:
+        return f.read()
+
+
 check("BUILD-001 root monorepo build script", exists("build.py"), "missing root build.py")
 check("BUILD-001 top-level build wrapper", exists("build/build.py"), "missing build/build.py")
 check("BUILD-001 product manifest", exists("products/ssli/product.json"), "missing products/ssli/product.json")
+check("BUILD-001 version manifest", exists("products/ssli/version.json"), "missing products/ssli/version.json")
 check("BUILD-001 shared assets root", exists("shared/assets"), "missing shared/assets directory")
 check("BUILD-001 shell source", exists("products/ssli/.shell.html"), "missing .shell.html")
 check("BUILD-001 assets root", exists("products/ssli/assets"), "missing assets directory")
@@ -42,6 +49,24 @@ check("SCAFFOLD-002 playwright dependency",
 check("FEATURE-001 build_area", exists("FeatureList/build_area.py"), "missing FeatureList/build_area.py")
 check("FEATURE-001 build_master", exists("FeatureList/build_master.py"), "missing FeatureList/build_master.py")
 check("FEATURE-001 index", exists("FeatureList/00-Index.md"), "missing FeatureList/00-Index.md")
+
+if exists("products/ssli/.shell.html"):
+    shell = read("products/ssli/.shell.html")
+    check("BUILD-003 shell version placeholder",
+          "__SSLI_VERSION__" in shell,
+          ".shell.html must use __SSLI_VERSION__; build.py injects the current version")
+    check("BUILD-003 no literal shell version",
+          re.search(r"v\d+\.\d+\.\d+", shell) is None,
+          ".shell.html must not hard-code the build number")
+
+if exists("products/ssli/sw.js"):
+    sw = read("products/ssli/sw.js")
+    check("BUILD-003 sw version placeholder",
+          "__SSLI_VERSION__" in sw,
+          "products/ssli/sw.js must use __SSLI_VERSION__")
+    check("BUILD-003 sw cache target placeholder",
+          "__SSLI_CACHE_TARGET__" in sw,
+          "products/ssli/sw.js must use __SSLI_CACHE_TARGET__")
 
 result = {
     "name": "source_inventory",

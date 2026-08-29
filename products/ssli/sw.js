@@ -1,12 +1,12 @@
 // Service Worker for Super Synth Lab Instrument (E-03)
 // Cache-first strategy for offline use after first load.
 
-// CACHE_VERSION is auto-bumped by build_exhibit.py on every build so that
+// CACHE_VERSION is injected by build.py on every build so that
 // installed service workers invalidate stale caches and pick up new code.
-var CACHE_VERSION = 'ssli-cache-v1.10.1177';
+var CACHE_VERSION = 'ssli-cache-__SSLI_VERSION__';
 var CACHED_URLS = [
   './',
-  './SuperSynthLabInstrument.html'
+  './__SSLI_CACHE_TARGET__'
 ];
 
 // Install: pre-cache the standalone HTML
