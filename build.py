@@ -83,6 +83,59 @@ def load_product(code):
         return json.load(f)
 
 
+def load_version(code):
+    version_path = os.path.join(PROJECT_DIR, "products", code, "version.json")
+    if not os.path.exists(version_path):
+        print("ERROR: version.json not found at " + version_path)
+        sys.exit(1)
+    with open(version_path, "r", encoding="utf-8") as f:
+        version = json.load(f)
+    for key in ("major", "minor", "revision"):
+        if key not in version or not isinstance(version[key], int):
+            print("ERROR: version.json must contain integer " + key)
+            sys.exit(1)
+    return version_path, version
+
+
+def format_version(version):
+    return "v{major}.{minor}.{revision}".format(**version)
+
+
+def bump_version(code, bump_mode="revision"):
+    version_path, version = load_version(code)
+    old_version = format_version(version)
+    version["revision"] += 1
+    if bump_mode == "minor":
+        version["minor"] += 1
+    elif bump_mode == "major":
+        version["major"] += 1
+        version["minor"] = 0
+    new_version = format_version(version)
+    with open(version_path, "w", encoding="utf-8") as f:
+        json.dump(version, f, indent=2)
+        f.write("\n")
+    print("Version: " + old_version + " -> " + new_version)
+    return new_version
+
+
+def current_version(code):
+    return format_version(load_version(code)[1])
+
+
+def inject_version(text, version):
+    return text.replace("__SSLI_VERSION__", version)
+
+
+def build_service_worker(src_path, dst_path, version, cache_target):
+    if not os.path.exists(src_path):
+        return
+    with open(src_path, "r", encoding="utf-8") as f:
+        content = inject_version(f.read(), version)
+    content = content.replace("__SSLI_CACHE_TARGET__", cache_target)
+    with open(dst_path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+
 def build_css_list(product):
     code = product["code"]
     css_files = []
@@ -108,18 +161,28 @@ def build_js_list(product):
 
 def build():
     if len(sys.argv) < 2 or sys.argv[1].startswith("-"):
-        print("Usage: python build.py <product-code> [--output <path>]")
+        print("Usage: python build.py <product-code> [--output <path>] [--no-version-bump] [--bump-minor|--bump-major]")
         print("  e.g. python build.py ssli")
         sys.exit(1)
 
     code = sys.argv[1]
     output_arg = None
+    bump_mode = "revision"
+    no_version_bump = os.environ.get("SSLI_SKIP_VERSION_BUMP") == "1" or "--no-version-bump" in sys.argv
     if "--output" in sys.argv:
         idx = sys.argv.index("--output")
         if idx + 1 < len(sys.argv):
             output_arg = sys.argv[idx + 1]
+    if "--bump-minor" in sys.argv:
+        bump_mode = "minor"
+    if "--bump-major" in sys.argv:
+        bump_mode = "major"
+    if "--bump-minor" in sys.argv and "--bump-major" in sys.argv:
+        print("ERROR: choose only one of --bump-minor or --bump-major")
+        sys.exit(1)
 
     product = load_product(code)
+    version = current_version(code) if no_version_bump else bump_version(code, bump_mode)
 
     shell_path = os.path.join(PROJECT_DIR, "products", code, ".shell.html")
     if not os.path.exists(shell_path):
@@ -127,7 +190,7 @@ def build():
         sys.exit(1)
 
     with open(shell_path, "r", encoding="utf-8") as f:
-        html = f.read()
+        html = inject_version(f.read(), version)
 
     loader_start = html.find("<script>const ASSETS_BASE")
     if loader_start < 0:
@@ -237,6 +300,23 @@ def build():
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(unified)
+
+    output_dir = os.path.dirname(os.path.abspath(output_path))
+    product_dir = os.path.join(PROJECT_DIR, "products", code)
+    if os.path.abspath(output_path) == os.path.join(PROJECT_DIR, "index.html"):
+        build_service_worker(
+            os.path.join(product_dir, "sw.js"),
+            os.path.join(PROJECT_DIR, "sw.js"),
+            version,
+            "index.html",
+        )
+    else:
+        build_service_worker(
+            os.path.join(product_dir, "sw.js"),
+            os.path.join(output_dir, "sw.js"),
+            version,
+            os.path.basename(output_path),
+        )
 
     size_kb = os.path.getsize(output_path) / 1024
     print("Built: " + output_path + " (" + str(round(size_kb, 1)) + " KB)")
