@@ -121,7 +121,7 @@
           autoSelectDevices();
         },
         function(err) {
-          console.error('[MIDI] Access denied:', err);
+          console.warn('[MIDI] Access denied:', err);
         }
       );
     }

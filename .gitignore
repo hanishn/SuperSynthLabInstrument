@@ -1,0 +1,10 @@
+node_modules/
+products/ssli/node_modules/
+products/ssli/export/
+audioValidation/results/
+audioValidation/reports/
+Tests/results/
+*.log
+*.png
+__pycache__/
+*.pyc

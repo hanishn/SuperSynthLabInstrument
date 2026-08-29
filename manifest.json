@@ -1,0 +1,16 @@
+{
+  "name": "Super Synth Lab Instrument",
+  "short_name": "SSLI",
+  "description": "Focused 5-screen synthesizer instrument player",
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0a0a1a",
+  "background_color": "#0a0a1a",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='20' fill='%230a0a1a'/%3E%3Ctext x='90' y='105' text-anchor='middle' font-family='system-ui' font-size='48' font-weight='bold' fill='%234cc9f0'%3ESSLI%3C/text%3E%3Ccircle cx='90' cy='50' r='20' fill='none' stroke='%237209b7' stroke-width='3'/%3E%3Cpath d='M80 45 L100 45 M90 35 L90 55' stroke='%234cc9f0' stroke-width='2'/%3E%3C/svg%3E",
+      "sizes": "180x180",
+      "type": "image/svg+xml"
+    }
+  ]
+}

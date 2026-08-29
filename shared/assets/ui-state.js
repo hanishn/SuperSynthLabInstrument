@@ -73,11 +73,17 @@
    * Rebuild all UI components after octave change
    */
   function rebuildAll() {
-    SL.keyboard.buildKeyboard();
-    SL.isomorphic.buildIso();
-    SL.sequencer.buildSeqKeys();
-    SL.sequencer.renderSeqGrid();
-    SL.chords.buildChords();
+    var canBuildKeyboard = kbEl && SL.keyboard && SL.keyboard.buildKeyboard;
+    var canBuildIso = isoEl && SL.isomorphic && SL.isomorphic.buildIso;
+    var canBuildSeqKeys = seqKeysEl && SL.sequencer && SL.sequencer.buildSeqKeys;
+    var canRenderSeqGrid = seqEl && SL.sequencer && SL.sequencer.renderSeqGrid;
+    var canBuildChords = chordMenu && SL.chords && SL.chords.buildChords;
+
+    if (canBuildKeyboard) { SL.keyboard.buildKeyboard(); }
+    if (canBuildIso) { SL.isomorphic.buildIso(); }
+    if (canBuildSeqKeys) { SL.sequencer.buildSeqKeys(); }
+    if (canRenderSeqGrid) { SL.sequencer.renderSeqGrid(); }
+    if (canBuildChords) { SL.chords.buildChords(); }
   }
 
   /**
@@ -173,7 +179,7 @@
       if (SL.state) { SL.state.notify('instrument'); }
     });
     } else {
-      console.warn('Instrument selector not found');
+      // No instrument selector exists on the current shell.
     }
   }
 
@@ -563,8 +569,8 @@
     setupInstrumentSelector();
     setupADSRListeners();
     setupOscMixerListeners();
-    mixerModalState = SL.mixerModal.setup();
-    SL.presetUI.setup();
+    mixerModalState = SL.mixerModal && SL.mixerModal.setup ? SL.mixerModal.setup() : null;
+    if (SL.presetUI && SL.presetUI.setup) { SL.presetUI.setup(); }
     setupSequencerControls();
     setupGlobalListeners();
     setupSeqGridListeners();
@@ -574,12 +580,19 @@
     setupLatencyControl();
 
     // Build all UI components
-    SL.keyboard.buildKeyboard();
-    SL.isomorphic.buildIso();
-    SL.sequencer.buildSeqKeys();
-    SL.sequencer.renderSeqGrid();
-    SL.sequencer.setupEventListeners();
-    SL.chords.buildChords();
+    var canBuildKeyboard = kbEl && SL.keyboard && SL.keyboard.buildKeyboard;
+    var canBuildIso = isoEl && SL.isomorphic && SL.isomorphic.buildIso;
+    var canBuildSeqKeys = seqKeysEl && SL.sequencer && SL.sequencer.buildSeqKeys;
+    var canRenderSeqGrid = seqEl && SL.sequencer && SL.sequencer.renderSeqGrid;
+    var canSetupSeqEvents = seqEl && SL.sequencer && SL.sequencer.setupEventListeners;
+    var canBuildChords = chordMenu && SL.chords && SL.chords.buildChords;
+
+    if (canBuildKeyboard) { SL.keyboard.buildKeyboard(); }
+    if (canBuildIso) { SL.isomorphic.buildIso(); }
+    if (canBuildSeqKeys) { SL.sequencer.buildSeqKeys(); }
+    if (canRenderSeqGrid) { SL.sequencer.renderSeqGrid(); }
+    if (canSetupSeqEvents) { SL.sequencer.setupEventListeners(); }
+    if (canBuildChords) { SL.chords.buildChords(); }
 
     // Initialize effect chain (requires audio context to be ready)
     // This will be called on first user interaction when audio context is created
@@ -620,7 +633,7 @@
     if (seqWrapper) { seqWrapper.scrollTop = 216; }
 
     // Initial note readout
-    noteReadout.textContent = SL.t('ui.em_dash');
+    if (noteReadout) { noteReadout.textContent = SL.t('ui.em_dash'); }
 
     // Wrap classic screen DOM into quad layout
     _wrapClassicInQuads();

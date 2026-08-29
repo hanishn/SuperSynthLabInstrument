@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="mobile-web-app-capable" content="yes"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self';"><meta http-equiv="X-Frame-Options" content="DENY"><title>Super Synth Lab - Instrument</title><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='20' fill='%230a0a1a'/%3E%3Ctext x='90' y='105' text-anchor='middle' font-family='system-ui' font-size='48' font-weight='bold' fill='%234cc9f0'%3ESSLI%3C/text%3E%3C/svg%3E"><style>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="mobile-web-app-capable" content="yes"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self';"><title>Super Synth Lab - Instrument</title><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='20' fill='%230a0a1a'/%3E%3Ctext x='90' y='105' text-anchor='middle' font-family='system-ui' font-size='48' font-weight='bold' fill='%234cc9f0'%3ESSLI%3C/text%3E%3C/svg%3E"><style>
 /* === design-tokens.css === */
 /* ================================================================
    SSLU Design Tokens — Single Source of Truth
@@ -18403,15 +18403,11 @@ html[data-layout="phone-land"] .ssli-acid-step-pitch-btn {
   margin-inline: auto;
   overflow: visible;
 }
-.ssli-breathpadens-select {
-  height: 28px !important;
-  max-height: 28px !important;
-  min-height: 0 !important;
-  max-width: 120px !important;
-  font-size: 13px !important;
-  padding: 2px 6px !important;
-  box-sizing: border-box !important;
-  flex: 0 0 auto !important;
+.ssli-breathpadens-controls > div {
+  box-sizing: border-box;
+  margin-top: 0;
+  margin-bottom: 0;
+  overflow: visible;
 }
 /* Breath pad ensemble note grid buttons: taller to fill the grid rows */
 .ssli-breathpad-note-btn {
@@ -25578,7 +25574,7 @@ html[data-no-backgrounds] {
 <div class="ssl-about-panel">
 <button class="ssl-about-close" onclick="document.getElementById('ssliAboutOverlay').style.display='none';" aria-label="Close">&times;</button>
 <h2 class="ssl-about-title" data-i18n="dialog.about.title">Super Synth Lab - Instrument</h2>
-<p id="ssliAboutVersion" class="ssl-about-version">Version: Super Synth Lab - Instrument v1.10.1163</p>
+<p id="ssliAboutVersion" class="ssl-about-version">Version: Super Synth Lab - Instrument v1.10.1177</p>
 <div class="ssl-about-body">
 <p data-i18n="dialog.about.description">Super Synth Lab - Instrument is a focused synthesizer with 17+ synth engines, effects chain, and MIDI support. Play, shape your sound, and perform -- all from 5 streamlined screens.</p>
 <details class="ssl-about-details"><summary data-i18n="dialog.about.features_header">What can Super Synth Lab - Instrument do?</summary>
@@ -25627,7 +25623,7 @@ html[data-no-backgrounds] {
 <div class="ssli-landing-edition" data-i18n="app.edition">Public Build</div>
 <div class="ssli-landing-subtitle" data-i18n="app.tagline">Every Sound. One Instrument.</div>
 <div class="ssli-landing-credit">Created by Nathan Hanish 2026</div>
-<div class="ssli-landing-version">v1.10.1163</div>
+<div class="ssli-landing-version">v1.10.1177</div>
 </div>
 <svg class="ssl-waveform-divider" viewBox="0 0 400 30" preserveAspectRatio="none" style="width:80%;max-width:500px;height:30px;margin:12px auto;display:block;opacity:0.3;"><path d="M0,15 Q25,5 50,15 T100,15 T150,15 T200,15 T250,15 T300,15 T350,15 T400,15" fill="none" stroke="url(#ssliWaveGrad)" stroke-width="1.5"/><defs><linearGradient id="ssliWaveGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#4cc9f0"/><stop offset="50%" stop-color="#7209b7"/><stop offset="100%" stop-color="#f72585"/></linearGradient></defs></svg>
 <div class="ssli-landing-actions">
@@ -25906,9 +25902,8 @@ overlay.addEventListener('click', function(e) { if (e.target === overlay) { over
 <!-- Aria valuetext updater -->
 <script>(function(){function updateValueText(el){var label=el.getAttribute('aria-label')||'';var val=el.value;var min=parseFloat(el.min)||0;var max=parseFloat(el.max)||100;var pct=Math.round(((parseFloat(val)-min)/(max-min))*100);el.setAttribute('aria-valuetext',label+' '+val+' ('+pct+' percent)');}document.addEventListener('input',function(e){if(e.target&&e.target.type==='range'){updateValueText(e.target);}},true);})();</script>
 
-<script src="assets/localization.js"></script>
 <script>
-// === Inlined Formant AudioWorklet for standalone mode ===
+// === Inlined formant-worklet.js ===
 window.__SSL_FORMANT_WORKLET_CODE = `// Super Synth Lab - Formant AudioWorklet Processor
 // Vowel/vocal synthesis running on dedicated audio thread
 // Ported from ScriptProcessor formant-engine.js for iOS Safari compatibility
@@ -26495,7 +26490,7 @@ class FormantWorkletProcessor extends AudioWorkletProcessor {
 registerProcessor('formant-processor', FormantWorkletProcessor);
 `;
 
-// === Inlined Physical Modelling AudioWorklet for standalone mode ===
+// === Inlined physical-worklet.js ===
 window.__SSL_PHYSICAL_WORKLET_CODE = `// Super Synth Lab - Physical Modelling AudioWorklet Processor
 // Karplus-Strong, Bowed String, Blown Pipe, Modal Synthesis
 // v1.1.3 — fix: per-voice gain scaling + smooth soft clipper for chord headroom
@@ -27974,7 +27969,7 @@ class PhysicalModelProcessor extends AudioWorkletProcessor {
 registerProcessor('physical-model', PhysicalModelProcessor);
 `;
 
-// === Inlined FM AudioWorklet for standalone mode ===
+// === Inlined fm-worklet.js ===
 window.__SSL_FM_WORKLET_CODE = `// Super Synth Lab - FM Synthesis AudioWorklet Processor
 // 6-operator DX7-style FM synthesis on the audio thread
 // v1.2.2 — perf: SINE_TABLE double-read fix, ALGORITHMS cache at noteOn
@@ -28960,7 +28955,7 @@ class FMWorkletProcessor extends AudioWorkletProcessor {
 registerProcessor('fm-worklet', FMWorkletProcessor);
 `;
 
-// === Inlined AudioWorklet for standalone mode ===
+// === Inlined synth-worklet.js ===
 window.__SSL_WORKLET_CODE = `// Super Synth Lab - AudioWorklet Processor
 // High-performance synthesis running on dedicated audio thread
 // v1.6 - Optimized: pre-computed freq multipliers, integer wave codes, module-level sine table, active voice compaction
@@ -145389,39 +145384,50 @@ SL.screens = (function () {
     };
   }
 
+  function _createPhysicalWorkletNode(idx, readyState, hasHadError, resolve, reject) {
+    var node = new AudioWorkletNode(audioContext, 'physical-model', {
+      numberOfInputs: 0,
+      numberOfOutputs: 1,
+      outputChannelCount: [1]
+    });
+    physicalWorkletNodes[idx] = node;
+
+    node.port.onmessage = _makePhysicalWorkletReadyHandler(readyState, resolve);
+    node.onprocessorerror = _makePhysicalWorkletErrorHandler(idx, hasHadError, resolve, reject);
+  }
+
+  function _finishPhysicalWorkletLoad(resolve, reject) {
+    var readyState = { count: 0 };
+    var hasHadError = { value: false };
+
+    for (var i = 0; i < PHYSICAL_WORKLET_COUNT; i++) {
+      _createPhysicalWorkletNode(i, readyState, hasHadError, resolve, reject);
+    }
+  }
+
+  function _handlePhysicalWorkletLoadError(error, resolve, reject) {
+    console.error('[PHYSICAL] Failed to load physical worklet:', error);
+    isWorkletInitializing = false;
+    console.warn('[PHYSICAL] Falling back to ScriptProcessor');
+    initFallback().then(resolve).catch(reject);
+  }
+
+  function _startPhysicalWorkletLoad(resolve, reject) {
+    var physWorkletUrl = (SL.audio.getWorkletBlobUrl && SL.audio.getWorkletBlobUrl('physical-worklet.js')) || 'assets/physical-worklet.js';
+    audioContext.audioWorklet.addModule(physWorkletUrl).then(function() {
+      _finishPhysicalWorkletLoad(resolve, reject);
+    }).catch(function(error) {
+      _handlePhysicalWorkletLoadError(error, resolve, reject);
+    });
+  }
+
   function initWorklet() {
     if (isWorkletReady) return Promise.resolve(true);
     if (isWorkletInitializing) return isWorkletReadyPromise;
 
     isWorkletInitializing = true;
 
-    isWorkletReadyPromise = new Promise(function(resolve, reject) {
-      var physWorkletUrl = (SL.audio.getWorkletBlobUrl && SL.audio.getWorkletBlobUrl('physical-worklet.js')) || 'assets/physical-worklet.js';
-      audioContext.audioWorklet.addModule(physWorkletUrl).then(function() {
-        var readyState = { count: 0 };
-        var hasHadError = { value: false };
-
-        for (var i = 0; i < PHYSICAL_WORKLET_COUNT; i++) {
-          (function(idx) {
-            var node = new AudioWorkletNode(audioContext, 'physical-model', {
-              numberOfInputs: 0,
-              numberOfOutputs: 1,
-              outputChannelCount: [1]
-            });
-            physicalWorkletNodes[idx] = node;
-
-            node.port.onmessage = _makePhysicalWorkletReadyHandler(readyState, resolve);
-            node.onprocessorerror = _makePhysicalWorkletErrorHandler(idx, hasHadError, resolve, reject);
-          })(i);
-        }
-
-      }).catch(function(error) {
-        console.error('[PHYSICAL] Failed to load physical worklet:', error);
-        isWorkletInitializing = false;
-        console.warn('[PHYSICAL] Falling back to ScriptProcessor');
-        initFallback().then(resolve).catch(reject);
-      });
-    });
+    isWorkletReadyPromise = new Promise(_startPhysicalWorkletLoad);
 
     return isWorkletReadyPromise;
   }
@@ -174381,7 +174387,7 @@ SL.screens = (function () {
     var instrumentSelectEl = document.getElementById('instrumentSelect');
 
     if (!mixerBtn || !mixerModal) {
-      console.error('Mixer modal elements not found!');
+      return null;
     } else {
 
     // Open modal
@@ -179704,11 +179710,17 @@ SL.screens = (function () {
    * Rebuild all UI components after octave change
    */
   function rebuildAll() {
-    SL.keyboard.buildKeyboard();
-    SL.isomorphic.buildIso();
-    SL.sequencer.buildSeqKeys();
-    SL.sequencer.renderSeqGrid();
-    SL.chords.buildChords();
+    var canBuildKeyboard = kbEl && SL.keyboard && SL.keyboard.buildKeyboard;
+    var canBuildIso = isoEl && SL.isomorphic && SL.isomorphic.buildIso;
+    var canBuildSeqKeys = seqKeysEl && SL.sequencer && SL.sequencer.buildSeqKeys;
+    var canRenderSeqGrid = seqEl && SL.sequencer && SL.sequencer.renderSeqGrid;
+    var canBuildChords = chordMenu && SL.chords && SL.chords.buildChords;
+
+    if (canBuildKeyboard) { SL.keyboard.buildKeyboard(); }
+    if (canBuildIso) { SL.isomorphic.buildIso(); }
+    if (canBuildSeqKeys) { SL.sequencer.buildSeqKeys(); }
+    if (canRenderSeqGrid) { SL.sequencer.renderSeqGrid(); }
+    if (canBuildChords) { SL.chords.buildChords(); }
   }
 
   /**
@@ -179804,7 +179816,7 @@ SL.screens = (function () {
       if (SL.state) { SL.state.notify('instrument'); }
     });
     } else {
-      console.warn('Instrument selector not found');
+      // No instrument selector exists on the current shell.
     }
   }
 
@@ -180194,8 +180206,8 @@ SL.screens = (function () {
     setupInstrumentSelector();
     setupADSRListeners();
     setupOscMixerListeners();
-    mixerModalState = SL.mixerModal.setup();
-    SL.presetUI.setup();
+    mixerModalState = SL.mixerModal && SL.mixerModal.setup ? SL.mixerModal.setup() : null;
+    if (SL.presetUI && SL.presetUI.setup) { SL.presetUI.setup(); }
     setupSequencerControls();
     setupGlobalListeners();
     setupSeqGridListeners();
@@ -180205,12 +180217,19 @@ SL.screens = (function () {
     setupLatencyControl();
 
     // Build all UI components
-    SL.keyboard.buildKeyboard();
-    SL.isomorphic.buildIso();
-    SL.sequencer.buildSeqKeys();
-    SL.sequencer.renderSeqGrid();
-    SL.sequencer.setupEventListeners();
-    SL.chords.buildChords();
+    var canBuildKeyboard = kbEl && SL.keyboard && SL.keyboard.buildKeyboard;
+    var canBuildIso = isoEl && SL.isomorphic && SL.isomorphic.buildIso;
+    var canBuildSeqKeys = seqKeysEl && SL.sequencer && SL.sequencer.buildSeqKeys;
+    var canRenderSeqGrid = seqEl && SL.sequencer && SL.sequencer.renderSeqGrid;
+    var canSetupSeqEvents = seqEl && SL.sequencer && SL.sequencer.setupEventListeners;
+    var canBuildChords = chordMenu && SL.chords && SL.chords.buildChords;
+
+    if (canBuildKeyboard) { SL.keyboard.buildKeyboard(); }
+    if (canBuildIso) { SL.isomorphic.buildIso(); }
+    if (canBuildSeqKeys) { SL.sequencer.buildSeqKeys(); }
+    if (canRenderSeqGrid) { SL.sequencer.renderSeqGrid(); }
+    if (canSetupSeqEvents) { SL.sequencer.setupEventListeners(); }
+    if (canBuildChords) { SL.chords.buildChords(); }
 
     // Initialize effect chain (requires audio context to be ready)
     // This will be called on first user interaction when audio context is created
@@ -180251,7 +180270,7 @@ SL.screens = (function () {
     if (seqWrapper) { seqWrapper.scrollTop = 216; }
 
     // Initial note readout
-    noteReadout.textContent = SL.t('ui.em_dash');
+    if (noteReadout) { noteReadout.textContent = SL.t('ui.em_dash'); }
 
     // Wrap classic screen DOM into quad layout
     _wrapClassicInQuads();
@@ -180767,6 +180786,9 @@ SL.screens = (function () {
    * Skips if current instrument is a sampler (drum pad mode)
    */
   function buildKeyboard() {
+    var kbEl = document.getElementById('keyboard');
+    if (!kbEl) { return; }
+
     var currentInst = SL.audio && SL.audio.getCurrentInstrument ? SL.audio.getCurrentInstrument() : 0;
     var instType = SL.audio && SL.audio.getInstrumentType ? SL.audio.getInstrumentType(currentInst) : 'subtractive';
     // If current instrument is sampler/percussion, show drum pads instead
@@ -180775,9 +180797,7 @@ SL.screens = (function () {
     } else if (instType === 'sampler' && SL.drumPads) {
       SL.drumPads.buildDrumPads();
     } else {
-
-    var kbEl = document.getElementById('keyboard');
-    if (kbEl) { kbEl.textContent = ''; }
+    kbEl.textContent = '';
 
     var scaleNotes = getScaleNotes();
     var baseOct = SL.ui ? SL.ui.getBaseOctave() : 4;
@@ -181720,7 +181740,7 @@ SL.screens = (function () {
           autoSelectDevices();
         },
         function(err) {
-          console.error('[MIDI] Access denied:', err);
+          console.warn('[MIDI] Access denied:', err);
         }
       );
     }
@@ -193828,28 +193848,47 @@ var SynthLab = window.SynthLab || {};
     controlRow.style.gap = CONTROL_GAP_PX + 'px';
     controlRow.style.padding = '4px ' + PAD_PADDING_PX + 'px';
     controlRow.style.height = CONTROL_ROW_HEIGHT_PX + 'px';
-    controlRow.style.maxHeight = CONTROL_ROW_HEIGHT_PX + 'px';
     controlRow.style.boxSizing = 'border-box';
     controlRow.style.flex = '0 0 auto';
-    controlRow.style.overflow = 'hidden';
 
-    // Octave dropdown — inline label in option text, same as fretboard pattern
+    // Helper: create a labeled dropdown group (label + select in a wrapper div)
+    function _makeLabeledSelect(labelText, selectEl) {
+      var group = document.createElement('div');
+      group.style.display = 'flex';
+      group.style.flexDirection = 'column';
+      group.style.alignItems = 'flex-start';
+      group.style.gap = '1px';
+
+      var lbl = document.createElement('span');
+      lbl.className = 'ssli-breathpadens-dropdown-label';
+      lbl.textContent = labelText;
+      lbl.style.fontSize = '9px';
+      lbl.style.fontFamily = 'monospace';
+      lbl.style.color = 'rgba(200, 220, 240, 0.75)';
+      lbl.style.letterSpacing = '0.5px';
+      lbl.style.pointerEvents = 'none';
+      group.appendChild(lbl);
+      group.appendChild(selectEl);
+      return group;
+    }
+
+    // Octave dropdown
     var octSelect = document.createElement('select');
-    octSelect.className = 'ssli-breathpadens-select ssli-breathpadens-oct-select';
+    octSelect.className = 'ssli-breathpadens-oct-select';
     octSelect.title = SL.t('breathpadens.octave_title');
     var oi;
     for (oi = OCTAVE_MIN; oi <= OCTAVE_MAX; oi++) {
       var oOpt = document.createElement('option');
       oOpt.value = String(oi);
-      oOpt.textContent = 'Oct ' + oi;
+      oOpt.textContent = String(oi);
       if (oi === _baseOctave) { oOpt.selected = true; }
       octSelect.appendChild(oOpt);
     }
-    controlRow.appendChild(octSelect);
+    controlRow.appendChild(_makeLabeledSelect('Octave', octSelect));
 
     // Chord-quality dropdown
     var chordSelect = document.createElement('select');
-    chordSelect.className = 'ssli-breathpadens-select ssli-breathpadens-chord-select';
+    chordSelect.className = 'ssli-breathpadens-chord-select';
     chordSelect.title = SL.t('breathpadens.chord_title');
     var ci;
     for (ci = 0; ci < CHORD_KEYS.length; ci++) {
@@ -193860,35 +193899,35 @@ var SynthLab = window.SynthLab || {};
       if (cKey === _chordKey) { cOpt.selected = true; }
       chordSelect.appendChild(cOpt);
     }
-    controlRow.appendChild(chordSelect);
+    controlRow.appendChild(_makeLabeledSelect('Chord', chordSelect));
 
     // Inversion dropdown
     var invSelect = document.createElement('select');
-    invSelect.className = 'ssli-breathpadens-select ssli-breathpadens-inv-select';
+    invSelect.className = 'ssli-breathpadens-inv-select';
     invSelect.title = SL.t('breathpadens.inversion_title');
     var ii2;
     for (ii2 = INVERSION_MIN; ii2 <= INVERSION_MAX; ii2++) {
       var iOpt = document.createElement('option');
       iOpt.value = String(ii2);
-      iOpt.textContent = 'Inv ' + ii2;
+      iOpt.textContent = String(ii2);
       if (ii2 === _inversion) { iOpt.selected = true; }
       invSelect.appendChild(iOpt);
     }
-    controlRow.appendChild(invSelect);
+    controlRow.appendChild(_makeLabeledSelect('Inversion', invSelect));
 
     // Note count dropdown
     var countSelect = document.createElement('select');
-    countSelect.className = 'ssli-breathpadens-select ssli-breathpadens-count-select';
+    countSelect.className = 'ssli-breathpadens-count-select';
     countSelect.title = SL.t('breathpadens.notecount_title');
     var nci;
     for (nci = NOTE_COUNT_MIN; nci <= NOTE_COUNT_MAX; nci++) {
       var nOpt = document.createElement('option');
       nOpt.value = String(nci);
-      nOpt.textContent = nci + ' Notes';
+      nOpt.textContent = String(nci);
       if (nci === _noteCount) { nOpt.selected = true; }
       countSelect.appendChild(nOpt);
     }
-    controlRow.appendChild(countSelect);
+    controlRow.appendChild(_makeLabeledSelect('Notes', countSelect));
 
     wrapper.appendChild(controlRow);
 
@@ -193909,14 +193948,12 @@ var SynthLab = window.SynthLab || {};
     noteGrid.className = 'ssli-breathpadens-note-grid';
     noteGrid.style.display = 'grid';
     noteGrid.style.gridTemplateColumns = 'repeat(' + NOTE_GRID_COLS + ', 1fr)';
-    noteGrid.style.gridTemplateRows = 'repeat(' + NOTE_GRID_ROWS + ', auto)';
+    noteGrid.style.gridTemplateRows = 'repeat(' + NOTE_GRID_ROWS + ', 1fr)';
     noteGrid.style.gap = NOTE_GRID_GAP_PX + 'px';
     noteGrid.style.padding = NOTE_GRID_GAP_PX + 'px';
     noteGrid.style.width = NOTE_GRID_WIDTH_PX + 'px';
     noteGrid.style.boxSizing = 'border-box';
     noteGrid.style.flex = '0 0 auto';
-    noteGrid.style.alignSelf = 'flex-start';
-    noteGrid.style.overflow = 'hidden';
     mainRow.appendChild(noteGrid);
 
     var _ensNoteButtons = null;
@@ -193937,8 +193974,8 @@ var SynthLab = window.SynthLab || {};
         btn.style.padding = '2px 2px';
         btn.style.fontSize = '12px';
         btn.style.textAlign = 'center';
-        btn.style.minHeight = '0';
-        btn.style.minWidth = '0';
+        btn.style.minHeight = '42px';
+        btn.style.minWidth = '42px';
         if (ni === _rootPc) {
           btn.className += ' ssli-fret-chord-active';
         }

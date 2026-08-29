@@ -74,6 +74,9 @@
    * Skips if current instrument is a sampler (drum pad mode)
    */
   function buildKeyboard() {
+    var kbEl = document.getElementById('keyboard');
+    if (!kbEl) { return; }
+
     var currentInst = SL.audio && SL.audio.getCurrentInstrument ? SL.audio.getCurrentInstrument() : 0;
     var instType = SL.audio && SL.audio.getInstrumentType ? SL.audio.getInstrumentType(currentInst) : 'subtractive';
     // If current instrument is sampler/percussion, show drum pads instead
@@ -82,9 +85,7 @@
     } else if (instType === 'sampler' && SL.drumPads) {
       SL.drumPads.buildDrumPads();
     } else {
-
-    var kbEl = document.getElementById('keyboard');
-    if (kbEl) { kbEl.textContent = ''; }
+    kbEl.textContent = '';
 
     var scaleNotes = getScaleNotes();
     var baseOct = SL.ui ? SL.ui.getBaseOctave() : 4;

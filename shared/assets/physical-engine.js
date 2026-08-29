@@ -1227,39 +1227,50 @@
     };
   }
 
+  function _createPhysicalWorkletNode(idx, readyState, hasHadError, resolve, reject) {
+    var node = new AudioWorkletNode(audioContext, 'physical-model', {
+      numberOfInputs: 0,
+      numberOfOutputs: 1,
+      outputChannelCount: [1]
+    });
+    physicalWorkletNodes[idx] = node;
+
+    node.port.onmessage = _makePhysicalWorkletReadyHandler(readyState, resolve);
+    node.onprocessorerror = _makePhysicalWorkletErrorHandler(idx, hasHadError, resolve, reject);
+  }
+
+  function _finishPhysicalWorkletLoad(resolve, reject) {
+    var readyState = { count: 0 };
+    var hasHadError = { value: false };
+
+    for (var i = 0; i < PHYSICAL_WORKLET_COUNT; i++) {
+      _createPhysicalWorkletNode(i, readyState, hasHadError, resolve, reject);
+    }
+  }
+
+  function _handlePhysicalWorkletLoadError(error, resolve, reject) {
+    console.error('[PHYSICAL] Failed to load physical worklet:', error);
+    isWorkletInitializing = false;
+    console.warn('[PHYSICAL] Falling back to ScriptProcessor');
+    initFallback().then(resolve).catch(reject);
+  }
+
+  function _startPhysicalWorkletLoad(resolve, reject) {
+    var physWorkletUrl = (SL.audio.getWorkletBlobUrl && SL.audio.getWorkletBlobUrl('physical-worklet.js')) || 'assets/physical-worklet.js';
+    audioContext.audioWorklet.addModule(physWorkletUrl).then(function() {
+      _finishPhysicalWorkletLoad(resolve, reject);
+    }).catch(function(error) {
+      _handlePhysicalWorkletLoadError(error, resolve, reject);
+    });
+  }
+
   function initWorklet() {
     if (isWorkletReady) return Promise.resolve(true);
     if (isWorkletInitializing) return isWorkletReadyPromise;
 
     isWorkletInitializing = true;
 
-    isWorkletReadyPromise = new Promise(function(resolve, reject) {
-      var physWorkletUrl = (SL.audio.getWorkletBlobUrl && SL.audio.getWorkletBlobUrl('physical-worklet.js')) || 'assets/physical-worklet.js';
-      audioContext.audioWorklet.addModule(physWorkletUrl).then(function() {
-        var readyState = { count: 0 };
-        var hasHadError = { value: false };
-
-        for (var i = 0; i < PHYSICAL_WORKLET_COUNT; i++) {
-          (function(idx) {
-            var node = new AudioWorkletNode(audioContext, 'physical-model', {
-              numberOfInputs: 0,
-              numberOfOutputs: 1,
-              outputChannelCount: [1]
-            });
-            physicalWorkletNodes[idx] = node;
-
-            node.port.onmessage = _makePhysicalWorkletReadyHandler(readyState, resolve);
-            node.onprocessorerror = _makePhysicalWorkletErrorHandler(idx, hasHadError, resolve, reject);
-          })(i);
-        }
-
-      }).catch(function(error) {
-        console.error('[PHYSICAL] Failed to load physical worklet:', error);
-        isWorkletInitializing = false;
-        console.warn('[PHYSICAL] Falling back to ScriptProcessor');
-        initFallback().then(resolve).catch(reject);
-      });
-    });
+    isWorkletReadyPromise = new Promise(_startPhysicalWorkletLoad);
 
     return isWorkletReadyPromise;
   }

@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="mobile-web-app-capable" content="yes"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self';"><meta http-equiv="X-Frame-Options" content="DENY"><title>Super Synth Lab - Instrument</title><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='20' fill='%230a0a1a'/%3E%3Ctext x='90' y='105' text-anchor='middle' font-family='system-ui' font-size='48' font-weight='bold' fill='%234cc9f0'%3ESSLI%3C/text%3E%3C/svg%3E"></head><body>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="mobile-web-app-capable" content="yes"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self';"><title>Super Synth Lab - Instrument</title><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='20' fill='%230a0a1a'/%3E%3Ctext x='90' y='105' text-anchor='middle' font-family='system-ui' font-size='48' font-weight='bold' fill='%234cc9f0'%3ESSLI%3C/text%3E%3C/svg%3E"></head><body>
 <!-- V-17: Loading screen (inline CSS, renders immediately before JS loads) -->
 <div id="ssliLoadingScreen" style="position:fixed;top:0;left:0;right:0;bottom:0;background:#0a0a1a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:50000;"><div data-i18n="app.loading_title" style="font-size:1.4rem;font-weight:bold;color:#4cc9f0;margin-bottom:12px;font-family:system-ui,sans-serif;">Super Synth Lab - Instrument</div><div style="width:120px;height:3px;background:#1a1a2e;border-radius:2px;overflow:hidden;"><div id="ssliLoadBar" style="width:0%;height:100%;background:linear-gradient(90deg,#4cc9f0,#7209b7);border-radius:2px;transition:width 0.3s;"></div></div><div id="loadingStatus" data-i18n="app.loading_status" style="font-size:0.6rem;color:#666;margin-top:8px;font-family:system-ui,sans-serif;">Loading instruments...</div></div>
 <script>(function(){var bar=document.getElementById('ssliLoadBar');var steps=[10,25,40,55,70,85];var idx=0;var iv=setInterval(function(){if(idx<steps.length){bar.style.width=steps[idx]+'%';idx++;}else{clearInterval(iv);}},400);window._ssliLoadBar=bar;window._ssliLoadInterval=iv;})();</script>
@@ -11,7 +11,7 @@
 <div class="ssl-about-panel">
 <button class="ssl-about-close" onclick="document.getElementById('ssliAboutOverlay').style.display='none';" aria-label="Close">&times;</button>
 <h2 class="ssl-about-title" data-i18n="dialog.about.title">Super Synth Lab - Instrument</h2>
-<p id="ssliAboutVersion" class="ssl-about-version">Version: Super Synth Lab - Instrument v1.10.1163</p>
+<p id="ssliAboutVersion" class="ssl-about-version">Version: Super Synth Lab - Instrument v1.10.1177</p>
 <div class="ssl-about-body">
 <p data-i18n="dialog.about.description">Super Synth Lab - Instrument is a focused synthesizer with 17+ synth engines, effects chain, and MIDI support. Play, shape your sound, and perform -- all from 5 streamlined screens.</p>
 <details class="ssl-about-details"><summary data-i18n="dialog.about.features_header">What can Super Synth Lab - Instrument do?</summary>
@@ -60,7 +60,7 @@
 <div class="ssli-landing-edition" data-i18n="app.edition">Public Build</div>
 <div class="ssli-landing-subtitle" data-i18n="app.tagline">Every Sound. One Instrument.</div>
 <div class="ssli-landing-credit">Created by Nathan Hanish 2026</div>
-<div class="ssli-landing-version">v1.10.1163</div>
+<div class="ssli-landing-version">v1.10.1177</div>
 </div>
 <svg class="ssl-waveform-divider" viewBox="0 0 400 30" preserveAspectRatio="none" style="width:80%;max-width:500px;height:30px;margin:12px auto;display:block;opacity:0.3;"><path d="M0,15 Q25,5 50,15 T100,15 T150,15 T200,15 T250,15 T300,15 T350,15 T400,15" fill="none" stroke="url(#ssliWaveGrad)" stroke-width="1.5"/><defs><linearGradient id="ssliWaveGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#4cc9f0"/><stop offset="50%" stop-color="#7209b7"/><stop offset="100%" stop-color="#f72585"/></linearGradient></defs></svg>
 <div class="ssli-landing-actions">
@@ -339,7 +339,6 @@ overlay.addEventListener('click', function(e) { if (e.target === overlay) { over
 <!-- Aria valuetext updater -->
 <script>(function(){function updateValueText(el){var label=el.getAttribute('aria-label')||'';var val=el.value;var min=parseFloat(el.min)||0;var max=parseFloat(el.max)||100;var pct=Math.round(((parseFloat(val)-min)/(max-min))*100);el.setAttribute('aria-valuetext',label+' '+val+' ('+pct+' percent)');}document.addEventListener('input',function(e){if(e.target&&e.target.type==='range'){updateValueText(e.target);}},true);})();</script>
 
-<script src="assets/localization.js"></script>
 <script>const ASSETS_BASE='assets/';const CSS_FILES=[];const JS_FILES=[];async function loadAll(){for(const f of CSS_FILES){const l=document.createElement('link');l.rel='stylesheet';l.href=ASSETS_BASE+f;document.head.appendChild(l);}for(const f of JS_FILES){await new Promise((r,j)=>{const s=document.createElement('script');s.src=ASSETS_BASE+f;s.onload=r;s.onerror=j;document.body.appendChild(s);});}};loadAll();</script>
 <!-- E-03: Service Worker registration for offline support -->
 <script>(function(){if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(e){console.warn('SW registration failed:',e);});}})();</script>
