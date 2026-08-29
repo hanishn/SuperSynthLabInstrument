@@ -17,7 +17,7 @@
     var instrumentSelectEl = document.getElementById('instrumentSelect');
 
     if (!mixerBtn || !mixerModal) {
-      console.error('Mixer modal elements not found!');
+      return null;
     } else {
 
     // Open modal

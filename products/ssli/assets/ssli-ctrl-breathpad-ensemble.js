@@ -504,28 +504,47 @@
     controlRow.style.gap = CONTROL_GAP_PX + 'px';
     controlRow.style.padding = '4px ' + PAD_PADDING_PX + 'px';
     controlRow.style.height = CONTROL_ROW_HEIGHT_PX + 'px';
-    controlRow.style.maxHeight = CONTROL_ROW_HEIGHT_PX + 'px';
     controlRow.style.boxSizing = 'border-box';
     controlRow.style.flex = '0 0 auto';
-    controlRow.style.overflow = 'hidden';
 
-    // Octave dropdown — inline label in option text, same as fretboard pattern
+    // Helper: create a labeled dropdown group (label + select in a wrapper div)
+    function _makeLabeledSelect(labelText, selectEl) {
+      var group = document.createElement('div');
+      group.style.display = 'flex';
+      group.style.flexDirection = 'column';
+      group.style.alignItems = 'flex-start';
+      group.style.gap = '1px';
+
+      var lbl = document.createElement('span');
+      lbl.className = 'ssli-breathpadens-dropdown-label';
+      lbl.textContent = labelText;
+      lbl.style.fontSize = '9px';
+      lbl.style.fontFamily = 'monospace';
+      lbl.style.color = 'rgba(200, 220, 240, 0.75)';
+      lbl.style.letterSpacing = '0.5px';
+      lbl.style.pointerEvents = 'none';
+      group.appendChild(lbl);
+      group.appendChild(selectEl);
+      return group;
+    }
+
+    // Octave dropdown
     var octSelect = document.createElement('select');
-    octSelect.className = 'ssli-breathpadens-select ssli-breathpadens-oct-select';
+    octSelect.className = 'ssli-breathpadens-oct-select';
     octSelect.title = SL.t('breathpadens.octave_title');
     var oi;
     for (oi = OCTAVE_MIN; oi <= OCTAVE_MAX; oi++) {
       var oOpt = document.createElement('option');
       oOpt.value = String(oi);
-      oOpt.textContent = 'Oct ' + oi;
+      oOpt.textContent = String(oi);
       if (oi === _baseOctave) { oOpt.selected = true; }
       octSelect.appendChild(oOpt);
     }
-    controlRow.appendChild(octSelect);
+    controlRow.appendChild(_makeLabeledSelect('Octave', octSelect));
 
     // Chord-quality dropdown
     var chordSelect = document.createElement('select');
-    chordSelect.className = 'ssli-breathpadens-select ssli-breathpadens-chord-select';
+    chordSelect.className = 'ssli-breathpadens-chord-select';
     chordSelect.title = SL.t('breathpadens.chord_title');
     var ci;
     for (ci = 0; ci < CHORD_KEYS.length; ci++) {
@@ -536,35 +555,35 @@
       if (cKey === _chordKey) { cOpt.selected = true; }
       chordSelect.appendChild(cOpt);
     }
-    controlRow.appendChild(chordSelect);
+    controlRow.appendChild(_makeLabeledSelect('Chord', chordSelect));
 
     // Inversion dropdown
     var invSelect = document.createElement('select');
-    invSelect.className = 'ssli-breathpadens-select ssli-breathpadens-inv-select';
+    invSelect.className = 'ssli-breathpadens-inv-select';
     invSelect.title = SL.t('breathpadens.inversion_title');
     var ii2;
     for (ii2 = INVERSION_MIN; ii2 <= INVERSION_MAX; ii2++) {
       var iOpt = document.createElement('option');
       iOpt.value = String(ii2);
-      iOpt.textContent = 'Inv ' + ii2;
+      iOpt.textContent = String(ii2);
       if (ii2 === _inversion) { iOpt.selected = true; }
       invSelect.appendChild(iOpt);
     }
-    controlRow.appendChild(invSelect);
+    controlRow.appendChild(_makeLabeledSelect('Inversion', invSelect));
 
     // Note count dropdown
     var countSelect = document.createElement('select');
-    countSelect.className = 'ssli-breathpadens-select ssli-breathpadens-count-select';
+    countSelect.className = 'ssli-breathpadens-count-select';
     countSelect.title = SL.t('breathpadens.notecount_title');
     var nci;
     for (nci = NOTE_COUNT_MIN; nci <= NOTE_COUNT_MAX; nci++) {
       var nOpt = document.createElement('option');
       nOpt.value = String(nci);
-      nOpt.textContent = nci + ' Notes';
+      nOpt.textContent = String(nci);
       if (nci === _noteCount) { nOpt.selected = true; }
       countSelect.appendChild(nOpt);
     }
-    controlRow.appendChild(countSelect);
+    controlRow.appendChild(_makeLabeledSelect('Notes', countSelect));
 
     wrapper.appendChild(controlRow);
 
@@ -585,14 +604,12 @@
     noteGrid.className = 'ssli-breathpadens-note-grid';
     noteGrid.style.display = 'grid';
     noteGrid.style.gridTemplateColumns = 'repeat(' + NOTE_GRID_COLS + ', 1fr)';
-    noteGrid.style.gridTemplateRows = 'repeat(' + NOTE_GRID_ROWS + ', auto)';
+    noteGrid.style.gridTemplateRows = 'repeat(' + NOTE_GRID_ROWS + ', 1fr)';
     noteGrid.style.gap = NOTE_GRID_GAP_PX + 'px';
     noteGrid.style.padding = NOTE_GRID_GAP_PX + 'px';
     noteGrid.style.width = NOTE_GRID_WIDTH_PX + 'px';
     noteGrid.style.boxSizing = 'border-box';
     noteGrid.style.flex = '0 0 auto';
-    noteGrid.style.alignSelf = 'flex-start';
-    noteGrid.style.overflow = 'hidden';
     mainRow.appendChild(noteGrid);
 
     var _ensNoteButtons = null;
@@ -613,8 +630,8 @@
         btn.style.padding = '2px 2px';
         btn.style.fontSize = '12px';
         btn.style.textAlign = 'center';
-        btn.style.minHeight = '0';
-        btn.style.minWidth = '0';
+        btn.style.minHeight = '42px';
+        btn.style.minWidth = '42px';
         if (ni === _rootPc) {
           btn.className += ' ssli-fret-chord-active';
         }

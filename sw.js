@@ -6,7 +6,7 @@
 var CACHE_VERSION = 'ssli-cache-v1.10.1177';
 var CACHED_URLS = [
   './',
-  './SuperSynthLabInstrument.html'
+  './index.html'
 ];
 
 // Install: pre-cache the standalone HTML
